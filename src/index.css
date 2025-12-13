@@ -2,95 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* 
+ * Wasata AI وساطه - Design System
+ * Primary: Royal Green #01411C
+ * Secondary: Gold #D4AF37
+ */
 
 @layer base {
   :root {
+    /* Wasata AI Brand Colors - HSL format */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 145 96% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 145 96% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 145 96% 13%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Royal Green #01411C */
+    --primary: 145 96% 13%;
+    --primary-foreground: 0 0% 100%;
+    --primary-dark: 155 86% 20%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Gold #D4AF37 */
+    --secondary: 43 65% 52%;
+    --secondary-foreground: 145 96% 13%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Light Green */
+    --muted: 140 52% 96%;
+    --muted-foreground: 155 86% 20%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent: Gold tint */
+    --accent: 47 100% 97%;
+    --accent-foreground: 145 96% 13%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive */
+    --destructive: 344 74% 46%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Success */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Info */
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 145 96% 13%;
 
     --radius: 0.5rem;
 
+    /* Gold Shades */
+    --gold-50: 47 100% 97%;
+    --gold-100: 47 96% 91%;
+    --gold-500: 43 65% 52%;
+    --gold-600: 43 75% 42%;
+    --gold-900: 40 75% 22%;
+
+    /* Account Type Colors */
+    --individual: 160 84% 39%;
+    --team: 217 91% 60%;
+    --office: 38 92% 50%;
+    --company: 262 83% 58%;
+
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
+    --sidebar-foreground: 145 96% 13%;
+    --sidebar-primary: 145 96% 13%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 43 65% 52%;
+    --sidebar-accent-foreground: 145 96% 13%;
     --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 145 96% 13%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 145 50% 5%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 145 50% 8%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 145 50% 8%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 43 65% 52%;
+    --primary-foreground: 145 96% 13%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 145 30% 15%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 145 30% 15%;
+    --muted-foreground: 145 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 145 30% 15%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 344 74% 35%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 145 30% 15%;
+    --input: 145 30% 15%;
+    --ring: 43 65% 52%;
+
+    --sidebar-background: 145 50% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 43 65% 52%;
+    --sidebar-primary-foreground: 145 96% 13%;
+    --sidebar-accent: 145 30% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 145 30% 15%;
+    --sidebar-ring: 43 65% 52%;
   }
 }
 
@@ -101,5 +130,34 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* RTL support for Arabic */
+  [dir="rtl"] {
+    text-align: right;
+  }
+}
+
+@layer utilities {
+  /* Gradient utilities */
+  .gradient-main {
+    background: linear-gradient(135deg, hsl(140 52% 96%) 0%, hsl(0 0% 100%) 25%, hsl(47 100% 97%) 100%);
+  }
+
+  .gradient-header {
+    background: linear-gradient(to right, hsl(145 96% 13%), hsl(155 86% 20%), hsl(145 96% 13%));
+  }
+
+  .gradient-gold {
+    background: linear-gradient(to left, hsl(43 65% 52%), hsl(43 75% 42%));
+  }
+
+  /* Shadow utilities */
+  .shadow-green {
+    box-shadow: 0 10px 15px -3px hsla(145 96% 13% / 0.2);
+  }
+
+  .shadow-gold {
+    box-shadow: 0 10px 15px -3px hsla(43 65% 52% / 0.2);
   }
 }
