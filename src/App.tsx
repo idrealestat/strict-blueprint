@@ -9,6 +9,7 @@ import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatform from "./components/platform/MyPlatform";
 import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
 import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
+import { ReportsAnalytics } from "./components/analytics";
 import CustomersListPage from "./pages/CustomersListPage";
 import NotFound from "./pages/NotFound";
 
@@ -51,6 +52,8 @@ const App = () => {
         return <BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={mockUser} />;
       case "business-card-edit":
         return <BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={mockUser} />;
+      case "reports-analytics":
+        return <ReportsAnalytics onBack={handleBack} />;
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
