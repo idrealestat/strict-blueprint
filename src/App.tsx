@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { useState } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
@@ -12,6 +13,7 @@ import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import { ReportsAnalytics } from "./components/analytics";
 import { DigitalCardDashboard } from "./components/digital-card";
 import CustomersListPage from "./pages/CustomersListPage";
+import PublicCardView from "./pages/PublicCardView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,19 +66,22 @@ const App = () => {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={renderPage()} />
-            <Route path="/customers" element={<CustomersListPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={renderPage()} />
+              <Route path="/customers" element={<CustomersListPage />} />
+              <Route path="/cards/:slug" element={<PublicCardView />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 };
 
