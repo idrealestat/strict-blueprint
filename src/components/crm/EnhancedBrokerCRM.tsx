@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowRight,
   Search,
@@ -56,8 +57,12 @@ import {
   List,
   ChevronDown,
   ChevronUp,
+  Download,
+  FileSpreadsheet,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import CustomerDetailsPage from "./CustomerDetailsPage";
 
 // Types
 interface Customer {
@@ -254,6 +259,36 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showColorsManager, setShowColorsManager] = useState(false);
   const [unreadCustomers, setUnreadCustomers] = useState<string[]>(['1', '3']);
   const [draggedCustomer, setDraggedCustomer] = useState<string | null>(null);
+  const [showFullDetails, setShowFullDetails] = useState(false);
+  
+  // Filter State
+  const [filters, setFilters] = useState({
+    type: '',
+    interestLevel: '',
+    budgetMin: '',
+    budgetMax: '',
+    source: '',
+    dateFrom: '',
+    dateTo: '',
+  });
+  
+  // Tags Manager State
+  const [customTags, setCustomTags] = useState<{ name: string; color: string }[]>([
+    { name: 'VIP', color: '#ef4444' },
+    { name: 'مستعجل', color: '#f97316' },
+    { name: 'متابعة', color: '#10b981' },
+    { name: 'تمويل', color: '#3b82f6' },
+    { name: 'استثمار', color: '#8b5cf6' },
+  ]);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#01411C');
+  
+  // Available tag colors
+  const TAG_COLORS = [
+    '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
+    '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6',
+    '#a855f7', '#ec4899', '#f43f5e'
+  ];
   
   // New Customer Form State
   const [newCustomer, setNewCustomer] = useState({
@@ -270,17 +305,94 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     tags: [] as string[],
   });
 
-  // Filtered customers
+  // Filtered customers with advanced filters
   const filteredCustomers = customers.filter(customer => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      customer.name.toLowerCase().includes(query) ||
-      customer.phone.includes(query) ||
-      customer.email?.toLowerCase().includes(query) ||
-      customer.company?.toLowerCase().includes(query)
-    );
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = (
+        customer.name.toLowerCase().includes(query) ||
+        customer.phone.includes(query) ||
+        customer.email?.toLowerCase().includes(query) ||
+        customer.company?.toLowerCase().includes(query)
+      );
+      if (!matchesSearch) return false;
+    }
+    
+    // Type filter
+    if (filters.type && customer.type !== filters.type) return false;
+    
+    // Interest level filter
+    if (filters.interestLevel && customer.interestLevel !== filters.interestLevel) return false;
+    
+    // Source filter
+    if (filters.source && customer.source !== filters.source) return false;
+    
+    // Date range filter
+    if (filters.dateFrom && customer.createdAt < filters.dateFrom) return false;
+    if (filters.dateTo && customer.createdAt > filters.dateTo) return false;
+    
+    return true;
   });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      type: '',
+      interestLevel: '',
+      budgetMin: '',
+      budgetMax: '',
+      source: '',
+      dateFrom: '',
+      dateTo: '',
+    });
+    setSearchQuery('');
+  };
+
+  // Add new tag
+  const handleAddTag = () => {
+    if (!newTagName.trim()) return;
+    if (customTags.find(t => t.name === newTagName.trim())) {
+      toast.error('التاق موجود مسبقاً');
+      return;
+    }
+    setCustomTags([...customTags, { name: newTagName.trim(), color: newTagColor }]);
+    setNewTagName('');
+    toast.success('تم إضافة التاق');
+  };
+
+  // Delete tag
+  const handleDeleteTag = (tagName: string) => {
+    setCustomTags(customTags.filter(t => t.name !== tagName));
+    toast.success('تم حذف التاق');
+  };
+
+  // Export customers to CSV
+  const handleExportCSV = () => {
+    const headers = ['الاسم', 'الجوال', 'البريد', 'الشركة', 'النوع', 'الميزانية', 'الموقع'];
+    const rows = customers.map(c => [
+      c.name, c.phone, c.email || '', c.company || '', c.type || '', c.budget || '', c.location || ''
+    ]);
+    
+    const csvContent = [headers, ...rows]
+      .map(row => row.join(','))
+      .join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customers_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('تم تصدير العملاء بنجاح');
+  };
+
+  // Handle customer update from details page
+  const handleCustomerUpdate = (updatedCustomer: Customer) => {
+    setCustomers(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
+    setSelectedCustomer(updatedCustomer);
+  };
 
   // Check if customer is unread
   const isCustomerUnread = (customerId: string) => unreadCustomers.includes(customerId);
@@ -1062,6 +1174,19 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                   اتصال
                 </Button>
               </div>
+              
+              {/* Full Details Button */}
+              <Button
+                variant="outline"
+                className="w-full mt-2 border-[#D4AF37]"
+                onClick={() => {
+                  setShowCustomerDetails(false);
+                  setShowFullDetails(true);
+                }}
+              >
+                <Eye className="w-4 h-4 ml-2" />
+                عرض التفاصيل الكاملة
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -1069,28 +1194,204 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
 
       {/* Import Dialog */}
       <Dialog open={showImport} onOpenChange={setShowImport}>
-        <DialogContent dir="rtl">
+        <DialogContent dir="rtl" className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>استيراد العملاء</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              استيراد العملاء
+            </DialogTitle>
           </DialogHeader>
-          <div className="py-8 text-center text-gray-500">
-            <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <p>اسحب ملف Excel أو CSV هنا</p>
-            <p className="text-sm mt-2">أو اضغط للاختيار</p>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#01411C] transition-colors cursor-pointer">
+              <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-600 mb-2">اسحب ملف Excel أو CSV هنا</p>
+              <p className="text-sm text-gray-400">أو اضغط للاختيار</p>
+              <input type="file" accept=".csv,.xlsx,.xls" className="hidden" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={handleExportCSV}>
+                <Download className="w-4 h-4 ml-2" />
+                تصدير العملاء الحاليين
+              </Button>
+              <Button variant="outline" className="flex-1">
+                <FileSpreadsheet className="w-4 h-4 ml-2" />
+                تحميل قالب
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Tags Manager Dialog */}
       <Dialog open={showTagsManager} onOpenChange={setShowTagsManager}>
-        <DialogContent dir="rtl">
+        <DialogContent dir="rtl" className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>إدارة التاقات</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="w-5 h-5" />
+              إدارة التاقات
+            </DialogTitle>
           </DialogHeader>
-          <div className="py-4 text-center text-gray-500">
-            <Tag className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <p>قريباً - إدارة التاقات</p>
+          <div className="space-y-4">
+            {/* Add new tag */}
+            <div className="flex gap-2">
+              <Input
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                placeholder="اسم التاق الجديد"
+                className="flex-1"
+              />
+              <div className="flex items-center gap-1">
+                {TAG_COLORS.slice(0, 6).map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setNewTagColor(color)}
+                    className={`w-6 h-6 rounded-full transition-transform ${newTagColor === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+              <Button onClick={handleAddTag} size="icon" className="bg-[#01411C]">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {/* Existing tags */}
+            <ScrollArea className="h-64">
+              <div className="space-y-2">
+                {customTags.map((tag) => (
+                  <div key={tag.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <span className="font-medium">{tag.name}</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteTag(tag.name)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            
+            {/* Color palette */}
+            <div className="border-t pt-4">
+              <p className="text-sm text-gray-600 mb-2">الألوان المتاحة</p>
+              <div className="flex flex-wrap gap-2">
+                {TAG_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setNewTagColor(color)}
+                    className={`w-8 h-8 rounded-full transition-all hover:scale-110 ${newTagColor === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filters Dialog */}
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent dir="rtl" className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5" />
+              فلاتر متقدمة
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Type Filter */}
+              <div>
+                <Label>نوع العميل</Label>
+                <Select value={filters.type} onValueChange={(v) => setFilters({...filters, type: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="الكل" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">الكل</SelectItem>
+                    <SelectItem value="buyer">مشتري</SelectItem>
+                    <SelectItem value="seller">بائع</SelectItem>
+                    <SelectItem value="renter">مستأجر</SelectItem>
+                    <SelectItem value="owner">مالك</SelectItem>
+                    <SelectItem value="investor">مستثمر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Interest Level Filter */}
+              <div>
+                <Label>مستوى الاهتمام</Label>
+                <Select value={filters.interestLevel} onValueChange={(v) => setFilters({...filters, interestLevel: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="الكل" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">الكل</SelectItem>
+                    <SelectItem value="hot">🔥 ساخن</SelectItem>
+                    <SelectItem value="warm">☀️ دافئ</SelectItem>
+                    <SelectItem value="moderate">🌤️ متوسط</SelectItem>
+                    <SelectItem value="cold">❄️ بارد</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Date From */}
+              <div>
+                <Label>من تاريخ</Label>
+                <Input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                />
+              </div>
+              
+              {/* Date To */}
+              <div>
+                <Label>إلى تاريخ</Label>
+                <Input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            {/* Active Filters */}
+            {(filters.type || filters.interestLevel || filters.dateFrom || filters.dateTo) && (
+              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-600">الفلاتر النشطة:</span>
+                {filters.type && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {filters.type}
+                    <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, type: ''})} />
+                  </Badge>
+                )}
+                {filters.interestLevel && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {filters.interestLevel}
+                    <X className="w-3 h-3 cursor-pointer" onClick={() => setFilters({...filters, interestLevel: ''})} />
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={clearFilters}>
+              مسح الفلاتر
+            </Button>
+            <Button onClick={() => setShowFilters(false)} className="bg-[#01411C]">
+              تطبيق
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1098,14 +1399,47 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       <Dialog open={showColorsManager} onOpenChange={setShowColorsManager}>
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>إدارة الألوان</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" />
+              تخصيص ألوان الأعمدة
+            </DialogTitle>
           </DialogHeader>
-          <div className="py-4 text-center text-gray-500">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
-            <p>قريباً - تخصيص ألوان الأعمدة</p>
+          <div className="space-y-4">
+            {columns.map((column) => {
+              const colors = COLUMN_COLORS[column.id];
+              return (
+                <div key={column.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-16 rounded ${colors?.border || 'border-gray-300'}`} 
+                         style={{ backgroundColor: colors?.bg?.replace('bg-', '') }} />
+                    <span className="font-medium">{column.title}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {TAG_COLORS.slice(0, 6).map((color) => (
+                      <button
+                        key={color}
+                        className="w-6 h-6 rounded-full hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Full Customer Details Page */}
+      {showFullDetails && selectedCustomer && (
+        <div className="fixed inset-0 z-50 bg-white overflow-auto">
+          <CustomerDetailsPage
+            customer={selectedCustomer}
+            onBack={() => setShowFullDetails(false)}
+            onUpdate={handleCustomerUpdate}
+          />
+        </div>
+      )}
 
       {/* Spacer for bottom bar */}
       <div className="h-24"></div>
