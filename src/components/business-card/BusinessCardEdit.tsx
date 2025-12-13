@@ -1,0 +1,753 @@
+import React, { useState, useEffect } from "react";
+import {
+  ArrowRight,
+  Save,
+  Camera,
+  User,
+  Building,
+  Phone,
+  Mail,
+  Globe,
+  MapPin,
+  Clock,
+  Award,
+  Share2,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Trash2
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+  type: "individual" | "company";
+  companyName?: string;
+  city: string;
+  plan: string;
+  rating: number;
+}
+
+interface BusinessCardEditProps {
+  onBack: () => void;
+  user: User;
+}
+
+interface WorkingHour {
+  open: string;
+  close: string;
+  isOpen: boolean;
+}
+
+interface SocialMedia {
+  tiktok: string;
+  twitter: string;
+  instagram: string;
+  snapchat: string;
+  youtube: string;
+  facebook: string;
+}
+
+interface Achievements {
+  totalDeals: number;
+  totalProperties: number;
+  totalClients: number;
+  yearsOfExperience: number;
+  awards: string[];
+  certifications: string[];
+  topPerformer: boolean;
+  verified: boolean;
+}
+
+interface BusinessCardData {
+  userName: string;
+  companyName: string;
+  falLicense: string;
+  falExpiry: string;
+  commercialRegistration: string;
+  commercialExpiryDate: string;
+  primaryPhone: string;
+  email: string;
+  domain: string;
+  googleMapsLocation: string;
+  location: string;
+  officialPlatform: string;
+  bio: string;
+  socialMedia: SocialMedia;
+  workingHours: Record<string, WorkingHour>;
+  achievements: Achievements;
+}
+
+const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => {
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("basic");
+  const [newAward, setNewAward] = useState("");
+  const [newCertification, setNewCertification] = useState("");
+
+  const STORAGE_KEY = `business_card_${user.id}`;
+
+  // Default form data
+  const defaultFormData: BusinessCardData = {
+    userName: user.name,
+    companyName: user.companyName || "",
+    falLicense: "",
+    falExpiry: "",
+    commercialRegistration: "",
+    commercialExpiryDate: "",
+    primaryPhone: user.phone,
+    email: user.email,
+    domain: "",
+    googleMapsLocation: "",
+    location: user.city,
+    officialPlatform: "",
+    bio: "",
+    socialMedia: {
+      tiktok: "",
+      twitter: "",
+      instagram: "",
+      snapchat: "",
+      youtube: "",
+      facebook: ""
+    },
+    workingHours: {
+      sunday: { open: "8:00 ص", close: "2:00 م", isOpen: true },
+      monday: { open: "8:00 ص", close: "2:00 م", isOpen: true },
+      tuesday: { open: "8:00 ص", close: "2:00 م", isOpen: true },
+      wednesday: { open: "8:00 ص", close: "2:00 م", isOpen: true },
+      thursday: { open: "8:00 ص", close: "2:00 م", isOpen: true },
+      friday: { open: "", close: "", isOpen: false },
+      saturday: { open: "8:00 ص", close: "2:00 م", isOpen: true }
+    },
+    achievements: {
+      totalDeals: 0,
+      totalProperties: 0,
+      totalClients: 0,
+      yearsOfExperience: 0,
+      awards: [],
+      certifications: [],
+      topPerformer: false,
+      verified: false
+    }
+  };
+
+  const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
+
+  // Load data from localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFormData({ ...defaultFormData, ...parsed });
+      } catch (error) {
+        console.error("Error loading saved data:", error);
+      }
+    }
+  }, []);
+
+  // Handle save
+  const handleSave = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 2000);
+      toast.success("تم حفظ التغييرات بنجاح!");
+    } catch (error) {
+      setShowError(true);
+      setErrorMessage("حدث خطأ في الحفظ");
+      toast.error("فشل الحفظ!");
+    }
+  };
+
+  // Handle input change
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle social media change
+  const handleSocialChange = (platform: keyof SocialMedia, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      socialMedia: { ...prev.socialMedia, [platform]: value }
+    }));
+  };
+
+  // Handle working hours change
+  const handleWorkingHoursChange = (day: string, field: keyof WorkingHour, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      workingHours: {
+        ...prev.workingHours,
+        [day]: { ...prev.workingHours[day], [field]: value }
+      }
+    }));
+  };
+
+  // Handle achievements change
+  const handleAchievementsChange = (field: keyof Achievements, value: number | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: { ...prev.achievements, [field]: value }
+    }));
+  };
+
+  // Add award
+  const addAward = () => {
+    if (newAward.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        achievements: {
+          ...prev.achievements,
+          awards: [...prev.achievements.awards, newAward.trim()]
+        }
+      }));
+      setNewAward("");
+    }
+  };
+
+  // Remove award
+  const removeAward = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: {
+        ...prev.achievements,
+        awards: prev.achievements.awards.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  // Add certification
+  const addCertification = () => {
+    if (newCertification.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        achievements: {
+          ...prev.achievements,
+          certifications: [...prev.achievements.certifications, newCertification.trim()]
+        }
+      }));
+      setNewCertification("");
+    }
+  };
+
+  // Remove certification
+  const removeCertification = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: {
+        ...prev.achievements,
+        certifications: prev.achievements.certifications.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  const daysArabic: Record<string, string> = {
+    sunday: "الأحد",
+    monday: "الإثنين",
+    tuesday: "الثلاثاء",
+    wednesday: "الأربعاء",
+    thursday: "الخميس",
+    friday: "الجمعة",
+    saturday: "السبت"
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-32" dir="rtl">
+      {/* Save Success Toast */}
+      {showSaveSuccess && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            <span>تم الحفظ بنجاح! ✅</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {showError && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top">
+          <div className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            <span>{errorMessage}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] px-4 py-4">
+        <div className="flex justify-between items-center">
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="text-white hover:bg-white/20"
+          >
+            <ArrowRight className="w-5 h-5 ml-2" />
+            عودة
+          </Button>
+          <h1 className="text-white text-lg font-bold">تعديل بطاقة الأعمال</h1>
+          <Button
+            onClick={handleSave}
+            className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
+          >
+            <Save className="w-4 h-4 ml-2" />
+            حفظ
+          </Button>
+        </div>
+      </div>
+
+      {/* Image Upload Section */}
+      <div className="px-4 py-6 bg-white border-b">
+        <div className="flex justify-center gap-6">
+          {/* Cover Image */}
+          <div className="text-center">
+            <div className="w-24 h-16 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-[#01411C] cursor-pointer hover:bg-gray-100">
+              <Camera className="w-6 h-6 text-[#01411C]" />
+            </div>
+            <span className="text-xs text-gray-600 mt-1 block">صورة الغلاف</span>
+          </div>
+
+          {/* Profile Image */}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center border-2 border-dashed border-[#01411C] cursor-pointer hover:bg-gray-100">
+              <User className="w-6 h-6 text-[#01411C]" />
+            </div>
+            <span className="text-xs text-gray-600 mt-1 block">الصورة الشخصية</span>
+          </div>
+
+          {/* Logo */}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-[#01411C] cursor-pointer hover:bg-gray-100">
+              <Building className="w-6 h-6 text-[#01411C]" />
+            </div>
+            <span className="text-xs text-gray-600 mt-1 block">شعار الشركة</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="px-4 py-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-5 w-full bg-gray-100">
+            <TabsTrigger value="basic" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
+              الأساسية
+            </TabsTrigger>
+            <TabsTrigger value="contact" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
+              التواصل
+            </TabsTrigger>
+            <TabsTrigger value="social" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
+              السوشيال
+            </TabsTrigger>
+            <TabsTrigger value="hours" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
+              الأوقات
+            </TabsTrigger>
+            <TabsTrigger value="achievements" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
+              الإنجازات
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Basic Info Tab */}
+          <TabsContent value="basic" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">👤 المعلومات الأساسية</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>الاسم الكامل</Label>
+                  <Input
+                    value={formData.userName}
+                    onChange={(e) => handleInputChange("userName", e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>اسم الشركة</Label>
+                  <Input
+                    value={formData.companyName}
+                    onChange={(e) => handleInputChange("companyName", e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>نبذة عني (500 حرف كحد أقصى)</Label>
+                  <Textarea
+                    value={formData.bio}
+                    onChange={(e) => handleInputChange("bio", e.target.value.slice(0, 500))}
+                    className="mt-1"
+                    maxLength={500}
+                    rows={4}
+                  />
+                  <span className="text-xs text-gray-500">{formData.bio.length}/500</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">📜 الرخص والسجلات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>رقم رخصة فال</Label>
+                    <Input
+                      value={formData.falLicense}
+                      onChange={(e) => handleInputChange("falLicense", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>تاريخ انتهاء رخصة فال</Label>
+                    <Input
+                      type="date"
+                      value={formData.falExpiry}
+                      onChange={(e) => handleInputChange("falExpiry", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>رقم السجل التجاري</Label>
+                    <Input
+                      value={formData.commercialRegistration}
+                      onChange={(e) => handleInputChange("commercialRegistration", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>تاريخ انتهاء السجل</Label>
+                    <Input
+                      type="date"
+                      value={formData.commercialExpiryDate}
+                      onChange={(e) => handleInputChange("commercialExpiryDate", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Contact Tab */}
+          <TabsContent value="contact" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">📞 معلومات التواصل</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>رقم الجوال الأساسي</Label>
+                  <Input
+                    value={formData.primaryPhone}
+                    onChange={(e) => handleInputChange("primaryPhone", e.target.value)}
+                    className="mt-1"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>البريد الإلكتروني</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="mt-1"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>الموقع الإلكتروني</Label>
+                  <Input
+                    value={formData.domain}
+                    onChange={(e) => handleInputChange("domain", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://example.com"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>رابط خرائط جوجل</Label>
+                  <Input
+                    value={formData.googleMapsLocation}
+                    onChange={(e) => handleInputChange("googleMapsLocation", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://maps.google.com/..."
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>المدينة / المنطقة</Label>
+                  <Input
+                    value={formData.location}
+                    onChange={(e) => handleInputChange("location", e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Social Media Tab */}
+          <TabsContent value="social" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">📱 وسائل التواصل الاجتماعي</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>⚫ TikTok</Label>
+                  <Input
+                    value={formData.socialMedia.tiktok}
+                    onChange={(e) => handleSocialChange("tiktok", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://tiktok.com/@..."
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>🐦 Twitter / X</Label>
+                  <Input
+                    value={formData.socialMedia.twitter}
+                    onChange={(e) => handleSocialChange("twitter", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://twitter.com/..."
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>📸 Instagram</Label>
+                  <Input
+                    value={formData.socialMedia.instagram}
+                    onChange={(e) => handleSocialChange("instagram", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://instagram.com/..."
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>👻 Snapchat</Label>
+                  <Input
+                    value={formData.socialMedia.snapchat}
+                    onChange={(e) => handleSocialChange("snapchat", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://snapchat.com/add/..."
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>▶️ YouTube</Label>
+                  <Input
+                    value={formData.socialMedia.youtube}
+                    onChange={(e) => handleSocialChange("youtube", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://youtube.com/..."
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label>📘 Facebook</Label>
+                  <Input
+                    value={formData.socialMedia.facebook}
+                    onChange={(e) => handleSocialChange("facebook", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://facebook.com/..."
+                    dir="ltr"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Working Hours Tab */}
+          <TabsContent value="hours" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">⏰ ساعات العمل</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(formData.workingHours).map(([day, hours]) => (
+                  <div key={day} className="flex items-center gap-3 py-2 border-b last:border-0">
+                    <div className="flex items-center gap-2 w-24">
+                      <Switch
+                        checked={hours.isOpen}
+                        onCheckedChange={(checked) => handleWorkingHoursChange(day, "isOpen", checked)}
+                      />
+                      <span className="text-sm font-medium">{daysArabic[day]}</span>
+                    </div>
+                    {hours.isOpen && (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          value={hours.open}
+                          onChange={(e) => handleWorkingHoursChange(day, "open", e.target.value)}
+                          placeholder="وقت الفتح"
+                          className="w-24 text-sm"
+                        />
+                        <span className="text-gray-500">-</span>
+                        <Input
+                          value={hours.close}
+                          onChange={(e) => handleWorkingHoursChange(day, "close", e.target.value)}
+                          placeholder="وقت الإغلاق"
+                          className="w-24 text-sm"
+                        />
+                      </div>
+                    )}
+                    {!hours.isOpen && (
+                      <span className="text-red-500 text-sm">مغلق</span>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Achievements Tab */}
+          <TabsContent value="achievements" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">📊 الإحصائيات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>🤝 عدد الصفقات المكتملة</Label>
+                    <Input
+                      type="number"
+                      value={formData.achievements.totalDeals}
+                      onChange={(e) => handleAchievementsChange("totalDeals", parseInt(e.target.value) || 0)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>🏢 عدد العقارات المدرجة</Label>
+                    <Input
+                      type="number"
+                      value={formData.achievements.totalProperties}
+                      onChange={(e) => handleAchievementsChange("totalProperties", parseInt(e.target.value) || 0)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>👥 عدد العملاء</Label>
+                    <Input
+                      type="number"
+                      value={formData.achievements.totalClients}
+                      onChange={(e) => handleAchievementsChange("totalClients", parseInt(e.target.value) || 0)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>⏱️ سنوات الخبرة</Label>
+                    <Input
+                      type="number"
+                      value={formData.achievements.yearsOfExperience}
+                      onChange={(e) => handleAchievementsChange("yearsOfExperience", parseInt(e.target.value) || 0)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm">⭐ أفضل أداء</span>
+                  <Switch
+                    checked={formData.achievements.topPerformer}
+                    onCheckedChange={(checked) => handleAchievementsChange("topPerformer", checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm">✅ موثق</span>
+                  <Switch
+                    checked={formData.achievements.verified}
+                    onCheckedChange={(checked) => handleAchievementsChange("verified", checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">🏅 الجوائز</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={newAward}
+                    onChange={(e) => setNewAward(e.target.value)}
+                    placeholder="اسم الجائزة"
+                    className="flex-1"
+                  />
+                  <Button onClick={addAward} size="icon" className="bg-[#01411C]">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.achievements.awards.map((award, i) => (
+                    <span key={i} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm flex items-center gap-1">
+                      {award}
+                      <button onClick={() => removeAward(i)} className="text-red-500 hover:text-red-700">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">📜 الشهادات</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={newCertification}
+                    onChange={(e) => setNewCertification(e.target.value)}
+                    placeholder="اسم الشهادة"
+                    className="flex-1"
+                  />
+                  <Button onClick={addCertification} size="icon" className="bg-[#01411C]">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.achievements.certifications.map((cert, i) => (
+                    <span key={i} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-1">
+                      {cert}
+                      <button onClick={() => removeCertification(i)} className="text-red-500 hover:text-red-700">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Floating Save Button */}
+      <button
+        onClick={handleSave}
+        className="fixed bottom-24 left-4 z-40 p-4 rounded-full bg-gradient-to-br from-[#01411C] to-[#065f41] border-2 border-[#D4AF37] text-white shadow-2xl hover:scale-110 transition-transform"
+      >
+        <Save className="w-6 h-6" />
+      </button>
+    </div>
+  );
+};
+
+export default BusinessCardEdit;
