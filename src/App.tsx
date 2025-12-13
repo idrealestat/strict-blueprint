@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
+import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import CustomersListPage from "./pages/CustomersListPage";
 import NotFound from "./pages/NotFound";
 
@@ -30,7 +31,21 @@ const App = () => {
   const handleNavigate = (page: string) => {
     console.log("Navigate to:", page);
     setCurrentPage(page);
-    // TODO: Implement full navigation
+  };
+
+  const handleBack = () => {
+    setCurrentPage("dashboard");
+  };
+
+  // Render based on current page
+  const renderPage = () => {
+    switch (currentPage) {
+      case "customer-management-72":
+        return <EnhancedBrokerCRM onBack={handleBack} user={mockUser} />;
+      case "dashboard":
+      default:
+        return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
+    }
   };
 
   return (
@@ -40,17 +55,8 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route 
-              path="/" 
-              element={
-                <SimpleDashboard 
-                  user={mockUser} 
-                  onNavigate={handleNavigate} 
-                />
-              } 
-            />
+            <Route path="/" element={renderPage()} />
             <Route path="/customers" element={<CustomersListPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
