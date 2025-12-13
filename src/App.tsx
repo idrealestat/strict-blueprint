@@ -7,6 +7,8 @@ import { useState } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatform from "./components/platform/MyPlatform";
+import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
+import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import CustomersListPage from "./pages/CustomersListPage";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +47,10 @@ const App = () => {
         return <EnhancedBrokerCRM onBack={handleBack} user={mockUser} />;
       case "dashboard-main-252":
         return <MyPlatform onBack={handleBack} onNavigate={handleNavigate} user={mockUser} />;
+      case "business-card-profile":
+        return <BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={mockUser} />;
+      case "business-card-edit":
+        return <BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={mockUser} />;
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
