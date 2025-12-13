@@ -29,6 +29,7 @@ import {
   TrendingUp,
   Sparkles,
   Calculator,
+  UserCheck,
 } from "lucide-react";
 
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
@@ -320,6 +321,25 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
                   <h3 className="font-bold text-[#01411C] mb-2">حاسبة سريعة</h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
                     حساب العمولة، المساحة، ومسطح البناء
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* بطاقة أعمالي الرقمية */}
+              <Card
+                onClick={() => onNavigate("business-card-profile")}
+                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
+              >
+                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
+                  <div className="absolute top-2 right-2">
+                    <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">🔒 محمي</Badge>
+                  </div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] shadow-lg">
+                    <UserCheck className="w-8 h-8 text-[#01411C]" />
+                  </div>
+                  <h3 className="font-bold text-[#01411C] mb-2">بطاقة أعمالي الرقمية</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    بطاقة رقمية احترافية للوسيط العقاري
                   </p>
                 </CardContent>
               </Card>
