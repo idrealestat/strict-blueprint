@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
+import MyPlatform from "./components/platform/MyPlatform";
 import CustomersListPage from "./pages/CustomersListPage";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,8 @@ const App = () => {
     switch (currentPage) {
       case "customer-management-72":
         return <EnhancedBrokerCRM onBack={handleBack} user={mockUser} />;
+      case "dashboard-main-252":
+        return <MyPlatform onBack={handleBack} onNavigate={handleNavigate} user={mockUser} />;
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
