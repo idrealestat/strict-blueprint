@@ -55,17 +55,17 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Wasata AI Custom Colors
+        // Wasata AI Custom Colors (HEX for direct use)
         wasata: {
           green: "#01411C",
           "green-dark": "#065f41",
           gold: "#D4AF37",
           "gold-light": "#fef9e7",
         },
-        // Status colors
-        success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))",
-        info: "hsl(var(--info))",
+        // Status colors (HSL)
+        success: "#10B981",
+        warning: "#F59E0B",
+        info: "#3B82F6",
       },
       borderRadius: {
         lg: "var(--radius)",
