@@ -250,7 +250,7 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
 
               {/* النشر على المنصات */}
               <Card
-                onClick={() => onNavigate("property-upload-complete")}
+                onClick={() => onNavigate("advertising")}
                 className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
               >
                 <CardContent className="p-6 text-center h-full min-h-[220px] flex flex-col justify-center">
