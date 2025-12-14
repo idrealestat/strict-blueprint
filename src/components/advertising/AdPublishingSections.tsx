@@ -42,6 +42,16 @@ const AD_TYPES = [
   { id: 'instant', name: 'فوري', icon: '⚡' },
 ];
 
+// ===================== أنواع القنوات =====================
+const CHANNEL_TYPES = [
+  { id: 'facebook', name: 'فيسبوك', icon: '📘', color: 'blue', bg_color: 'bg-blue-100', avg_cpc: 2.5 },
+  { id: 'instagram', name: 'انستغرام', icon: '📷', color: 'pink', bg_color: 'bg-pink-100', avg_cpc: 3.2 },
+  { id: 'twitter', name: 'تويتر/X', icon: '🐦', color: 'sky', bg_color: 'bg-sky-100', avg_cpc: 2.0 },
+  { id: 'snapchat', name: 'سناب شات', icon: '👻', color: 'yellow', bg_color: 'bg-yellow-100', avg_cpc: 1.8 },
+  { id: 'tiktok', name: 'تيك توك', icon: '🎵', color: 'gray', bg_color: 'bg-gray-100', avg_cpc: 1.5 },
+  { id: 'google_ads', name: 'إعلانات جوجل', icon: '🔍', color: 'green', bg_color: 'bg-green-100', avg_cpc: 1.8 },
+];
+
 // ===================== Props =====================
 interface AdPublishingSectionsProps {
   onBack: () => void;
@@ -74,6 +84,18 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [bidStrategy, setBidStrategy] = useState('lowest_cost');
+
+  // حالة قسم القنوات والمنصات
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(['facebook', 'instagram']);
+  const [placement, setPlacement] = useState('feed');
+  const [deviceTargeting, setDeviceTargeting] = useState('all');
+  const [connectionTypes, setConnectionTypes] = useState<string[]>(['wifi', 'cellular']);
+
+  // حالة قسم المحتوى والإبداع
+  const [primaryImage, setPrimaryImage] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [brandColor, setBrandColor] = useState('#3B82F6');
+  const [fontStyle, setFontStyle] = useState('modern');
 
   // ===================== البيانات الثابتة =====================
   
@@ -915,62 +937,401 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
           </div>
         </TabsContent>
 
-        {/* ===================== قسم القنوات والمنصات ===================== */}
+        {/* ===================== قسم القنوات والمنصات الكامل ===================== */}
         <TabsContent value="channels">
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-2xl p-6 text-white">
+            {/* عنوان القسم */}
+            <div className="bg-gradient-to-r from-amber-600 to-yellow-500 rounded-2xl p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">القنوات والمنصات</h2>
-                  <p className="text-indigo-100">اختر منصات النشر المناسبة</p>
+                  <p className="text-amber-100">اختر منصات النشر وإعدادات العرض</p>
                 </div>
                 <div className="text-4xl">📢</div>
               </div>
             </div>
 
+            {/* أداء القنوات */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { id: 'facebook', name: 'فيسبوك', icon: '📘', users: '2.9B' },
-                  { id: 'instagram', name: 'انستغرام', icon: '📷', users: '2.0B' },
-                  { id: 'twitter', name: 'تويتر/X', icon: '🐦', users: '450M' },
-                  { id: 'snapchat', name: 'سناب شات', icon: '👻', users: '750M' },
-                  { id: 'tiktok', name: 'تيك توك', icon: '🎵', users: '1.5B' },
-                  { id: 'google', name: 'إعلانات جوجل', icon: '🔍', users: '8.5B' },
-                ].map((platform) => (
-                  <div
-                    key={platform.id}
-                    className="p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 cursor-pointer transition-all"
-                  >
-                    <div className="text-center">
-                      <span className="text-4xl">{platform.icon}</span>
-                      <div className="font-bold text-gray-900 mt-2">{platform.name}</div>
-                      <div className="text-sm text-gray-500">{platform.users} مستخدم</div>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-900">مقارنة أداء القنوات</h3>
+                <button className="text-amber-600 hover:text-amber-800 text-sm font-medium">
+                  عرض التفاصيل →
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">القناة</th>
+                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">معدل النقر</th>
+                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تكلفة النقرة</th>
+                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الوصول</th>
+                      <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">التوصية</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { channel: 'facebook', ctr: 1.2, cpc: 2.5, reach: 50000 },
+                      { channel: 'instagram', ctr: 1.8, cpc: 3.2, reach: 45000 },
+                      { channel: 'google_ads', ctr: 3.5, cpc: 1.8, reach: 75000 }
+                    ].map((perf) => {
+                      const channelConfig = CHANNEL_TYPES.find(c => c.id === perf.channel);
+                      return (
+                        <tr key={perf.channel} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3 justify-end">
+                              <div className={`w-10 h-10 ${channelConfig?.bg_color} rounded-lg flex items-center justify-center`}>
+                                <span className="text-lg">{channelConfig?.icon}</span>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-gray-900">{channelConfig?.name}</div>
+                                <div className="text-xs text-gray-500">{selectedChannels.includes(perf.channel) ? 'محدد' : 'غير محدد'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-right">
+                              <div className="font-bold text-green-600">{perf.ctr}%</div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-right">
+                              <div className="font-bold text-blue-600">{perf.cpc.toFixed(2)} ريال</div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-right">
+                              <div className="font-bold text-purple-600">{perf.reach.toLocaleString()}</div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className={`text-right font-bold ${
+                              perf.channel === 'google_ads' ? 'text-green-600' :
+                              perf.channel === 'facebook' ? 'text-amber-600' :
+                              'text-blue-600'
+                            }`}>
+                              {perf.channel === 'google_ads' ? 'مستحسن' :
+                               perf.channel === 'facebook' ? 'جيد' : 'متوسط'}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* نموذج القنوات والإعدادات */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+              <div className="grid grid-cols-2 gap-6">
+                {/* العمود الأيسر */}
+                <div className="space-y-6">
+                  {/* اختيار القنوات */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      اختيار القنوات
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {CHANNEL_TYPES.map((channel) => (
+                        <button
+                          key={channel.id}
+                          onClick={() => {
+                            if (selectedChannels.includes(channel.id)) {
+                              setSelectedChannels(selectedChannels.filter(c => c !== channel.id));
+                            } else {
+                              setSelectedChannels([...selectedChannels, channel.id]);
+                            }
+                          }}
+                          className={`p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center ${
+                            selectedChannels.includes(channel.id)
+                              ? 'border-amber-500 bg-amber-50'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-2xl mb-2">{channel.icon}</span>
+                          <span className="text-sm font-medium">{channel.name}</span>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {channel.avg_cpc?.toFixed(2)} ريال
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ))}
+
+                  {/* أنواع الأجهزة */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      أنواع الأجهزة المستهدفة
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'all', name: 'الكل', icon: '📱💻' },
+                        { id: 'mobile', name: 'جوال فقط', icon: '📱' },
+                        { id: 'desktop', name: 'كمبيوتر فقط', icon: '💻' }
+                      ].map((device) => (
+                        <button
+                          key={device.id}
+                          onClick={() => setDeviceTargeting(device.id)}
+                          className={`p-3 rounded-lg border transition-all duration-200 flex flex-col items-center ${
+                            deviceTargeting === device.id
+                              ? 'border-amber-500 bg-amber-50 text-amber-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="text-lg mb-1">{device.icon}</span>
+                          <span className="text-xs">{device.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* العمود الأيمن */}
+                <div className="space-y-6">
+                  {/* أماكن العرض */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      أماكن العرض
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'feed', name: 'الرئيسية', description: 'في شريط الأخبار' },
+                        { id: 'story', name: 'القصص', description: 'في قصص المنصة' },
+                        { id: 'video', name: 'الفيديو', description: 'ضمن الفيديوهات' },
+                        { id: 'search', name: 'البحث', description: 'في نتائج البحث' },
+                        { id: 'marketplace', name: 'السوق', description: 'في سوق المنصة' },
+                        { id: 'messenger', name: 'المحادثات', description: 'ضمن المراسلة' }
+                      ].map((place) => (
+                        <button
+                          key={place.id}
+                          onClick={() => setPlacement(place.id)}
+                          className={`p-3 rounded-lg border transition-all duration-200 text-center ${
+                            placement === place.id
+                              ? 'border-amber-500 bg-amber-50 text-amber-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="font-medium mb-1">{place.name}</div>
+                          <div className="text-xs text-gray-600">{place.description}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* أنواع الاتصال */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      أنواع الاتصال
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        { id: 'wifi', name: 'واي فاي', icon: '📶', perf: '+35% أداء' },
+                        { id: 'cellular', name: 'خلوي', icon: '📡', perf: '+20% أداء' },
+                        { id: 'all', name: 'الكل', icon: '🌐', perf: 'متوسط' }
+                      ].map((connection) => (
+                        <label key={connection.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={connectionTypes.includes(connection.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setConnectionTypes([...connectionTypes, connection.id]);
+                                } else {
+                                  setConnectionTypes(connectionTypes.filter(c => c !== connection.id));
+                                }
+                              }}
+                              className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                            />
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{connection.icon}</span>
+                              <span className="font-medium text-gray-900">{connection.name}</span>
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-500">{connection.perf}</div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* إعدادات متقدمة */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-700">إعدادات متقدمة</label>
+                      <button className="text-sm text-amber-600 hover:text-amber-800">عرض الكل</button>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">عرض على الشبكات الممولة</span>
+                        <input type="checkbox" defaultChecked className="w-4 h-4 text-amber-600 rounded" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">توسيع جمهور مشابه</span>
+                        <input type="checkbox" defaultChecked className="w-4 h-4 text-amber-600 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* أزرار التنقل */}
+            <div className="flex items-center justify-between">
+              <Button variant="outline" onClick={() => setActiveTab('budget')} className="px-6 py-3">
+                <ArrowRight className="w-4 h-4 ml-2" />
+                رجوع
+              </Button>
+              <Button onClick={() => setActiveTab('content')} className="px-6 py-3 bg-gradient-to-r from-amber-600 to-yellow-500 text-white">
+                التالي: المحتوى والإبداع
+                <ArrowLeft className="w-4 h-4 mr-2" />
+              </Button>
             </div>
           </div>
         </TabsContent>
 
-        {/* ===================== قسم المحتوى والإبداع ===================== */}
+        {/* ===================== قسم المحتوى والإبداع الكامل ===================== */}
         <TabsContent value="content">
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-pink-600 to-rose-500 rounded-2xl p-6 text-white">
+            {/* عنوان القسم */}
+            <div className="bg-gradient-to-r from-red-600 to-orange-500 rounded-2xl p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">المحتوى والإبداع</h2>
-                  <p className="text-pink-100">صمم محتوى إعلاني جذاب</p>
+                  <p className="text-red-100">صمم محتوى إعلانك بشكل إبداعي</p>
                 </div>
                 <div className="text-4xl">🎨</div>
               </div>
             </div>
 
+            {/* معاينة الإعلان */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-center py-12">
-                قريباً: أدوات تصميم المحتوى الإبداعي
-              </p>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-900">معاينة الإعلان</h3>
+                <div className="flex items-center gap-2">
+                  <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">📱 جوال</button>
+                  <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">💻 كمبيوتر</button>
+                  <button className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">🎬 فيديو</button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                {/* المحرر */}
+                <div className="space-y-6">
+                  {/* الصورة الرئيسية */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">الصورة الرئيسية</label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
+                      {primaryImage ? (
+                        <div className="relative">
+                          <img src={primaryImage} alt="Primary" className="w-full h-48 object-cover rounded-lg" />
+                          <button onClick={() => setPrimaryImage(null)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1">✕</button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-4xl mb-3">📤</div>
+                          <p className="text-gray-600 mb-2">اسحب الصورة هنا أو اضغط للاختيار</p>
+                          <p className="text-xs text-gray-400">PNG, JPG, GIF - الحجم الأقصى 10MB</p>
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = () => setPrimaryImage(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* رابط الفيديو */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">رابط الفيديو (اختياري)</label>
+                    <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+                  </div>
+
+                  {/* لون العلامة التجارية */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">لون العلامة التجارية</label>
+                    <div className="flex items-center gap-2">
+                      {['#3B82F6', '#10B981', '#8B5CF6', '#EF4444', '#F59E0B', '#01411C'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setBrandColor(color)}
+                          className={`w-10 h-10 rounded-lg border-2 ${brandColor === color ? 'border-gray-800 ring-2 ring-offset-2' : 'border-gray-200'}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                      <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer" />
+                    </div>
+                  </div>
+
+                  {/* نمط الخط */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">نمط الخط</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { id: 'modern', name: 'حديث' },
+                        { id: 'classic', name: 'كلاسيكي' },
+                        { id: 'elegant', name: 'أنيق' },
+                        { id: 'bold', name: 'عريض' }
+                      ].map((font) => (
+                        <button
+                          key={font.id}
+                          onClick={() => setFontStyle(font.id)}
+                          className={`p-2 rounded-lg border transition-all ${fontStyle === font.id ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                        >
+                          {font.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* المعاينة */}
+                <div className="bg-gray-100 rounded-xl p-6">
+                  <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-sm mx-auto">
+                    <div className="flex items-center gap-3 p-3 border-b">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: brandColor }}>
+                        <span className="text-white text-sm">🏢</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">اسم الشركة</div>
+                        <div className="text-xs text-gray-500">ممول</div>
+                      </div>
+                    </div>
+                    {primaryImage ? (
+                      <img src={primaryImage} alt="Preview" className="w-full h-48 object-cover" />
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                        <span className="text-gray-400 text-6xl">🖼️</span>
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 mb-2">{headline || 'عنوان الإعلان الجذاب'}</h3>
+                      <p className="text-sm text-gray-600 mb-4">{description || 'وصف مختصر للإعلان يشرح الفوائد'}</p>
+                      <button className="w-full py-2 text-white rounded-lg font-medium" style={{ backgroundColor: brandColor }}>
+                        {callToActions.find(c => c.id === callToAction)?.text || 'تعرف أكثر'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* أزرار التنقل */}
+            <div className="flex items-center justify-between">
+              <Button variant="outline" onClick={() => setActiveTab('channels')} className="px-6 py-3">
+                <ArrowRight className="w-4 h-4 ml-2" />
+                رجوع
+              </Button>
+              <Button onClick={() => setActiveTab('analytics')} className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-500 text-white">
+                التالي: التحليل والتتبع
+                <ArrowLeft className="w-4 h-4 mr-2" />
+              </Button>
             </div>
           </div>
         </TabsContent>
