@@ -16,6 +16,7 @@ import { ReportsAnalytics } from "./components/analytics";
 import { DigitalCardDashboard, CardEditor } from "./components/digital-card";
 import { CalendarAppointments } from "./components/calendar";
 import { TasksManagement } from "./components/tasks";
+import { MapSystemDashboard } from "./components/map";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
@@ -174,6 +175,8 @@ const App = () => {
         return <QuickCalculatorPage onBack={handleBack} />;
       case "rental-report":
         return <RentedPropertiesReport />;
+      case "map-system":
+        return <MapSystemDashboard />;
       case "calendar-system-complete":
         return (
           <CalendarAppointments 

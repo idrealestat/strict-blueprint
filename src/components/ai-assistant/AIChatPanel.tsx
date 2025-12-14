@@ -259,7 +259,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       'tasks': 'tasks',
       'digital-card': 'digital-card',
       'calculator': 'quick-calculator',
-      'rental-report': 'rental-report'
+      'rental-report': 'rental-report',
+      'map-system': 'map-system'
     };
 
     const targetPage = pageMap[page] || page;
@@ -277,7 +278,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       'tasks': 'المهام',
       'digital-card': 'البطاقة الرقمية',
       'calculator': 'الحاسبة السريعة',
-      'rental-report': 'تقرير العقارات المؤجرة'
+      'rental-report': 'تقرير العقارات المؤجرة',
+      'map-system': 'نظام الخرائط'
     };
     return names[page] || page;
   };
