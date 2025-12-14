@@ -180,6 +180,8 @@ interface SingleOffer {
   bathrooms?: number;
   area?: number;
   owner: { name: string; phone: string };
+  isHidden: boolean;
+  liveViewers: number;
 }
 
 // مستوى الحي (يحتوي على عروض)
@@ -187,6 +189,8 @@ interface DistrictLevel {
   districtName: string;
   offers: SingleOffer[];
   isExpanded: boolean;
+  isHidden: boolean;
+  liveViewers: number;
 }
 
 // مستوى المدينة (يحتوي على أحياء)
@@ -195,6 +199,8 @@ interface CityLevel {
   districts: DistrictLevel[];
   directOffers: SingleOffer[]; // عروض مباشرة بدون حي
   isExpanded: boolean;
+  isHidden: boolean;
+  liveViewers: number;
 }
 
 // بيانات تجريبية بالهيكل الجديد
@@ -202,29 +208,37 @@ const mockCityHierarchy: CityLevel[] = [
   {
     cityName: 'جدة',
     isExpanded: false,
+    isHidden: false,
+    liveViewers: 12,
     directOffers: [],
     districts: [
       {
         districtName: 'حي الروضة',
         isExpanded: false,
+        isHidden: false,
+        liveViewers: 5,
         offers: [
-          { id: 'jed-1', title: 'شقة فاخرة للإيجار', price: '3,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', status: 'published', views: 1250, requests: 45, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 180, owner: { name: 'أحمد محمد', phone: '0501234567' } },
-          { id: 'jed-2', title: 'شقة عائلية مميزة', price: '4,500 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', status: 'published', views: 890, requests: 32, propertyType: 'شقة', bedrooms: 4, bathrooms: 3, area: 220, owner: { name: 'خالد علي', phone: '0551234567' } },
-          { id: 'jed-3', title: 'استوديو مؤثث', price: '2,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400', status: 'draft', views: 340, requests: 12, propertyType: 'استوديو', bedrooms: 1, bathrooms: 1, area: 45, owner: { name: 'سعد الحربي', phone: '0561234567' } },
+          { id: 'jed-1', title: 'شقة فاخرة للإيجار', price: '3,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', status: 'published', views: 1250, requests: 45, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 180, owner: { name: 'أحمد محمد', phone: '0501234567' }, isHidden: false, liveViewers: 2 },
+          { id: 'jed-2', title: 'شقة عائلية مميزة', price: '4,500 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', status: 'published', views: 890, requests: 32, propertyType: 'شقة', bedrooms: 4, bathrooms: 3, area: 220, owner: { name: 'خالد علي', phone: '0551234567' }, isHidden: false, liveViewers: 1 },
+          { id: 'jed-3', title: 'استوديو مؤثث', price: '2,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400', status: 'draft', views: 340, requests: 12, propertyType: 'استوديو', bedrooms: 1, bathrooms: 1, area: 45, owner: { name: 'سعد الحربي', phone: '0561234567' }, isHidden: false, liveViewers: 0 },
         ]
       },
       {
         districtName: 'حي الحمراء',
         isExpanded: false,
+        isHidden: false,
+        liveViewers: 3,
         offers: [
-          { id: 'jed-4', title: 'فيلا للبيع', price: '2,500,000 ريال', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400', status: 'published', views: 2100, requests: 78, propertyType: 'فيلا', bedrooms: 6, bathrooms: 5, area: 500, owner: { name: 'عبدالله السعيد', phone: '0571234567' } },
+          { id: 'jed-4', title: 'فيلا للبيع', price: '2,500,000 ريال', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400', status: 'published', views: 2100, requests: 78, propertyType: 'فيلا', bedrooms: 6, bathrooms: 5, area: 500, owner: { name: 'عبدالله السعيد', phone: '0571234567' }, isHidden: false, liveViewers: 3 },
         ]
       },
       {
         districtName: 'حي المروة',
         isExpanded: false,
+        isHidden: false,
+        liveViewers: 2,
         offers: [
-          { id: 'jed-5', title: 'دوبلكس فاخر', price: '1,800,000 ريال', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', status: 'published', views: 1560, requests: 56, propertyType: 'دوبلكس', bedrooms: 5, bathrooms: 4, area: 350, owner: { name: 'محمد الشهري', phone: '0581234567' } },
+          { id: 'jed-5', title: 'دوبلكس فاخر', price: '1,800,000 ريال', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', status: 'published', views: 1560, requests: 56, propertyType: 'دوبلكس', bedrooms: 5, bathrooms: 4, area: 350, owner: { name: 'محمد الشهري', phone: '0581234567' }, isHidden: false, liveViewers: 1 },
         ]
       }
     ]
@@ -232,21 +246,27 @@ const mockCityHierarchy: CityLevel[] = [
   {
     cityName: 'الرياض',
     isExpanded: false,
+    isHidden: false,
+    liveViewers: 18,
     directOffers: [],
     districts: [
       {
         districtName: 'حي النرجس',
         isExpanded: false,
+        isHidden: false,
+        liveViewers: 8,
         offers: [
-          { id: 'riy-1', title: 'فيلا فاخرة جديدة', price: '3,200,000 ريال', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400', status: 'published', views: 3450, requests: 156, propertyType: 'فيلا', bedrooms: 7, bathrooms: 6, area: 600, owner: { name: 'فهد العتيبي', phone: '0591234567' } },
-          { id: 'riy-2', title: 'فيلا مودرن', price: '2,800,000 ريال', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400', status: 'published', views: 2890, requests: 123, propertyType: 'فيلا', bedrooms: 5, bathrooms: 4, area: 450, owner: { name: 'سلطان المطيري', phone: '0501234568' } },
+          { id: 'riy-1', title: 'فيلا فاخرة جديدة', price: '3,200,000 ريال', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400', status: 'published', views: 3450, requests: 156, propertyType: 'فيلا', bedrooms: 7, bathrooms: 6, area: 600, owner: { name: 'فهد العتيبي', phone: '0591234567' }, isHidden: false, liveViewers: 4 },
+          { id: 'riy-2', title: 'فيلا مودرن', price: '2,800,000 ريال', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400', status: 'published', views: 2890, requests: 123, propertyType: 'فيلا', bedrooms: 5, bathrooms: 4, area: 450, owner: { name: 'سلطان المطيري', phone: '0501234568' }, isHidden: false, liveViewers: 2 },
         ]
       },
       {
         districtName: 'حي الياسمين',
         isExpanded: false,
+        isHidden: false,
+        liveViewers: 4,
         offers: [
-          { id: 'riy-3', title: 'شقة فاخرة للبيع', price: '850,000 ريال', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', status: 'published', views: 1200, requests: 67, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 200, owner: { name: 'عمر الدوسري', phone: '0511234567' } },
+          { id: 'riy-3', title: 'شقة فاخرة للبيع', price: '850,000 ريال', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', status: 'published', views: 1200, requests: 67, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 200, owner: { name: 'عمر الدوسري', phone: '0511234567' }, isHidden: false, liveViewers: 1 },
         ]
       }
     ]
@@ -254,15 +274,19 @@ const mockCityHierarchy: CityLevel[] = [
   {
     cityName: 'الدمام',
     isExpanded: false,
+    isHidden: false,
+    liveViewers: 6,
     directOffers: [
-      { id: 'dam-direct-1', title: 'أرض تجارية', price: '5,000,000 ريال', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400', status: 'published', views: 890, requests: 34, propertyType: 'أرض', area: 2000, owner: { name: 'ناصر الغامدي', phone: '0521234567' } },
+      { id: 'dam-direct-1', title: 'أرض تجارية', price: '5,000,000 ريال', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400', status: 'published', views: 890, requests: 34, propertyType: 'أرض', area: 2000, owner: { name: 'ناصر الغامدي', phone: '0521234567' }, isHidden: false, liveViewers: 2 },
     ],
     districts: [
       {
         districtName: 'حي الفيصلية',
         isExpanded: false,
+        isHidden: false,
+        liveViewers: 2,
         offers: [
-          { id: 'dam-1', title: 'مكتب تجاري', price: '8,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400', status: 'published', views: 560, requests: 23, propertyType: 'مكتب', area: 150, owner: { name: 'حسن القحطاني', phone: '0531234567' } },
+          { id: 'dam-1', title: 'مكتب تجاري', price: '8,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400', status: 'published', views: 560, requests: 23, propertyType: 'مكتب', area: 150, owner: { name: 'حسن القحطاني', phone: '0531234567' }, isHidden: false, liveViewers: 1 },
         ]
       }
     ]
@@ -562,6 +586,94 @@ export default function MyPlatformComplete({
       offersCount: district.offers.length,
       totalViews: district.offers.reduce((sum, o) => sum + o.views, 0),
     };
+  };
+
+  // استخراج 4 صور معاينة من العروض
+  const getPreviewImages = (offers: SingleOffer[], max: number = 4): string[] => {
+    return offers.slice(0, max).map(o => o.image);
+  };
+
+  // إخفاء/إظهار المدينة
+  const toggleCityVisibility = (cityName: string) => {
+    setCityHierarchy(prev => prev.map(c => {
+      if (c.cityName === cityName) {
+        const newHidden = !c.isHidden;
+        toast.success(newHidden ? `تم إخفاء ${cityName} من منصتي` : `تم إظهار ${cityName} على منصتي`);
+        return { ...c, isHidden: newHidden };
+      }
+      return c;
+    }));
+  };
+
+  // إخفاء/إظهار الحي
+  const toggleDistrictVisibility = (cityName: string, districtName: string) => {
+    setCityHierarchy(prev => prev.map(c => {
+      if (c.cityName === cityName) {
+        return {
+          ...c,
+          districts: c.districts.map(d => {
+            if (d.districtName === districtName) {
+              const newHidden = !d.isHidden;
+              toast.success(newHidden ? `تم إخفاء ${districtName} من منصتي` : `تم إظهار ${districtName} على منصتي`);
+              return { ...d, isHidden: newHidden };
+            }
+            return d;
+          })
+        };
+      }
+      return c;
+    }));
+  };
+
+  // إخفاء/إظهار العرض الفردي
+  const toggleOfferVisibility = (cityName: string, districtName: string, offerId: string) => {
+    setCityHierarchy(prev => prev.map(c => {
+      if (c.cityName === cityName) {
+        return {
+          ...c,
+          districts: c.districts.map(d => {
+            if (d.districtName === districtName) {
+              return {
+                ...d,
+                offers: d.offers.map(o => {
+                  if (o.id === offerId) {
+                    const newHidden = !o.isHidden;
+                    toast.success(newHidden ? 'تم إخفاء العرض من منصتي' : 'تم إظهار العرض على منصتي');
+                    return { ...o, isHidden: newHidden };
+                  }
+                  return o;
+                })
+              };
+            }
+            return d;
+          }),
+          directOffers: c.directOffers.map(o => {
+            if (o.id === offerId) {
+              const newHidden = !o.isHidden;
+              toast.success(newHidden ? 'تم إخفاء العرض من منصتي' : 'تم إظهار العرض على منصتي');
+              return { ...o, isHidden: newHidden };
+            }
+            return o;
+          })
+        };
+      }
+      return c;
+    }));
+  };
+
+  // مشاركة عبر واتساب (للهيكل الهرمي)
+  const shareItemWhatsApp = (title: string, id: string) => {
+    const shareUrl = `${platformUrl}/offers/${id}`;
+    const text = `🏠 ${title}\n\n📍 شاهد العرض:\n${shareUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    toast.success('تم فتح واتساب للمشاركة');
+  };
+
+  // مشاركة رابط
+  const shareItemLink = async (title: string, id: string) => {
+    const shareUrl = `${platformUrl}/offers/${id}`;
+    await navigator.clipboard.writeText(shareUrl);
+    toast.success('تم نسخ الرابط');
   };
 
   // Toggle Publish Status
@@ -970,35 +1082,120 @@ export default function MyPlatformComplete({
               {cityHierarchy.map((city) => {
                 const cityStats = getCityStats(city);
                 const isCityExpanded = expandedCities.has(city.cityName);
+                const allCityOffers = [...city.directOffers, ...city.districts.flatMap(d => d.offers)];
+                const previewImages = getPreviewImages(allCityOffers, 4);
                 
                 return (
-                  <Card key={city.cityName} className="border-2 border-[#01411C]/30 overflow-hidden transition-all duration-300">
-                    {/* === المستوى الأول: المدينة === */}
+                  <Card key={city.cityName} className={`border-2 overflow-hidden transition-all duration-300 ${city.isHidden ? 'border-gray-300 opacity-60' : 'border-[#01411C]/30'}`}>
+                    {/* === المستوى الأول: المدينة (الأساس) === */}
                     <div 
-                      className={`p-4 cursor-pointer transition-all duration-300 ${isCityExpanded ? 'bg-[#01411C] text-white' : 'bg-gradient-to-l from-[#01411C]/5 to-[#D4AF37]/5 hover:bg-[#01411C]/10'}`}
-                      onClick={() => toggleCityExpand(city.cityName)}
+                      className={`p-4 transition-all duration-300 ${isCityExpanded ? 'bg-[#01411C] text-white' : 'bg-gradient-to-l from-[#01411C]/5 to-[#D4AF37]/5 hover:bg-[#01411C]/10'}`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        {/* الجانب الأيسر - المعلومات */}
+                        <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCityExpand(city.cityName)}>
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCityExpanded ? 'bg-[#D4AF37]' : 'bg-[#01411C]'}`}>
                             <MapPin className={`w-5 h-5 ${isCityExpanded ? 'text-[#01411C]' : 'text-[#D4AF37]'}`} />
                           </div>
                           <div>
-                            <h3 className={`font-bold text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className={`font-bold text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
+                              {city.isHidden && <Badge variant="outline" className="text-xs bg-gray-100">مخفي</Badge>}
+                            </div>
                             <p className={`text-sm ${isCityExpanded ? 'text-white/80' : 'text-gray-500'}`}>
                               {cityStats.districtsCount} أحياء • {cityStats.totalOffers} عرض • {cityStats.totalViews.toLocaleString()} مشاهدة
                             </p>
                           </div>
                         </div>
+
+                        {/* 4 صور معاينة على اليمين */}
+                        <div className="flex items-center gap-1 mx-4">
+                          {previewImages.map((img, idx) => (
+                            <div key={idx} className="w-10 h-10 rounded overflow-hidden border-2 border-white/50 shadow-sm">
+                              <img src={img} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                          {allCityOffers.length > 4 && (
+                            <div className="w-10 h-10 rounded bg-[#D4AF37] flex items-center justify-center text-[#01411C] font-bold text-sm">
+                              +{allCityOffers.length - 4}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* أزرار الإجراءات */}
                         <div className="flex items-center gap-2">
+                          {/* مشاهدة مباشرة */}
+                          {city.liveViewers > 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge className="bg-red-500 text-white animate-pulse">
+                                    <Eye className="w-3 h-3 ml-1" />
+                                    {city.liveViewers} يشاهدون الآن
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>عملاء يشاهدون هذه المدينة الآن</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+
+                          {/* زر إخفاء/إظهار */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => { e.stopPropagation(); toggleCityVisibility(city.cityName); }}
+                                  className={isCityExpanded ? 'text-white hover:bg-white/20' : ''}
+                                >
+                                  {city.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{city.isHidden ? 'إظهار على منصتي' : 'إخفاء من منصتي'}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          {/* زر مشاركة */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(city.cityName, `city-${city.cityName}`); }}
+                                  className={`${isCityExpanded ? 'text-white hover:bg-white/20' : ''} bg-green-500 text-white hover:bg-green-600`}
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>مشاركة واتساب</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          {/* زر نسخ الرابط */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => { e.stopPropagation(); shareItemLink(city.cityName, `city-${city.cityName}`); }}
+                                  className={isCityExpanded ? 'text-white hover:bg-white/20' : ''}
+                                >
+                                  <Link className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>نسخ الرابط</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
                           <Badge className={`${isCityExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-[#01411C] text-[#D4AF37]'}`}>
                             {cityStats.totalOffers} عرض
                           </Badge>
-                          {isCityExpanded ? (
-                            <ChevronUp className="w-6 h-6" />
-                          ) : (
-                            <ChevronDown className="w-6 h-6" />
-                          )}
+                          <div className="cursor-pointer" onClick={() => toggleCityExpand(city.cityName)}>
+                            {isCityExpanded ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1012,12 +1209,18 @@ export default function MyPlatformComplete({
                             <h4 className="text-sm font-bold text-gray-600 mb-3">عروض مباشرة في {city.cityName}:</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {city.directOffers.map((offer) => (
-                                <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-all border-2 border-transparent hover:border-[#D4AF37]">
+                                <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white`}>
                                   <div className="relative h-32">
                                     <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
                                     <Badge className={`absolute top-2 left-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                                      <span className="w-2 h-2 rounded-full bg-white animate-pulse ml-1" />
                                       {offer.status === 'published' ? 'منشور' : 'مسودة'}
                                     </Badge>
+                                    {offer.liveViewers > 0 && (
+                                      <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs animate-pulse">
+                                        <Eye className="w-3 h-3 ml-1" />{offer.liveViewers}
+                                      </Badge>
+                                    )}
                                   </div>
                                   <CardContent className="p-3">
                                     <h5 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h5>
@@ -1026,6 +1229,18 @@ export default function MyPlatformComplete({
                                       <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{offer.views}</span>
                                       <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{offer.requests}</span>
                                     </div>
+                                    {/* أزرار الإجراءات */}
+                                    <div className="flex items-center gap-1 mt-3 border-t pt-2">
+                                      <Button size="sm" variant="ghost" onClick={() => toggleOfferVisibility(city.cityName, '', offer.id)} className="flex-1 text-xs">
+                                        {offer.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                                      </Button>
+                                      <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
+                                        <MessageSquare className="w-3 h-3" />
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => shareItemLink(offer.title, offer.id)}>
+                                        <Link className="w-3 h-3" />
+                                      </Button>
+                                    </div>
                                   </CardContent>
                                 </Card>
                               ))}
@@ -1033,56 +1248,105 @@ export default function MyPlatformComplete({
                           </div>
                         )}
 
-                        {/* === المستوى الثاني: الأحياء === */}
+                        {/* === المستوى الثاني: الأحياء (الفرع) - خلفية خضراء هادئة === */}
                         <div className="p-4 space-y-3">
                           {city.districts.map((district) => {
                             const districtKey = `${city.cityName}-${district.districtName}`;
                             const districtStats = getDistrictStats(district);
                             const isDistrictExpanded = expandedDistricts.has(districtKey);
+                            const districtPreviewImages = getPreviewImages(district.offers, 4);
                             
                             return (
-                              <div key={districtKey} className="border-2 border-[#D4AF37]/30 rounded-lg overflow-hidden transition-all duration-300">
+                              <div key={districtKey} className={`border-2 rounded-lg overflow-hidden transition-all duration-300 ${district.isHidden ? 'border-gray-300 opacity-60' : 'border-[#D4AF37]/30'}`}>
+                                {/* رأس الحي - خلفية خضراء هادئة */}
                                 <div 
-                                  className={`p-3 cursor-pointer transition-all duration-300 ${isDistrictExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-white hover:bg-[#D4AF37]/10'}`}
-                                  onClick={() => toggleDistrictExpand(districtKey)}
+                                  className={`p-3 transition-all duration-300 ${isDistrictExpanded ? 'bg-emerald-100' : 'bg-emerald-50 hover:bg-emerald-100'}`}
                                 >
                                   <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDistrictExpanded ? 'bg-[#01411C]' : 'bg-[#D4AF37]'}`}>
-                                        <Building className={`w-4 h-4 ${isDistrictExpanded ? 'text-[#D4AF37]' : 'text-[#01411C]'}`} />
+                                    {/* معلومات الحي */}
+                                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleDistrictExpand(districtKey)}>
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDistrictExpanded ? 'bg-[#01411C]' : 'bg-emerald-600'}`}>
+                                        <Building className="w-4 h-4 text-white" />
                                       </div>
                                       <div>
-                                        <h4 className={`font-bold ${isDistrictExpanded ? 'text-[#01411C]' : 'text-[#01411C]'}`}>{district.districtName}</h4>
-                                        <p className={`text-xs ${isDistrictExpanded ? 'text-[#01411C]/70' : 'text-gray-500'}`}>
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-bold text-[#01411C]">{district.districtName}</h4>
+                                          {district.isHidden && <Badge variant="outline" className="text-xs bg-white">مخفي</Badge>}
+                                        </div>
+                                        <p className="text-xs text-emerald-700">
                                           {districtStats.offersCount} عرض • {districtStats.totalViews.toLocaleString()} مشاهدة
                                         </p>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <Badge className={`text-xs ${isDistrictExpanded ? 'bg-[#01411C] text-[#D4AF37]' : 'bg-[#D4AF37] text-[#01411C]'}`}>
+
+                                    {/* 4 صور معاينة */}
+                                    <div className="flex items-center gap-1 mx-3">
+                                      {districtPreviewImages.map((img, idx) => (
+                                        <div key={idx} className="w-8 h-8 rounded overflow-hidden border border-white shadow-sm">
+                                          <img src={img} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                      ))}
+                                      {district.offers.length > 4 && (
+                                        <div className="w-8 h-8 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-xs">
+                                          +{district.offers.length - 4}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* أزرار الإجراءات */}
+                                    <div className="flex items-center gap-1">
+                                      {/* مشاهدة مباشرة */}
+                                      {district.liveViewers > 0 && (
+                                        <Badge className="bg-red-500 text-white text-xs animate-pulse">
+                                          <Eye className="w-3 h-3 ml-1" />{district.liveViewers}
+                                        </Badge>
+                                      )}
+
+                                      {/* إخفاء/إظهار */}
+                                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); toggleDistrictVisibility(city.cityName, district.districtName); }}>
+                                        {district.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                                      </Button>
+
+                                      {/* مشاركة واتساب */}
+                                      <Button size="sm" className="bg-green-500 text-white text-xs" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(district.districtName, `district-${districtKey}`); }}>
+                                        <MessageSquare className="w-3 h-3" />
+                                      </Button>
+
+                                      {/* نسخ الرابط */}
+                                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); shareItemLink(district.districtName, `district-${districtKey}`); }}>
+                                        <Link className="w-3 h-3" />
+                                      </Button>
+
+                                      <Badge className="text-xs bg-emerald-600 text-white">
                                         {districtStats.offersCount} عرض
                                       </Badge>
-                                      {isDistrictExpanded ? (
-                                        <ChevronUp className="w-5 h-5" />
-                                      ) : (
-                                        <ChevronDown className="w-5 h-5" />
-                                      )}
+                                      <div className="cursor-pointer" onClick={() => toggleDistrictExpand(districtKey)}>
+                                        {isDistrictExpanded ? <ChevronUp className="w-5 h-5 text-emerald-700" /> : <ChevronDown className="w-5 h-5 text-emerald-700" />}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
 
-                                {/* === المستوى الثالث: العروض === */}
+                                {/* === المستوى الثالث: العروض (الجذر) === */}
                                 {isDistrictExpanded && (
-                                  <div className="p-4 bg-gray-50 border-t border-[#D4AF37]/20 animate-fade-in">
+                                  <div className="p-4 bg-gray-50 border-t border-emerald-200 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                       {district.offers.map((offer) => (
-                                        <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-all border-2 border-transparent hover:border-[#01411C] bg-white">
+                                        <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}>
                                           <div className="relative h-36">
                                             <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
                                             <Badge className={`absolute top-2 left-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
                                               <span className={`w-2 h-2 rounded-full ml-1 ${offer.status === 'published' ? 'bg-white animate-pulse' : 'bg-white'}`} />
                                               {offer.status === 'published' ? 'منشور' : 'مسودة'}
                                             </Badge>
+                                            {offer.isHidden && (
+                                              <Badge className="absolute top-2 right-2 bg-gray-500 text-white text-xs">مخفي</Badge>
+                                            )}
+                                            {offer.liveViewers > 0 && (
+                                              <Badge className="absolute bottom-2 right-2 bg-red-500 text-white text-xs animate-pulse">
+                                                <Eye className="w-3 h-3 ml-1" />{offer.liveViewers} يشاهدون
+                                              </Badge>
+                                            )}
                                           </div>
                                           <CardContent className="p-3">
                                             <h5 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h5>
@@ -1094,14 +1358,21 @@ export default function MyPlatformComplete({
                                               {offer.area && <span className="flex items-center gap-1"><Maximize className="w-3 h-3" />{offer.area}م²</span>}
                                             </div>
                                             {/* أزرار الإجراءات */}
-                                            <div className="flex items-center gap-2 mt-3 border-t pt-3">
-                                              <Button size="sm" variant="outline" className="flex-1 text-xs">
-                                                <Eye className="w-3 h-3 ml-1" />
-                                                عرض
+                                            <div className="flex items-center gap-1 mt-3 border-t pt-3">
+                                              {/* إخفاء/إظهار */}
+                                              <Button size="sm" variant="ghost" className="flex-1 text-xs" onClick={() => toggleOfferVisibility(city.cityName, district.districtName, offer.id)}>
+                                                {offer.isHidden ? <Eye className="w-3 h-3 ml-1" /> : <EyeOff className="w-3 h-3 ml-1" />}
+                                                {offer.isHidden ? 'إظهار' : 'إخفاء'}
                                               </Button>
-                                              <Button size="sm" className="flex-1 text-xs bg-green-500 text-white">
+                                              {/* واتساب */}
+                                              <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
                                                 <MessageSquare className="w-3 h-3 ml-1" />
                                                 واتساب
+                                              </Button>
+                                              {/* نسخ الرابط */}
+                                              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => shareItemLink(offer.title, offer.id)}>
+                                                <Link className="w-3 h-3 ml-1" />
+                                                رابط
                                               </Button>
                                             </div>
                                           </CardContent>
@@ -1203,7 +1474,6 @@ export default function MyPlatformComplete({
           
           {selectedOfferForShare && (
             <div className="space-y-4">
-              {/* Offer Preview */}
               <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
                 <img 
                   src={selectedOfferForShare.images[0] || 'https://via.placeholder.com/80x60'} 
@@ -1216,7 +1486,6 @@ export default function MyPlatformComplete({
                 </div>
               </div>
 
-              {/* Share Link */}
               <div>
                 <Label className="text-sm font-medium">رابط المشاركة</Label>
                 <div className="flex gap-2 mt-1">
@@ -1231,7 +1500,6 @@ export default function MyPlatformComplete({
                 </div>
               </div>
 
-              {/* QR Code */}
               <div className="text-center">
                 <Label className="text-sm font-medium">رمز QR للمشاركة السريعة</Label>
                 <div className="mt-2 bg-white p-4 rounded-lg border inline-block">
@@ -1243,37 +1511,23 @@ export default function MyPlatformComplete({
                 </div>
               </div>
 
-              {/* Share Buttons */}
               <div className="grid grid-cols-4 gap-2">
-                <Button 
-                  className="flex-col h-auto py-3 bg-green-500 hover:bg-green-600"
-                  onClick={shareViaWhatsApp}
-                >
+                <Button className="flex-col h-auto py-3 bg-green-500 hover:bg-green-600" onClick={shareViaWhatsApp}>
                   <MessageSquare className="w-5 h-5 mb-1" />
                   <span className="text-xs">واتساب</span>
                 </Button>
-                <Button 
-                  className="flex-col h-auto py-3 bg-blue-500 hover:bg-blue-600"
-                  onClick={shareViaEmail}
-                >
+                <Button className="flex-col h-auto py-3 bg-blue-500 hover:bg-blue-600" onClick={shareViaEmail}>
                   <Mail className="w-5 h-5 mb-1" />
                   <span className="text-xs">إيميل</span>
                 </Button>
-                <Button 
-                  className="flex-col h-auto py-3 bg-purple-500 hover:bg-purple-600"
-                  onClick={copyShareLink}
-                >
+                <Button className="flex-col h-auto py-3 bg-purple-500 hover:bg-purple-600" onClick={copyShareLink}>
                   <Link className="w-5 h-5 mb-1" />
                   <span className="text-xs">نسخ</span>
                 </Button>
-                <Button 
-                  className="flex-col h-auto py-3 bg-gray-700 hover:bg-gray-800"
-                  onClick={() => {
-                    // SMS Share
-                    const shareUrl = `${platformUrl}/offers/${selectedOfferForShare.id}`;
-                    window.location.href = `sms:?body=${encodeURIComponent(`${selectedOfferForShare.title}\n${shareUrl}`)}`;
-                  }}
-                >
+                <Button className="flex-col h-auto py-3 bg-gray-700 hover:bg-gray-800" onClick={() => {
+                  const shareUrl = `${platformUrl}/offers/${selectedOfferForShare.id}`;
+                  window.location.href = `sms:?body=${encodeURIComponent(`${selectedOfferForShare.title}\n${shareUrl}`)}`;
+                }}>
                   <Phone className="w-5 h-5 mb-1" />
                   <span className="text-xs">رسالة</span>
                 </Button>
@@ -1283,56 +1537,19 @@ export default function MyPlatformComplete({
         </DialogContent>
       </Dialog>
 
-      {/* Publish Dialog - النموذج الكامل */}
+      {/* Publish Dialog */}
       <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden p-0" dir="rtl">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Plus className="w-6 h-6 text-[#01411C]" />
-              نشر عقار جديد - النموذج الكامل
+              نشر عقار جديد
             </DialogTitle>
           </DialogHeader>
-
           <div className="p-6 pt-4">
             <PropertyPublishForm
               onPublish={(data) => {
-                // تحويل البيانات للشكل المطلوب
-                const newOffer: HierarchicalOffer = {
-                  id: `NEW-${Date.now()}`,
-                  title: `${data.propertyType} ${data.purpose} - ${data.locationDetails.city}`,
-                  location: `${data.locationDetails.city}${data.locationDetails.district ? ` - ${data.locationDetails.district}` : ''}`,
-                  city: data.locationDetails.city,
-                  district: data.locationDetails.district,
-                  price: data.price ? `${Number(data.price).toLocaleString()} ريال` : 'السعر عند الطلب',
-                  adNumber: `AD-${Date.now().toString().slice(-6)}`,
-                  images: [],
-                  views: 0,
-                  requests: 0,
-                  isPinned: false,
-                  lastOpened: 'الآن',
-                  date: new Date(),
-                  status: 'draft',
-                  purpose: data.purpose.includes('بيع') ? 'sale' : 'rent',
-                  propertyType: data.propertyType,
-                  category: data.propertyCategory === 'تجاري' ? 'commercial' : 'residential',
-                  bedrooms: data.bedrooms ? Number(data.bedrooms) : undefined,
-                  bathrooms: data.bathrooms ? Number(data.bathrooms) : undefined,
-                  area: data.area ? Number(data.area) : undefined,
-                  owner: {
-                    name: user?.name || '',
-                    phone: user?.phone || '',
-                  },
-                  subOffers: [],
-                  rootOffers: [],
-                  isExpanded: false,
-                };
-
-                setOffers(prev => {
-                  const updated = [newOffer, ...prev];
-                  saveToStorage(updated);
-                  return updated;
-                });
-
+                toast.success('تم نشر العقار بنجاح');
                 setShowPublishDialog(false);
               }}
               onCancel={() => setShowPublishDialog(false)}
