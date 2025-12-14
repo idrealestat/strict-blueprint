@@ -10,7 +10,7 @@ import RightSliderComplete from "./RightSliderComplete";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
 import BusinessCard from "../BusinessCard";
-import FloatingAssistant from "../FloatingAssistant";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -469,8 +469,7 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
         onNavigate={onNavigate}
       />
 
-      {/* زر المساعد الذكي العائم */}
-      <FloatingAssistant />
+      {/* المساعد الذكي العائم يتم عرضه من App.tsx */}
 
       {/* Right Menu */}
       <RightSliderComplete

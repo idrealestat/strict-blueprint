@@ -21,6 +21,7 @@ import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
+import { AIFloatingButton } from "./components/ai-assistant";
 
 const queryClient = new QueryClient();
 
@@ -182,6 +183,19 @@ const App = () => {
     }
   };
 
+  // Listen for navigation from AI Assistant
+  useEffect(() => {
+    const handleNavigateFromAssistant = (event: CustomEvent) => {
+      const { page } = event.detail;
+      setCurrentPage(page);
+    };
+
+    window.addEventListener('navigateFromAssistant', handleNavigateFromAssistant as EventListener);
+    return () => {
+      window.removeEventListener('navigateFromAssistant', handleNavigateFromAssistant as EventListener);
+    };
+  }, []);
+
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
@@ -191,7 +205,12 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={renderPage()} />
+                <Route path="/" element={
+                  <>
+                    {renderPage()}
+                    <AIFloatingButton />
+                  </>
+                } />
                 <Route path="/customers" element={<CustomersListPage />} />
                 <Route path="/cards/:slug" element={<PublicCardView />} />
                 <Route path="*" element={<NotFound />} />

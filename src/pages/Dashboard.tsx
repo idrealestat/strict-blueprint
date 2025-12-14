@@ -2,7 +2,6 @@ import MainLayout from "@/components/layout/MainLayout";
 import NewsBar from "@/components/NewsBar";
 import MainServices from "@/components/MainServices";
 import QuickCalculator from "@/components/QuickCalculator";
-import SmartAssistant from "@/components/SmartAssistant";
 import CalendarTabs from "@/components/CalendarTabs";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import BusinessCard from "@/components/BusinessCard";
@@ -42,11 +41,7 @@ const Dashboard = () => {
           <AnalyticsDashboard />
         </div>
 
-        {/* 7. المساعد الذكي */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">المساعد الذكي</h2>
-          <SmartAssistant />
-        </div>
+        {/* المساعد الذكي يظهر كزر عائم من App.tsx */}
       </div>
     </MainLayout>
   );
