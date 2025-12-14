@@ -30,6 +30,7 @@ import {
   Sparkles,
   Calculator,
   UserCheck,
+  Layers,
 } from "lucide-react";
 
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
@@ -196,6 +197,27 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
                   <h3 className="font-bold text-[#01411C] mb-2">منصتي</h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
                     نظام متكامل مع CRM وإحصائيات متقدمة وإدارة العقارات
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* 🆕 منصتي - المسارات الذكية */}
+              <Card
+                onClick={() => onNavigate("my-platform-smart")}
+                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
+              >
+                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
+                  <div className="absolute top-2 right-2">
+                    <Badge className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-[#D4AF37] text-xs">
+                      📁 مسارات ذكية
+                    </Badge>
+                  </div>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
+                    <Layers className="w-8 h-8 text-[#D4AF37]" />
+                  </div>
+                  <h3 className="font-bold text-[#01411C] mb-2">المسارات الذكية</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    تجميع العقارات حسب المدينة والحي ونوع العقار
                   </p>
                 </CardContent>
               </Card>
