@@ -22,6 +22,7 @@ import {
   Video, Home, Building2, MoreVertical, Filter, Search, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { triggerNotification } from '@/hooks/useNotificationSystem';
 
 // Types
 interface Appointment {
@@ -214,7 +215,20 @@ export function CalendarAppointments({ onBack }: CalendarAppointmentsProps) {
       reminderTime: newAppointment.reminderTime || 30,
     };
 
-    setAppointments(prev => [...prev, appointment]);
+    const updatedAppointments = [...appointments, appointment];
+    setAppointments(updatedAppointments);
+    
+    // Save to localStorage for notification system
+    localStorage.setItem('appointments', JSON.stringify(updatedAppointments));
+    
+    // Trigger notification
+    triggerNotification({
+      title: '📅 موعد جديد',
+      message: `تم إضافة موعد "${appointment.title}" مع ${appointment.customerName}`,
+      type: 'success',
+      category: 'appointment',
+    });
+
     setIsAddDialogOpen(false);
     setNewAppointment({
       title: '',
@@ -230,6 +244,11 @@ export function CalendarAppointments({ onBack }: CalendarAppointmentsProps) {
     });
     toast.success('تم إضافة الموعد بنجاح');
   };
+
+  // Save appointments to localStorage for notification system
+  useEffect(() => {
+    localStorage.setItem('appointments', JSON.stringify(appointments));
+  }, [appointments]);
 
   // Handle delete appointment
   const handleDeleteAppointment = (id: string) => {
