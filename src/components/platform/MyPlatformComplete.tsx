@@ -54,6 +54,8 @@ import {
   Image,
   FileText,
   X,
+  GripVertical,
+  Move,
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
 import { toast } from "sonner";
@@ -472,6 +474,13 @@ export default function MyPlatformComplete({
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
   
+  // Drag & Drop State
+  const [draggedItem, setDraggedItem] = useState<{type: 'offer' | 'district'; data: any; sourceCity: string; sourceDistrict?: string} | null>(null);
+  const [dragOverCity, setDragOverCity] = useState<string | null>(null);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [itemToMove, setItemToMove] = useState<{type: 'offer' | 'district'; data: any; sourceCity: string; sourceDistrict?: string} | null>(null);
+  const [targetCityForMove, setTargetCityForMove] = useState<string>('');
+  
   // Dialogs
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -674,6 +683,112 @@ export default function MyPlatformComplete({
     const shareUrl = `${platformUrl}/offers/${id}`;
     await navigator.clipboard.writeText(shareUrl);
     toast.success('تم نسخ الرابط');
+  };
+
+  // ========== Drag & Drop Functions ==========
+  
+  // بدء السحب للعرض
+  const handleDragStartOffer = (e: React.DragEvent, offer: SingleOffer, sourceCity: string, sourceDistrict: string) => {
+    setDraggedItem({ type: 'offer', data: offer, sourceCity, sourceDistrict });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  // بدء السحب للحي
+  const handleDragStartDistrict = (e: React.DragEvent, district: DistrictLevel, sourceCity: string) => {
+    setDraggedItem({ type: 'district', data: district, sourceCity });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  // الإفلات على المدينة
+  const handleDropOnCity = (targetCityName: string) => {
+    if (!draggedItem) return;
+    
+    if (draggedItem.type === 'district' && draggedItem.sourceCity !== targetCityName) {
+      // نقل حي كامل من مدينة لأخرى
+      setCityHierarchy(prev => {
+        const updated = prev.map(city => {
+          // إزالة من المصدر
+          if (city.cityName === draggedItem.sourceCity) {
+            return {
+              ...city,
+              districts: city.districts.filter(d => d.districtName !== draggedItem.data.districtName)
+            };
+          }
+          // إضافة للهدف
+          if (city.cityName === targetCityName) {
+            return {
+              ...city,
+              districts: [...city.districts, draggedItem.data]
+            };
+          }
+          return city;
+        });
+        return updated;
+      });
+      toast.success(`تم نقل حي "${draggedItem.data.districtName}" إلى ${targetCityName}`);
+    }
+    
+    if (draggedItem.type === 'offer' && draggedItem.sourceCity !== targetCityName) {
+      // نقل عرض من مدينة لأخرى (كعرض مباشر)
+      setCityHierarchy(prev => {
+        const updated = prev.map(city => {
+          // إزالة من المصدر
+          if (city.cityName === draggedItem.sourceCity) {
+            if (draggedItem.sourceDistrict) {
+              return {
+                ...city,
+                districts: city.districts.map(d => {
+                  if (d.districtName === draggedItem.sourceDistrict) {
+                    return {
+                      ...d,
+                      offers: d.offers.filter(o => o.id !== draggedItem.data.id)
+                    };
+                  }
+                  return d;
+                })
+              };
+            } else {
+              return {
+                ...city,
+                directOffers: city.directOffers.filter(o => o.id !== draggedItem.data.id)
+              };
+            }
+          }
+          // إضافة للهدف كعرض مباشر
+          if (city.cityName === targetCityName) {
+            return {
+              ...city,
+              directOffers: [...city.directOffers, draggedItem.data]
+            };
+          }
+          return city;
+        });
+        return updated;
+      });
+      toast.success(`تم نقل العرض إلى ${targetCityName}`);
+    }
+    
+    setDraggedItem(null);
+    setDragOverCity(null);
+  };
+
+  // فتح نافذة النقل
+  const openMoveDialog = (type: 'offer' | 'district', data: any, sourceCity: string, sourceDistrict?: string) => {
+    setItemToMove({ type, data, sourceCity, sourceDistrict });
+    setTargetCityForMove('');
+    setShowMoveDialog(true);
+  };
+
+  // تنفيذ النقل من النافذة
+  const confirmMove = () => {
+    if (!itemToMove || !targetCityForMove || targetCityForMove === itemToMove.sourceCity) {
+      toast.error('اختر مدينة مختلفة');
+      return;
+    }
+    
+    handleDropOnCity(targetCityForMove);
+    setShowMoveDialog(false);
+    setItemToMove(null);
   };
 
   // Toggle Publish Status
@@ -1084,117 +1199,126 @@ export default function MyPlatformComplete({
                 const isCityExpanded = expandedCities.has(city.cityName);
                 const allCityOffers = [...city.directOffers, ...city.districts.flatMap(d => d.offers)];
                 const previewImages = getPreviewImages(allCityOffers, 4);
+                const isDragOver = dragOverCity === city.cityName;
                 
                 return (
-                  <Card key={city.cityName} className={`border-2 overflow-hidden transition-all duration-300 ${city.isHidden ? 'border-gray-300 opacity-60' : 'border-[#01411C]/30'}`}>
+                  <Card 
+                    key={city.cityName} 
+                    className={`border-2 overflow-hidden transition-all duration-300 ${city.isHidden ? 'border-gray-300 opacity-60' : 'border-[#01411C]/30'} ${isDragOver ? 'ring-4 ring-[#D4AF37] scale-[1.01]' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverCity(city.cityName); }}
+                    onDragLeave={() => setDragOverCity(null)}
+                    onDrop={(e) => { e.preventDefault(); handleDropOnCity(city.cityName); }}
+                  >
                     {/* === المستوى الأول: المدينة (الأساس) === */}
                     <div 
-                      className={`p-4 transition-all duration-300 ${isCityExpanded ? 'bg-[#01411C] text-white' : 'bg-gradient-to-l from-[#01411C]/5 to-[#D4AF37]/5 hover:bg-[#01411C]/10'}`}
+                      className={`p-4 md:p-5 transition-all duration-300 ${isCityExpanded ? 'bg-[#01411C] text-white' : 'bg-gradient-to-l from-[#01411C]/5 to-[#D4AF37]/5 hover:bg-[#01411C]/10'}`}
                     >
-                      <div className="flex items-center justify-between">
-                        {/* الجانب الأيسر - المعلومات */}
-                        <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCityExpand(city.cityName)}>
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCityExpanded ? 'bg-[#D4AF37]' : 'bg-[#01411C]'}`}>
-                            <MapPin className={`w-5 h-5 ${isCityExpanded ? 'text-[#01411C]' : 'text-[#D4AF37]'}`} />
+                      {/* الصف الأول: المعلومات والصور */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-3 cursor-pointer" onClick={() => toggleCityExpand(city.cityName)}>
+                        {/* الأيقونة والعنوان */}
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0 ${isCityExpanded ? 'bg-[#D4AF37]' : 'bg-[#01411C]'}`}>
+                            <MapPin className={`w-5 h-5 md:w-6 md:h-6 ${isCityExpanded ? 'text-[#01411C]' : 'text-[#D4AF37]'}`} />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className={`font-bold text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className={`font-bold text-base md:text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
                               {city.isHidden && <Badge variant="outline" className="text-xs bg-gray-100">مخفي</Badge>}
+                              <Badge className={`text-xs ${isCityExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-[#01411C] text-[#D4AF37]'}`}>
+                                {cityStats.totalOffers} عرض
+                              </Badge>
                             </div>
-                            <p className={`text-sm ${isCityExpanded ? 'text-white/80' : 'text-gray-500'}`}>
-                              {cityStats.districtsCount} أحياء • {cityStats.totalOffers} عرض • {cityStats.totalViews.toLocaleString()} مشاهدة
+                            <p className={`text-xs md:text-sm ${isCityExpanded ? 'text-white/80' : 'text-gray-500'}`}>
+                              {cityStats.districtsCount} أحياء • {cityStats.totalViews.toLocaleString()} مشاهدة
                             </p>
                           </div>
                         </div>
 
-                        {/* 4 صور معاينة على اليمين */}
-                        <div className="flex items-center gap-1 mx-4">
+                        {/* 4 صور معاينة */}
+                        <div className="flex items-center gap-1 mr-auto md:mr-0">
                           {previewImages.map((img, idx) => (
-                            <div key={idx} className="w-10 h-10 rounded overflow-hidden border-2 border-white/50 shadow-sm">
+                            <div key={idx} className="w-8 h-8 md:w-10 md:h-10 rounded overflow-hidden border-2 border-white/50 shadow-sm shrink-0">
                               <img src={img} alt="" className="w-full h-full object-cover" />
                             </div>
                           ))}
                           {allCityOffers.length > 4 && (
-                            <div className="w-10 h-10 rounded bg-[#D4AF37] flex items-center justify-center text-[#01411C] font-bold text-sm">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-[#D4AF37] flex items-center justify-center text-[#01411C] font-bold text-xs md:text-sm shrink-0">
                               +{allCityOffers.length - 4}
                             </div>
                           )}
                         </div>
 
-                        {/* أزرار الإجراءات */}
-                        <div className="flex items-center gap-2">
-                          {/* مشاهدة مباشرة */}
-                          {city.liveViewers > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge className="bg-red-500 text-white animate-pulse">
-                                    <Eye className="w-3 h-3 ml-1" />
-                                    {city.liveViewers} يشاهدون الآن
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>عملاء يشاهدون هذه المدينة الآن</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
+                        {/* سهم التوسيع */}
+                        <div className="hidden md:flex">
+                          {isCityExpanded ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                        </div>
+                      </div>
 
-                          {/* زر إخفاء/إظهار */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => { e.stopPropagation(); toggleCityVisibility(city.cityName); }}
-                                  className={isCityExpanded ? 'text-white hover:bg-white/20' : ''}
-                                >
-                                  {city.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{city.isHidden ? 'إظهار على منصتي' : 'إخفاء من منصتي'}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          {/* زر مشاركة */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(city.cityName, `city-${city.cityName}`); }}
-                                  className={`${isCityExpanded ? 'text-white hover:bg-white/20' : ''} bg-green-500 text-white hover:bg-green-600`}
-                                >
-                                  <MessageSquare className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>مشاركة واتساب</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          {/* زر نسخ الرابط */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => { e.stopPropagation(); shareItemLink(city.cityName, `city-${city.cityName}`); }}
-                                  className={isCityExpanded ? 'text-white hover:bg-white/20' : ''}
-                                >
-                                  <Link className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>نسخ الرابط</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <Badge className={`${isCityExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-[#01411C] text-[#D4AF37]'}`}>
-                            {cityStats.totalOffers} عرض
+                      {/* الصف الثاني: الأزرار (منفصلة في الأسفل) */}
+                      <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/20">
+                        {/* علامة المشاهدة الحمراء */}
+                        {city.liveViewers > 0 && (
+                          <Badge className="bg-red-500 text-white text-xs animate-pulse flex items-center gap-1">
+                            <Eye className="w-3 h-3 text-red-200" />
+                            <span>{city.liveViewers} يشاهدون</span>
                           </Badge>
-                          <div className="cursor-pointer" onClick={() => toggleCityExpand(city.cityName)}>
-                            {isCityExpanded ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                        )}
+                        {city.liveViewers === 0 && <div />}
+
+                        {/* أزرار الإجراءات */}
+                        <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                          {/* إخفاء/إظهار */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); toggleCityVisibility(city.cityName); }}
+                            className={`h-8 px-2 md:px-3 ${isCityExpanded ? 'text-white hover:bg-white/20' : 'hover:bg-gray-100'}`}
+                          >
+                            {city.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                            <span className="hidden md:inline mr-1">{city.isHidden ? 'إظهار' : 'إخفاء'}</span>
+                          </Button>
+
+                          {/* واتساب */}
+                          <Button
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(city.cityName, `city-${city.cityName}`); }}
+                            className="h-8 px-2 md:px-3 bg-green-500 text-white hover:bg-green-600"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            <span className="hidden md:inline mr-1">واتساب</span>
+                          </Button>
+
+                          {/* نسخ الرابط */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { e.stopPropagation(); shareItemLink(city.cityName, `city-${city.cityName}`); }}
+                            className={`h-8 px-2 md:px-3 ${isCityExpanded ? 'text-white hover:bg-white/20' : 'hover:bg-gray-100'}`}
+                          >
+                            <Link className="w-4 h-4" />
+                            <span className="hidden md:inline mr-1">رابط</span>
+                          </Button>
+
+                          {/* مشاركة عامة */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              if (navigator.share) {
+                                navigator.share({ title: city.cityName, url: `${platformUrl}/city/${city.cityName}` });
+                              } else {
+                                shareItemLink(city.cityName, `city-${city.cityName}`);
+                              }
+                            }}
+                            className={`h-8 px-2 md:px-3 ${isCityExpanded ? 'text-white hover:bg-white/20' : 'hover:bg-gray-100'}`}
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+
+                          {/* سهم للجوال */}
+                          <div className="md:hidden" onClick={() => toggleCityExpand(city.cityName)}>
+                            {isCityExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                           </div>
                         </div>
                       </div>
@@ -1249,7 +1373,7 @@ export default function MyPlatformComplete({
                         )}
 
                         {/* === المستوى الثاني: الأحياء (الفرع) - خلفية خضراء هادئة === */}
-                        <div className="p-4 space-y-3">
+                        <div className="p-3 md:p-4 space-y-3">
                           {city.districts.map((district) => {
                             const districtKey = `${city.cityName}-${district.districtName}`;
                             const districtStats = getDistrictStats(district);
@@ -1257,71 +1381,111 @@ export default function MyPlatformComplete({
                             const districtPreviewImages = getPreviewImages(district.offers, 4);
                             
                             return (
-                              <div key={districtKey} className={`border-2 rounded-lg overflow-hidden transition-all duration-300 ${district.isHidden ? 'border-gray-300 opacity-60' : 'border-[#D4AF37]/30'}`}>
-                                {/* رأس الحي - خلفية خضراء هادئة */}
+                              <div 
+                                key={districtKey} 
+                                className={`border-2 rounded-lg overflow-hidden transition-all duration-300 ${district.isHidden ? 'border-gray-300 opacity-60' : 'border-[#D4AF37]/30'}`}
+                                draggable
+                                onDragStart={(e) => handleDragStartDistrict(e, district, city.cityName)}
+                                onDragEnd={() => setDraggedItem(null)}
+                              >
+                                {/* رأس الحي - خلفية خضراء هادئة + مساحة أوسع */}
                                 <div 
-                                  className={`p-3 transition-all duration-300 ${isDistrictExpanded ? 'bg-emerald-100' : 'bg-emerald-50 hover:bg-emerald-100'}`}
+                                  className={`p-3 md:p-4 transition-all duration-300 ${isDistrictExpanded ? 'bg-emerald-100' : 'bg-emerald-50 hover:bg-emerald-100'}`}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    {/* معلومات الحي */}
-                                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleDistrictExpand(districtKey)}>
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDistrictExpanded ? 'bg-[#01411C]' : 'bg-emerald-600'}`}>
-                                        <Building className="w-4 h-4 text-white" />
+                                  {/* الصف الأول: المعلومات والصور */}
+                                  <div className="flex flex-col md:flex-row md:items-center gap-3 cursor-pointer" onClick={() => toggleDistrictExpand(districtKey)}>
+                                    {/* مقبض السحب + الأيقونة والعنوان */}
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <div className="cursor-grab active:cursor-grabbing p-1 hover:bg-emerald-200 rounded" title="اسحب لنقل الحي">
+                                        <GripVertical className="w-4 h-4 text-emerald-600" />
                                       </div>
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <h4 className="font-bold text-[#01411C]">{district.districtName}</h4>
+                                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shrink-0 ${isDistrictExpanded ? 'bg-[#01411C]' : 'bg-emerald-600'}`}>
+                                        <Building className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h4 className="font-bold text-sm md:text-base text-[#01411C]">{district.districtName}</h4>
                                           {district.isHidden && <Badge variant="outline" className="text-xs bg-white">مخفي</Badge>}
+                                          <Badge className="text-xs bg-emerald-600 text-white">
+                                            {districtStats.offersCount} عرض
+                                          </Badge>
                                         </div>
                                         <p className="text-xs text-emerald-700">
-                                          {districtStats.offersCount} عرض • {districtStats.totalViews.toLocaleString()} مشاهدة
+                                          {districtStats.totalViews.toLocaleString()} مشاهدة
                                         </p>
                                       </div>
                                     </div>
 
                                     {/* 4 صور معاينة */}
-                                    <div className="flex items-center gap-1 mx-3">
+                                    <div className="flex items-center gap-1 mr-auto md:mr-0">
                                       {districtPreviewImages.map((img, idx) => (
-                                        <div key={idx} className="w-8 h-8 rounded overflow-hidden border border-white shadow-sm">
+                                        <div key={idx} className="w-7 h-7 md:w-8 md:h-8 rounded overflow-hidden border border-white shadow-sm shrink-0">
                                           <img src={img} alt="" className="w-full h-full object-cover" />
                                         </div>
                                       ))}
                                       {district.offers.length > 4 && (
-                                        <div className="w-8 h-8 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-xs">
+                                        <div className="w-7 h-7 md:w-8 md:h-8 rounded bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                                           +{district.offers.length - 4}
                                         </div>
                                       )}
                                     </div>
 
-                                    {/* أزرار الإجراءات */}
-                                    <div className="flex items-center gap-1">
-                                      {/* مشاهدة مباشرة */}
-                                      {district.liveViewers > 0 && (
-                                        <Badge className="bg-red-500 text-white text-xs animate-pulse">
-                                          <Eye className="w-3 h-3 ml-1" />{district.liveViewers}
-                                        </Badge>
-                                      )}
+                                    {/* سهم التوسيع للديسكتوب */}
+                                    <div className="hidden md:flex">
+                                      {isDistrictExpanded ? <ChevronUp className="w-5 h-5 text-emerald-700" /> : <ChevronDown className="w-5 h-5 text-emerald-700" />}
+                                    </div>
+                                  </div>
 
+                                  {/* الصف الثاني: الأزرار (في الأسفل منفصلة) */}
+                                  <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-emerald-200">
+                                    {/* علامة المشاهدة الحمراء */}
+                                    {district.liveViewers > 0 && (
+                                      <Badge className="bg-red-500 text-white text-xs animate-pulse flex items-center gap-1">
+                                        <Eye className="w-3 h-3 text-red-200" />
+                                        <span>{district.liveViewers} يشاهدون</span>
+                                      </Badge>
+                                    )}
+                                    {district.liveViewers === 0 && <div />}
+
+                                    {/* أزرار الإجراءات */}
+                                    <div className="flex items-center gap-1 flex-wrap">
                                       {/* إخفاء/إظهار */}
-                                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); toggleDistrictVisibility(city.cityName, district.districtName); }}>
+                                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); toggleDistrictVisibility(city.cityName, district.districtName); }}>
                                         {district.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                                        <span className="hidden md:inline mr-1">{district.isHidden ? 'إظهار' : 'إخفاء'}</span>
                                       </Button>
 
-                                      {/* مشاركة واتساب */}
-                                      <Button size="sm" className="bg-green-500 text-white text-xs" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(district.districtName, `district-${districtKey}`); }}>
+                                      {/* واتساب */}
+                                      <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(district.districtName, `district-${districtKey}`); }}>
                                         <MessageSquare className="w-3 h-3" />
                                       </Button>
 
                                       {/* نسخ الرابط */}
-                                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); shareItemLink(district.districtName, `district-${districtKey}`); }}>
+                                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); shareItemLink(district.districtName, `district-${districtKey}`); }}>
                                         <Link className="w-3 h-3" />
                                       </Button>
 
-                                      <Badge className="text-xs bg-emerald-600 text-white">
-                                        {districtStats.offersCount} عرض
-                                      </Badge>
-                                      <div className="cursor-pointer" onClick={() => toggleDistrictExpand(districtKey)}>
-                                        {isDistrictExpanded ? <ChevronUp className="w-5 h-5 text-emerald-700" /> : <ChevronDown className="w-5 h-5 text-emerald-700" />}
+                                      {/* مشاركة */}
+                                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if (navigator.share) {
+                                          navigator.share({ title: district.districtName, url: `${platformUrl}/district/${districtKey}` });
+                                        } else {
+                                          shareItemLink(district.districtName, `district-${districtKey}`);
+                                        }
+                                      }}>
+                                        <Share2 className="w-3 h-3" />
+                                      </Button>
+
+                                      {/* نقل لمدينة أخرى */}
+                                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); openMoveDialog('district', district, city.cityName); }}>
+                                        <Move className="w-3 h-3" />
+                                        <span className="hidden md:inline mr-1">نقل</span>
+                                      </Button>
+
+                                      {/* سهم للجوال */}
+                                      <div className="md:hidden" onClick={() => toggleDistrictExpand(districtKey)}>
+                                        {isDistrictExpanded ? <ChevronUp className="w-4 h-4 text-emerald-700" /> : <ChevronDown className="w-4 h-4 text-emerald-700" />}
                                       </div>
                                     </div>
                                   </div>
@@ -1329,50 +1493,77 @@ export default function MyPlatformComplete({
 
                                 {/* === المستوى الثالث: العروض (الجذر) === */}
                                 {isDistrictExpanded && (
-                                  <div className="p-4 bg-gray-50 border-t border-emerald-200 animate-fade-in">
+                                  <div className="p-3 md:p-4 bg-gray-50 border-t border-emerald-200 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                       {district.offers.map((offer) => (
-                                        <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}>
-                                          <div className="relative h-36">
+                                        <Card 
+                                          key={offer.id} 
+                                          className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}
+                                          draggable
+                                          onDragStart={(e) => handleDragStartOffer(e, offer, city.cityName, district.districtName)}
+                                          onDragEnd={() => setDraggedItem(null)}
+                                        >
+                                          {/* صورة العرض */}
+                                          <div className="relative h-32 md:h-36">
+                                            {/* مقبض السحب */}
+                                            <div className="absolute top-2 left-2 z-10 cursor-grab active:cursor-grabbing p-1 bg-white/80 rounded shadow" title="اسحب لنقل العرض">
+                                              <GripVertical className="w-4 h-4 text-gray-600" />
+                                            </div>
                                             <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
-                                            <Badge className={`absolute top-2 left-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                                            <Badge className={`absolute top-2 right-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
                                               <span className={`w-2 h-2 rounded-full ml-1 ${offer.status === 'published' ? 'bg-white animate-pulse' : 'bg-white'}`} />
                                               {offer.status === 'published' ? 'منشور' : 'مسودة'}
                                             </Badge>
                                             {offer.isHidden && (
-                                              <Badge className="absolute top-2 right-2 bg-gray-500 text-white text-xs">مخفي</Badge>
+                                              <Badge className="absolute bottom-2 left-2 bg-gray-500 text-white text-xs">مخفي</Badge>
                                             )}
+                                            {/* عين المشاهدة الحمراء */}
                                             {offer.liveViewers > 0 && (
-                                              <Badge className="absolute bottom-2 right-2 bg-red-500 text-white text-xs animate-pulse">
-                                                <Eye className="w-3 h-3 ml-1" />{offer.liveViewers} يشاهدون
+                                              <Badge className="absolute bottom-2 right-2 bg-red-500 text-white text-xs animate-pulse flex items-center gap-1">
+                                                <Eye className="w-3 h-3 text-red-200" />
+                                                <span>{offer.liveViewers}</span>
                                               </Badge>
                                             )}
                                           </div>
+                                          
+                                          {/* محتوى الكارت */}
                                           <CardContent className="p-3">
-                                            <h5 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h5>
-                                            <p className="text-[#D4AF37] font-bold mt-1">{offer.price}</p>
-                                            <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                                            <h5 className="font-bold text-[#01411C] line-clamp-1 text-sm md:text-base">{offer.title}</h5>
+                                            <p className="text-[#D4AF37] font-bold text-sm mt-1">{offer.price}</p>
+                                            <div className="flex items-center gap-2 md:gap-4 text-xs text-gray-500 mt-2 flex-wrap">
                                               <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{offer.views.toLocaleString()}</span>
                                               <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{offer.requests}</span>
                                               {offer.bedrooms && <span className="flex items-center gap-1"><Bed className="w-3 h-3" />{offer.bedrooms}</span>}
                                               {offer.area && <span className="flex items-center gap-1"><Maximize className="w-3 h-3" />{offer.area}م²</span>}
                                             </div>
-                                            {/* أزرار الإجراءات */}
-                                            <div className="flex items-center gap-1 mt-3 border-t pt-3">
+                                            
+                                            {/* أزرار الإجراءات (في الأسفل منفصلة) */}
+                                            <div className="flex items-center gap-1 mt-3 pt-3 border-t flex-wrap">
                                               {/* إخفاء/إظهار */}
-                                              <Button size="sm" variant="ghost" className="flex-1 text-xs" onClick={() => toggleOfferVisibility(city.cityName, district.districtName, offer.id)}>
-                                                {offer.isHidden ? <Eye className="w-3 h-3 ml-1" /> : <EyeOff className="w-3 h-3 ml-1" />}
-                                                {offer.isHidden ? 'إظهار' : 'إخفاء'}
+                                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => toggleOfferVisibility(city.cityName, district.districtName, offer.id)}>
+                                                {offer.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                               </Button>
                                               {/* واتساب */}
-                                              <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
-                                                <MessageSquare className="w-3 h-3 ml-1" />
-                                                واتساب
+                                              <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white flex-1 min-w-0" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
+                                                <MessageSquare className="w-3 h-3" />
                                               </Button>
-                                              {/* نسخ الرابط */}
-                                              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => shareItemLink(offer.title, offer.id)}>
-                                                <Link className="w-3 h-3 ml-1" />
-                                                رابط
+                                              {/* رابط */}
+                                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => shareItemLink(offer.title, offer.id)}>
+                                                <Link className="w-3 h-3" />
+                                              </Button>
+                                              {/* مشاركة */}
+                                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => { 
+                                                if (navigator.share) {
+                                                  navigator.share({ title: offer.title, url: `${platformUrl}/offer/${offer.id}` });
+                                                } else {
+                                                  shareItemLink(offer.title, offer.id);
+                                                }
+                                              }}>
+                                                <Share2 className="w-3 h-3" />
+                                              </Button>
+                                              {/* نقل */}
+                                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => openMoveDialog('offer', offer, city.cityName, district.districtName)}>
+                                                <Move className="w-3 h-3" />
                                               </Button>
                                             </div>
                                           </CardContent>
@@ -1555,6 +1746,53 @@ export default function MyPlatformComplete({
               onCancel={() => setShowPublishDialog(false)}
             />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Dialog - نقل العقار/الحي لمدينة أخرى */}
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Move className="w-5 h-5 text-[#01411C]" />
+              نقل {itemToMove?.type === 'district' ? 'الحي' : 'العرض'} لمدينة أخرى
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">العنصر المحدد:</Label>
+              <p className="text-sm text-gray-600 mt-1">
+                {itemToMove?.type === 'district' ? itemToMove?.data?.districtName : itemToMove?.data?.title}
+              </p>
+              <p className="text-xs text-gray-400">من: {itemToMove?.sourceCity}</p>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">اختر المدينة الجديدة:</Label>
+              <Select value={targetCityForMove} onValueChange={setTargetCityForMove}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="اختر المدينة..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {cityHierarchy
+                    .filter(c => c.cityName !== itemToMove?.sourceCity)
+                    .map(c => (
+                      <SelectItem key={c.cityName} value={c.cityName}>{c.cityName}</SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>إلغاء</Button>
+            <Button className="bg-[#01411C] text-white" onClick={confirmMove} disabled={!targetCityForMove}>
+              <Move className="w-4 h-4 ml-2" />
+              نقل
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
