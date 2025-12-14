@@ -43,6 +43,10 @@ import {
   Bath,
   Maximize,
   Star,
+  Calendar,
+  DollarSign,
+  EyeOff,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -83,6 +87,7 @@ interface Offer {
   bedrooms?: number;
   bathrooms?: number;
   area?: number;
+  status: 'published' | 'draft';
 }
 
 interface PropertyEngagement {
@@ -151,6 +156,7 @@ const mockOffers: Offer[] = [
     bedrooms: 5,
     bathrooms: 4,
     area: 450,
+    status: 'published',
   },
   {
     id: '2',
@@ -171,6 +177,7 @@ const mockOffers: Offer[] = [
     bedrooms: 3,
     bathrooms: 2,
     area: 180,
+    status: 'published',
   },
   {
     id: '3',
@@ -189,6 +196,7 @@ const mockOffers: Offer[] = [
     owner: { name: 'عبدالله خالد', phone: '0541112233' },
     purpose: 'sale',
     area: 5000,
+    status: 'draft',
   },
   {
     id: '4',
@@ -209,6 +217,7 @@ const mockOffers: Offer[] = [
     bedrooms: 12,
     bathrooms: 12,
     area: 1200,
+    status: 'published',
   },
 ];
 
@@ -255,8 +264,37 @@ const generateMockEngagement = (views: number): PropertyEngagement => {
   };
 };
 
+// مفتاح localStorage
+const OFFERS_STORAGE_KEY = 'wasata_my_platform_offers';
+
+// تحميل العروض من localStorage
+const loadOffersFromStorage = (): Offer[] => {
+  try {
+    const saved = localStorage.getItem(OFFERS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.map((o: any) => ({
+        ...o,
+        date: new Date(o.date)
+      }));
+    }
+  } catch (error) {
+    console.error('خطأ في تحميل العروض:', error);
+  }
+  return mockOffers;
+};
+
+// حفظ العروض في localStorage
+const saveOffersToStorage = (offers: Offer[]) => {
+  try {
+    localStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(offers));
+  } catch (error) {
+    console.error('خطأ في حفظ العروض:', error);
+  }
+};
+
 export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps) {
-  const [offers, setOffers] = useState<Offer[]>(mockOffers);
+  const [offers, setOffers] = useState<Offer[]>(() => loadOffersFromStorage());
   const [activeTimeFilter, setActiveTimeFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -380,18 +418,106 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
 
   // Toggle Pin
   const togglePin = (offerId: string) => {
-    setOffers(prev => prev.map(o => 
-      o.id === offerId ? { ...o, isPinned: !o.isPinned } : o
-    ));
-    toast.success('تم تحديث الحالة');
+    setOffers(prev => {
+      const updated = prev.map(o => 
+        o.id === offerId ? { ...o, isPinned: !o.isPinned } : o
+      );
+      saveOffersToStorage(updated);
+      return updated;
+    });
+    toast.success('تم تحديث حالة التثبيت');
   };
 
   // Delete Offer
   const deleteOffer = (offerId: string) => {
     if (confirm('هل أنت متأكد من حذف هذا العرض؟')) {
-      setOffers(prev => prev.filter(o => o.id !== offerId));
+      setOffers(prev => {
+        const updated = prev.filter(o => o.id !== offerId);
+        saveOffersToStorage(updated);
+        return updated;
+      });
       toast.success('تم حذف العرض');
     }
+  };
+
+  // Toggle Publish Status (نشر/إخفاء)
+  const togglePublishStatus = (offerId: string) => {
+    setOffers(prev => {
+      const updated = prev.map(o => {
+        if (o.id === offerId) {
+          const newStatus = o.status === 'published' ? 'draft' : 'published';
+          if (newStatus === 'published') {
+            toast.success('تم نشر العرض بنجاح');
+            // تسجيل حدث Analytics
+            window.dispatchEvent(new CustomEvent('analyticsEvent', {
+              detail: { eventType: 'offer_published', offerId, timestamp: new Date().toISOString() }
+            }));
+          } else {
+            toast.success('تم إخفاء العرض من منصتي');
+            // تسجيل حدث Analytics
+            window.dispatchEvent(new CustomEvent('analyticsEvent', {
+              detail: { eventType: 'offer_hidden', offerId, timestamp: new Date().toISOString() }
+            }));
+          }
+          return { ...o, status: newStatus as 'published' | 'draft' };
+        }
+        return o;
+      });
+      saveOffersToStorage(updated);
+      return updated;
+    });
+  };
+
+  // Handle WhatsApp Contact
+  const handleWhatsApp = (phone: string, title: string) => {
+    const message = encodeURIComponent(`مرحباً، أنا مهتم بـ: ${title}`);
+    window.open(`https://wa.me/${phone.replace(/^0/, '966')}?text=${message}`, '_blank');
+    toast.success('جاري فتح واتساب...');
+  };
+
+  // Handle Phone Call
+  const handleCall = (phone: string) => {
+    window.location.href = `tel:${phone}`;
+    toast.success('جاري الاتصال...');
+  };
+
+  // Handle Appointment
+  const handleAppointment = (offerId: string, title: string) => {
+    // إرسال حدث للتقويم
+    window.dispatchEvent(new CustomEvent('addAppointment', {
+      detail: {
+        title: `معاينة: ${title}`,
+        propertyId: offerId,
+        type: 'معاينة'
+      }
+    }));
+    toast.success('سيتم فتح نافذة تحديد الموعد');
+  };
+
+  // Handle Deposit (عربون)
+  const handleDeposit = (offerId: string, title: string) => {
+    toast.info(`سيتم فتح نافذة دفع العربون لـ: ${title}`);
+    // تسجيل حدث Analytics
+    window.dispatchEvent(new CustomEvent('analyticsEvent', {
+      detail: { eventType: 'deposit_requested', offerId, title }
+    }));
+    // TODO: فتح نافذة الدفع
+  };
+
+  // Handle CSV Export - تصدير CSV
+  const handleExportCSV = () => {
+    const csvHeader = 'العنوان,الموقع,السعر,المشاهدات,الطلبات,الحالة\n';
+    const csvData = filteredOffers.map(o => 
+      `"${o.title}","${o.location}","${o.price}",${o.views},${o.requests},"${o.status === 'published' ? 'منشور' : 'مسودة'}"`
+    ).join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvHeader + csvData], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `my-platform-offers-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    toast.success('تم تصدير البيانات بنجاح');
   };
 
   return (
@@ -769,15 +895,27 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                   </TooltipProvider>
                 )}
 
-                {/* Pin Badge */}
-                {offer.isPinned && (
-                  <div className="absolute top-2 right-2 z-10">
+                {/* Status Badge (منشور/مسودة) */}
+                <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+                  {offer.status === 'published' ? (
+                    <Badge className="bg-green-500 text-white flex items-center gap-1">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      منشور
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-yellow-500 text-black">
+                      مسودة
+                    </Badge>
+                  )}
+                  
+                  {/* Pin Badge */}
+                  {offer.isPinned && (
                     <Badge className="bg-[#D4AF37] text-[#01411C]">
                       <Pin className="w-3 h-3 ml-1" />
                       مثبت
                     </Badge>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
@@ -860,15 +998,68 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                     <span>{offer.lastOpened}</span>
                   </div>
                   
-                  {/* Actions */}
-                  <div className="flex gap-2">
+                  {/* Communication Buttons - أزرار التواصل */}
+                  <div className="flex gap-2 mb-3">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleWhatsApp(offer.owner.phone, offer.title);
+                      }}
+                    >
+                      <MessageSquare className="w-3 h-3 ml-1" />
+                      واتساب
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCall(offer.owner.phone);
+                      }}
+                    >
+                      <Phone className="w-3 h-3 ml-1" />
+                      اتصال
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAppointment(offer.id, offer.title);
+                      }}
+                    >
+                      <Calendar className="w-3 h-3 ml-1" />
+                      موعد
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-[#D4AF37] hover:bg-[#b8941f] text-[#01411C] text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeposit(offer.id, offer.title);
+                      }}
+                    >
+                      <DollarSign className="w-3 h-3 ml-1" />
+                      عربون
+                    </Button>
+                  </div>
+
+                  {/* Actions - أزرار التحكم */}
+                  <div className="flex gap-2 mb-3">
                     <Button
                       size="sm"
                       variant="outline"
                       className="flex-1 border-[#D4AF37] text-[#01411C] hover:bg-[#f0fdf4]"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toast.info('سيتم فتح المشاركة');
+                        const shareUrl = `${window.location.origin}/share/${offer.id}`;
+                        navigator.clipboard.writeText(shareUrl);
+                        toast.success('تم نسخ رابط المشاركة');
                       }}
                     >
                       <Share2 className="w-4 h-4 ml-1" />
@@ -880,7 +1071,8 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                       className="flex-1 bg-[#01411C] hover:bg-[#065f41] text-white"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toast.info('سيتم فتح التعديل');
+                        onNavigate?.('property-edit', { offerId: offer.id });
+                        toast.info('جاري فتح التعديل...');
                       }}
                     >
                       <Edit className="w-4 h-4 ml-1" />
@@ -911,6 +1103,34 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  {/* Publish/Hide Button - زر النشر/الإخفاء */}
+                  {offer.status === 'published' ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-red-500 text-red-500 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePublishStatus(offer.id);
+                      }}
+                    >
+                      <EyeOff className="w-4 h-4 ml-2" />
+                      إخفاء من منصتي
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePublishStatus(offer.id);
+                      }}
+                    >
+                      <Globe className="w-4 h-4 ml-2" />
+                      نشر على منصتي
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
