@@ -15,20 +15,24 @@ interface RightSliderProps {
 }
 
 const RIGHT_SIDEBAR_ITEMS = [
-  { id: 'dashboard', icon: Home, label: 'الرئيسية', path: '/', color: '#01411C' },
-  { id: 'crm', icon: Users, label: 'إدارة العملاء', path: '/customers', color: '#065f41', badge: 'جديد' },
-  { id: 'business-card', icon: UserCheck, label: 'بطاقة أعمالي الرقمية', path: '/business-card', color: '#D4AF37' },
-  { id: 'course', icon: BookOpen, label: 'دورة الوساطة', path: '/course', color: '#065f41' },
-  { id: 'colleagues', icon: Crown, label: 'إدارة الفريق', path: '/team', color: '#01411C' },
-  { id: 'workspace', icon: Briefcase, label: 'مساحة العمل', path: '/workspace', color: '#065f41' },
-  { id: 'archive', icon: Archive, label: 'الأرشيف', path: '/archive', color: '#10b981', badge: '📁' },
-  { id: 'quotes', icon: FileText, label: 'عروض الأسعار', path: '/quotes', color: '#01411C' },
-  { id: 'receipts', icon: Receipt, label: 'سندات القبض', path: '/receipts', color: '#D4AF37' },
-  { id: 'tasks', icon: Plus, label: 'إدارة المهام', path: '/tasks', color: '#065f41' },
-  { id: 'analytics', icon: BarChart3, label: 'التحليلات', path: '/analytics', color: '#D4AF37' },
-  { id: 'blog', icon: Info, label: 'ما الجديد؟', path: '/blog', color: '#01411C' },
-  { id: 'support', icon: Headphones, label: 'الدعم الفني', path: '/support', color: '#01411C' },
-  { id: 'settings', icon: Settings, label: 'الإعدادات', path: '/settings', color: '#01411C' },
+  { id: 'profile', icon: Home, label: 'الملف الشخصي', path: '/', color: '#3b82f6', count: 12 },
+  { id: 'documents', icon: FileText, label: 'المستندات', path: '/documents', color: '#22c55e', count: 45 },
+  { id: 'wallet', icon: Receipt, label: 'المحفظة', path: '/wallet', color: '#f59e0b', count: '8,450' },
+  { id: 'achievements', icon: Crown, label: 'الإنجازات', path: '/achievements', color: '#a855f7', count: 15 },
+  { id: 'notifications', icon: Info, label: 'الإشعارات', path: '/notifications', color: '#ef4444', count: 23, badge: 'جديد' },
+  { id: 'favorites', icon: UserCheck, label: 'المفضلة', path: '/favorites', color: '#eab308', count: 34 },
+  { id: 'analytics', icon: BarChart3, label: 'الإحصائيات', path: '/analytics', color: '#6366f1', count: '12K' },
+  { id: 'appointments', icon: BookOpen, label: 'المواعيد', path: '/appointments', color: '#ec4899', count: 8 },
+  { id: 'messages', icon: Users, label: 'المحادثات', path: '/messages', color: '#14b8a6', count: 56 },
+  { id: 'goals', icon: Plus, label: 'الأهداف', path: '/goals', color: '#f97316', count: 7 },
+  { id: 'tasks', icon: Briefcase, label: 'المهام', path: '/tasks', color: '#06b6d4', count: 19 },
+  { id: 'projects', icon: Building2, label: 'المشاريع', path: '/projects', color: '#84cc16', count: 6 },
+  { id: 'team', icon: Users, label: 'الفريق', path: '/team', color: '#f43f5e', count: 24 },
+  { id: 'apps', icon: Settings, label: 'التطبيقات', path: '/apps', color: '#8b5cf6', count: 12 },
+  { id: 'security', icon: Archive, label: 'الأمان', path: '/security', color: '#6b7280', count: 5 },
+  { id: 'links', icon: Info, label: 'الروابط', path: '/links', color: '#10b981', count: 32 },
+  { id: 'customize', icon: Settings, label: 'التخصيص', path: '/customize', color: '#d946ef', count: 18 },
+  { id: 'updates', icon: Headphones, label: 'التحديثات', path: '/updates', color: '#0ea5e9', count: 3 },
 ];
 
 const mockUser = {
