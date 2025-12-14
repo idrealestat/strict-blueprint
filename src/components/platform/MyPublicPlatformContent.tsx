@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import OfferDetailsPage from './OfferDetailsPage';
 
 interface Listing {
   id: string;
@@ -21,6 +22,15 @@ interface Listing {
   imageCount: number;
   city: string;
   district: string;
+  images?: string[];
+  ownerName?: string;
+  ownerPhone?: string;
+  createdAt?: string;
+  views?: number;
+  street?: string;
+  age?: number;
+  direction?: string;
+  features?: string[];
 }
 
 interface District {
@@ -54,6 +64,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
   const [logoImage, setLogoImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [cardData, setCardData] = useState<UserData>({});
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   
   useEffect(() => {
     const loadData = () => {
@@ -224,9 +236,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     if (!listing) return null;
 
     const handleViewDetails = () => {
-      window.dispatchEvent(new CustomEvent('viewAdDetails', { 
-        detail: { adId: listing.id, source: 'platform' } 
-      }));
+      setSelectedListing(listing);
+      setShowDetails(true);
     };
 
     const formatPrice = (price: number) => {
@@ -239,7 +250,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     };
 
     return (
-      <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group">
+      <div 
+        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
+        onClick={handleViewDetails}
+      >
         <div className="relative h-48">
           <img 
             src={listing.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400'} 
@@ -289,7 +303,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
               <span>{listing.district}</span>
             </div>
             <button 
-              onClick={handleViewDetails}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDetails();
+              }}
               className="text-[#01411C] text-sm font-bold hover:text-[#065f41] transition-colors flex items-center gap-1"
             >
               عرض التفاصيل
@@ -451,6 +468,18 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
           </p>
         </footer>
       </div>
+
+      {/* صفحة تفاصيل العرض */}
+      {selectedListing && (
+        <OfferDetailsPage
+          listing={selectedListing}
+          isOpen={showDetails}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedListing(null);
+          }}
+        />
+      )}
     </div>
   );
 };
