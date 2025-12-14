@@ -60,6 +60,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
+import MyPublicPlatformContent from "./MyPublicPlatformContent";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -1308,99 +1309,17 @@ export default function MyPlatformComplete({
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: منصتي */}
-          <TabsContent value="platform" className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Card className="border-2 border-[#D4AF37]">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-[#01411C]">{stats.total}</div>
-                  <div className="text-sm text-gray-600">إجمالي العروض</div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-green-400">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{stats.published}</div>
-                  <div className="text-sm text-gray-600">منشور</div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-yellow-400">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{stats.draft}</div>
-                  <div className="text-sm text-gray-600">مسودة</div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-blue-400">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{stats.totalViews.toLocaleString()}</div>
-                  <div className="text-sm text-gray-600">المشاهدات</div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-purple-400">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-600">{stats.totalRequests}</div>
-                  <div className="text-sm text-gray-600">الطلبات</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Platform Info */}
-            <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-[#01411C]">رابط منصتك العامة</h3>
-                    <p className="text-sm text-gray-600">هذا الرابط يظهر للجمهور لمشاهدة عروضك المنشورة</p>
-                    <code className="mt-2 block bg-white px-3 py-2 rounded border text-sm">
-                      {platformUrl}
-                    </code>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => window.open(platformUrl, '_blank')}>
-                      <Eye className="w-4 h-4 ml-2" />
-                      معاينة
-                    </Button>
-                    <Button 
-                      className="bg-[#01411C] text-[#D4AF37]"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(platformUrl);
-                        toast.success('تم نسخ الرابط');
-                      }}
-                    >
-                      <Copy className="w-4 h-4 ml-2" />
-                      نسخ الرابط
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Published Offers Preview */}
-            <div>
-              <h3 className="text-lg font-bold text-[#01411C] mb-4">العروض المنشورة على منصتك</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {offers.filter(o => o.status === 'published').slice(0, 6).map(offer => (
-                  <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-all">
-                    <div className="relative h-40">
-                      <img 
-                        src={offer.images[0] || 'https://via.placeholder.com/400x300?text=عقار'} 
-                        alt={offer.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <Badge className="absolute top-2 right-2 bg-green-500 text-white">
-                        <span className="w-2 h-2 bg-white rounded-full animate-pulse ml-1" />
-                        منشور
-                      </Badge>
-                    </div>
-                    <CardContent className="p-3">
-                      <h4 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h4>
-                      <p className="text-sm text-gray-500">{offer.location}</p>
-                      <p className="text-sm font-bold text-[#D4AF37] mt-1">{offer.price}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
+          {/* Tab: المنصه - عرض المنصة العامة بأسلوب جديد */}
+          <TabsContent value="platform" className="space-y-0 -mx-4 -mt-2">
+            <MyPublicPlatformContent 
+              currentUser={{
+                name: user?.name || 'مستخدم تجريبي',
+                title: 'وسيط عقاري معتمد',
+                rating: 5.0,
+                badge: 'ماسي',
+                totalDeals: 156
+              }}
+            />
           </TabsContent>
 
           {/* Tab: العروض (الهرمي) */}
