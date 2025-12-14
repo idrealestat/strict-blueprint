@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatform from "./components/platform/MyPlatform";
+import MyPlatformComplete from "./components/platform/MyPlatformComplete";
 import MyPlatformSmartPaths from "./components/platform/MyPlatformSmartPaths";
 import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
 import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
@@ -139,7 +140,7 @@ const App = () => {
       case "customer-management-72":
         return <EnhancedBrokerCRM onBack={handleBack} user={mockUser} />;
       case "dashboard-main-252":
-        return <MyPlatform onBack={handleBack} onNavigate={handleNavigate} user={mockUser} />;
+        return <MyPlatformComplete onBack={handleBack} onNavigate={handleNavigate} user={mockUser} />;
       case "my-platform-smart":
         return <MyPlatformSmartPaths onBack={handleBack} user={mockUser} />;
       case "business-card-profile":
