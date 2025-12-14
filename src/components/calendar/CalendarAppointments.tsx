@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { triggerNotification } from '@/hooks/useNotificationSystem';
+import CalendarTabs from '../CalendarTabs';
 
 // Types
 interface Appointment {
@@ -484,6 +485,11 @@ export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppoint
             </Dialog>
           </div>
         </div>
+      </div>
+
+      {/* ملخص التقويم - 9 تبويبات (برومبت التقويم والمواعيد) */}
+      <div className="container mx-auto p-6">
+        <CalendarTabs />
       </div>
 
       <div className="container mx-auto p-6">
