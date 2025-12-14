@@ -191,7 +191,9 @@ const ACTIVITY_TYPE_ICONS: Record<string, { icon: any; color: string }> = {
 };
 
 export default function CustomerDetailsPage({ customer, onBack, onUpdate }: CustomerDetailsPageProps) {
-  const [activeTab, setActiveTab] = useState('overview');
+  // استخدام التبويب من بيانات العميل إذا تم تحديده (مثلاً من المساعد الذكي)
+  const initialTab = (customer as any).activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditing, setIsEditing] = useState(false);
   const [editedCustomer, setEditedCustomer] = useState<Customer>(customer);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(mockActivityLogs);
