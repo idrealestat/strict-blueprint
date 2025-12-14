@@ -4,9 +4,10 @@
  * Complete Tasks Management System
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { triggerNotification } from "@/hooks/useNotificationSystem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -274,7 +275,20 @@ export default function TasksManagement({ onBack, linkedCustomer }: TasksManagem
       createdAt: new Date().toISOString().split('T')[0],
     };
 
-    setTasks([task, ...tasks]);
+    const updatedTasks = [task, ...tasks];
+    setTasks(updatedTasks);
+    
+    // Save to localStorage for notification system
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    
+    // Trigger notification
+    triggerNotification({
+      title: '✅ مهمة جديدة',
+      message: `تم إضافة المهمة "${task.title}"`,
+      type: 'success',
+      category: 'task',
+    });
+
     setNewTask({
       title: '',
       description: '',
@@ -289,6 +303,11 @@ export default function TasksManagement({ onBack, linkedCustomer }: TasksManagem
     setShowAddTask(false);
     toast.success('تم إضافة المهمة بنجاح');
   };
+
+  // Save tasks to localStorage for notification system
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
 
   // Toggle task status
   const toggleTaskComplete = (taskId: string) => {

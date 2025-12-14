@@ -1,81 +1,138 @@
 /**
  * NotificationsSidebar.tsx
- * شريط الإشعارات الجانبي
+ * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد
  */
 
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Bell, Check, Trash2, Clock } from "lucide-react";
+import { 
+  X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
+  Calendar, CheckCircle, AlertCircle, Info, Star,
+  ChevronRight, Settings
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Switch } from "./ui/switch";
+import { useNotificationSystem, SystemNotification } from "@/hooks/useNotificationSystem";
 
 interface NotificationsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: string, params?: any) => void;
 }
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  type: "info" | "success" | "warning" | "error";
-  read: boolean;
-}
-
-const SAMPLE_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    title: "عميل جديد",
-    message: "تم إضافة عميل جديد: أحمد محمد",
-    time: "منذ 5 دقائق",
-    type: "success",
-    read: false,
-  },
-  {
-    id: "2",
-    title: "موعد قادم",
-    message: "لديك موعد معاينة بعد ساعة",
-    time: "منذ 30 دقيقة",
-    type: "warning",
-    read: false,
-  },
-  {
-    id: "3",
-    title: "صفقة مكتملة",
-    message: "تم إتمام صفقة بيع فيلا بنجاح",
-    time: "منذ ساعة",
-    type: "success",
-    read: true,
-  },
-  {
-    id: "4",
-    title: "تحديث النظام",
-    message: "تم تحديث النظام بنجاح إلى الإصدار الجديد",
-    time: "منذ ساعتين",
-    type: "info",
-    read: true,
-  },
-];
 
 export default function NotificationsSidebar({
   isOpen,
   onClose,
   onNavigate,
 }: NotificationsSidebarProps) {
-  const unreadCount = SAMPLE_NOTIFICATIONS.filter((n) => !n.read).length;
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
+    soundEnabled,
+    toggleSound,
+    testSound,
+  } = useNotificationSystem();
 
-  const getTypeColor = (type: Notification["type"]) => {
-    switch (type) {
-      case "success":
-        return "bg-green-500";
-      case "warning":
-        return "bg-yellow-500";
+  const [activeTab, setActiveTab] = useState("all");
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Filter notifications by tab
+  const filteredNotifications = notifications.filter(n => {
+    if (activeTab === "all") return true;
+    if (activeTab === "unread") return !n.read;
+    if (activeTab === "tasks") return n.category === "task";
+    if (activeTab === "appointments") return n.category === "appointment";
+    return true;
+  });
+
+  // Get type styles
+  const getTypeStyles = (notification: SystemNotification) => {
+    switch (notification.type) {
       case "error":
-        return "bg-red-500";
+        return {
+          bg: "bg-red-50 border-red-200",
+          dot: "bg-red-500",
+          icon: AlertCircle,
+          iconColor: "text-red-500"
+        };
+      case "warning":
+        return {
+          bg: "bg-yellow-50 border-yellow-200",
+          dot: "bg-yellow-500",
+          icon: AlertCircle,
+          iconColor: "text-yellow-500"
+        };
+      case "success":
+        return {
+          bg: "bg-green-50 border-green-200",
+          dot: "bg-green-500",
+          icon: CheckCircle,
+          iconColor: "text-green-500"
+        };
+      case "reminder":
+        return {
+          bg: "bg-purple-50 border-purple-200",
+          dot: "bg-purple-500",
+          icon: Bell,
+          iconColor: "text-purple-500"
+        };
+      case "task":
+        return {
+          bg: "bg-blue-50 border-blue-200",
+          dot: "bg-blue-500",
+          icon: CheckCircle,
+          iconColor: "text-blue-500"
+        };
+      case "appointment":
+        return {
+          bg: "bg-orange-50 border-orange-200",
+          dot: "bg-orange-500",
+          icon: Calendar,
+          iconColor: "text-orange-500"
+        };
       default:
-        return "bg-blue-500";
+        return {
+          bg: "bg-gray-50 border-gray-200",
+          dot: "bg-blue-500",
+          icon: Info,
+          iconColor: "text-blue-500"
+        };
     }
+  };
+
+  // Handle notification click
+  const handleNotificationClick = (notification: SystemNotification) => {
+    markAsRead(notification.id);
+
+    // Navigate based on action type
+    if (notification.actionType?.startsWith('task') && onNavigate) {
+      onNavigate('tasks', { taskId: notification.relatedId });
+      onClose();
+    } else if (notification.actionType?.startsWith('appointment') && onNavigate) {
+      onNavigate('calendar', { appointmentId: notification.relatedId });
+      onClose();
+    }
+  };
+
+  // Format time
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'الآن';
+    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+    if (diffDays < 7) return `منذ ${diffDays} يوم`;
+    return new Date(date).toLocaleDateString('ar-SA');
   };
 
   return (
@@ -95,7 +152,7 @@ export default function NotificationsSidebar({
           {/* Sidebar */}
           <motion.div
             dir="rtl"
-            className="fixed top-0 left-0 z-50 h-full w-[90%] md:w-[380px] bg-white shadow-2xl border-r-4 border-[#D4AF37] flex flex-col"
+            className="fixed top-0 left-0 z-50 h-full w-[95%] md:w-[420px] bg-white shadow-2xl border-r-4 border-[#D4AF37] flex flex-col"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
@@ -103,68 +160,183 @@ export default function NotificationsSidebar({
           >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] text-white border-b-2 border-[#D4AF37]">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-[#D4AF37]" />
+                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center relative">
+                    <Bell className="w-6 h-6 text-[#D4AF37]" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <h3 className="font-bold">الإشعارات</h3>
+                    <h3 className="font-bold text-lg">الإشعارات</h3>
                     <p className="text-xs text-white/70">
                       {unreadCount} إشعارات غير مقروءة
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-full bg-black/20 hover:bg-black/40 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-full bg-black/20 hover:bg-black/40 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
+
+              {/* Settings Panel */}
+              <AnimatePresence>
+                {showSettings && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="bg-white/10 rounded-lg p-3 mb-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {soundEnabled ? (
+                          <Volume2 className="w-5 h-5 text-[#D4AF37]" />
+                        ) : (
+                          <VolumeX className="w-5 h-5 text-gray-400" />
+                        )}
+                        <span className="text-sm">صوت التنبيه</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={testSound}
+                          className="text-xs text-white/70 hover:text-white hover:bg-white/10"
+                        >
+                          اختبار
+                        </Button>
+                        <Switch
+                          checked={soundEnabled}
+                          onCheckedChange={toggleSound}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid grid-cols-4 bg-white/10 w-full">
+                  <TabsTrigger 
+                    value="all" 
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                  >
+                    الكل
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="unread"
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                  >
+                    غير مقروءة
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="tasks"
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                  >
+                    المهام
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="appointments"
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                  >
+                    المواعيد
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {SAMPLE_NOTIFICATIONS.map((notification) => (
-                <motion.div
-                  key={notification.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
-                    notification.read
-                      ? "bg-gray-50 border-gray-200"
-                      : "bg-white border-[#D4AF37]"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${getTypeColor(
-                        notification.type
-                      )}`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h4 className="font-bold text-[#01411C] text-sm">
-                          {notification.title}
-                        </h4>
-                        {!notification.read && (
-                          <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">
-                            جديد
-                          </Badge>
-                        )}
+              {filteredNotifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <Bell className="w-16 h-16 mb-4 opacity-30" />
+                  <p className="text-lg font-medium">لا توجد إشعارات</p>
+                  <p className="text-sm">ستظهر الإشعارات الجديدة هنا</p>
+                </div>
+              ) : (
+                filteredNotifications.map((notification) => {
+                  const styles = getTypeStyles(notification);
+                  const Icon = styles.icon;
+                  
+                  return (
+                    <motion.div
+                      key={notification.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -100 }}
+                      layout
+                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
+                        notification.read
+                          ? "bg-gray-50 border-gray-200 opacity-70"
+                          : styles.bg
+                      }`}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          notification.read ? 'bg-gray-200' : `${styles.bg}`
+                        }`}>
+                          <Icon className={`w-5 h-5 ${notification.read ? 'text-gray-400' : styles.iconColor}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h4 className={`font-bold text-sm ${notification.read ? 'text-gray-500' : 'text-[#01411C]'}`}>
+                              {notification.title}
+                            </h4>
+                            <div className="flex items-center gap-1">
+                              {!notification.read && (
+                                <Badge className="bg-[#D4AF37] text-[#01411C] text-xs px-1.5 py-0.5">
+                                  جديد
+                                </Badge>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification.id);
+                                }}
+                                className="p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className={`text-sm mb-2 ${notification.read ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <Clock className="w-3 h-3" />
+                              <span>{formatTime(notification.createdAt)}</span>
+                            </div>
+                            {notification.actionType && (
+                              <button className="flex items-center gap-1 text-xs text-[#01411C] hover:underline">
+                                <span>عرض</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        <span>{notification.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
 
             {/* Footer */}
@@ -173,7 +345,9 @@ export default function NotificationsSidebar({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-xs border-[#D4AF37] text-[#01411C]"
+                  onClick={markAllAsRead}
+                  disabled={unreadCount === 0}
+                  className="flex-1 text-xs border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
                 >
                   <Check className="w-3 h-3 ml-1" />
                   قراءة الكل
@@ -181,6 +355,8 @@ export default function NotificationsSidebar({
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={deleteAllNotifications}
+                  disabled={notifications.length === 0}
                   className="flex-1 text-xs border-red-300 text-red-600 hover:bg-red-50"
                 >
                   <Trash2 className="w-3 h-3 ml-1" />
