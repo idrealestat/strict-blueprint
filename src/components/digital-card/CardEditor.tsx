@@ -112,6 +112,8 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const updateField = (field: keyof CardData, value: string | null) => {
     setCardData(prev => ({ ...prev, [field]: value }));
@@ -124,6 +126,53 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
       primaryColor: template.primaryColor,
       secondaryColor: template.secondaryColor,
     }));
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    field: 'profilePhoto' | 'coverPhoto'
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('الرجاء اختيار ملف صورة');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حجم الصورة يجب أن لا يتجاوز 5 ميجابايت');
+      return;
+    }
+
+    const setUploading = field === 'profilePhoto' ? setIsUploadingProfile : setIsUploadingCover;
+    setUploading(true);
+
+    try {
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        updateField(field, result);
+        setUploading(false);
+        toast.success(field === 'profilePhoto' ? 'تم رفع صورة الملف الشخصي' : 'تم رفع صورة الغلاف');
+      };
+      reader.onerror = () => {
+        setUploading(false);
+        toast.error('فشل في قراءة الصورة');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      setUploading(false);
+      toast.error('حدث خطأ أثناء رفع الصورة');
+    }
+  };
+
+  const removeImage = (field: 'profilePhoto' | 'coverPhoto') => {
+    updateField(field, null);
+    toast.success(field === 'profilePhoto' ? 'تم حذف صورة الملف الشخصي' : 'تم حذف صورة الغلاف');
   };
 
   const handleSave = async () => {
@@ -275,18 +324,111 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
                     الصور
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
+                    {/* Profile Photo */}
                     <div>
                       <Label className="mb-2 block">صورة الملف الشخصي</Label>
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4 text-center cursor-pointer hover:border-[#01411C] transition-colors">
-                        <User className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">اضغط للرفع</p>
+                      <div className="relative">
+                        {cardData.profilePhoto ? (
+                          <div className="relative group">
+                            <div className="w-full aspect-square rounded-lg overflow-hidden border-2 border-[#01411C]">
+                              <img
+                                src={cardData.profilePhoto}
+                                alt="صورة الملف الشخصي"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                              <label className="cursor-pointer p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
+                                <Camera className="h-5 w-5 text-white" />
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleImageUpload(e, 'profilePhoto')}
+                                />
+                              </label>
+                              <button
+                                onClick={() => removeImage('profilePhoto')}
+                                className="p-2 bg-red-500/80 rounded-full hover:bg-red-500 transition-colors"
+                              >
+                                <X className="h-5 w-5 text-white" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block border-2 border-dashed border-muted rounded-lg p-6 text-center cursor-pointer hover:border-[#01411C] transition-colors">
+                            {isUploadingProfile ? (
+                              <div className="animate-spin w-8 h-8 border-2 border-[#01411C] border-t-transparent rounded-full mx-auto mb-2" />
+                            ) : (
+                              <User className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              {isUploadingProfile ? 'جاري الرفع...' : 'اضغط للرفع'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">PNG, JPG (حد أقصى 5MB)</p>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleImageUpload(e, 'profilePhoto')}
+                              disabled={isUploadingProfile}
+                            />
+                          </label>
+                        )}
                       </div>
                     </div>
+
+                    {/* Cover Photo */}
                     <div>
                       <Label className="mb-2 block">صورة الغلاف</Label>
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4 text-center cursor-pointer hover:border-[#01411C] transition-colors">
-                        <Image className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">اضغط للرفع</p>
+                      <div className="relative">
+                        {cardData.coverPhoto ? (
+                          <div className="relative group">
+                            <div className="w-full aspect-square rounded-lg overflow-hidden border-2 border-[#D4AF37]">
+                              <img
+                                src={cardData.coverPhoto}
+                                alt="صورة الغلاف"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                              <label className="cursor-pointer p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
+                                <Image className="h-5 w-5 text-white" />
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleImageUpload(e, 'coverPhoto')}
+                                />
+                              </label>
+                              <button
+                                onClick={() => removeImage('coverPhoto')}
+                                className="p-2 bg-red-500/80 rounded-full hover:bg-red-500 transition-colors"
+                              >
+                                <X className="h-5 w-5 text-white" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block border-2 border-dashed border-muted rounded-lg p-6 text-center cursor-pointer hover:border-[#D4AF37] transition-colors">
+                            {isUploadingCover ? (
+                              <div className="animate-spin w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full mx-auto mb-2" />
+                            ) : (
+                              <Image className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              {isUploadingCover ? 'جاري الرفع...' : 'اضغط للرفع'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">PNG, JPG (حد أقصى 5MB)</p>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleImageUpload(e, 'coverPhoto')}
+                              disabled={isUploadingCover}
+                            />
+                          </label>
+                        )}
                       </div>
                     </div>
                   </div>
