@@ -1290,7 +1290,7 @@ export default function MyPlatformComplete({
               className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
             >
               <Globe className="w-4 h-4 ml-2" />
-              منصتي
+              المنصه
             </TabsTrigger>
             <TabsTrigger 
               value="offers" 
