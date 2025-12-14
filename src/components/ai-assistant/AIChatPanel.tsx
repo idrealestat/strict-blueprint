@@ -590,9 +590,9 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">وساطه AI</h3>
-              <p className="text-[#D4AF37] text-xs flex items-center gap-1">
+            <p className="text-[#D4AF37] text-xs flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                الوعي الرقمي العقاري - {userName}
+                مساعدك العقاري الذكي - {userName}
               </p>
             </div>
           </div>
@@ -807,12 +807,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               </motion.div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-stretch">
               {/* Voice Button */}
               <button
                 onClick={handleVoiceToggle}
                 disabled={isTranscribing || ttsLoading}
-                className={`px-3 rounded-xl transition-all duration-300 border flex items-center justify-center ${
+                className={`px-3 py-2 rounded-xl transition-all duration-300 border flex items-center justify-center flex-shrink-0 ${
                   isRecording 
                     ? 'bg-red-500 text-white border-red-600 animate-pulse' 
                     : isTranscribing || ttsLoading
@@ -836,14 +836,14 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="سم طال عمرك.. كيف أخدمك؟"
-                className="flex-1 bg-white text-[#01411C] placeholder-[#01411C]/50 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] border border-[#01411C]/30 shadow-sm"
+                className="flex-1 min-w-0 bg-white text-[#01411C] placeholder-[#01411C]/50 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] border border-[#01411C]/30 shadow-sm"
                 disabled={isTyping || aiLoading || isRecording}
                 dir="rtl"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={!inputValue.trim() || isTyping || aiLoading || isRecording}
-                className="px-4 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white font-medium rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 border border-[#D4AF37]"
+                className="px-4 py-2 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white font-medium rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 border border-[#D4AF37] flex-shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -851,7 +851,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2 text-[10px] text-[#01411C]/60">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span>وساطه AI - الوعي الرقمي متصل</span>
+                <span>وساطه AI - متصل</span>
                 {isSpeaking && (
                   <span className="flex items-center gap-1 text-[#D4AF37]">
                     <Volume2 className="w-3 h-3" />
