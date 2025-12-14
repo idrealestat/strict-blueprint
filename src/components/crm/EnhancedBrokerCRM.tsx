@@ -144,22 +144,39 @@ const COLUMN_COLORS: Record<string, { bg: string; border: string; text: string }
   'lost': { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700' },
 };
 
-// Customer Type Colors
-const CUSTOMER_TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  'buyer': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
-  'seller': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700' },
-  'renter': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' },
-  'owner': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700' },
-  'investor': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700' },
-  'other': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700' },
+// Customer Type Colors - Extended with all types from documentation
+const CUSTOMER_TYPE_COLORS: Record<string, { bg: string; border: string; text: string; icon: string }> = {
+  'buyer': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: '🛒' },
+  'seller': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: '💰' },
+  'renter': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: '🏠' },
+  'owner': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', icon: '🔑' },
+  'investor': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', icon: '📈' },
+  'individual': { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: '👤' },
+  'corporate': { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700', icon: '🏢' },
+  'vip': { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: '⭐' },
+  'government': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: '🏛️' },
+  'international': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '🌍' },
+  'partner': { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', icon: '🤝' },
+  'other': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700', icon: '📋' },
 };
 
-// Interest Level Colors
-const INTEREST_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  'hot': { bg: 'bg-red-50', border: 'border-l-4 border-l-red-500', text: 'text-red-700' },
-  'warm': { bg: 'bg-orange-50', border: 'border-l-4 border-l-orange-500', text: 'text-orange-700' },
-  'moderate': { bg: 'bg-yellow-50', border: 'border-l-4 border-l-yellow-500', text: 'text-yellow-700' },
-  'cold': { bg: 'bg-blue-50', border: 'border-l-4 border-l-blue-500', text: 'text-blue-700' },
+// Interest Level Colors - Extended with lead and prospect
+const INTEREST_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string; icon: string }> = {
+  'hot': { bg: 'bg-red-50', border: 'border-l-4 border-l-red-500', text: 'text-red-700', icon: '🔥' },
+  'warm': { bg: 'bg-orange-50', border: 'border-l-4 border-l-orange-500', text: 'text-orange-700', icon: '🌡️' },
+  'moderate': { bg: 'bg-yellow-50', border: 'border-l-4 border-l-yellow-500', text: 'text-yellow-700', icon: '🌤️' },
+  'cold': { bg: 'bg-blue-50', border: 'border-l-4 border-l-blue-500', text: 'text-blue-700', icon: '❄️' },
+  'lead': { bg: 'bg-green-50', border: 'border-l-4 border-l-green-500', text: 'text-green-700', icon: '👑' },
+  'prospect': { bg: 'bg-violet-50', border: 'border-l-4 border-l-violet-500', text: 'text-violet-700', icon: '🔍' },
+};
+
+// Customer Statuses
+const CUSTOMER_STATUS_COLORS: Record<string, { bg: string; border: string; text: string; icon: string }> = {
+  'active': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: '✅' },
+  'inactive': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700', icon: '⏸️' },
+  'pending': { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: '⏳' },
+  'suspended': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '🚫' },
+  'archived': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: '📁' },
 };
 
 // Tag Colors
@@ -705,6 +722,87 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           >
             🗄️ أرشيف ({tabCounts.archived})
           </Button>
+        </div>
+
+        {/* Dashboard Stats - إحصائيات لوحة التحكم */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+          <Card className="border-blue-200 bg-white">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">👥</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+12.5%</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900">{customers.length}</div>
+              <div className="text-xs text-gray-600">إجمالي العملاء</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-green-200 bg-white">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">✅</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+8.2%</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900">{tabCounts.active}</div>
+              <div className="text-xs text-gray-600">نشط اليوم</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-purple-200 bg-white">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🆕</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+15.3%</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900">{customers.filter(c => c.columnId === 'leads').length}</div>
+              <div className="text-xs text-gray-600">عملاء جدد</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-amber-200 bg-white">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">💰</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+7.8%</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900">{customers.filter(c => c.columnId === 'negotiation').length}</div>
+              <div className="text-xs text-gray-600">صفقات نشطة</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-emerald-200 bg-white">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📈</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+3.1%</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900">{customers.length > 0 ? `${((customers.filter(c => c.columnId === 'closed').length / customers.length) * 100).toFixed(1)}%` : '0%'}</div>
+              <div className="text-xs text-gray-600">معدل التحويل</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-rose-200 bg-white">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">⭐</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+2.4%</span>
+              </div>
+              <div className="text-xl font-bold text-gray-900">{tabCounts.vip}</div>
+              <div className="text-xs text-gray-600">عملاء VIP</div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

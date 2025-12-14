@@ -165,6 +165,41 @@ const mockLinkedProperties: LinkedProperty[] = [
   { id: '2', title: 'شقة 3 غرف في العليا', type: 'شقة', price: '850,000 ريال', location: 'الرياض - العليا', status: 'sold' },
 ];
 
+// أنواع العملاء الموسعة - Extended Customer Types
+const CUSTOMER_TYPES = [
+  { id: 'individual', name: 'فردي', name_en: 'Individual', icon: '👤', color: '#3b82f6', bg_color: 'bg-blue-100', text_color: 'text-blue-800' },
+  { id: 'corporate', name: 'شركة', name_en: 'Corporate', icon: '🏢', color: '#8b5cf6', bg_color: 'bg-purple-100', text_color: 'text-purple-800' },
+  { id: 'vip', name: 'مهم', name_en: 'VIP', icon: '⭐', color: '#f59e0b', bg_color: 'bg-amber-100', text_color: 'text-amber-800' },
+  { id: 'government', name: 'حكومي', name_en: 'Government', icon: '🏛️', color: '#10b981', bg_color: 'bg-emerald-100', text_color: 'text-emerald-800' },
+  { id: 'international', name: 'دولي', name_en: 'International', icon: '🌍', color: '#ef4444', bg_color: 'bg-red-100', text_color: 'text-red-800' },
+  { id: 'partner', name: 'شريك', name_en: 'Partner', icon: '🤝', color: '#6366f1', bg_color: 'bg-indigo-100', text_color: 'text-indigo-800' },
+  { id: 'buyer', name: 'مشتري', name_en: 'Buyer', icon: '🛒', color: '#0ea5e9', bg_color: 'bg-sky-100', text_color: 'text-sky-800' },
+  { id: 'seller', name: 'بائع', name_en: 'Seller', icon: '💰', color: '#22c55e', bg_color: 'bg-green-100', text_color: 'text-green-800' },
+  { id: 'renter', name: 'مستأجر', name_en: 'Renter', icon: '🏠', color: '#a855f7', bg_color: 'bg-violet-100', text_color: 'text-violet-800' },
+  { id: 'owner', name: 'مالك', name_en: 'Owner', icon: '🔑', color: '#f97316', bg_color: 'bg-orange-100', text_color: 'text-orange-800' },
+  { id: 'investor', name: 'مستثمر', name_en: 'Investor', icon: '📈', color: '#eab308', bg_color: 'bg-yellow-100', text_color: 'text-yellow-800' },
+  { id: 'other', name: 'آخر', name_en: 'Other', icon: '📋', color: '#6b7280', bg_color: 'bg-gray-100', text_color: 'text-gray-800' },
+] as const;
+
+// درجات الاهتمام الموسعة - Extended Interest Levels  
+const INTEREST_LEVELS = [
+  { id: 'hot', name: 'ساخن', name_en: 'Hot', icon: '🔥', color: '#dc2626', bg_color: 'bg-red-100', text_color: 'text-red-800' },
+  { id: 'warm', name: 'دافئ', name_en: 'Warm', icon: '🌡️', color: '#ea580c', bg_color: 'bg-orange-100', text_color: 'text-orange-800' },
+  { id: 'cold', name: 'بارد', name_en: 'Cold', icon: '❄️', color: '#0284c7', bg_color: 'bg-blue-100', text_color: 'text-blue-800' },
+  { id: 'lead', name: 'قائد', name_en: 'Lead', icon: '👑', color: '#16a34a', bg_color: 'bg-green-100', text_color: 'text-green-800' },
+  { id: 'prospect', name: 'محتمل', name_en: 'Prospect', icon: '🔍', color: '#7c3aed', bg_color: 'bg-violet-100', text_color: 'text-violet-800' },
+  { id: 'moderate', name: 'متوسط', name_en: 'Moderate', icon: '🌤️', color: '#f59e0b', bg_color: 'bg-amber-100', text_color: 'text-amber-800' },
+] as const;
+
+// حالات العملاء - Customer Statuses
+const CUSTOMER_STATUSES = [
+  { id: 'active', name: 'نشط', name_en: 'Active', icon: '✅', color: '#10b981', bg_color: 'bg-emerald-100', text_color: 'text-emerald-800' },
+  { id: 'inactive', name: 'غير نشط', name_en: 'Inactive', icon: '⏸️', color: '#6b7280', bg_color: 'bg-gray-100', text_color: 'text-gray-800' },
+  { id: 'pending', name: 'قيد المراجعة', name_en: 'Pending', icon: '⏳', color: '#f59e0b', bg_color: 'bg-amber-100', text_color: 'text-amber-800' },
+  { id: 'suspended', name: 'موقوف', name_en: 'Suspended', icon: '🚫', color: '#ef4444', bg_color: 'bg-red-100', text_color: 'text-red-800' },
+  { id: 'archived', name: 'مؤرشف', name_en: 'Archived', icon: '📁', color: '#8b5cf6', bg_color: 'bg-purple-100', text_color: 'text-purple-800' },
+] as const;
+
 const CUSTOMER_TYPE_LABELS: Record<string, string> = {
   'buyer': 'مشتري',
   'seller': 'بائع',
@@ -172,6 +207,12 @@ const CUSTOMER_TYPE_LABELS: Record<string, string> = {
   'owner': 'مالك',
   'investor': 'مستثمر',
   'other': 'آخر',
+  'individual': 'فردي',
+  'corporate': 'شركة',
+  'vip': 'مهم',
+  'government': 'حكومي',
+  'international': 'دولي',
+  'partner': 'شريك',
 };
 
 const INTEREST_LEVEL_LABELS: Record<string, { text: string; icon: string; color: string }> = {
@@ -179,6 +220,8 @@ const INTEREST_LEVEL_LABELS: Record<string, { text: string; icon: string; color:
   'warm': { text: 'دافئ', icon: '☀️', color: 'bg-orange-100 text-orange-700' },
   'moderate': { text: 'متوسط', icon: '🌤️', color: 'bg-blue-100 text-blue-700' },
   'cold': { text: 'بارد', icon: '❄️', color: 'bg-gray-100 text-gray-700' },
+  'lead': { text: 'قائد', icon: '👑', color: 'bg-green-100 text-green-700' },
+  'prospect': { text: 'محتمل', icon: '🔍', color: 'bg-violet-100 text-violet-700' },
 };
 
 const ACTIVITY_TYPE_ICONS: Record<string, { icon: any; color: string }> = {
@@ -189,6 +232,32 @@ const ACTIVITY_TYPE_ICONS: Record<string, { icon: any; color: string }> = {
   'note': { icon: FileText, color: 'bg-yellow-100 text-yellow-600' },
   'status_change': { icon: Activity, color: 'bg-gray-100 text-gray-600' },
 };
+
+// معاملات العميل الوهمية - Mock Transactions
+const mockTransactions = [
+  { id: '1', date: '2024-12-01', type: 'شراء', amount: 12500, status: 'مكتمل', invoice: 'INV-2024-001' },
+  { id: '2', date: '2024-11-28', type: 'دفعة', amount: 5000, status: 'مكتمل', invoice: 'PAY-2024-045' },
+  { id: '3', date: '2024-11-25', type: 'استرداد', amount: -2500, status: 'مكتمل', invoice: 'REF-2024-012' },
+];
+
+// عروض العميل الوهمية - Mock Customer Offers
+const mockCustomerOffers = [
+  { id: '1', title: 'عرض فيلا النرجس', price: '2,500,000', status: 'active', date: '2024-12-01' },
+  { id: '2', title: 'عرض شقة العليا', price: '850,000', status: 'pending', date: '2024-11-28' },
+];
+
+// طلبات العميل الوهمية - Mock Customer Requests
+const mockCustomerRequests = [
+  { id: '1', title: 'طلب عقار سكني', type: 'فيلا', budget: '3,000,000', status: 'active', date: '2024-12-05' },
+  { id: '2', title: 'طلب أرض تجارية', type: 'أرض', budget: '5,000,000', status: 'pending', date: '2024-11-20' },
+];
+
+// فواتير العميل الوهمية - Mock Invoices
+const mockInvoices = [
+  { id: '1', number: 'INV-2024-001', amount: 25000, status: 'مدفوعة', date: '2024-12-01', dueDate: '2024-12-15' },
+  { id: '2', number: 'INV-2024-002', amount: 7500, status: 'معلقة', date: '2024-11-28', dueDate: '2024-12-10' },
+  { id: '3', number: 'INV-2024-003', amount: 15000, status: 'متأخرة', date: '2024-11-15', dueDate: '2024-11-30' },
+];
 
 export default function CustomerDetailsPage({ customer, onBack, onUpdate }: CustomerDetailsPageProps) {
   // استخدام التبويب من بيانات العميل إذا تم تحديده (مثلاً من المساعد الذكي)
@@ -521,21 +590,28 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           </CardContent>
         </Card>
 
-        {/* Tabs */}
+        {/* Tabs - 16 تبويب كامل */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-6 md:grid-cols-11 w-full bg-white border-2 border-[#D4AF37] mb-4">
-            <TabsTrigger value="overview" className="text-xs">📊 نظرة شاملة</TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs">💬 التفاعلات</TabsTrigger>
-            <TabsTrigger value="reminders" className="text-xs">⏰ التذكيرات</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-xs">📈 التحليلات</TabsTrigger>
-            <TabsTrigger value="properties" className="text-xs">العقارات</TabsTrigger>
-            <TabsTrigger value="rented" className="text-xs">🏠 عقار مؤجر</TabsTrigger>
-            <TabsTrigger value="tasks" className="text-xs">المهام</TabsTrigger>
-            <TabsTrigger value="notes" className="text-xs">الملاحظات</TabsTrigger>
-            <TabsTrigger value="documents" className="text-xs">المستندات</TabsTrigger>
-            <TabsTrigger value="history" className="text-xs">السجل</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs">الإعدادات</TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="flex flex-nowrap gap-1 bg-white border-2 border-[#D4AF37] mb-4 p-1 min-w-max">
+              <TabsTrigger value="overview" className="text-xs whitespace-nowrap">📊 نظرة شاملة</TabsTrigger>
+              <TabsTrigger value="personal_info" className="text-xs whitespace-nowrap">👤 المعلومات</TabsTrigger>
+              <TabsTrigger value="transactions" className="text-xs whitespace-nowrap">💰 المعاملات</TabsTrigger>
+              <TabsTrigger value="activity" className="text-xs whitespace-nowrap">💬 التفاعلات</TabsTrigger>
+              <TabsTrigger value="reminders" className="text-xs whitespace-nowrap">⏰ التذكيرات</TabsTrigger>
+              <TabsTrigger value="analytics" className="text-xs whitespace-nowrap">📈 التحليلات</TabsTrigger>
+              <TabsTrigger value="properties" className="text-xs whitespace-nowrap">🏘️ العقارات</TabsTrigger>
+              <TabsTrigger value="rented" className="text-xs whitespace-nowrap">🏠 عقار مؤجر</TabsTrigger>
+              <TabsTrigger value="offers" className="text-xs whitespace-nowrap">🎯 العروض</TabsTrigger>
+              <TabsTrigger value="requests" className="text-xs whitespace-nowrap">📋 الطلبات</TabsTrigger>
+              <TabsTrigger value="invoices" className="text-xs whitespace-nowrap">🧾 الفواتير</TabsTrigger>
+              <TabsTrigger value="tasks" className="text-xs whitespace-nowrap">✅ المهام</TabsTrigger>
+              <TabsTrigger value="notes" className="text-xs whitespace-nowrap">📝 الملاحظات</TabsTrigger>
+              <TabsTrigger value="documents" className="text-xs whitespace-nowrap">📁 المستندات</TabsTrigger>
+              <TabsTrigger value="history" className="text-xs whitespace-nowrap">⏳ السجل</TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs whitespace-nowrap">⚙️ الإعدادات</TabsTrigger>
+            </TabsList>
+          </ScrollArea>
 
           {/* Overview Tab */}
           <TabsContent value="overview">
@@ -1531,6 +1607,314 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                     <Share2 className="w-4 h-4 ml-1" />
                     مشاركة
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Personal Info Tab - تبويب المعلومات الشخصية */}
+          <TabsContent value="personal_info">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* المعلومات الأساسية */}
+                <Card className="border-2 border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      المعلومات الأساسية
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">الاسم الكامل (عربي)</Label>
+                        <div className="p-3 bg-gray-50 rounded-lg mt-1">{customer.name}</div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">الاسم الكامل (إنجليزي)</Label>
+                        <div className="p-3 bg-gray-50 rounded-lg mt-1">غير محدد</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">نوع العميل</Label>
+                        <div className={`p-3 rounded-lg mt-1 ${CUSTOMER_TYPES.find(t => t.id === customer.type)?.bg_color || 'bg-gray-50'} ${CUSTOMER_TYPES.find(t => t.id === customer.type)?.text_color || 'text-gray-800'}`}>
+                          {CUSTOMER_TYPES.find(t => t.id === customer.type)?.icon} {CUSTOMER_TYPES.find(t => t.id === customer.type)?.name || CUSTOMER_TYPE_LABELS[customer.type || 'other']}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">درجة الاهتمام</Label>
+                        <div className={`p-3 rounded-lg mt-1 ${INTEREST_LEVELS.find(l => l.id === customer.interestLevel)?.bg_color || 'bg-gray-50'} ${INTEREST_LEVELS.find(l => l.id === customer.interestLevel)?.text_color || 'text-gray-800'}`}>
+                          {INTEREST_LEVELS.find(l => l.id === customer.interestLevel)?.icon} {INTEREST_LEVELS.find(l => l.id === customer.interestLevel)?.name || 'غير محدد'}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* معلومات الاتصال */}
+                <Card className="border-2 border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                      <Phone className="w-5 h-5" />
+                      معلومات الاتصال
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">الهاتف المحمول</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1 flex items-center gap-2">
+                        <span className="text-blue-600">📱</span>
+                        <span dir="ltr">{customer.phone}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">البريد الإلكتروني</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1 flex items-center gap-2">
+                        <span className="text-green-600">📧</span>
+                        <span>{customer.email || 'غير محدد'}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">واتساب</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1 flex items-center gap-2">
+                        <span className="text-green-600">💬</span>
+                        <span dir="ltr">{customer.whatsapp || customer.phone}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* العنوان */}
+              <Card className="border-2 border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    العنوان
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">الموقع</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1">{customer.location || 'غير محدد'}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">الشركة</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1">{customer.company || 'غير محدد'}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">المصدر</Label>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1">{customer.source || 'غير محدد'}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Transactions Tab - تبويب المعاملات */}
+          <TabsContent value="transactions">
+            <div className="space-y-6">
+              <Card className="border-2 border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    سجل المعاملات
+                  </CardTitle>
+                  <Button size="sm" className="bg-gradient-to-r from-green-600 to-emerald-500 text-white">
+                    <Plus className="w-4 h-4 ml-1" />
+                    معاملة جديدة
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">التاريخ</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">نوع المعاملة</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المبلغ</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">رقم الفاتورة</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mockTransactions.map((tx) => (
+                          <tr key={tx.id} className="border-b border-gray-200 hover:bg-gray-50">
+                            <td className="py-3 px-4 text-sm">{tx.date}</td>
+                            <td className="py-3 px-4">
+                              <Badge className={
+                                tx.type === 'شراء' ? 'bg-blue-100 text-blue-800' :
+                                tx.type === 'دفعة' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }>
+                                {tx.type}
+                              </Badge>
+                            </td>
+                            <td className={`py-3 px-4 font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {tx.amount >= 0 ? '+' : ''}{tx.amount.toLocaleString()} ريال
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge className="bg-green-100 text-green-800">{tx.status}</Badge>
+                            </td>
+                            <td className="py-3 px-4 text-sm font-medium">{tx.invoice}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* إحصائيات المدفوعات */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-6 text-white">
+                  <div className="text-sm mb-2">إجمالي المشتريات</div>
+                  <div className="text-3xl font-bold">45,800 ريال</div>
+                  <div className="text-sm opacity-90">12 معاملة</div>
+                </div>
+                <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-6 text-white">
+                  <div className="text-sm mb-2">المدفوعات المستلمة</div>
+                  <div className="text-3xl font-bold">38,500 ريال</div>
+                  <div className="text-sm opacity-90">8 مدفوعات</div>
+                </div>
+                <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white">
+                  <div className="text-sm mb-2">المستحقات</div>
+                  <div className="text-3xl font-bold">7,300 ريال</div>
+                  <div className="text-sm opacity-90">4 فواتير</div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Offers Tab - تبويب العروض */}
+          <TabsContent value="offers">
+            <Card className="border-2 border-gray-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  🎯 عروض العميل
+                </CardTitle>
+                <Button size="sm" className="bg-[#01411C] hover:bg-[#065f41]">
+                  <Plus className="w-4 h-4 ml-1" />
+                  عرض جديد
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {mockCustomerOffers.map((offer) => (
+                    <div key={offer.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-[#01411C]">{offer.title}</h4>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
+                            <span className="font-bold text-[#D4AF37]">{offer.price} ريال</span>
+                            <span>| {offer.date}</span>
+                          </div>
+                        </div>
+                        <Badge className={offer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+                          {offer.status === 'active' ? 'نشط' : 'معلق'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Requests Tab - تبويب الطلبات */}
+          <TabsContent value="requests">
+            <Card className="border-2 border-gray-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  📋 طلبات العميل
+                </CardTitle>
+                <Button size="sm" className="bg-[#01411C] hover:bg-[#065f41]">
+                  <Plus className="w-4 h-4 ml-1" />
+                  طلب جديد
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {mockCustomerRequests.map((request) => (
+                    <div key={request.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-[#01411C]">{request.title}</h4>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
+                            <Badge variant="outline">{request.type}</Badge>
+                            <span className="font-bold text-[#D4AF37]">الميزانية: {request.budget} ريال</span>
+                            <span>| {request.date}</span>
+                          </div>
+                        </div>
+                        <Badge className={request.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
+                          {request.status === 'active' ? 'نشط' : 'معلق'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Invoices Tab - تبويب الفواتير */}
+          <TabsContent value="invoices">
+            <Card className="border-2 border-gray-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  🧾 فواتير العميل
+                </CardTitle>
+                <Button size="sm" className="bg-[#01411C] hover:bg-[#065f41]">
+                  <Plus className="w-4 h-4 ml-1" />
+                  فاتورة جديدة
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">رقم الفاتورة</th>
+                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المبلغ</th>
+                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الإصدار</th>
+                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الاستحقاق</th>
+                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
+                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mockInvoices.map((invoice) => (
+                        <tr key={invoice.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">{invoice.number}</td>
+                          <td className="py-3 px-4 font-bold text-[#D4AF37]">{invoice.amount.toLocaleString()} ريال</td>
+                          <td className="py-3 px-4 text-sm">{invoice.date}</td>
+                          <td className="py-3 px-4 text-sm">{invoice.dueDate}</td>
+                          <td className="py-3 px-4">
+                            <Badge className={
+                              invoice.status === 'مدفوعة' ? 'bg-green-100 text-green-800' :
+                              invoice.status === 'معلقة' ? 'bg-amber-100 text-amber-800' :
+                              'bg-red-100 text-red-800'
+                            }>
+                              {invoice.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                👁️
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                📄
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
