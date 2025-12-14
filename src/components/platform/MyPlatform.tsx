@@ -49,6 +49,13 @@ import {
   Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import PropertyPublishForm from "./PropertyPublishForm";
 
 // Types
 interface SubOffer {
@@ -303,6 +310,41 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
   const [heatMapTimeRange, setHeatMapTimeRange] = useState<TimeRange>('24h');
   const [liveViewersData, setLiveViewersData] = useState<Map<string, LiveViewData>>(new Map());
   const [topViewedProperties, setTopViewedProperties] = useState<PropertyEngagement[]>([]);
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
+
+  // Handle Publish from PropertyPublishForm
+  const handlePublishOffer = (data: any) => {
+    const newOffer: Offer = {
+      id: `offer-${Date.now()}`,
+      title: `${data.propertyType} ${data.purpose} في ${data.locationDetails?.city || 'غير محدد'}`,
+      location: `${data.locationDetails?.city || ''} - ${data.locationDetails?.district || ''}`,
+      price: data.price ? `${data.price} ريال` : 'السعر عند الطلب',
+      adNumber: `AD-${String(offers.length + 1).padStart(3, '0')}`,
+      images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400'],
+      views: 0,
+      requests: 0,
+      isPinned: false,
+      lastOpened: 'الآن',
+      date: new Date(),
+      subOffers: [],
+      isExpanded: false,
+      owner: { name: user?.name || 'المالك', phone: user?.phone || '' },
+      purpose: data.purpose?.includes('بيع') ? 'sale' : 'rent',
+      bedrooms: parseInt(data.bedrooms) || undefined,
+      bathrooms: parseInt(data.bathrooms) || undefined,
+      area: parseInt(data.area) || undefined,
+      status: 'published',
+    };
+    
+    setOffers(prev => {
+      const updated = [newOffer, ...prev];
+      saveOffersToStorage(updated);
+      return updated;
+    });
+    
+    setIsPublishDialogOpen(false);
+    toast.success('تم إضافة العرض بنجاح!');
+  };
 
   // Filtered Offers
   const filteredOffers = useMemo(() => {
@@ -541,7 +583,7 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
             </h1>
             
             <Button
-              onClick={() => onNavigate?.('property-upload-complete', { initialTab: 'create-ad' })}
+              onClick={() => setIsPublishDialogOpen(true)}
               className="bg-[#D4AF37] text-[#01411C] hover:bg-[#b8941f] border-2 border-white"
             >
               <Plus className="w-4 h-4 ml-2" />
@@ -1155,6 +1197,22 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
           </Card>
         )}
       </main>
+
+      {/* Publish Dialog */}
+      <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-[#01411C] text-xl font-bold flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              نشر إعلان جديد
+            </DialogTitle>
+          </DialogHeader>
+          <PropertyPublishForm 
+            onPublish={handlePublishOffer}
+            onCancel={() => setIsPublishDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
