@@ -901,50 +901,105 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             </div>
           </TabsContent>
 
-          {/* Activity Tab */}
+          {/* Activity Tab - تبويب التفاعلات المحسن */}
           <TabsContent value="activity">
-            <Card className="border-2 border-gray-200">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  سجل النشاطات
-                </CardTitle>
-                <Button size="sm" onClick={() => setShowAddNote(true)}>
-                  <Plus className="w-4 h-4 ml-1" />
-                  إضافة ملاحظة
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-4">
-                    {activityLogs.map((log) => {
-                      const activityType = ACTIVITY_TYPE_ICONS[log.type];
-                      const Icon = activityType.icon;
-                      return (
-                        <div key={log.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          <div className={`p-2 rounded-full ${activityType.color}`}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-gray-800">{log.description}</p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                              <Clock className="w-3 h-3" />
-                              <span>{log.timestamp}</span>
-                              {log.user && (
-                                <>
-                                  <span>•</span>
-                                  <span>{log.user}</span>
-                                </>
-                              )}
+            <div className="space-y-6">
+              <Card className="border-2 border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <Activity className="w-5 h-5" />
+                    سجل التفاعلات
+                  </CardTitle>
+                  <div className="flex items-center gap-3">
+                    <Button size="sm" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
+                      📞 تسجيل مكالمة
+                    </Button>
+                    <Button size="sm" className="bg-green-100 text-green-700 hover:bg-green-200">
+                      ✉️ إرسال إيميل
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-4">
+                      {activityLogs.map((log) => {
+                        const activityType = ACTIVITY_TYPE_ICONS[log.type];
+                        const Icon = activityType.icon;
+                        const sentiment: 'إيجابي' | 'سلبي' | 'محايد' = log.type === 'meeting' ? 'إيجابي' : log.type === 'call' ? 'إيجابي' : 'محايد';
+                        return (
+                          <div key={log.id} className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activityType.color}`}>
+                                  <Icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-gray-900">
+                                    {log.type === 'call' ? 'مكالمة' : 
+                                     log.type === 'whatsapp' ? 'واتساب' :
+                                     log.type === 'email' ? 'إيميل' :
+                                     log.type === 'meeting' ? 'اجتماع' :
+                                     log.type === 'note' ? 'ملاحظة' : 'تغيير حالة'}
+                                  </h4>
+                                  <div className="text-sm text-gray-600">{log.timestamp}</div>
+                                </div>
+                              </div>
+                              <Badge className={
+                                sentiment === 'إيجابي' ? 'bg-green-100 text-green-800' :
+                                sentiment === 'محايد' ? 'bg-gray-100 text-gray-800' :
+                                'bg-red-100 text-red-800'
+                              }>
+                                {sentiment}
+                              </Badge>
+                            </div>
+                            
+                            <p className="text-gray-700 mb-3">{log.description}</p>
+                            
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                              <div className="flex items-center gap-4">
+                                {log.type === 'call' && <span>⏱️ 15 دقيقة</span>}
+                                <span>👤 {log.user || 'أنت'}</span>
+                              </div>
+                              <button className="text-blue-600 hover:text-blue-800">
+                                عرض التفاصيل →
+                              </button>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* إحصائيات الاتصال */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">إجمالي المكالمات</div>
+                    <div className="text-2xl font-bold text-blue-600">24</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">إجمالي الإيميلات</div>
+                    <div className="text-2xl font-bold text-green-600">156</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">متوسط وقت المكالمة</div>
+                    <div className="text-2xl font-bold text-purple-600">12 دقيقة</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">معدل الرد</div>
+                    <div className="text-2xl font-bold text-amber-600">94%</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Properties Tab */}
@@ -1181,68 +1236,171 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             </Card>
           </TabsContent>
 
-          {/* Tasks Tab */}
+          {/* Tasks Tab - تبويب المهام المحسن */}
           <TabsContent value="tasks">
-            <Card className="border-2 border-gray-200">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  المهام
-                </CardTitle>
-                <Button size="sm" onClick={() => setShowAddTask(true)}>
-                  <Plus className="w-4 h-4 ml-1" />
-                  مهمة جديدة
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        task.status === 'completed' ? 'bg-green-50 border-green-200' : 'bg-white'
-                      }`}
-                    >
-                      <button
-                        onClick={() => toggleTaskStatus(task.id)}
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          task.status === 'completed'
-                            ? 'bg-green-500 border-green-500 text-white'
-                            : 'border-gray-300 hover:border-green-500'
-                        }`}
-                      >
-                        {task.status === 'completed' && <CheckCircle className="w-4 h-4" />}
-                      </button>
-                      <div className="flex-1">
-                        <p className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : ''}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-sm text-gray-500">{task.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                          <Calendar className="w-3 h-3" />
-                          <span>{task.dueDate}</span>
-                        </div>
-                      </div>
-                      <Badge className={
-                        task.priority === 'high' ? 'bg-red-100 text-red-700' :
-                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }>
-                        {task.priority === 'high' ? 'عالية' : task.priority === 'medium' ? 'متوسطة' : 'منخفضة'}
-                      </Badge>
-                    </div>
-                  ))}
+            <div className="space-y-6">
+              <Card className="border-2 border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    مهام العميل
+                  </CardTitle>
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white" onClick={() => setShowAddTask(true)}>
+                    <Plus className="w-4 h-4 ml-1" />
+                    مهمة جديدة
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المهمة</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الاستحقاق</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الأولوية</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الإجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tasks.map((task) => (
+                          <tr key={task.id} className="border-b border-gray-200 hover:bg-gray-50">
+                            <td className="py-3 px-4">
+                              <div className="text-right">
+                                <div className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>{task.title}</div>
+                                {task.description && <div className="text-sm text-gray-500">{task.description}</div>}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="text-right">
+                                <div className="font-medium text-gray-900">{task.dueDate}</div>
+                                <div className="text-sm text-gray-500">موعد نهائي</div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge className={
+                                task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                task.priority === 'medium' ? 'bg-amber-100 text-amber-800' :
+                                'bg-blue-100 text-blue-800'
+                              }>
+                                {task.priority === 'high' ? 'عالي' : task.priority === 'medium' ? 'متوسط' : 'منخفض'}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge className={
+                                task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                task.status === 'pending' ? 'bg-gray-100 text-gray-800' :
+                                'bg-blue-100 text-blue-800'
+                              }>
+                                {task.status === 'completed' ? 'مكتمل' : task.status === 'pending' ? 'قيد الانتظار' : 'قيد التنفيذ'}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2 justify-end">
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => toggleTaskStatus(task.id)}>
+                                  ✅
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                  ✏️
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   {tasks.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <CheckCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p>لا توجد مهام</p>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* إحصائيات المهام */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>توزيع المهام</span>
+                      <span className="text-lg">📊</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">مكتمل</span>
+                        <span className="font-bold">{tasks.filter(t => t.status === 'completed').length}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: `${(tasks.filter(t => t.status === 'completed').length / Math.max(tasks.length, 1)) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">قيد الانتظار</span>
+                        <span className="font-bold">{tasks.filter(t => t.status === 'pending').length}</span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500" style={{ width: `${(tasks.filter(t => t.status === 'pending').length / Math.max(tasks.length, 1)) * 100}%` }}></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>الأولوية</span>
+                      <span className="text-lg">🎯</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <span className="text-sm">عالي</span>
+                      </div>
+                      <span className="font-bold">{tasks.filter(t => t.priority === 'high').length}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                        <span className="text-sm">متوسط</span>
+                      </div>
+                      <span className="font-bold">{tasks.filter(t => t.priority === 'medium').length}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm">منخفض</span>
+                      </div>
+                      <span className="font-bold">{tasks.filter(t => t.priority === 'low').length}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>مهام متأخرة</span>
+                      <span className="text-lg">⏰</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-4">
+                      <div className="text-4xl font-bold text-red-600 mb-2">{tasks.filter(t => t.status === 'overdue').length}</div>
+                      <div className="text-gray-600">مهام تجاوزت موعدها</div>
+                      <Button size="sm" className="mt-4 bg-red-100 text-red-700 hover:bg-red-200">
+                        عرض التفاصيل
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Reminders Tab - تبويب التذكيرات */}
@@ -1518,95 +1676,312 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             </Card>
           </TabsContent>
 
-          {/* Documents Tab */}
+          {/* Documents Tab - تبويب الملفات المحسن */}
           <TabsContent value="documents">
-            <Card className="border-2 border-gray-200">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  المستندات
-                </CardTitle>
-                <Button size="sm">
-                  <Plus className="w-4 h-4 ml-1" />
-                  رفع مستند
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>لا توجد مستندات</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* History Tab */}
-          <TabsContent value="history">
-            <Card className="border-2 border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
-                  <History className="w-5 h-5" />
-                  سجل التغييرات
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {activityLogs.filter(l => l.type === 'status_change').map((log) => (
-                    <div key={log.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Activity className="w-5 h-5 text-gray-500" />
-                      <div>
-                        <p className="text-gray-800">{log.description}</p>
-                        <span className="text-xs text-gray-500">{log.timestamp}</span>
+            <div className="space-y-6">
+              <Card className="border-2 border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    ملفات العميل
+                  </CardTitle>
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
+                    <Plus className="w-4 h-4 ml-1" />
+                    رفع ملف
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Sample files */}
+                    {[
+                      { id: 1, name: 'عقد الخدمة.pdf', size: '2.4 MB', type: 'pdf', uploaded: 'منذ 3 أيام', uploaded_by: 'أحمد' },
+                      { id: 2, name: 'الهوية الوطنية.jpg', size: '1.2 MB', type: 'image', uploaded: 'منذ أسبوع', uploaded_by: 'العميل' },
+                      { id: 3, name: 'عرض السعر.docx', size: '3.8 MB', type: 'document', uploaded: 'منذ شهر', uploaded_by: 'سارة' },
+                    ].map((file) => (
+                      <div key={file.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                            file.type === 'pdf' ? 'bg-red-100 text-red-600' :
+                            file.type === 'image' ? 'bg-green-100 text-green-600' :
+                            'bg-blue-100 text-blue-600'
+                          }`}>
+                            <span className="text-xl">
+                              {file.type === 'pdf' ? '📄' : file.type === 'image' ? '🖼️' : '📝'}
+                            </span>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">⋮</Button>
+                        </div>
+                        
+                        <h4 className="font-bold text-gray-900 mb-1 truncate">{file.name}</h4>
+                        
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <span>📏</span>
+                            <span>{file.size}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>⏰</span>
+                            <span>{file.uploaded}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span>👤</span>
+                            <span>{file.uploaded_by}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mt-4">
+                          <Button size="sm" variant="outline" className="flex-1 text-xs">
+                            👁️ معاينة
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-1 text-xs">
+                            📥 تحميل
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* إحصائيات الملفات */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">إجمالي الملفات</div>
+                    <div className="text-2xl font-bold text-blue-600">45</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">حجم التخزين</div>
+                    <div className="text-2xl font-bold text-green-600">156 MB</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">ملفات PDF</div>
+                    <div className="text-2xl font-bold text-red-600">12</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-gray-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-gray-600 mb-1">ملفات صور</div>
+                    <div className="text-2xl font-bold text-purple-600">24</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
-          {/* Settings Tab */}
+          {/* History Tab - تبويب التاريخ المحسن */}
+          <TabsContent value="history">
+            <div className="space-y-6">
+              <Card className="border-2 border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    سجل الأحداث
+                  </CardTitle>
+                  <Button size="sm" variant="outline">
+                    📤 تصدير السجل
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { id: 1, event: 'تم إنشاء العميل', date: '2024-01-15', user: 'أحمد محمد', details: 'تم إضافة العميل إلى النظام' },
+                      { id: 2, event: 'تم تحديث معلومات الاتصال', date: '2024-03-22', user: 'سارة عبدالله', details: 'تحديث رقم الهاتف والبريد الإلكتروني' },
+                      { id: 3, event: 'تمت أول عملية شراء', date: '2024-05-10', user: 'النظام', details: 'شراء خدمة الاستضافة بقيمة 5,000 ريال' },
+                    ].map((item) => (
+                      <div key={item.id} className="border-r-4 border-blue-500 pr-4 py-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{item.event}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{item.details}</p>
+                          </div>
+                          <div className="text-left">
+                            <div className="text-sm font-medium text-gray-900">{item.date}</div>
+                            <div className="text-xs text-gray-500">{item.user}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {activityLogs.filter(l => l.type === 'status_change').map((log) => (
+                      <div key={log.id} className="border-r-4 border-gray-300 pr-4 py-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-bold text-gray-900">تغيير حالة</h4>
+                            <p className="text-sm text-gray-600 mt-1">{log.description}</p>
+                          </div>
+                          <div className="text-left">
+                            <div className="text-sm font-medium text-gray-900">{log.timestamp}</div>
+                            <div className="text-xs text-gray-500">{log.user || 'النظام'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* إحصائيات التاريخ */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>الأحداث</span>
+                      <span className="text-lg">📅</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-4">
+                      <div className="text-4xl font-bold text-blue-600 mb-2">245</div>
+                      <div className="text-gray-600">حدث مسجل</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>مدة العلاقة</span>
+                      <span className="text-lg">⏱️</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-4">
+                      <div className="text-4xl font-bold text-green-600 mb-2">324</div>
+                      <div className="text-gray-600">يوم</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>آخر تحديث</span>
+                      <span className="text-lg">🔄</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-4">
+                      <div className="text-2xl font-bold text-purple-600 mb-2">منذ 2 يوم</div>
+                      <div className="text-gray-600">تحديث معلومات</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Settings Tab - تبويب الإعدادات المحسن */}
           <TabsContent value="settings">
             <Card className="border-2 border-gray-200">
               <CardHeader>
                 <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                   <Settings className="w-5 h-5" />
-                  الإعدادات
+                  إعدادات العميل
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div>
-                    <p className="font-medium text-red-700">حذف العميل</p>
-                    <p className="text-sm text-red-500">حذف العميل وجميع بياناته نهائياً</p>
+              <CardContent className="space-y-6">
+                {/* إعدادات الاتصال */}
+                <div>
+                  <h4 className="font-bold text-gray-900 mb-4">إعدادات الاتصال</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2">الطريقة المفضلة للاتصال</Label>
+                      <Select defaultValue="phone">
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر الطريقة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="phone">الهاتف</SelectItem>
+                          <SelectItem value="email">البريد الإلكتروني</SelectItem>
+                          <SelectItem value="whatsapp">الواتساب</SelectItem>
+                          <SelectItem value="sms">الرسائل النصية</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700 mb-2">توقيت الاتصال المفضل</Label>
+                      <Select defaultValue="morning">
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر التوقيت" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="morning">9:00 ص - 12:00 م</SelectItem>
+                          <SelectItem value="afternoon">12:00 م - 3:00 م</SelectItem>
+                          <SelectItem value="evening">3:00 م - 6:00 م</SelectItem>
+                          <SelectItem value="night">6:00 م - 9:00 م</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={handleDeleteCustomer}
-                  >
-                    <Trash2 className="w-4 h-4 ml-1" />
-                    حذف
-                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">أرشفة العميل</p>
-                    <p className="text-sm text-gray-500">نقل العميل للأرشيف</p>
+
+                {/* إعدادات الإشعارات */}
+                <div>
+                  <h4 className="font-bold text-gray-900 mb-4">إعدادات الإشعارات</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-900">إشعارات العروض</div>
+                        <div className="text-sm text-gray-600">إرسال عروض جديدة</div>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-blue-600 rounded" />
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-900">إشعارات الدفع</div>
+                        <div className="text-sm text-gray-600">تذكير بمواعيد الدفع</div>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5 text-blue-600 rounded" />
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-900">إشعارات المهام</div>
+                        <div className="text-sm text-gray-600">تحديثات حالة المهام</div>
+                      </div>
+                      <input type="checkbox" className="w-5 h-5 text-blue-600 rounded" />
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    أرشفة
-                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">مشاركة بطاقة العميل</p>
-                    <p className="text-sm text-gray-500">إنشاء رابط لمشاركة بيانات العميل</p>
+
+                {/* إعدادات الخصوصية والإجراءات */}
+                <div className="pt-6 border-t border-gray-200 space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">أرشفة العميل</p>
+                      <p className="text-sm text-gray-500">نقل العميل للأرشيف</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      📁 أرشفة
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Share2 className="w-4 h-4 ml-1" />
-                    مشاركة
-                  </Button>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">مشاركة بطاقة العميل</p>
+                      <p className="text-sm text-gray-500">إنشاء رابط لمشاركة بيانات العميل</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Share2 className="w-4 h-4 ml-1" />
+                      مشاركة
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div>
+                      <p className="font-medium text-red-700">حذف العميل</p>
+                      <p className="text-sm text-red-500">حذف العميل وجميع بياناته نهائياً</p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={handleDeleteCustomer}
+                    >
+                      <Trash2 className="w-4 h-4 ml-1" />
+                      حذف
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
