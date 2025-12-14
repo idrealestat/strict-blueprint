@@ -9,12 +9,8 @@ import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
-import MainServices from "../MainServices";
-import QuickCalculator from "../QuickCalculator";
-import SmartAssistant from "../SmartAssistant";
-import CalendarTabs from "../CalendarTabs";
-import AnalyticsDashboard from "../AnalyticsDashboard";
 import BusinessCard from "../BusinessCard";
+import FloatingAssistant from "../FloatingAssistant";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -399,32 +395,6 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
           </CardContent>
         </Card>
 
-        {/* 4 & 5. التقويم - 9 تبويبات + الحاسبة السريعة */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <CalendarTabs />
-          </div>
-          <div>
-            <QuickCalculator />
-          </div>
-        </div>
-
-        {/* 6. التحليلات */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-[#01411C]" />
-            التحليلات والتقارير
-          </h2>
-          <AnalyticsDashboard />
-        </div>
-
-        {/* 7. المساعد الذكي */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            🤖 المساعد الذكي
-          </h2>
-          <SmartAssistant />
-        </div>
 
         {/* Stats Box */}
         <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-white via-[#f0fdf4] to-white shadow-xl">
@@ -498,6 +468,9 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
         onClose={() => setNotificationsOpen(false)}
         onNavigate={onNavigate}
       />
+
+      {/* زر المساعد الذكي العائم */}
+      <FloatingAssistant />
 
       {/* Right Menu */}
       <RightSliderComplete

@@ -18,6 +18,7 @@ import { TasksManagement } from "./components/tasks";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
+import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 
@@ -166,6 +167,15 @@ const App = () => {
         );
       case "spatial-intelligence":
         return <SpatialIntelligenceTest onBack={handleBack} />;
+      case "quick-calculator":
+        return <QuickCalculatorPage onBack={handleBack} />;
+      case "calendar-system-complete":
+        return (
+          <CalendarAppointments 
+            onBack={handleBack} 
+            linkedCustomer={linkedCustomerForAppointment}
+          />
+        );
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
