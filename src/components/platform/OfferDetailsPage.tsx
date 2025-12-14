@@ -31,7 +31,10 @@ import {
   Navigation,
   CalendarCheck,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Video,
+  View,
+  ZoomIn
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -592,6 +595,9 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showZoom, setShowZoom] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const [showVirtualTour, setShowVirtualTour] = useState(false);
   
   // للسحب على الصور
   const constraintsRef = useRef(null);
@@ -795,6 +801,32 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
                   {copied ? <CheckCircle className="w-5 h-5 text-green-600" /> : <Share2 className="w-5 h-5 text-gray-800" />}
                 </button>
               </div>
+
+              {/* زر زوم للصورة */}
+              <button
+                onClick={() => setShowZoom(true)}
+                className="absolute bottom-20 left-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all"
+              >
+                <ZoomIn className="w-5 h-5 text-gray-800" />
+              </button>
+            </div>
+
+            {/* أزرار الفيديو والجولة الافتراضية */}
+            <div className="flex gap-4 px-6 py-4 bg-gray-50 border-t border-gray-200" dir="rtl">
+              <Button
+                onClick={() => setShowVideo(true)}
+                className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-white font-bold py-3 rounded-xl"
+              >
+                <Video className="w-5 h-5 ml-2" />
+                عرض الفيديو
+              </Button>
+              <Button
+                onClick={() => setShowVirtualTour(true)}
+                className="flex-1 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold py-3 rounded-xl"
+              >
+                <View className="w-5 h-5 ml-2" />
+                جولة افتراضية
+              </Button>
             </div>
 
             {/* المحتوى */}
@@ -1004,6 +1036,131 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
         onClose={() => setShowDepositModal(false)}
         listing={listing}
       />
+
+      {/* مودال زوم الصور */}
+      <AnimatePresence>
+        {showZoom && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/95"
+            onClick={() => setShowZoom(false)}
+          >
+            <button
+              onClick={() => setShowZoom(false)}
+              className="absolute top-4 right-4 z-10 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <motion.img
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              src={images[currentImageIndex]}
+              alt={listing.title}
+              className="max-w-[95vw] max-h-[95vh] object-contain"
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+                >
+                  <ChevronRight className="w-8 h-8 text-white" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+                >
+                  <ChevronLeft className="w-8 h-8 text-white" />
+                </button>
+              </>
+            )}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(index); }}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    index === currentImageIndex ? 'bg-white scale-125' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* مودال الفيديو */}
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setShowVideo(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowVideo(false)}
+                className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+              <div className="aspect-video bg-gray-900 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-bold">فيديو العقار</p>
+                  <p className="text-gray-400 text-sm mt-2">لا يوجد فيديو متاح حالياً</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* مودال الجولة الافتراضية */}
+      <AnimatePresence>
+        {showVirtualTour && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setShowVirtualTour(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative w-full max-w-5xl bg-gradient-to-br from-[#01411C] to-[#065f41] rounded-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowVirtualTour(false)}
+                className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+              <div className="aspect-video flex items-center justify-center">
+                <div className="text-center text-white">
+                  <View className="w-16 h-16 mx-auto mb-4 opacity-70" />
+                  <p className="text-xl font-bold">جولة افتراضية 360°</p>
+                  <p className="text-white/70 text-sm mt-2">لا توجد جولة افتراضية متاحة حالياً</p>
+                  <p className="text-[#D4AF37] text-xs mt-4">قريباً - تجربة غامرة للعقار</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
