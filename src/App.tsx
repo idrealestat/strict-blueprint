@@ -20,6 +20,7 @@ import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
+import RentedPropertiesReport from "./components/reports/RentedPropertiesReport";
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
@@ -171,6 +172,8 @@ const App = () => {
         return <SpatialIntelligenceTest onBack={handleBack} />;
       case "quick-calculator":
         return <QuickCalculatorPage onBack={handleBack} />;
+      case "rental-report":
+        return <RentedPropertiesReport />;
       case "calendar-system-complete":
         return (
           <CalendarAppointments 
@@ -194,6 +197,35 @@ const App = () => {
     window.addEventListener('navigateFromAssistant', handleNavigateFromAssistant as EventListener);
     return () => {
       window.removeEventListener('navigateFromAssistant', handleNavigateFromAssistant as EventListener);
+    };
+  }, []);
+
+  // Listen for opening customer details from AI Assistant (with optional active tab)
+  useEffect(() => {
+    const handleOpenCustomerDetails = (event: CustomEvent) => {
+      const { customerId, activeTab } = event.detail;
+      // Mock customer data - في التطبيق الحقيقي ستأتي من قاعدة البيانات
+      const mockCustomer = {
+        id: customerId,
+        name: customerId === 'owner-1' ? 'محمد أحمد العتيبي' : 
+              customerId === 'owner-2' ? 'عبدالله محمد الشمري' :
+              customerId === 'owner-3' ? 'سعد عبدالرحمن' :
+              customerId === 'owner-4' ? 'فهد سليمان' : 'عميل',
+        phone: '0501234567',
+        email: 'owner@example.com',
+        type: 'owner',
+        status: 'active',
+        columnId: 'active',
+        createdAt: '2024-01-15',
+        activeTab: activeTab || 'overview'
+      };
+      setSelectedCustomerForDetails(mockCustomer);
+      setCurrentPage("customer-details");
+    };
+
+    window.addEventListener('openCustomerDetails', handleOpenCustomerDetails as EventListener);
+    return () => {
+      window.removeEventListener('openCustomerDetails', handleOpenCustomerDetails as EventListener);
     };
   }, []);
 

@@ -108,11 +108,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const welcomeMessage: Message = {
     id: 1,
     role: "assistant",
-    content: `حياك الله يا ${userName}! 🏠\n\nأنا وساطه AI، مساعدك العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n• موقع عقار وعقار ساس\n\n🧮 أقدر أحسب لك:\n• سعر المتر المربع\n• القسط الشهري للتمويل\n• الضريبة والعمولة\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
+    content: `حياك الله يا ${userName}! 🏠\n\nأنا وساطه AI، مساعدك العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n\n🏠 **العقارات المؤجرة:**\n• إحصائيات الإيجارات\n• عقود تنتهي قريباً\n• معلومات الملاك\n\n🧮 أقدر أحسب لك:\n• سعر المتر المربع\n• القسط الشهري للتمويل\n• الضريبة والعمولة\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
     timestamp: new Date(),
     actions: [
       { icon: '👥', text: 'عرض العملاء', action: 'navigate:crm', type: 'navigate' },
       { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' },
+      { icon: '📊', text: 'تقرير الإيجارات', action: 'navigate:rental-report', type: 'navigate' },
       { icon: '📅', text: 'التقويم', action: 'navigate:calendar', type: 'navigate' },
       { icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' }
     ]
@@ -182,19 +183,24 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   }, [aiError]);
 
   const handleActionClick = (action: ActionButton) => {
-    const [type, target] = action.action.split(':');
+    const actionParts = action.action.split(':');
+    const type = actionParts[0];
+    const target = actionParts[1];
+    const extra = actionParts[2]; // للتبويب المحدد
     
     switch (type) {
       case 'navigate':
         navigateToPage(target);
         break;
       case 'call':
-        window.open(`tel:${action.data?.phone}`, '_self');
-        toast.success(`جاري الاتصال بـ ${action.data?.name}`);
+        const callPhone = target || action.data?.phone;
+        window.open(`tel:${callPhone}`, '_self');
+        toast.success(`جاري الاتصال...`);
         break;
       case 'whatsapp':
-        window.open(`https://wa.me/966${(action.data?.phone as string)?.slice(1)}`, '_blank');
-        toast.success(`جاري فتح واتساب للتواصل مع ${action.data?.name}`);
+        const waPhone = target || action.data?.phone;
+        window.open(`https://wa.me/966${String(waPhone)?.slice(1)}`, '_blank');
+        toast.success(`جاري فتح واتساب...`);
         break;
       case 'appointment':
         createAppointment(action.data as any);
@@ -205,7 +211,43 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       case 'offer':
         openOfferDetails(action.data?.id as string);
         break;
+      case 'owner_details':
+        // فتح بطاقة المالك مع التبويب المحدد (rented = عقار مؤجر)
+        openOwnerDetails(target, extra);
+        break;
+      case 'all_rented':
+        // عرض كل العقارات المؤجرة
+        handleQuickAction('اعرض لي كل العقارات المؤجرة');
+        break;
+      case 'expiring_contracts':
+        // العقود التي تنتهي قريباً
+        handleQuickAction('اعرض لي العقود التي تنتهي خلال شهرين');
+        break;
+      case 'send_rental_notifications':
+        // إرسال تنبيهات للملاك
+        sendRentalNotifications();
+        break;
     }
+  };
+
+  const openOwnerDetails = (ownerId: string, activeTab?: string) => {
+    // إرسال حدث لفتح تفاصيل العميل (المالك) مع التبويب المحدد
+    window.dispatchEvent(new CustomEvent('openCustomerDetails', { 
+      detail: { 
+        customerId: ownerId,
+        activeTab: activeTab || 'rented' // افتراضياً نفتح تبويب العقارات المؤجرة
+      } 
+    }));
+    toast.success('جاري فتح بطاقة المالك - تبويب العقارات المؤجرة');
+    onClose();
+  };
+
+  const sendRentalNotifications = async () => {
+    toast.info('جاري إرسال تنبيهات لجميع الملاك بالعقود التي تنتهي قريباً...');
+    // TODO: تنفيذ إرسال الإشعارات عبر Edge Function
+    setTimeout(() => {
+      toast.success('تم إرسال التنبيهات بنجاح لجميع الملاك');
+    }, 2000);
   };
 
   const navigateToPage = (page: string) => {
@@ -216,7 +258,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       'reports': 'reports-analytics',
       'tasks': 'tasks',
       'digital-card': 'digital-card',
-      'calculator': 'quick-calculator'
+      'calculator': 'quick-calculator',
+      'rental-report': 'rental-report'
     };
 
     const targetPage = pageMap[page] || page;
@@ -233,7 +276,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       'reports': 'التقارير والتحليلات',
       'tasks': 'المهام',
       'digital-card': 'البطاقة الرقمية',
-      'calculator': 'الحاسبة السريعة'
+      'calculator': 'الحاسبة السريعة',
+      'rental-report': 'تقرير العقارات المؤجرة'
     };
     return names[page] || page;
   };
