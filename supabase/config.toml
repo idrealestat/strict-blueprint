@@ -1,1 +1,10 @@
 project_id = "icfizajxhgkxuwunhvtp"
+
+[functions.wasata-ai-chat]
+verify_jwt = false
+
+[functions.wasata-speech-to-text]
+verify_jwt = false
+
+[functions.wasata-text-to-speech]
+verify_jwt = false
