@@ -11,7 +11,7 @@ import MyPlatform from "./components/platform/MyPlatform";
 import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
 import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import { ReportsAnalytics } from "./components/analytics";
-import { DigitalCardDashboard } from "./components/digital-card";
+import { DigitalCardDashboard, CardEditor } from "./components/digital-card";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import NotFound from "./pages/NotFound";
@@ -59,6 +59,8 @@ const App = () => {
         return <ReportsAnalytics onBack={handleBack} />;
       case "digital-card":
         return <DigitalCardDashboard onBack={handleBack} />;
+      case "card-editor":
+        return <CardEditor onBack={() => setCurrentPage("digital-card")} />;
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
