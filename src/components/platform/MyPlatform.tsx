@@ -56,6 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PropertyPublishForm from "./PropertyPublishForm";
+import { ShareOfferModal } from "@/components/offers/ShareOfferModal";
 
 // Types
 interface SubOffer {
@@ -311,7 +312,8 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
   const [liveViewersData, setLiveViewersData] = useState<Map<string, LiveViewData>>(new Map());
   const [topViewedProperties, setTopViewedProperties] = useState<PropertyEngagement[]>([]);
   const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
-
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedOfferForShare, setSelectedOfferForShare] = useState<Offer | null>(null);
   // Handle Publish from PropertyPublishForm
   const handlePublishOffer = (data: any) => {
     const newOffer: Offer = {
@@ -1099,9 +1101,8 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                       className="flex-1 border-[#D4AF37] text-[#01411C] hover:bg-[#f0fdf4]"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const shareUrl = `${window.location.origin}/share/${offer.id}`;
-                        navigator.clipboard.writeText(shareUrl);
-                        toast.success('تم نسخ رابط المشاركة');
+                        setSelectedOfferForShare(offer);
+                        setShareModalOpen(true);
                       }}
                     >
                       <Share2 className="w-4 h-4 ml-1" />
@@ -1213,6 +1214,22 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
           />
         </DialogContent>
       </Dialog>
+
+      {/* Share Offer Modal */}
+      {selectedOfferForShare && (
+        <ShareOfferModal
+          offer={{
+            id: selectedOfferForShare.id,
+            title: selectedOfferForShare.title,
+            description: `${selectedOfferForShare.location} - ${selectedOfferForShare.price}`,
+          }}
+          open={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedOfferForShare(null);
+          }}
+        />
+      )}
     </div>
   );
 }
