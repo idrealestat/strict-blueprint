@@ -45,8 +45,28 @@ const App = () => {
     setCurrentPage("dashboard");
   };
 
+  // State for customer details page
+  const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<any>(null);
+
   // Render based on current page
   const renderPage = () => {
+    // صفحة تفاصيل العميل الكاملة
+    if (currentPage === "customer-details" && selectedCustomerForDetails) {
+      const CustomerDetailsPage = require("./components/crm/CustomerDetailsPage").default;
+      return (
+        <CustomerDetailsPage
+          customer={selectedCustomerForDetails}
+          onBack={() => {
+            setCurrentPage("customer-management-72");
+            setSelectedCustomerForDetails(null);
+          }}
+          onUpdate={(updatedCustomer: any) => {
+            setSelectedCustomerForDetails(updatedCustomer);
+          }}
+        />
+      );
+    }
+
     switch (currentPage) {
       case "customer-management-72":
         return <EnhancedBrokerCRM onBack={handleBack} user={mockUser} />;

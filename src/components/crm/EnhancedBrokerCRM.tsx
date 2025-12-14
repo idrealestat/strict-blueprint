@@ -250,6 +250,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('kanban');
+  const [activeFilterTab, setActiveFilterTab] = useState('all'); // التبويب الجديد: الكل، نشط، محتمل، VIP، أرشيف
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -260,6 +261,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [unreadCustomers, setUnreadCustomers] = useState<string[]>(['1', '3']);
   const [draggedCustomer, setDraggedCustomer] = useState<string | null>(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // البطاقة الموسعة
   
   // Filter State
   const [filters, setFilters] = useState({
@@ -305,8 +307,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     tags: [] as string[],
   });
 
-  // Filtered customers with advanced filters
+  // Filtered customers with advanced filters + tab filter
   const filteredCustomers = customers.filter(customer => {
+    // Tab filter (الكل، نشط، محتمل، VIP، أرشيف)
+    if (activeFilterTab === 'active' && customer.columnId === 'lost') return false;
+    if (activeFilterTab === 'potential' && customer.interestLevel !== 'warm' && customer.interestLevel !== 'moderate') return false;
+    if (activeFilterTab === 'vip' && !customer.tags?.includes('VIP')) return false;
+    if (activeFilterTab === 'archived' && customer.columnId !== 'lost') return false;
+    
     // Search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -334,6 +342,20 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     
     return true;
   });
+
+  // حساب الإحصائيات للتبويبات
+  const tabCounts = {
+    all: customers.length,
+    active: customers.filter(c => c.columnId !== 'lost').length,
+    potential: customers.filter(c => c.interestLevel === 'warm' || c.interestLevel === 'moderate').length,
+    vip: customers.filter(c => c.tags?.includes('VIP')).length,
+    archived: customers.filter(c => c.columnId === 'lost').length,
+  };
+
+  // Toggle card expansion
+  const toggleCardExpansion = (customerId: string) => {
+    setExpandedCardId(expandedCardId === customerId ? null : customerId);
+  };
 
   // Clear all filters
   const clearFilters = () => {
@@ -536,7 +558,53 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         </div>
       </header>
 
-      {/* Tabs */}
+      {/* Filter Tabs - التبويبات الخمسة */}
+      <div className="container mx-auto px-4 pt-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <Button
+            variant={activeFilterTab === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveFilterTab('all')}
+            className={activeFilterTab === 'all' ? 'bg-[#01411C] hover:bg-[#065f41]' : 'border-[#D4AF37]'}
+          >
+            الكل ({tabCounts.all})
+          </Button>
+          <Button
+            variant={activeFilterTab === 'active' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveFilterTab('active')}
+            className={activeFilterTab === 'active' ? 'bg-green-600 hover:bg-green-700' : 'border-green-500 text-green-700'}
+          >
+            نشط ({tabCounts.active})
+          </Button>
+          <Button
+            variant={activeFilterTab === 'potential' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveFilterTab('potential')}
+            className={activeFilterTab === 'potential' ? 'bg-orange-500 hover:bg-orange-600' : 'border-orange-500 text-orange-700'}
+          >
+            محتمل ({tabCounts.potential})
+          </Button>
+          <Button
+            variant={activeFilterTab === 'vip' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveFilterTab('vip')}
+            className={activeFilterTab === 'vip' ? 'bg-[#D4AF37] hover:bg-[#c9a432] text-[#01411C]' : 'border-[#D4AF37] text-[#D4AF37]'}
+          >
+            ⭐ VIP ({tabCounts.vip})
+          </Button>
+          <Button
+            variant={activeFilterTab === 'archived' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveFilterTab('archived')}
+            className={activeFilterTab === 'archived' ? 'bg-gray-500 hover:bg-gray-600' : 'border-gray-400 text-gray-600'}
+          >
+            🗄️ أرشيف ({tabCounts.archived})
+          </Button>
+        </div>
+      </div>
+
+      {/* View Tabs */}
       <div className="container mx-auto px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-white border-2 border-[#D4AF37] mb-4">
@@ -590,138 +658,301 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
+                                layout
                                 draggable
                                 onDragStart={() => handleDragStart(customer.id)}
                                 className={`
-                                  bg-white rounded-lg shadow-md p-3 cursor-move
+                                  bg-white rounded-lg shadow-md cursor-move
                                   hover:shadow-xl transition-all duration-200
                                   ${typeColors.border}
                                   ${interestColors.border}
                                   ${typeColors.bg}
+                                  ${expandedCardId === customer.id ? 'ring-2 ring-[#D4AF37]' : ''}
                                 `}
-                                onClick={() => handleOpenCustomerDetails(customer)}
                               >
-                                {/* 1. Header: الصورة + الاسم + أيقونة السحب */}
-                                <div className="flex items-center gap-2 mb-2">
-                                  {/* 1.1 الصورة الشخصية */}
-                                  <div className="relative">
-                                    <Avatar className="w-10 h-10 border-2 border-[#D4AF37]">
-                                      {(customer.image || customer.profileImage) && (
-                                        <AvatarImage 
-                                          src={customer.image || customer.profileImage} 
-                                          alt={customer.name} 
-                                        />
+                                {/* البطاقة المضغوطة */}
+                                <div 
+                                  className="p-3"
+                                  onClick={() => toggleCardExpansion(customer.id)}
+                                >
+                                  {/* 1. Header: الصورة + الاسم + أيقونة السحب */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {/* 1.1 الصورة الشخصية */}
+                                    <div className="relative">
+                                      <Avatar className="w-10 h-10 border-2 border-[#D4AF37]">
+                                        {(customer.image || customer.profileImage) && (
+                                          <AvatarImage 
+                                            src={customer.image || customer.profileImage} 
+                                            alt={customer.name} 
+                                          />
+                                        )}
+                                        <AvatarFallback className="bg-gradient-to-br from-[#01411C] to-[#065f41] text-white font-bold">
+                                          {customer.name.charAt(0)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      
+                                      {/* 1.2 مؤشر غير مقروء */}
+                                      {isCustomerUnread(customer.id) && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
                                       )}
-                                      <AvatarFallback className="bg-gradient-to-br from-[#01411C] to-[#065f41] text-white font-bold">
-                                        {customer.name.charAt(0)}
-                                      </AvatarFallback>
-                                    </Avatar>
+                                    </div>
                                     
-                                    {/* 1.2 مؤشر غير مقروء */}
-                                    {isCustomerUnread(customer.id) && (
-                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-                                    )}
+                                    {/* 1.3 الاسم والشركة + VIP Badge */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1">
+                                        <h3 className="font-bold text-[14px] text-gray-900 truncate">
+                                          {customer.name}
+                                        </h3>
+                                        {customer.tags?.includes('VIP') && (
+                                          <span className="text-[#D4AF37] text-sm">⭐</span>
+                                        )}
+                                      </div>
+                                      {customer.company && (
+                                        <p className="text-xs text-gray-600 truncate">{customer.company}</p>
+                                      )}
+                                    </div>
+                                    
+                                    {/* 1.4 أيقونة التوسيع + السحب */}
+                                    <div className="flex items-center gap-1">
+                                      {expandedCardId === customer.id ? (
+                                        <ChevronUp className="w-4 h-4 text-[#D4AF37]" />
+                                      ) : (
+                                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                                      )}
+                                      <GripVertical className="w-4 h-4 text-gray-400" />
+                                    </div>
                                   </div>
                                   
-                                  {/* 1.3 الاسم والشركة */}
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-[14px] text-gray-900 truncate">
-                                      {customer.name}
-                                    </h3>
-                                    {customer.company && (
-                                      <p className="text-xs text-gray-600 truncate">{customer.company}</p>
-                                    )}
+                                  {/* 2. معلومات الاتصال + مستوى الاهتمام */}
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-1 text-xs text-gray-700">
+                                      <Phone className="w-3 h-3" />
+                                      <span className="truncate" dir="ltr">{customer.phone}</span>
+                                    </div>
+                                    <Badge className={`text-xs ${
+                                      customer.interestLevel === 'hot' ? 'bg-red-100 text-red-700' :
+                                      customer.interestLevel === 'warm' ? 'bg-orange-100 text-orange-700' :
+                                      customer.interestLevel === 'moderate' ? 'bg-blue-100 text-blue-700' :
+                                      'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {customer.interestLevel === 'hot' ? '🔥 ساخن' :
+                                       customer.interestLevel === 'warm' ? '☀️ دافئ' :
+                                       customer.interestLevel === 'moderate' ? '🌤️ متوسط' : '❄️ بارد'}
+                                    </Badge>
                                   </div>
                                   
-                                  {/* 1.4 أيقونة السحب */}
-                                  <GripVertical className="w-4 h-4 text-gray-400" />
-                                </div>
-                                
-                                {/* 2. معلومات الاتصال */}
-                                <div className="space-y-1 mb-2">
-                                  {/* 2.1 رقم الجوال */}
-                                  <div className="flex items-center gap-1 text-xs text-gray-700">
-                                    <Phone className="w-3 h-3" />
-                                    <span className="truncate" dir="ltr">{customer.phone}</span>
-                                  </div>
-                                  
-                                  {/* 2.2 البريد الإلكتروني */}
-                                  {customer.email && (
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Mail className="w-3 h-3" />
-                                      <span className="truncate" dir="ltr">{customer.email}</span>
+                                  {/* 3. التاقات */}
+                                  {customer.tags && customer.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-2">
+                                      {customer.tags.slice(0, 3).map((tag, idx) => {
+                                        const tagColor = getTagColor(tag);
+                                        return (
+                                          <Badge 
+                                            key={idx}
+                                            style={{ 
+                                              backgroundColor: tagColor.bg,
+                                              color: tagColor.text,
+                                              borderColor: tagColor.border
+                                            }}
+                                            className="text-xs px-2 py-0.5 border"
+                                          >
+                                            {tag}
+                                          </Badge>
+                                        );
+                                      })}
+                                      {customer.tags.length > 3 && (
+                                        <Badge variant="outline" className="text-xs px-2 py-0.5">
+                                          +{customer.tags.length - 3}
+                                        </Badge>
+                                      )}
                                     </div>
                                   )}
                                 </div>
-                                
-                                {/* 3. التاقات */}
-                                {customer.tags && customer.tags.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    {customer.tags.slice(0, 3).map((tag, idx) => {
-                                      const tagColor = getTagColor(tag);
-                                      return (
-                                        <Badge 
-                                          key={idx}
-                                          style={{ 
-                                            backgroundColor: tagColor.bg,
-                                            color: tagColor.text,
-                                            borderColor: tagColor.border
+
+                                {/* البطاقة الموسعة - 7 أزرار سريعة + معلومات إضافية */}
+                                <AnimatePresence>
+                                  {expandedCardId === customer.id && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      className="border-t-2 border-[#D4AF37]/30 bg-gradient-to-b from-[#f0fdf4] to-white"
+                                    >
+                                      {/* معلومات إضافية */}
+                                      <div className="px-3 py-2 space-y-1 text-xs">
+                                        {customer.email && (
+                                          <div className="flex items-center gap-1 text-gray-600">
+                                            <Mail className="w-3 h-3" />
+                                            <span dir="ltr">{customer.email}</span>
+                                          </div>
+                                        )}
+                                        {customer.propertyType && (
+                                          <div className="flex items-center gap-1 text-gray-600">
+                                            <Building2 className="w-3 h-3" />
+                                            <span>{customer.propertyType}</span>
+                                          </div>
+                                        )}
+                                        {customer.budget && (
+                                          <div className="flex items-center gap-1 text-[#01411C] font-medium">
+                                            <DollarSign className="w-3 h-3" />
+                                            <span>{customer.budget}</span>
+                                          </div>
+                                        )}
+                                        {customer.location && (
+                                          <div className="flex items-center gap-1 text-gray-600">
+                                            <MapPin className="w-3 h-3" />
+                                            <span>{customer.location}</span>
+                                          </div>
+                                        )}
+                                        {customer.lastContact && (
+                                          <div className="flex items-center gap-1 text-gray-500">
+                                            <Calendar className="w-3 h-3" />
+                                            <span>آخر تفاعل: {customer.lastContact}</span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* 7 أزرار سريعة */}
+                                      <div className="px-3 py-2 border-t border-gray-100">
+                                        <p className="text-xs text-gray-500 mb-2">⚡ إجراءات سريعة</p>
+                                        <div className="grid grid-cols-4 gap-1">
+                                          {/* 1. اتصال */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-blue-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.location.href = `tel:${customer.phone}`;
+                                            }}
+                                          >
+                                            <Phone className="w-3.5 h-3.5 text-blue-600" />
+                                            <span className="text-[10px]">اتصال</span>
+                                          </Button>
+                                          
+                                          {/* 2. واتساب */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-green-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.open(`https://wa.me/${customer.phone}`, '_blank');
+                                            }}
+                                          >
+                                            <MessageSquare className="w-3.5 h-3.5 text-green-600" />
+                                            <span className="text-[10px]">واتساب</span>
+                                          </Button>
+                                          
+                                          {/* 3. بريد */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-purple-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (customer.email) {
+                                                window.location.href = `mailto:${customer.email}`;
+                                              } else {
+                                                toast.error('لا يوجد بريد إلكتروني');
+                                              }
+                                            }}
+                                          >
+                                            <Mail className="w-3.5 h-3.5 text-purple-600" />
+                                            <span className="text-[10px]">بريد</span>
+                                          </Button>
+                                          
+                                          {/* 4. موعد */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-orange-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toast.info('سيتم فتح نموذج جدولة موعد');
+                                            }}
+                                          >
+                                            <Calendar className="w-3.5 h-3.5 text-orange-600" />
+                                            <span className="text-[10px]">موعد</span>
+                                          </Button>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-1 mt-1">
+                                          {/* 5. مهمة */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-yellow-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toast.info('سيتم إنشاء مهمة جديدة');
+                                            }}
+                                          >
+                                            <Check className="w-3.5 h-3.5 text-yellow-600" />
+                                            <span className="text-[10px]">مهمة</span>
+                                          </Button>
+                                          
+                                          {/* 6. عقار */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-teal-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toast.info('سيتم ربط عقار');
+                                            }}
+                                          >
+                                            <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                                            <span className="text-[10px]">عقار</span>
+                                          </Button>
+                                          
+                                          {/* 7. حاسبة */}
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 px-1 text-xs hover:bg-indigo-100 flex flex-col items-center gap-0.5"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toast.info('سيتم فتح حاسبة التمويل');
+                                            }}
+                                          >
+                                            <DollarSign className="w-3.5 h-3.5 text-indigo-600" />
+                                            <span className="text-[10px]">حاسبة</span>
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      {/* أزرار عرض التفاصيل وتعديل */}
+                                      <div className="px-3 py-2 border-t border-gray-100 flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          className="flex-1 bg-[#01411C] hover:bg-[#065f41] text-xs h-8"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedCustomer(customer);
+                                            setShowFullDetails(true);
+                                            markAsRead(customer.id);
                                           }}
-                                          className="text-xs px-2 py-0.5 border"
                                         >
-                                          {tag}
-                                        </Badge>
-                                      );
-                                    })}
-                                    {customer.tags.length > 3 && (
-                                      <Badge variant="outline" className="text-xs px-2 py-0.5">
-                                        +{customer.tags.length - 3}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
-                                
-                                {/* 4. الأزرار السريعة */}
-                                <div className="flex items-center gap-1">
-                                  {/* 4.1 زر واتساب */}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2 text-xs hover:bg-green-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.open(`https://wa.me/${customer.phone}`, '_blank');
-                                    }}
-                                  >
-                                    <MessageSquare className="w-3 h-3" />
-                                  </Button>
-                                  
-                                  {/* 4.2 زر الاتصال */}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2 text-xs hover:bg-blue-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      window.location.href = `tel:${customer.phone}`;
-                                    }}
-                                  >
-                                    <Phone className="w-3 h-3" />
-                                  </Button>
-                                  
-                                  {/* 4.3 زر جدولة موعد */}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 px-2 text-xs hover:bg-purple-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toast.info('سيتم فتح نموذج جدولة موعد');
-                                    }}
-                                  >
-                                    <Calendar className="w-3 h-3" />
-                                  </Button>
-                                </div>
+                                          <Eye className="w-3 h-3 ml-1" />
+                                          التفاصيل الكاملة
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-xs h-8 border-[#D4AF37]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedCustomer(customer);
+                                            setShowCustomerDetails(true);
+                                          }}
+                                        >
+                                          <Edit className="w-3 h-3 ml-1" />
+                                          تعديل
+                                        </Button>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
                               </motion.div>
                             );
                           })}
