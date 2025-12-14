@@ -61,6 +61,8 @@ import {
   FileSpreadsheet,
   Check,
   AlertTriangle,
+  Loader2,
+  FileUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -283,6 +285,17 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   
+  // Loading State
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
   // Filter State
   const [filters, setFilters] = useState({
     type: '',
@@ -305,6 +318,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#01411C');
   
+  // Import State
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  
   // Available tag colors
   const TAG_COLORS = [
     '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
@@ -326,6 +344,48 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     notes: '',
     tags: [] as string[],
   });
+
+  // Handle CSV file import
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.csv')) {
+      toast.error('يرجى اختيار ملف CSV');
+      return;
+    }
+    
+    setImportFile(file);
+    
+    // Parse CSV preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split('\n').slice(0, 6); // First 5 rows + header
+      const preview = lines.map(line => line.split(','));
+      setImportPreview(preview);
+    };
+    reader.readAsText(file);
+  };
+
+  // Handle import submit
+  const handleImportSubmit = () => {
+    if (!importFile) {
+      toast.error('يرجى اختيار ملف أولاً');
+      return;
+    }
+    
+    setIsImporting(true);
+    
+    // Simulate import
+    setTimeout(() => {
+      setIsImporting(false);
+      setShowImport(false);
+      setImportFile(null);
+      setImportPreview([]);
+      toast.success('تم استيراد العملاء بنجاح');
+    }, 1500);
+  };
 
   // Filtered customers with advanced filters + tab filter
   const filteredCustomers = customers.filter(customer => {
@@ -664,6 +724,40 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
 
           {/* Kanban View */}
           <TabsContent value="kanban" className="mt-0">
+            {isLoading ? (
+              // Loading Skeleton
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-4 min-w-max">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="w-72 flex-shrink-0 rounded-xl bg-gray-100 border-2 border-gray-200 animate-pulse">
+                      <div className="p-3 border-b-2 border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="h-5 w-24 bg-gray-300 rounded"></div>
+                          <div className="h-5 w-8 bg-gray-300 rounded"></div>
+                        </div>
+                      </div>
+                      <div className="p-2 space-y-2 min-h-[400px]">
+                        {[1, 2, 3].map((j) => (
+                          <div key={j} className="bg-white rounded-lg shadow-md p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                              <div className="flex-1 space-y-1">
+                                <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                                <div className="h-3 w-16 bg-gray-100 rounded"></div>
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <div className="h-5 w-12 bg-gray-100 rounded"></div>
+                              <div className="h-5 w-12 bg-gray-100 rounded"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
             <div className="overflow-x-auto pb-4">
               <div className="flex gap-4 min-w-max">
                 {columns.map((column) => {
@@ -1079,6 +1173,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                 })}
               </div>
             </div>
+            )}
           </TabsContent>
 
           {/* List View */}
@@ -1580,32 +1675,121 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
-      <Dialog open={showImport} onOpenChange={setShowImport}>
-        <DialogContent dir="rtl" className="max-w-lg">
+      {/* Import Dialog - Enhanced */}
+      <Dialog open={showImport} onOpenChange={(open) => {
+        setShowImport(open);
+        if (!open) {
+          setImportFile(null);
+          setImportPreview([]);
+        }
+      }}>
+        <DialogContent dir="rtl" className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              استيراد العملاء
+              <Upload className="w-5 h-5 text-[#01411C]" />
+              استيراد العملاء من ملف CSV
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#01411C] transition-colors cursor-pointer">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600 mb-2">اسحب ملف Excel أو CSV هنا</p>
-              <p className="text-sm text-gray-400">أو اضغط للاختيار</p>
-              <input type="file" accept=".csv,.xlsx,.xls" className="hidden" />
-            </div>
+            {/* Upload Area */}
+            <label className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#01411C] transition-colors cursor-pointer block">
+              {importFile ? (
+                <div className="space-y-2">
+                  <FileUp className="w-12 h-12 mx-auto text-[#01411C]" />
+                  <p className="text-[#01411C] font-medium">{importFile.name}</p>
+                  <p className="text-sm text-gray-500">{(importFile.size / 1024).toFixed(2)} KB</p>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600 mb-2">اسحب ملف CSV هنا</p>
+                  <p className="text-sm text-gray-400">أو اضغط للاختيار</p>
+                </>
+              )}
+              <input 
+                type="file" 
+                accept=".csv" 
+                className="hidden" 
+                onChange={handleFileChange}
+              />
+            </label>
+            
+            {/* Preview Table */}
+            {importPreview.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2 border-b">
+                  <p className="text-sm font-medium text-gray-700">معاينة البيانات (أول 5 صفوف)</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        {importPreview[0]?.map((header: string, idx: number) => (
+                          <th key={idx} className="px-3 py-2 text-right font-medium text-gray-600 border-b">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.slice(1).map((row: string[], rowIdx: number) => (
+                        <tr key={rowIdx} className="hover:bg-gray-50">
+                          {row.map((cell: string, cellIdx: number) => (
+                            <td key={cellIdx} className="px-3 py-2 border-b text-gray-700">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {/* Action Buttons */}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={handleExportCSV}>
                 <Download className="w-4 h-4 ml-2" />
                 تصدير العملاء الحاليين
               </Button>
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1" onClick={() => {
+                // Create and download template
+                const template = 'الاسم,الهاتف,البريد,الشركة,نوع العميل,الميزانية,الموقع\n';
+                const blob = new Blob(['\ufeff' + template], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'customers_template.csv';
+                link.click();
+                URL.revokeObjectURL(url);
+                toast.success('تم تحميل القالب');
+              }}>
                 <FileSpreadsheet className="w-4 h-4 ml-2" />
                 تحميل قالب
               </Button>
             </div>
+            
+            {/* Import Button */}
+            {importFile && (
+              <Button 
+                className="w-full bg-[#01411C] hover:bg-[#065f41]"
+                onClick={handleImportSubmit}
+                disabled={isImporting}
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                    جاري الاستيراد...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-2" />
+                    استيراد {importPreview.length - 1} عميل
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

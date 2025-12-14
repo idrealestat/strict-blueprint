@@ -4,7 +4,7 @@
  * Complete Customer Details Page with 8 Tabs
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -185,6 +185,44 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', priority: 'medium' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-save functionality - saves after 2 seconds of inactivity
+  const triggerAutoSave = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    setHasUnsavedChanges(true);
+    
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      if (isEditing) {
+        setIsSaving(true);
+        onUpdate(editedCustomer);
+        
+        setTimeout(() => {
+          setIsSaving(false);
+          setHasUnsavedChanges(false);
+          toast.success('تم الحفظ تلقائياً', { duration: 1500 });
+        }, 500);
+      }
+    }, 2000);
+  }, [editedCustomer, isEditing, onUpdate]);
+
+  // Trigger auto-save when edited customer changes
+  useEffect(() => {
+    if (isEditing && editedCustomer !== customer) {
+      triggerAutoSave();
+    }
+    
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [editedCustomer, isEditing, customer, triggerAutoSave]);
 
   // Handle delete customer
   const handleDeleteCustomer = () => {
@@ -199,10 +237,14 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     onBack();
   };
 
-  // Handle save
+  // Handle save (manual)
   const handleSave = () => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
     onUpdate(editedCustomer);
     setIsEditing(false);
+    setHasUnsavedChanges(false);
     toast.success('تم حفظ التغييرات بنجاح');
   };
 
@@ -269,13 +311,44 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               العودة
             </Button>
             
-            <h1 className="text-xl font-bold text-white">تفاصيل العميل</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold text-white">تفاصيل العميل</h1>
+              
+              {/* Auto-save indicator */}
+              {isEditing && (
+                <div className="flex items-center gap-2">
+                  {isSaving ? (
+                    <span className="text-xs text-[#D4AF37] flex items-center gap-1 animate-pulse">
+                      <div className="w-2 h-2 bg-[#D4AF37] rounded-full animate-ping"></div>
+                      جاري الحفظ...
+                    </span>
+                  ) : hasUnsavedChanges ? (
+                    <span className="text-xs text-yellow-300 flex items-center gap-1">
+                      <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
+                      تغييرات غير محفوظة
+                    </span>
+                  ) : (
+                    <span className="text-xs text-green-300 flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      محفوظ
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-2">
               {isEditing ? (
                 <>
                   <Button
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      if (autoSaveTimeoutRef.current) {
+                        clearTimeout(autoSaveTimeoutRef.current);
+                      }
+                      setEditedCustomer(customer);
+                      setIsEditing(false);
+                      setHasUnsavedChanges(false);
+                    }}
                     variant="outline"
                     className="border-[#D4AF37] text-white hover:bg-white/20"
                   >
@@ -285,6 +358,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   <Button
                     onClick={handleSave}
                     className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
+                    disabled={isSaving}
                   >
                     <Save className="w-4 h-4 ml-1" />
                     حفظ
