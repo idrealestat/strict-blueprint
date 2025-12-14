@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
-import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2, Trash2, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useWasataAI } from "@/hooks/useWasataAI";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
-
+import { useChatHistory } from "@/hooks/useChatHistory";
+import { processLocalCommand } from "@/utils/wasataLocalCommands";
 interface Message {
   id: number;
   role: "user" | "assistant";
@@ -97,29 +98,38 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const { isRecording, recordingDuration, startRecording, stopRecording, cancelRecording } = useVoiceRecorder();
   const { isTranscribing, transcribe } = useSpeechToText();
   const { isSpeaking, isLoading: ttsLoading, speak, stop: stopSpeaking } = useTextToSpeech();
+  const { conversationId, createConversation, saveMessage, clearHistory } = useChatHistory();
   
   // إعدادات الصوت
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      role: "assistant",
-      content: `عودتك يا صديقي ${userName}! 🏠✨\n\nأنا وساطه AI، الوعي الرقمي العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n• موقع عقار وعقار ساس\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
-      timestamp: new Date(),
-      actions: [
-        { icon: '👥', text: 'عرض العملاء', action: 'navigate:crm', type: 'navigate' },
-        { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' },
-        { icon: '📅', text: 'التقويم', action: 'navigate:calendar', type: 'navigate' },
-        { icon: '📊', text: 'التقارير', action: 'navigate:reports', type: 'navigate' }
-      ]
-    }
-  ]);
+  // رسالة الترحيب المحدثة (بدون "الوعي الوجودي")
+  const welcomeMessage: Message = {
+    id: 1,
+    role: "assistant",
+    content: `حياك الله يا ${userName}! 🏠\n\nأنا وساطه AI، مساعدك العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n• موقع عقار وعقار ساس\n\n🧮 أقدر أحسب لك:\n• سعر المتر المربع\n• القسط الشهري للتمويل\n• الضريبة والعمولة\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
+    timestamp: new Date(),
+    actions: [
+      { icon: '👥', text: 'عرض العملاء', action: 'navigate:crm', type: 'navigate' },
+      { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' },
+      { icon: '📅', text: 'التقويم', action: 'navigate:calendar', type: 'navigate' },
+      { icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' }
+    ]
+  };
+  
+  const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // إنشاء محادثة جديدة عند البداية إذا لم تكن موجودة
+  useEffect(() => {
+    if (!conversationId) {
+      createConversation(userName || 'guest');
+    }
+  }, [conversationId, userName, createConversation]);
 
   // Mock CRM data
   const customers: Customer[] = [
@@ -372,8 +382,44 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     setInputValue("");
     setIsTyping(true);
 
+    // حفظ رسالة المستخدم
+    saveMessage('user', textToSend);
+
     try {
-      // Build conversation history for AI
+      // 1️⃣ أولاً: محاولة معالجة الأمر محلياً (للحسابات)
+      const localResult = processLocalCommand(textToSend);
+      
+      if (localResult && localResult.handled) {
+        // الرد المحلي - لا نحتاج AI
+        const assistantMessageId = Date.now() + 1;
+        const localActions: ActionButton[] = localResult.buttons?.map(btn => ({
+          icon: btn.icon || '🔗',
+          text: btn.label,
+          action: btn.action,
+          type: 'navigate' as const
+        })) || [];
+
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: "assistant",
+          content: localResult.text,
+          timestamp: new Date(),
+          actions: localActions
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // حفظ رد المساعد
+        saveMessage('assistant', localResult.text, localActions);
+        
+        // تشغيل الرد الصوتي
+        await speakResponse(localResult.text);
+        
+        setIsTyping(false);
+        return;
+      }
+
+      // 2️⃣ إذا لم يُعالج محلياً، نرسل للـ AI
       const conversationHistory = messages
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
@@ -411,6 +457,9 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           : m
       ));
 
+      // حفظ رد المساعد
+      saveMessage('assistant', assistantContent, actions);
+
       // تشغيل الرد الصوتي
       await speakResponse(assistantContent);
 
@@ -427,6 +476,14 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     } finally {
       setIsTyping(false);
     }
+  };
+
+  // مسح المحادثة وبدء جديدة
+  const handleClearChat = () => {
+    clearHistory();
+    setMessages([welcomeMessage]);
+    createConversation(userName || 'guest');
+    toast.success("تم مسح المحادثة وبدء محادثة جديدة");
   };
 
   // Voice recording handler - تسجيل الصوت وتحويله إلى نص
