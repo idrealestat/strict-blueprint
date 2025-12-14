@@ -687,14 +687,14 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className="relative w-full max-w-5xl h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-5xl h-[95vh] bg-white rounded-2xl shadow-2xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             dir="rtl"
           >
             {/* زر الإغلاق */}
             <button
               onClick={onClose}
-              className="absolute top-4 left-4 z-50 w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all"
+              className="fixed top-4 left-4 z-[100000] w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all"
             >
               <X className="w-5 h-5 text-gray-800" />
             </button>
@@ -702,7 +702,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
             {/* معرض الصور مع السحب */}
             <div 
               ref={constraintsRef}
-              className="relative h-72 md:h-96 bg-gradient-to-br from-[#01411C] to-[#065f41] overflow-hidden flex-shrink-0"
+              className="relative h-72 md:h-96 bg-gradient-to-br from-[#01411C] to-[#065f41] overflow-hidden"
             >
               <motion.div
                 drag="x"
@@ -797,8 +797,8 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
               </div>
             </div>
 
-            {/* المحتوى مع السكرول */}
-            <div className="flex-1 overflow-y-auto p-6">
+            {/* المحتوى */}
+            <div className="p-6">
               {/* العنوان والموقع */}
               <div className="mb-6">
                 <h1 className="text-2xl md:text-3xl font-bold text-[#01411C] mb-3">{listing.title}</h1>
