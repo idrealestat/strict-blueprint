@@ -4,7 +4,7 @@
  * Version: 3.0.0
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import LeafletMap from "./LeafletMap";
 import {
   MapPin,
   Navigation,
@@ -270,27 +271,19 @@ export default function MapSystemDashboard() {
                     </div>
                   </div>
                   
-                  {/* منطقة الخريطة */}
-                  <div className="relative h-[500px] bg-gradient-to-br from-blue-50 to-cyan-50">
-                    {/* Placeholder للخريطة */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <Globe className="w-24 h-24 mx-auto text-[#01411C]/20 mb-4" />
-                        <div className="text-gray-600 text-lg">خريطة تفاعلية</div>
-                        <div className="text-sm text-gray-500 mt-2">
-                          (يمكن دمج Google Maps أو Mapbox هنا)
-                        </div>
-                        <Button 
-                          className="mt-4 bg-[#01411C]"
-                          onClick={() => toast.info('سيتم تحميل الخريطة عند إضافة مفتاح Mapbox API')}
-                        >
-                          تفعيل الخريطة
-                        </Button>
-                      </div>
-                    </div>
+                  {/* منطقة الخريطة - خريطة حقيقية */}
+                  <div className="relative h-[500px]">
+                    <LeafletMap 
+                      className="h-full"
+                      showLocations={mapLayers.customers || mapLayers.employees || mapLayers.branches}
+                      showRoutes={mapLayers.routes}
+                      onLocationClick={(location) => {
+                        toast.info(`تم اختيار: ${location.name_ar}`);
+                      }}
+                    />
                     
                     {/* أدوات الرسم */}
-                    <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-2">
+                    <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-2 z-[1000]">
                       <div className="flex flex-col gap-1">
                         {mapTools.map((tool) => {
                           const Icon = tool.icon;
@@ -311,7 +304,7 @@ export default function MapSystemDashboard() {
                     </div>
                     
                     {/* طبقات الخريطة */}
-                    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 w-56">
+                    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 w-56 z-[1000]">
                       <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                         <Layers className="w-4 h-4" />
                         طبقات الخريطة
@@ -340,7 +333,7 @@ export default function MapSystemDashboard() {
                     </div>
                     
                     {/* بوصلة */}
-                    <div className="absolute bottom-4 right-4 bg-white rounded-full shadow-lg p-3">
+                    <div className="absolute bottom-4 right-4 bg-white rounded-full shadow-lg p-3 z-[1000]">
                       <Compass className="w-8 h-8 text-[#01411C]" />
                     </div>
                   </div>
