@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
 import MyPublicPlatformContent from "./MyPublicPlatformContent";
+import OfferEditPage from "./OfferEditPage";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -495,6 +496,8 @@ export default function MyPlatformComplete({
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedOfferForShare, setSelectedOfferForShare] = useState<HierarchicalOffer | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showEditPage, setShowEditPage] = useState(false);
+  const [selectedOfferForEdit, setSelectedOfferForEdit] = useState<any>(null);
 
   // Publish Form
   const [publishForm, setPublishForm] = useState<PublishFormData>({
@@ -1675,10 +1678,30 @@ export default function MyPlatformComplete({
                                       {district.offers.map((offer) => (
                                         <Card 
                                           key={offer.id} 
-                                          className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}
+                                          className={`overflow-hidden hover:shadow-lg transition-all border-2 cursor-pointer ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}
                                           draggable
                                           onDragStart={(e) => handleDragStartOffer(e, offer, city.cityName, district.districtName)}
                                           onDragEnd={() => setDraggedItem(null)}
+                                          onClick={() => {
+                                            setSelectedOfferForEdit({
+                                              id: offer.id,
+                                              title: offer.title,
+                                              price: parseInt(offer.price.replace(/[^\d]/g, '')) || 0,
+                                              propertyType: offer.propertyType || 'شقة',
+                                              area: offer.area,
+                                              bedrooms: offer.bedrooms,
+                                              bathrooms: offer.bathrooms,
+                                              image: offer.image,
+                                              imageCount: 4,
+                                              city: city.cityName,
+                                              district: district.districtName,
+                                              description: '',
+                                              ownerName: '',
+                                              ownerPhone: '',
+                                              images: [offer.image]
+                                            });
+                                            setShowEditPage(true);
+                                          }}
                                         >
                                           {/* صورة العرض */}
                                           <div className="relative h-32 md:h-36">
@@ -2041,6 +2064,23 @@ export default function MyPlatformComplete({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* صفحة تعديل العرض */}
+      {selectedOfferForEdit && (
+        <OfferEditPage
+          listing={selectedOfferForEdit}
+          isOpen={showEditPage}
+          onClose={() => {
+            setShowEditPage(false);
+            setSelectedOfferForEdit(null);
+          }}
+          onSave={(updatedListing) => {
+            toast.success('تم حفظ التعديلات بنجاح');
+            setShowEditPage(false);
+            setSelectedOfferForEdit(null);
+          }}
+        />
+      )}
     </div>
   );
 }
