@@ -4,7 +4,7 @@
  * تصميم مشابه للصورة المرفقة مع التبويبات والصور
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -27,7 +27,15 @@ import {
   User,
   MessageSquare,
   Mail,
-  FileCheck
+  FileCheck,
+  Calendar,
+  Clock,
+  Hash,
+  Upload,
+  AlertCircle,
+  CheckCircle,
+  Bell,
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,9 +80,6 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     sku: `AD${listing.id.slice(0, 6).toUpperCase()}`,
     price: listing.price || 0,
     priceType: 'total',
-    offerDiscount: false,
-    bulkDiscount: false,
-    minOrder: 1,
     description: listing.description || '',
     phone: listing.ownerPhone || '+966541176696',
     whatsapp: '720' + listing.id.slice(0, 7),
@@ -87,11 +92,34 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     area: listing.area || 0,
     bedrooms: listing.bedrooms || 0,
     bathrooms: listing.bathrooms || 0,
-    propertyType: listing.propertyType || ''
+    propertyType: listing.propertyType || '',
+    // حقول الإعلان الجديدة
+    adDate: new Date().toISOString().split('T')[0],
+    adDuration: 6, // بالأشهر
+    // حقول تفاصيل المالك الجديدة
+    ownerName: '',
+    ownerBirthDate: '',
+    ownerMobile: '',
+    ownerWhatsapp: '',
+    ownerEmail: '',
+    ownerNationalAddress: '',
+    ownerGoogleLocation: '',
+    ownerNotes: '',
+    // حقول معلومات الصك الجديدة
+    deedNumber: '',
+    deedDate: '',
+    deedImage: null as string | null,
+    deedNotes: '',
+    propertyNotes: '',
+    // الهاشتاقات
+    hashtags: ['#شقة', '#للبيع', '#الرياض'] as string[]
   });
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
+  const [deedVerificationStatus, setDeedVerificationStatus] = useState<'idle' | 'verifying' | 'verified' | 'failed'>('idle');
+  const [newHashtag, setNewHashtag] = useState('');
+  const deedImageInputRef = useRef<HTMLInputElement>(null);
 
   const images = listing.images?.length ? listing.images : [
     listing.image,
@@ -106,6 +134,87 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     { id: 'deed', label: 'معلومات الصك', labelEn: 'Deed Info' },
     { id: 'more', label: 'المزيد', labelEn: 'More' }
   ];
+
+  // حساب تاريخ انتهاء الإعلان
+  const calculateExpiryDate = () => {
+    const startDate = new Date(formData.adDate);
+    startDate.setMonth(startDate.getMonth() + formData.adDuration);
+    return startDate.toISOString().split('T')[0];
+  };
+
+  // حساب الأيام المتبقية
+  const calculateRemainingDays = () => {
+    const expiryDate = new Date(calculateExpiryDate());
+    const today = new Date();
+    const diffTime = expiryDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // إضافة هاشتاق جديد
+  const addHashtag = () => {
+    if (newHashtag.trim()) {
+      const tag = newHashtag.startsWith('#') ? newHashtag : `#${newHashtag}`;
+      if (!formData.hashtags.includes(tag)) {
+        setFormData({ ...formData, hashtags: [...formData.hashtags, tag] });
+      }
+      setNewHashtag('');
+    }
+  };
+
+  // حذف هاشتاق
+  const removeHashtag = (tag: string) => {
+    setFormData({ ...formData, hashtags: formData.hashtags.filter(h => h !== tag) });
+  };
+
+  // رفع صورة الصك
+  const handleDeedImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, deedImage: reader.result as string });
+        toast({ title: '✅ تم رفع صورة الصك بنجاح' });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // التحقق من الصك
+  const verifyDeed = () => {
+    if (!formData.deedNumber) {
+      toast({ title: '⚠️ يرجى إدخال رقم الصك أولاً', variant: 'destructive' });
+      return;
+    }
+    setDeedVerificationStatus('verifying');
+    // محاكاة التحقق من الصك
+    setTimeout(() => {
+      const isValid = formData.deedNumber.length >= 8;
+      setDeedVerificationStatus(isValid ? 'verified' : 'failed');
+      toast({ 
+        title: isValid ? '✅ تم التحقق من الصك بنجاح' : '❌ لم يتم التحقق من الصك',
+        variant: isValid ? 'default' : 'destructive'
+      });
+    }, 2000);
+  };
+
+  // جدولة الإشعارات
+  useEffect(() => {
+    const remainingDays = calculateRemainingDays();
+    
+    // إشعار قبل 3 أشهر (90 يوم)
+    if (remainingDays === 90) {
+      toast({ title: '🔔 تنبيه: إعلانك سينتهي خلال 3 أشهر' });
+    }
+    // إشعار قبل شهر (30 يوم)
+    if (remainingDays === 30) {
+      toast({ title: '🔔 تنبيه: إعلانك سينتهي خلال شهر واحد' });
+    }
+    // إشعار عند الانتهاء
+    if (remainingDays === 0) {
+      toast({ title: '⛔ انتهت مدة الإعلان - يرجى تجديده برقم إعلاني جديد', variant: 'destructive' });
+    }
+  }, [formData.adDate, formData.adDuration]);
 
   const handleSave = () => {
     const updatedListing = {
@@ -125,6 +234,8 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const remainingDays = calculateRemainingDays();
 
   return (
     <>
@@ -271,6 +382,77 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   />
                 </div>
 
+                {/* تاريخ الإعلان ومدة الإعلان */}
+                <div className="bg-[#01411C]/5 rounded-xl p-4 border border-[#01411C]/20 space-y-4">
+                  <h4 className="font-bold text-[#01411C] flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    إعدادات مدة الإعلان
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* تاريخ الإعلان */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                        <Calendar className="w-4 h-4 text-[#01411C]" />
+                        تاريخ الإعلان
+                      </label>
+                      <Input
+                        type="date"
+                        value={formData.adDate}
+                        onChange={e => setFormData({ ...formData, adDate: e.target.value })}
+                        className="bg-white border-gray-200"
+                      />
+                    </div>
+
+                    {/* مدة الإعلان */}
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                        <Clock className="w-4 h-4 text-[#01411C]" />
+                        مدة الإعلان (بالأشهر)
+                      </label>
+                      <select
+                        value={formData.adDuration}
+                        onChange={e => setFormData({ ...formData, adDuration: Number(e.target.value) })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                          <option key={month} value={month}>
+                            {month} {month === 1 ? 'شهر' : month <= 10 ? 'أشهر' : 'شهر'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* معلومات الانتهاء */}
+                  <div className={`flex items-center justify-between p-3 rounded-lg ${
+                    remainingDays <= 30 ? 'bg-red-50 border border-red-200' : 
+                    remainingDays <= 90 ? 'bg-yellow-50 border border-yellow-200' : 
+                    'bg-green-50 border border-green-200'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Bell className={`w-5 h-5 ${
+                        remainingDays <= 30 ? 'text-red-500' : 
+                        remainingDays <= 90 ? 'text-yellow-500' : 
+                        'text-green-500'
+                      }`} />
+                      <span className="text-sm font-medium">تاريخ الانتهاء: {calculateExpiryDate()}</span>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                      remainingDays <= 30 ? 'bg-red-500 text-white' : 
+                      remainingDays <= 90 ? 'bg-yellow-500 text-white' : 
+                      'bg-green-500 text-white'
+                    }`}>
+                      {remainingDays > 0 ? `${remainingDays} يوم متبقي` : 'انتهى الإعلان'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    سيختفي الإعلان تلقائياً بعد انتهاء المدة ولن يمكن عرضه إلا برقم إعلاني جديد
+                  </p>
+                </div>
+
                 {/* السعر */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
@@ -294,28 +476,6 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                       <option value="meter">سعر المتر</option>
                     </select>
                   </div>
-                </div>
-
-                {/* خيارات الخصم */}
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.offerDiscount}
-                      onChange={e => setFormData({ ...formData, offerDiscount: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-300 text-[#01411C] focus:ring-[#01411C]"
-                    />
-                    <span className="text-sm text-gray-700">خصم عرض</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.bulkDiscount}
-                      onChange={e => setFormData({ ...formData, bulkDiscount: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-300 text-[#01411C] focus:ring-[#01411C]"
-                    />
-                    <span className="text-sm text-gray-700">خصم جملة</span>
-                  </label>
                 </div>
 
                 {/* الوصف */}
@@ -363,6 +523,51 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     <a href={formData.website} className="text-sm text-blue-600 underline">{formData.website}</a>
                   </div>
                 </div>
+
+                {/* الهاشتاقات */}
+                <div className="bg-[#D4AF37]/10 rounded-xl p-4 border border-[#D4AF37]/30">
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-3">
+                    <Hash className="w-4 h-4" />
+                    الهاشتاقات / Hashtags
+                  </label>
+                  <p className="text-xs text-gray-500 mb-3">بناءً على الهاشتاقات ستظهر عروض أخرى مشابهة في نفس المدينة والحي</p>
+                  
+                  {/* إضافة هاشتاق جديد */}
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      value={newHashtag}
+                      onChange={e => setNewHashtag(e.target.value)}
+                      placeholder="أضف هاشتاق جديد..."
+                      className="flex-1 bg-white"
+                      onKeyPress={e => e.key === 'Enter' && addHashtag()}
+                    />
+                    <Button
+                      onClick={addHashtag}
+                      size="sm"
+                      className="bg-[#01411C] hover:bg-[#01411C]/90 text-white"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* عرض الهاشتاقات */}
+                  <div className="flex flex-wrap gap-2">
+                    {formData.hashtags.map((tag, index) => (
+                      <span 
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-[#01411C] text-white rounded-full text-sm"
+                      >
+                        {tag}
+                        <button 
+                          onClick={() => removeHashtag(tag)}
+                          className="w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -375,9 +580,23 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     اسم المالك / Owner Name
                   </label>
                   <Input
-                    value={formData.company}
-                    onChange={e => setFormData({ ...formData, company: e.target.value })}
-                    placeholder="اسم المالك أو الشركة"
+                    value={formData.ownerName}
+                    onChange={e => setFormData({ ...formData, ownerName: e.target.value })}
+                    placeholder="اسم المالك الكامل"
+                    className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+
+                {/* تاريخ الميلاد */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 text-[#01411C]" />
+                    تاريخ الميلاد / Date of Birth
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.ownerBirthDate}
+                    onChange={e => setFormData({ ...formData, ownerBirthDate: e.target.value })}
                     className="bg-gray-50 border-gray-200"
                   />
                 </div>
@@ -386,11 +605,11 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                     <Phone className="w-4 h-4 text-[#01411C]" />
-                    رقم الجوال / Phone
+                    رقم الجوال / Mobile Number
                   </label>
                   <Input
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    value={formData.ownerMobile}
+                    onChange={e => setFormData({ ...formData, ownerMobile: e.target.value })}
                     placeholder="+966500000000"
                     className="bg-gray-50 border-gray-200"
                     dir="ltr"
@@ -401,11 +620,11 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                     <MessageSquare className="w-4 h-4 text-green-600" />
-                    واتساب / WhatsApp
+                    رقم واتساب / WhatsApp
                   </label>
                   <Input
-                    value={formData.whatsapp}
-                    onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+                    value={formData.ownerWhatsapp}
+                    onChange={e => setFormData({ ...formData, ownerWhatsapp: e.target.value })}
                     placeholder="رقم الواتساب"
                     className="bg-gray-50 border-gray-200"
                     dir="ltr"
@@ -420,39 +639,58 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   </label>
                   <Input
                     type="email"
+                    value={formData.ownerEmail}
+                    onChange={e => setFormData({ ...formData, ownerEmail: e.target.value })}
                     placeholder="email@example.com"
                     className="bg-gray-50 border-gray-200"
                     dir="ltr"
                   />
                 </div>
 
-                {/* الموقع الإلكتروني */}
+                {/* العنوان الوطني */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <Globe className="w-4 h-4 text-[#01411C]" />
-                    الموقع الإلكتروني / Website
+                    <Home className="w-4 h-4 text-[#01411C]" />
+                    العنوان الوطني للمالك / National Address
+                  </label>
+                  <Textarea
+                    value={formData.ownerNationalAddress}
+                    onChange={e => setFormData({ ...formData, ownerNationalAddress: e.target.value })}
+                    placeholder="العنوان الوطني الكامل..."
+                    rows={2}
+                    className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+
+                {/* رابط الموقع من قوقل */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 text-[#01411C]" />
+                    أو رابط الموقع من قوقل / Google Maps Link
                   </label>
                   <Input
-                    value={formData.website}
-                    onChange={e => setFormData({ ...formData, website: e.target.value })}
-                    placeholder="https://..."
+                    value={formData.ownerGoogleLocation}
+                    onChange={e => setFormData({ ...formData, ownerGoogleLocation: e.target.value })}
+                    placeholder="https://maps.google.com/..."
                     className="bg-gray-50 border-gray-200"
                     dir="ltr"
                   />
                 </div>
 
-                {/* رخصة فال */}
-                <div className="bg-[#01411C]/5 rounded-xl p-4 border border-[#01411C]/20">
+                {/* ملاحظات المالك */}
+                <div className="bg-[#D4AF37]/10 rounded-xl p-4 border border-[#D4AF37]/30">
                   <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-2">
                     <FileText className="w-4 h-4" />
-                    رخصة فال / FAL License
+                    ملاحظات بخصوص المالك / Owner Notes
                   </label>
-                  <Input
-                    placeholder="رقم رخصة فال"
+                  <p className="text-xs text-gray-500 mb-2">ملاحظات خاصة أو طلبات المالك أو شروطه</p>
+                  <Textarea
+                    value={formData.ownerNotes}
+                    onChange={e => setFormData({ ...formData, ownerNotes: e.target.value })}
+                    placeholder="أي ملاحظات أو شروط خاصة بالمالك..."
+                    rows={4}
                     className="bg-white border-gray-200"
-                    dir="ltr"
                   />
-                  <p className="text-xs text-gray-500 mt-2">رخصة الهيئة العامة للعقار</p>
                 </div>
               </div>
             )}
@@ -465,115 +703,134 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     <FileCheck className="w-4 h-4" />
                     رقم الصك / Deed Number
                   </label>
-                  <Input
-                    placeholder="أدخل رقم الصك"
-                    className="bg-white border-gray-200"
-                    dir="ltr"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.deedNumber}
+                      onChange={e => setFormData({ ...formData, deedNumber: e.target.value })}
+                      placeholder="أدخل رقم الصك"
+                      className="flex-1 bg-white border-gray-200"
+                      dir="ltr"
+                    />
+                    <Button
+                      onClick={verifyDeed}
+                      disabled={deedVerificationStatus === 'verifying'}
+                      className={`px-4 ${
+                        deedVerificationStatus === 'verified' ? 'bg-green-500 hover:bg-green-600' :
+                        deedVerificationStatus === 'failed' ? 'bg-red-500 hover:bg-red-600' :
+                        'bg-[#01411C] hover:bg-[#01411C]/90'
+                      } text-white`}
+                    >
+                      {deedVerificationStatus === 'verifying' ? (
+                        <span className="animate-spin">⏳</span>
+                      ) : deedVerificationStatus === 'verified' ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : deedVerificationStatus === 'failed' ? (
+                        <AlertCircle className="w-4 h-4" />
+                      ) : (
+                        'تحقق'
+                      )}
+                    </Button>
+                  </div>
+                  {deedVerificationStatus === 'verified' && (
+                    <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" /> تم التحقق من الصك بنجاح
+                    </p>
+                  )}
+                  {deedVerificationStatus === 'failed' && (
+                    <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" /> لم يتم العثور على الصك - تحقق من الرقم
+                    </p>
+                  )}
                 </div>
 
                 {/* تاريخ الصك */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <FileText className="w-4 h-4 text-[#01411C]" />
+                    <Calendar className="w-4 h-4 text-[#01411C]" />
                     تاريخ الصك / Deed Date
                   </label>
                   <Input
                     type="date"
+                    value={formData.deedDate}
+                    onChange={e => setFormData({ ...formData, deedDate: e.target.value })}
                     className="bg-gray-50 border-gray-200"
                   />
                 </div>
 
-                {/* نوع الملكية */}
+                {/* رفع صورة الصك */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    نوع الملكية / Ownership Type
+                    <Upload className="w-4 h-4 text-[#01411C]" />
+                    رفع صورة من الصك / Upload Deed Image
                   </label>
-                  <select className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm">
-                    <option value="individual">فردي</option>
-                    <option value="joint">مشترك</option>
-                    <option value="company">شركة</option>
-                    <option value="inheritance">ورثة</option>
-                  </select>
-                </div>
-
-                {/* المساحة بالصك */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <Package className="w-4 h-4 text-[#01411C]" />
-                    المساحة بالصك / Deed Area
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      value={formData.area}
-                      onChange={e => setFormData({ ...formData, area: Number(e.target.value) })}
-                      className="flex-1 bg-gray-50 border-gray-200"
-                    />
-                    <span className="px-4 py-2 bg-gray-100 rounded-lg text-sm">متر مربع</span>
-                  </div>
-                </div>
-
-                {/* الموقع */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <MapPin className="w-4 h-4 text-[#01411C]" />
-                    الموقع بالصك / Location
-                  </label>
-                  <Input
-                    value={formData.city}
-                    onChange={e => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="المدينة"
-                    className="mb-2 bg-gray-50 border-gray-200"
+                  <input
+                    type="file"
+                    ref={deedImageInputRef}
+                    onChange={handleDeedImageUpload}
+                    accept="image/*"
+                    className="hidden"
                   />
-                  <Input
-                    value={formData.district}
-                    onChange={e => setFormData({ ...formData, district: e.target.value })}
-                    placeholder="الحي"
-                    className="mb-2 bg-gray-50 border-gray-200"
-                  />
-                  <Input
-                    value={formData.street}
-                    onChange={e => setFormData({ ...formData, street: e.target.value })}
-                    placeholder="رقم القطعة"
-                    className="bg-gray-50 border-gray-200"
-                  />
-                </div>
-
-                {/* الحدود والأطوال */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                    الحدود والأطوال / Boundaries
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">الشمال</label>
-                      <Input placeholder="م" className="bg-white" />
+                  {formData.deedImage ? (
+                    <div className="relative">
+                      <img 
+                        src={formData.deedImage} 
+                        alt="صورة الصك" 
+                        className="w-full h-48 object-cover rounded-xl border border-gray-200"
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <button
+                          onClick={() => setFormData({ ...formData, deedImage: null })}
+                          className="w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deedImageInputRef.current?.click()}
+                          className="w-8 h-8 bg-[#01411C] hover:bg-[#01411C]/90 rounded-full flex items-center justify-center text-white"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">الجنوب</label>
-                      <Input placeholder="م" className="bg-white" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">الشرق</label>
-                      <Input placeholder="م" className="bg-white" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">الغرب</label>
-                      <Input placeholder="م" className="bg-white" />
-                    </div>
-                  </div>
+                  ) : (
+                    <button
+                      onClick={() => deedImageInputRef.current?.click()}
+                      className="w-full py-12 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center hover:border-[#01411C] transition-colors bg-gray-50"
+                    >
+                      <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-500">اضغط لرفع صورة الصك</span>
+                      <span className="text-xs text-gray-400 mt-1">PNG, JPG حتى 10MB</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* ملاحظات الصك */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    ملاحظات الصك / Notes
+                    <FileText className="w-4 h-4 text-[#01411C]" />
+                    الملاحظات على الصك / Deed Notes
                   </label>
                   <Textarea
-                    placeholder="أي ملاحظات إضافية على الصك..."
+                    value={formData.deedNotes}
+                    onChange={e => setFormData({ ...formData, deedNotes: e.target.value })}
+                    placeholder="أي ملاحظات على الصك..."
                     rows={3}
                     className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+
+                {/* ملاحظات خاصة على العقار */}
+                <div className="bg-[#01411C]/5 rounded-xl p-4 border border-[#01411C]/20">
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-2">
+                    <Home className="w-4 h-4" />
+                    ملاحظات خاصة على العقار / Property Notes
+                  </label>
+                  <Textarea
+                    value={formData.propertyNotes}
+                    onChange={e => setFormData({ ...formData, propertyNotes: e.target.value })}
+                    placeholder="أي ملاحظات خاصة بالعقار..."
+                    rows={4}
+                    className="bg-white border-gray-200"
                   />
                 </div>
               </div>
