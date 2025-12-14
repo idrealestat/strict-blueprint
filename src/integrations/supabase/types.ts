@@ -14,6 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
+      map_areas: {
+        Row: {
+          area_code: string | null
+          area_type: string
+          boundary_coordinates: Json
+          center_latitude: number | null
+          center_longitude: number | null
+          created_at: string | null
+          id: string
+          name_ar: string
+          name_en: string | null
+          properties: Json | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          area_code?: string | null
+          area_type?: string
+          boundary_coordinates: Json
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string | null
+          id?: string
+          name_ar: string
+          name_en?: string | null
+          properties?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          area_code?: string | null
+          area_type?: string
+          boundary_coordinates?: Json
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string | null
+          id?: string
+          name_ar?: string
+          name_en?: string | null
+          properties?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      map_locations: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          description: string | null
+          district: string | null
+          formatted_address: string | null
+          id: string
+          latitude: number
+          location_code: string | null
+          location_type: string
+          longitude: number
+          name_ar: string
+          name_en: string | null
+          phone: string | null
+          properties: Json | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          district?: string | null
+          formatted_address?: string | null
+          id?: string
+          latitude: number
+          location_code?: string | null
+          location_type?: string
+          longitude: number
+          name_ar: string
+          name_en?: string | null
+          phone?: string | null
+          properties?: Json | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          district?: string | null
+          formatted_address?: string | null
+          id?: string
+          latitude?: number
+          location_code?: string | null
+          location_type?: string
+          longitude?: number
+          name_ar?: string
+          name_en?: string | null
+          phone?: string | null
+          properties?: Json | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      map_routes: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_location_id: string | null
+          estimated_duration: number | null
+          id: string
+          name_ar: string
+          name_en: string | null
+          path_coordinates: Json | null
+          route_code: string | null
+          route_type: string
+          start_location_id: string | null
+          status: string | null
+          total_distance: number | null
+          updated_at: string | null
+          waypoints: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_location_id?: string | null
+          estimated_duration?: number | null
+          id?: string
+          name_ar: string
+          name_en?: string | null
+          path_coordinates?: Json | null
+          route_code?: string | null
+          route_type?: string
+          start_location_id?: string | null
+          status?: string | null
+          total_distance?: number | null
+          updated_at?: string | null
+          waypoints?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_location_id?: string | null
+          estimated_duration?: number | null
+          id?: string
+          name_ar?: string
+          name_en?: string | null
+          path_coordinates?: Json | null
+          route_code?: string | null
+          route_type?: string
+          start_location_id?: string | null
+          status?: string | null
+          total_distance?: number | null
+          updated_at?: string | null
+          waypoints?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_routes_end_location_id_fkey"
+            columns: ["end_location_id"]
+            isOneToOne: false
+            referencedRelation: "map_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "map_routes_start_location_id_fkey"
+            columns: ["start_location_id"]
+            isOneToOne: false
+            referencedRelation: "map_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wasata_ai_conversations: {
         Row: {
           created_at: string
