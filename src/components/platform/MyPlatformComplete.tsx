@@ -56,9 +56,13 @@ import {
   X,
   GripVertical,
   Move,
+  FileDown,
+  PlusCircle,
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
 import { toast } from "sonner";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // ===================== Types =====================
 
@@ -480,6 +484,10 @@ export default function MyPlatformComplete({
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [itemToMove, setItemToMove] = useState<{type: 'offer' | 'district'; data: any; sourceCity: string; sourceDistrict?: string} | null>(null);
   const [targetCityForMove, setTargetCityForMove] = useState<string>('');
+  const [targetDistrictForMove, setTargetDistrictForMove] = useState<string>('');
+  const [moveType, setMoveType] = useState<'existing' | 'new'>('existing');
+  const [newCityName, setNewCityName] = useState('');
+  const [newDistrictName, setNewDistrictName] = useState('');
   
   // Dialogs
   const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -776,19 +784,266 @@ export default function MyPlatformComplete({
   const openMoveDialog = (type: 'offer' | 'district', data: any, sourceCity: string, sourceDistrict?: string) => {
     setItemToMove({ type, data, sourceCity, sourceDistrict });
     setTargetCityForMove('');
+    setTargetDistrictForMove('');
+    setMoveType('existing');
+    setNewCityName('');
+    setNewDistrictName('');
     setShowMoveDialog(true);
   };
 
-  // تنفيذ النقل من النافذة
+  // تنفيذ النقل من النافذة (محسّنة مع خيارات متعددة)
   const confirmMove = () => {
-    if (!itemToMove || !targetCityForMove || targetCityForMove === itemToMove.sourceCity) {
-      toast.error('اختر مدينة مختلفة');
-      return;
+    if (!itemToMove) return;
+    
+    if (moveType === 'new') {
+      // إنشاء مدينة/حي جديد ونقل العرض إليه
+      if (!newCityName && !newDistrictName) {
+        toast.error('أدخل اسم المدينة أو الحي الجديد');
+        return;
+      }
+      
+      setCityHierarchy(prev => {
+        let updated = [...prev];
+        const targetCity = newCityName || itemToMove.sourceCity;
+        const targetDistrict = newDistrictName || 'عروض مباشرة';
+        
+        // التحقق من وجود المدينة أو إنشاؤها
+        let cityIndex = updated.findIndex(c => c.cityName === targetCity);
+        if (cityIndex === -1 && newCityName) {
+          updated.push({
+            cityName: newCityName,
+            isExpanded: false,
+            isHidden: false,
+            liveViewers: 0,
+            directOffers: [],
+            districts: []
+          });
+          cityIndex = updated.length - 1;
+        }
+        
+        if (cityIndex === -1) {
+          toast.error('المدينة غير موجودة');
+          return prev;
+        }
+        
+        // إنشاء حي جديد إذا تم تحديده
+        if (newDistrictName) {
+          const districtExists = updated[cityIndex].districts.some(d => d.districtName === newDistrictName);
+          if (!districtExists) {
+            updated[cityIndex].districts.push({
+              districtName: newDistrictName,
+              offers: [],
+              isExpanded: false,
+              isHidden: false,
+              liveViewers: 0
+            });
+          }
+        }
+        
+        // نقل العرض
+        if (itemToMove.type === 'offer') {
+          // إزالة العرض من المصدر
+          if (itemToMove.sourceDistrict) {
+            updated = updated.map(c => {
+              if (c.cityName === itemToMove.sourceCity) {
+                return {
+                  ...c,
+                  districts: c.districts.map(d => {
+                    if (d.districtName === itemToMove.sourceDistrict) {
+                      return { ...d, offers: d.offers.filter(o => o.id !== itemToMove.data.id) };
+                    }
+                    return d;
+                  })
+                };
+              }
+              return c;
+            });
+          } else {
+            updated = updated.map(c => {
+              if (c.cityName === itemToMove.sourceCity) {
+                return { ...c, directOffers: c.directOffers.filter(o => o.id !== itemToMove.data.id) };
+              }
+              return c;
+            });
+          }
+          
+          // إضافة العرض للهدف
+          const targetCityIndex = updated.findIndex(c => c.cityName === targetCity);
+          if (newDistrictName) {
+            const targetDistrictIndex = updated[targetCityIndex].districts.findIndex(d => d.districtName === newDistrictName);
+            updated[targetCityIndex].districts[targetDistrictIndex].offers.push(itemToMove.data);
+          } else {
+            updated[targetCityIndex].directOffers.push(itemToMove.data);
+          }
+        }
+        
+        toast.success(`تم نقل العرض إلى ${newCityName || itemToMove.sourceCity}${newDistrictName ? ` - ${newDistrictName}` : ''}`);
+        return updated;
+      });
+    } else {
+      // نقل لمدينة/حي موجود
+      if (!targetCityForMove) {
+        toast.error('اختر المدينة');
+        return;
+      }
+      
+      if (itemToMove.type === 'offer' && targetDistrictForMove) {
+        // نقل العرض لحي محدد
+        setCityHierarchy(prev => {
+          let updated = [...prev];
+          
+          // إزالة من المصدر
+          if (itemToMove.sourceDistrict) {
+            updated = updated.map(c => {
+              if (c.cityName === itemToMove.sourceCity) {
+                return {
+                  ...c,
+                  districts: c.districts.map(d => {
+                    if (d.districtName === itemToMove.sourceDistrict) {
+                      return { ...d, offers: d.offers.filter(o => o.id !== itemToMove.data.id) };
+                    }
+                    return d;
+                  })
+                };
+              }
+              return c;
+            });
+          } else {
+            updated = updated.map(c => {
+              if (c.cityName === itemToMove.sourceCity) {
+                return { ...c, directOffers: c.directOffers.filter(o => o.id !== itemToMove.data.id) };
+              }
+              return c;
+            });
+          }
+          
+          // إضافة للهدف
+          updated = updated.map(c => {
+            if (c.cityName === targetCityForMove) {
+              return {
+                ...c,
+                districts: c.districts.map(d => {
+                  if (d.districtName === targetDistrictForMove) {
+                    return { ...d, offers: [...d.offers, itemToMove.data] };
+                  }
+                  return d;
+                })
+              };
+            }
+            return c;
+          });
+          
+          toast.success(`تم نقل العرض إلى ${targetCityForMove} - ${targetDistrictForMove}`);
+          return updated;
+        });
+      } else {
+        handleDropOnCity(targetCityForMove);
+      }
     }
     
-    handleDropOnCity(targetCityForMove);
     setShowMoveDialog(false);
     setItemToMove(null);
+  };
+
+  // تصدير PDF احترافي للعرض
+  const exportOfferToPDF = async (offer: SingleOffer, cityName: string, districtName?: string) => {
+    toast.info('جاري إنشاء ملف PDF...');
+    
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    // خلفية متدرجة
+    pdf.setFillColor(1, 65, 28); // Wasata Green
+    pdf.rect(0, 0, pageWidth, 50, 'F');
+    
+    // شريط ذهبي
+    pdf.setFillColor(212, 175, 55); // Wasata Gold
+    pdf.rect(0, 50, pageWidth, 3, 'F');
+    
+    // العنوان الرئيسي
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(24);
+    pdf.text('منصة وساطه العقارية', pageWidth / 2, 25, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.text('Wasata Real Estate Platform', pageWidth / 2, 35, { align: 'center' });
+    
+    // معلومات العرض
+    pdf.setTextColor(1, 65, 28);
+    pdf.setFontSize(18);
+    pdf.text(offer.title, pageWidth / 2, 70, { align: 'center' });
+    
+    // السعر
+    pdf.setTextColor(212, 175, 55);
+    pdf.setFontSize(22);
+    pdf.text(offer.price, pageWidth / 2, 85, { align: 'center' });
+    
+    // الموقع
+    pdf.setTextColor(100, 100, 100);
+    pdf.setFontSize(14);
+    pdf.text(`${cityName}${districtName ? ` - ${districtName}` : ''}`, pageWidth / 2, 98, { align: 'center' });
+    
+    // صندوق معلومات
+    pdf.setFillColor(245, 245, 245);
+    pdf.roundedRect(15, 110, pageWidth - 30, 60, 5, 5, 'F');
+    
+    pdf.setTextColor(1, 65, 28);
+    pdf.setFontSize(12);
+    
+    let yPos = 125;
+    const infoItems = [
+      { label: 'نوع العقار:', value: offer.propertyType },
+      { label: 'المساحة:', value: offer.area ? `${offer.area} م²` : 'غير محدد' },
+      { label: 'غرف النوم:', value: offer.bedrooms ? `${offer.bedrooms} غرف` : 'غير محدد' },
+      { label: 'دورات المياه:', value: offer.bathrooms ? `${offer.bathrooms} حمامات` : 'غير محدد' },
+    ];
+    
+    infoItems.forEach(item => {
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(item.label, pageWidth - 25, yPos, { align: 'right' });
+      pdf.setTextColor(1, 65, 28);
+      pdf.text(item.value, pageWidth - 60, yPos, { align: 'right' });
+      yPos += 12;
+    });
+    
+    // إحصائيات
+    pdf.setFillColor(1, 65, 28);
+    pdf.roundedRect(15, 180, (pageWidth - 40) / 2, 35, 5, 5, 'F');
+    pdf.roundedRect((pageWidth / 2) + 5, 180, (pageWidth - 40) / 2, 35, 5, 5, 'F');
+    
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(10);
+    pdf.text('المشاهدات', 15 + (pageWidth - 40) / 4, 192, { align: 'center' });
+    pdf.text('الطلبات', (pageWidth / 2) + 5 + (pageWidth - 40) / 4, 192, { align: 'center' });
+    
+    pdf.setTextColor(212, 175, 55);
+    pdf.setFontSize(18);
+    pdf.text(offer.views.toLocaleString(), 15 + (pageWidth - 40) / 4, 207, { align: 'center' });
+    pdf.text(offer.requests.toString(), (pageWidth / 2) + 5 + (pageWidth - 40) / 4, 207, { align: 'center' });
+    
+    // معلومات المالك
+    pdf.setFillColor(212, 175, 55);
+    pdf.roundedRect(15, 225, pageWidth - 30, 40, 5, 5, 'F');
+    
+    pdf.setTextColor(1, 65, 28);
+    pdf.setFontSize(14);
+    pdf.text('معلومات التواصل', pageWidth / 2, 240, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.text(`${offer.owner.name} | ${offer.owner.phone}`, pageWidth / 2, 255, { align: 'center' });
+    
+    // التذييل
+    pdf.setFillColor(1, 65, 28);
+    pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+    
+    pdf.setTextColor(212, 175, 55);
+    pdf.setFontSize(10);
+    pdf.text(`تم الإنشاء بتاريخ: ${new Date().toLocaleDateString('ar-SA')}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+    
+    // حفظ الملف
+    pdf.save(`عرض_${offer.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('تم تصدير ملف PDF بنجاح');
   };
 
   // Toggle Publish Status
@@ -1361,8 +1616,11 @@ export default function MyPlatformComplete({
                                       <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
                                         <MessageSquare className="w-3 h-3" />
                                       </Button>
-                                      <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => shareItemLink(offer.title, offer.id)}>
-                                        <Link className="w-3 h-3" />
+                                      <Button size="sm" className="flex-1 text-xs bg-red-500 text-white" onClick={() => exportOfferToPDF(offer, city.cityName)}>
+                                        <FileDown className="w-3 h-3" />
+                                      </Button>
+                                      <Button size="sm" variant="ghost" className="flex-1 text-xs" onClick={() => openMoveDialog('offer', offer, city.cityName)}>
+                                        <Move className="w-3 h-3" />
                                       </Button>
                                     </div>
                                   </CardContent>
@@ -1547,19 +1805,13 @@ export default function MyPlatformComplete({
                                               <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white flex-1 min-w-0" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
                                                 <MessageSquare className="w-3 h-3" />
                                               </Button>
+                                              {/* PDF */}
+                                              <Button size="sm" className="h-7 px-2 text-xs bg-red-500 text-white flex-1 min-w-0" onClick={() => exportOfferToPDF(offer, city.cityName, district.districtName)}>
+                                                <FileDown className="w-3 h-3" />
+                                              </Button>
                                               {/* رابط */}
                                               <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => shareItemLink(offer.title, offer.id)}>
                                                 <Link className="w-3 h-3" />
-                                              </Button>
-                                              {/* مشاركة */}
-                                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => { 
-                                                if (navigator.share) {
-                                                  navigator.share({ title: offer.title, url: `${platformUrl}/offer/${offer.id}` });
-                                                } else {
-                                                  shareItemLink(offer.title, offer.id);
-                                                }
-                                              }}>
-                                                <Share2 className="w-3 h-3" />
                                               </Button>
                                               {/* نقل */}
                                               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => openMoveDialog('offer', offer, city.cityName, district.districtName)}>
@@ -1749,46 +2001,121 @@ export default function MyPlatformComplete({
         </DialogContent>
       </Dialog>
 
-      {/* Move Dialog - نقل العقار/الحي لمدينة أخرى */}
+      {/* Move Dialog - نقل العقار/الحي (محسّن مع خيارات متعددة) */}
       <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="max-w-sm" dir="rtl">
+        <DialogContent className="max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Move className="w-5 h-5 text-[#01411C]" />
-              نقل {itemToMove?.type === 'district' ? 'الحي' : 'العرض'} لمدينة أخرى
+              نقل {itemToMove?.type === 'district' ? 'الحي' : 'العرض'}
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">العنصر المحدد:</Label>
-              <p className="text-sm text-gray-600 mt-1">
+            {/* العنصر المحدد */}
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <Label className="text-sm font-medium text-gray-600">العنصر المحدد:</Label>
+              <p className="font-bold text-[#01411C] mt-1">
                 {itemToMove?.type === 'district' ? itemToMove?.data?.districtName : itemToMove?.data?.title}
               </p>
-              <p className="text-xs text-gray-400">من: {itemToMove?.sourceCity}</p>
+              <p className="text-xs text-gray-500">من: {itemToMove?.sourceCity}{itemToMove?.sourceDistrict ? ` - ${itemToMove?.sourceDistrict}` : ''}</p>
             </div>
 
-            <div>
-              <Label className="text-sm font-medium">اختر المدينة الجديدة:</Label>
-              <Select value={targetCityForMove} onValueChange={setTargetCityForMove}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="اختر المدينة..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {cityHierarchy
-                    .filter(c => c.cityName !== itemToMove?.sourceCity)
-                    .map(c => (
-                      <SelectItem key={c.cityName} value={c.cityName}>{c.cityName}</SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
+            {/* اختيار نوع النقل */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={moveType === 'existing' ? 'default' : 'outline'}
+                className={moveType === 'existing' ? 'bg-[#01411C] text-white' : ''}
+                onClick={() => setMoveType('existing')}
+              >
+                <MapPin className="w-4 h-4 ml-2" />
+                موقع موجود
+              </Button>
+              <Button
+                variant={moveType === 'new' ? 'default' : 'outline'}
+                className={moveType === 'new' ? 'bg-[#D4AF37] text-[#01411C]' : ''}
+                onClick={() => setMoveType('new')}
+              >
+                <PlusCircle className="w-4 h-4 ml-2" />
+                موقع جديد
+              </Button>
             </div>
+
+            {moveType === 'existing' ? (
+              <>
+                {/* اختر المدينة */}
+                <div>
+                  <Label className="text-sm font-medium">المدينة:</Label>
+                  <Select value={targetCityForMove} onValueChange={(v) => { setTargetCityForMove(v); setTargetDistrictForMove(''); }}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر المدينة..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50">
+                      {cityHierarchy.map(c => (
+                        <SelectItem key={c.cityName} value={c.cityName}>{c.cityName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* اختر الحي (للعروض فقط) */}
+                {itemToMove?.type === 'offer' && targetCityForMove && (
+                  <div>
+                    <Label className="text-sm font-medium">الحي (اختياري):</Label>
+                    <Select value={targetDistrictForMove} onValueChange={setTargetDistrictForMove}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="اختر الحي أو اتركه فارغاً للنقل المباشر..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white z-50">
+                        <SelectItem value="">-- نقل مباشر للمدينة --</SelectItem>
+                        {cityHierarchy
+                          .find(c => c.cityName === targetCityForMove)
+                          ?.districts.map(d => (
+                            <SelectItem key={d.districtName} value={d.districtName}>{d.districtName}</SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* إنشاء موقع جديد */}
+                <div>
+                  <Label className="text-sm font-medium">اسم المدينة الجديدة (أو اتركه فارغاً للمدينة الحالية):</Label>
+                  <Input
+                    placeholder="مثال: مكة المكرمة"
+                    value={newCityName}
+                    onChange={(e) => setNewCityName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium">اسم الحي الجديد:</Label>
+                  <Input
+                    placeholder="مثال: حي العزيزية"
+                    value={newDistrictName}
+                    onChange={(e) => setNewDistrictName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <p className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
+                  💡 يمكنك إنشاء مدينة جديدة أو حي جديد أو كليهما. إذا تركت المدينة فارغة سيتم النقل للحي الجديد ضمن نفس المدينة.
+                </p>
+              </>
+            )}
           </div>
 
           <DialogFooter className="gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowMoveDialog(false)}>إلغاء</Button>
-            <Button className="bg-[#01411C] text-white" onClick={confirmMove} disabled={!targetCityForMove}>
+            <Button 
+              className="bg-[#01411C] text-white" 
+              onClick={confirmMove}
+              disabled={moveType === 'existing' ? !targetCityForMove : (!newCityName && !newDistrictName)}
+            >
               <Move className="w-4 h-4 ml-2" />
               نقل
             </Button>
