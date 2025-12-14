@@ -44,6 +44,7 @@ interface LinkedCustomer {
 const App = () => {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [linkedCustomerForTask, setLinkedCustomerForTask] = useState<LinkedCustomer | null>(null);
+  const [linkedCustomerForAppointment, setLinkedCustomerForAppointment] = useState<LinkedCustomer | null>(null);
 
   const handleNavigate = (page: string) => {
     console.log("Navigate to:", page);
@@ -74,6 +75,34 @@ const App = () => {
       window.removeEventListener('createTaskFromCRM', handleCreateTaskFromCRM as EventListener);
     };
   }, []);
+
+  // Listen for appointment creation from CRM
+  useEffect(() => {
+    const handleCreateAppointmentFromCRM = (event: CustomEvent) => {
+      const { customerId, customerName, customerPhone } = event.detail;
+      setLinkedCustomerForAppointment({
+        id: customerId,
+        name: customerName,
+        phone: customerPhone,
+      });
+      setCurrentPage("calendar");
+    };
+
+    window.addEventListener('createAppointmentFromCRM', handleCreateAppointmentFromCRM as EventListener);
+    return () => {
+      window.removeEventListener('createAppointmentFromCRM', handleCreateAppointmentFromCRM as EventListener);
+    };
+  }, []);
+
+  // Clear linked customer when leaving tasks page
+  useEffect(() => {
+    if (currentPage !== "tasks") {
+      setLinkedCustomerForTask(null);
+    }
+    if (currentPage !== "calendar") {
+      setLinkedCustomerForAppointment(null);
+    }
+  }, [currentPage]);
 
   // Clear linked customer when leaving tasks page
   useEffect(() => {
@@ -117,7 +146,12 @@ const App = () => {
       case "card-editor":
         return <CardEditor onBack={() => setCurrentPage("digital-card")} />;
       case "calendar":
-        return <CalendarAppointments onBack={handleBack} />;
+        return (
+          <CalendarAppointments 
+            onBack={handleBack} 
+            linkedCustomer={linkedCustomerForAppointment}
+          />
+        );
       case "tasks":
         return (
           <TasksManagement 
