@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatform from "./components/platform/MyPlatform";
+import MyPlatformSmartPaths from "./components/platform/MyPlatformSmartPaths";
 import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
 import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import { ReportsAnalytics } from "./components/analytics";
@@ -17,6 +18,7 @@ import { TasksManagement } from "./components/tasks";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import NotFound from "./pages/NotFound";
+import { DashboardProvider } from "./context/DashboardContext";
 
 const queryClient = new QueryClient();
 
@@ -135,6 +137,8 @@ const App = () => {
         return <EnhancedBrokerCRM onBack={handleBack} user={mockUser} />;
       case "dashboard-main-252":
         return <MyPlatform onBack={handleBack} onNavigate={handleNavigate} user={mockUser} />;
+      case "my-platform-smart":
+        return <MyPlatformSmartPaths onBack={handleBack} user={mockUser} />;
       case "business-card-profile":
         return <BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={mockUser} />;
       case "business-card-edit":
@@ -168,18 +172,20 @@ const App = () => {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={renderPage()} />
-              <Route path="/customers" element={<CustomersListPage />} />
-              <Route path="/cards/:slug" element={<PublicCardView />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <DashboardProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={renderPage()} />
+                <Route path="/customers" element={<CustomersListPage />} />
+                <Route path="/cards/:slug" element={<PublicCardView />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </DashboardProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );
