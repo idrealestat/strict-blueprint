@@ -10,6 +10,7 @@ import { AnalyticsChart } from './AnalyticsChart';
 import { AIInsightsPanel } from './AIInsightsPanel';
 import { ReportsTable } from './ReportsTable';
 import { CreateReportDialog } from './CreateReportDialog';
+import AnalyticsDashboard from '../AnalyticsDashboard';
 
 // Mock data for KPIs
 const mockKPIs: Array<{
@@ -306,7 +307,10 @@ export function ReportsAnalytics({ onBack }: ReportsAnalyticsProps) {
         </div>
       </div>
 
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 space-y-6">
+        {/* برومبت التحليلات الكامل */}
+        <AnalyticsDashboard />
+
         {/* KPIs */}
         <KPIGrid kpis={mockKPIs} className="mb-6" />
 
