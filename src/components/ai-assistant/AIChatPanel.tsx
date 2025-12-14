@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
-import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff } from "lucide-react";
+import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useWasataAI } from "@/hooks/useWasataAI";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 
 interface Message {
   id: number;
@@ -92,7 +94,13 @@ const getUserName = (): string => {
 export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const userName = getUserName();
   const { isLoading: aiLoading, error: aiError, sendMessage } = useWasataAI();
-  const { isRecording, startRecording, stopRecording } = useVoiceRecorder();
+  const { isRecording, recordingDuration, startRecording, stopRecording, cancelRecording } = useVoiceRecorder();
+  const { isTranscribing, transcribe } = useSpeechToText();
+  const { isSpeaking, isLoading: ttsLoading, speak, stop: stopSpeaking } = useTextToSpeech();
+  
+  // إعدادات الصوت
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
   
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -319,9 +327,39 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     return context;
   };
 
+  // تشغيل الرد الصوتي
+  const speakResponse = async (text: string) => {
+    if (!autoSpeak) return;
+    
+    // تنظيف النص من الإيموجي والرموز
+    const cleanText = text
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')
+      .replace(/[•\-\*]/g, '')
+      .replace(/\n+/g, '. ')
+      .trim();
+    
+    if (cleanText.length > 10) {
+      try {
+        await speak(cleanText, selectedVoice, 1.0);
+      } catch (error) {
+        console.error('TTS error:', error);
+      }
+    }
+  };
+
   const handleSend = async (overrideInput?: string) => {
     const textToSend = overrideInput || inputValue;
     if (!textToSend.trim()) return;
+
+    // إيقاف أي صوت يعمل
+    if (isSpeaking) {
+      stopSpeaking();
+    }
 
     const userMessage: Message = {
       id: Date.now(),
@@ -373,6 +411,9 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           : m
       ));
 
+      // تشغيل الرد الصوتي
+      await speakResponse(assistantContent);
+
     } catch (error) {
       console.error("Error:", error);
       const errorMessage: Message = {
@@ -388,24 +429,61 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     }
   };
 
-  // Voice recording handler
+  // Voice recording handler - تسجيل الصوت وتحويله إلى نص
   const handleVoiceToggle = async () => {
     if (isRecording) {
-      const audioData = await stopRecording();
-      if (audioData) {
-        // For now, show a toast that voice is captured
-        // In a full implementation, this would be sent to a speech-to-text service
-        toast.success("تم تسجيل الصوت بنجاح! جاري المعالجة...");
-        // Simulate voice to text (in production, use a real service)
-        setInputValue("طلب صوتي - يرجى كتابة طلبك");
+      // إيقاف التسجيل ومعالجة الصوت
+      toast.info("جاري معالجة الصوت...");
+      
+      const audioResult = await stopRecording();
+      
+      if (audioResult) {
+        const { base64, mimeType } = audioResult;
+        
+        // تحويل الصوت إلى نص
+        const transcribedText = await transcribe(base64, mimeType);
+        
+        if (transcribedText && transcribedText.length > 0) {
+          // وضع النص في حقل الإدخال
+          setInputValue(transcribedText);
+          toast.success("تم تحويل الصوت بنجاح!");
+          
+          // إرسال تلقائي بعد ثانية
+          setTimeout(() => {
+            handleSend(transcribedText);
+          }, 500);
+        } else {
+          toast.error("لم نستطع فهم الصوت، يرجى المحاولة مرة أخرى");
+        }
       }
     } else {
+      // بدء التسجيل
       try {
         await startRecording();
-        toast.info("جاري التسجيل... تحدث الآن");
+        toast.info("🎤 جاري التسجيل... تحدث الآن", {
+          duration: 3000,
+        });
       } catch (error) {
         toast.error("لم نتمكن من الوصول للميكروفون");
       }
+    }
+  };
+
+  // تبديل الرد الصوتي التلقائي
+  const toggleAutoSpeak = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+    }
+    setAutoSpeak(!autoSpeak);
+    toast.info(autoSpeak ? "تم إيقاف الرد الصوتي" : "تم تفعيل الرد الصوتي");
+  };
+
+  // تشغيل رسالة معينة
+  const speakMessage = async (content: string) => {
+    if (isSpeaking) {
+      stopSpeaking();
+    } else {
+      await speakResponse(content);
     }
   };
 
@@ -434,6 +512,13 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     { id: 'analytics', name: 'التحليلات', icon: '📊' }
   ];
 
+  // تنسيق مدة التسجيل
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col border-2 border-[#D4AF37]">
       {/* رأس وساطه AI */}
@@ -454,14 +539,28 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-full h-8 w-8"
-          >
-            <X className="w-5 h-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* زر الرد الصوتي التلقائي */}
+            <button
+              onClick={toggleAutoSpeak}
+              className={`p-2 rounded-full transition-all ${
+                autoSpeak 
+                  ? 'bg-[#D4AF37] text-[#01411C]' 
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
+              title={autoSpeak ? "إيقاف الرد الصوتي التلقائي" : "تفعيل الرد الصوتي التلقائي"}
+            >
+              {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -550,7 +649,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                   </div>
                   <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : "text-right"}`}>
                     <div
-                      className={`rounded-xl px-3 py-2 ${
+                      className={`rounded-xl px-3 py-2 relative group ${
                         message.role === "user"
                           ? "bg-[#01411C] text-white"
                           : "bg-white text-[#01411C] shadow-sm"
@@ -559,6 +658,21 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">
                         {message.content}
                       </p>
+                      
+                      {/* زر تشغيل الصوت لرسائل المساعد */}
+                      {message.role === "assistant" && message.content.length > 10 && (
+                        <button
+                          onClick={() => speakMessage(message.content)}
+                          className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
+                          title="تشغيل الرسالة صوتياً"
+                        >
+                          {isSpeaking ? (
+                            <VolumeX className="w-3 h-3 text-[#01411C]" />
+                          ) : (
+                            <Volume2 className="w-3 h-3 text-[#01411C]" />
+                          )}
+                        </button>
+                      )}
                     </div>
                     
                     {/* أزرار التفاعل */}
@@ -588,7 +702,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               ))}
             </AnimatePresence>
 
-            {(isTyping || aiLoading) && (
+            {(isTyping || aiLoading || isTranscribing) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -598,10 +712,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                   <Sparkles className="w-4 h-4 text-[#01411C]" />
                 </div>
                 <div className="bg-white rounded-xl px-3 py-2 shadow-sm">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-[#01411C] rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-[#01411C] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                    <div className="w-2 h-2 bg-[#01411C] rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-[#01411C] rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-[#01411C] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <div className="w-2 h-2 bg-[#01411C] rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+                    </div>
+                    {isTranscribing && (
+                      <span className="text-xs text-[#01411C]/60">جاري تحويل الصوت...</span>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -610,18 +729,48 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
           {/* إدخال الرسالة */}
           <div className="relative">
+            {/* شريط التسجيل */}
+            {isRecording && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute -top-12 left-0 right-0 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-red-600">جاري التسجيل...</span>
+                  <span className="text-sm font-mono text-red-600">{formatDuration(recordingDuration)}</span>
+                </div>
+                <button
+                  onClick={cancelRecording}
+                  className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-500/10"
+                >
+                  إلغاء
+                </button>
+              </motion.div>
+            )}
+
             <div className="flex gap-2">
               {/* Voice Button */}
               <button
                 onClick={handleVoiceToggle}
-                className={`px-3 rounded-xl transition-all duration-300 border ${
+                disabled={isTranscribing || ttsLoading}
+                className={`px-3 rounded-xl transition-all duration-300 border flex items-center justify-center ${
                   isRecording 
                     ? 'bg-red-500 text-white border-red-600 animate-pulse' 
+                    : isTranscribing || ttsLoading
+                    ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
                     : 'bg-white text-[#01411C] border-[#01411C]/30 hover:bg-[#01411C] hover:text-white'
                 }`}
                 title={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
               >
-                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isTranscribing || ttsLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
               </button>
 
               <input
@@ -631,24 +780,30 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="سم طال عمرك.. كيف أخدمك؟"
                 className="flex-1 bg-white text-[#01411C] placeholder-[#01411C]/50 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] border border-[#01411C]/30 shadow-sm"
-                disabled={isTyping || aiLoading}
+                disabled={isTyping || aiLoading || isRecording}
                 dir="rtl"
               />
               <button
                 onClick={() => handleSend()}
-                disabled={!inputValue.trim() || isTyping || aiLoading}
+                disabled={!inputValue.trim() || isTyping || aiLoading || isRecording}
                 className="px-4 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white font-medium rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 border border-[#D4AF37]"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
             <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-1 text-[10px] text-[#01411C]/60">
+              <div className="flex items-center gap-2 text-[10px] text-[#01411C]/60">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                 <span>وساطه AI - الوعي الرقمي متصل</span>
+                {isSpeaking && (
+                  <span className="flex items-center gap-1 text-[#D4AF37]">
+                    <Volume2 className="w-3 h-3" />
+                    جاري التحدث...
+                  </span>
+                )}
               </div>
               <div className="text-[10px] text-[#01411C]/40">
-                مدعوم بالذكاء الاصطناعي
+                {autoSpeak ? '🔊 الرد الصوتي مفعّل' : '🔇 الرد الصوتي متوقف'}
               </div>
             </div>
           </div>
