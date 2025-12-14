@@ -862,14 +862,21 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                             <span className="text-[10px]">بريد</span>
                                           </Button>
                                           
-                                          {/* 4. موعد */}
+                                          {/* 4. موعد - مع ربط العميل */}
                                           <Button
                                             size="sm"
                                             variant="ghost"
                                             className="h-8 px-1 text-xs hover:bg-orange-100 flex flex-col items-center gap-0.5"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              toast.info('سيتم فتح نموذج جدولة موعد');
+                                              // إرسال حدث لإنشاء موعد مع ربط العميل
+                                              window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
+                                                detail: {
+                                                  customerId: customer.id,
+                                                  customerName: customer.name,
+                                                  customerPhone: customer.phone,
+                                                }
+                                              }));
                                             }}
                                           >
                                             <Calendar className="w-3.5 h-3.5 text-orange-600" />

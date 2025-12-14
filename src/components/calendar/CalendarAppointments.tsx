@@ -133,11 +133,19 @@ for (let hour = 8; hour <= 20; hour++) {
   timeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
 }
 
-interface CalendarAppointmentsProps {
-  onBack?: () => void;
+// Interface for linked customer
+interface LinkedCustomer {
+  id: string;
+  name: string;
+  phone: string;
 }
 
-export function CalendarAppointments({ onBack }: CalendarAppointmentsProps) {
+interface CalendarAppointmentsProps {
+  onBack?: () => void;
+  linkedCustomer?: LinkedCustomer | null;
+}
+
+export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppointmentsProps) {
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
@@ -160,6 +168,19 @@ export function CalendarAppointments({ onBack }: CalendarAppointmentsProps) {
     reminder: true,
     reminderTime: 30,
   });
+
+  // Open add dialog with linked customer if provided
+  useEffect(() => {
+    if (linkedCustomer) {
+      setNewAppointment(prev => ({
+        ...prev,
+        title: `موعد معاينة مع ${linkedCustomer.name}`,
+        customerName: linkedCustomer.name,
+        customerPhone: linkedCustomer.phone,
+      }));
+      setIsAddDialogOpen(true);
+    }
+  }, [linkedCustomer]);
 
   // Get week days
   const getWeekDays = () => {
