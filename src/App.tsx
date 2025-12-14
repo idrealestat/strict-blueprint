@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatform from "./components/platform/MyPlatform";
@@ -13,6 +13,7 @@ import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import { ReportsAnalytics } from "./components/analytics";
 import { DigitalCardDashboard, CardEditor } from "./components/digital-card";
 import { CalendarAppointments } from "./components/calendar";
+import { TasksManagement } from "./components/tasks";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import NotFound from "./pages/NotFound";
@@ -33,8 +34,16 @@ const mockUser = {
   rating: 4.5,
 };
 
+// Interface for linked customer
+interface LinkedCustomer {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 const App = () => {
   const [currentPage, setCurrentPage] = useState("dashboard");
+  const [linkedCustomerForTask, setLinkedCustomerForTask] = useState<LinkedCustomer | null>(null);
 
   const handleNavigate = (page: string) => {
     console.log("Navigate to:", page);
@@ -47,6 +56,31 @@ const App = () => {
 
   // State for customer details page
   const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<any>(null);
+
+  // Listen for task creation from CRM
+  useEffect(() => {
+    const handleCreateTaskFromCRM = (event: CustomEvent) => {
+      const { customerId, customerName, customerPhone } = event.detail;
+      setLinkedCustomerForTask({
+        id: customerId,
+        name: customerName,
+        phone: customerPhone,
+      });
+      setCurrentPage("tasks");
+    };
+
+    window.addEventListener('createTaskFromCRM', handleCreateTaskFromCRM as EventListener);
+    return () => {
+      window.removeEventListener('createTaskFromCRM', handleCreateTaskFromCRM as EventListener);
+    };
+  }, []);
+
+  // Clear linked customer when leaving tasks page
+  useEffect(() => {
+    if (currentPage !== "tasks") {
+      setLinkedCustomerForTask(null);
+    }
+  }, [currentPage]);
 
   // Render based on current page
   const renderPage = () => {
@@ -84,6 +118,13 @@ const App = () => {
         return <CardEditor onBack={() => setCurrentPage("digital-card")} />;
       case "calendar":
         return <CalendarAppointments onBack={handleBack} />;
+      case "tasks":
+        return (
+          <TasksManagement 
+            onBack={() => setCurrentPage("customer-management-72")} 
+            linkedCustomer={linkedCustomerForTask}
+          />
+        );
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;

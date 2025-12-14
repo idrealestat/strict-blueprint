@@ -877,14 +877,21 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           </Button>
                                         </div>
                                         <div className="grid grid-cols-3 gap-1 mt-1">
-                                          {/* 5. مهمة */}
+                                          {/* 5. مهمة - مع ربط العميل */}
                                           <Button
                                             size="sm"
                                             variant="ghost"
                                             className="h-8 px-1 text-xs hover:bg-yellow-100 flex flex-col items-center gap-0.5"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              toast.info('سيتم إنشاء مهمة جديدة');
+                                              // إرسال حدث لإنشاء مهمة مع ربط العميل
+                                              window.dispatchEvent(new CustomEvent('createTaskFromCRM', {
+                                                detail: {
+                                                  customerId: customer.id,
+                                                  customerName: customer.name,
+                                                  customerPhone: customer.phone,
+                                                }
+                                              }));
                                             }}
                                           >
                                             <Check className="w-3.5 h-3.5 text-yellow-600" />
