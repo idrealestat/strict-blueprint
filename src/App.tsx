@@ -12,6 +12,7 @@ import BusinessCardProfile from "./components/business-card/BusinessCardProfile"
 import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import { ReportsAnalytics } from "./components/analytics";
 import { DigitalCardDashboard, CardEditor } from "./components/digital-card";
+import { CalendarAppointments } from "./components/calendar";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import NotFound from "./pages/NotFound";
@@ -61,6 +62,8 @@ const App = () => {
         return <DigitalCardDashboard onBack={handleBack} />;
       case "card-editor":
         return <CardEditor onBack={() => setCurrentPage("digital-card")} />;
+      case "calendar":
+        return <CalendarAppointments onBack={handleBack} />;
       case "dashboard":
       default:
         return <SimpleDashboard user={mockUser} onNavigate={handleNavigate} />;
