@@ -23,7 +23,11 @@ import {
   Settings,
   Layers,
   Package,
-  ZoomIn
+  ZoomIn,
+  User,
+  MessageSquare,
+  Mail,
+  FileCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,8 +102,8 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
 
   const tabs = [
     { id: 'basic', label: 'معلومات أساسية', labelEn: 'Basic info' },
-    { id: 'variants', label: 'المتغيرات', labelEn: 'Variants' },
-    { id: 'inventory', label: 'المخزون', labelEn: 'Inventory' },
+    { id: 'owner', label: 'تفاصيل المالك', labelEn: 'Owner Details' },
+    { id: 'deed', label: 'معلومات الصك', labelEn: 'Deed Info' },
     { id: 'more', label: 'المزيد', labelEn: 'More' }
   ];
 
@@ -129,7 +133,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[99999] bg-white"
+          className="fixed inset-0 z-[99999] bg-white overflow-y-auto"
           dir="rtl"
         >
           {/* Header */}
@@ -149,7 +153,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-gray-200 bg-white sticky top-14 z-40">
+          <div className="border-b-2 border-[#D4AF37] bg-[#01411C]">
             <div className="flex overflow-x-auto">
               {tabs.map(tab => (
                 <button
@@ -157,11 +161,11 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 min-w-[80px] py-3 px-4 text-center text-sm font-medium transition-all whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'text-[#01411C] border-b-2 border-[#01411C]'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-[#D4AF37] border-b-3 border-[#D4AF37] bg-[#01411C]/80'
+                      : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  <span className="block text-xs text-gray-400">{tab.labelEn}</span>
+                  <span className="block text-xs opacity-70">{tab.labelEn}</span>
                   <span className="block">{tab.label}</span>
                 </button>
               ))}
@@ -235,7 +239,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
           </div>
 
           {/* المحتوى - نموذج التعديل */}
-          <div className="p-4 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 380px)' }}>
+          <div className="p-4 pb-24">
             {activeTab === 'basic' && (
               <div className="space-y-5">
                 {/* العنوان */}
@@ -362,50 +366,142 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
               </div>
             )}
 
-            {activeTab === 'variants' && (
+            {activeTab === 'owner' && (
               <div className="space-y-5">
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <h4 className="font-bold text-amber-800 mb-2">الحقول المخصصة / Custom Fields</h4>
-                  <button className="text-[#01411C] text-sm font-medium flex items-center gap-1">
-                    <Settings className="w-4 h-4" />
-                    إدارة / Manage
-                  </button>
+                {/* اسم المالك */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <User className="w-4 h-4 text-[#01411C]" />
+                    اسم المالك / Owner Name
+                  </label>
+                  <Input
+                    value={formData.company}
+                    onChange={e => setFormData({ ...formData, company: e.target.value })}
+                    placeholder="اسم المالك أو الشركة"
+                    className="bg-gray-50 border-gray-200"
+                  />
                 </div>
 
+                {/* رقم الجوال */}
                 <div>
-                  <label className="flex items-center justify-between text-sm font-bold text-gray-700 mb-2">
-                    <span>الفئات الفرعية / Sub categories</span>
-                    <span className="text-xs text-gray-400">نظم منتجاتك</span>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Phone className="w-4 h-4 text-[#01411C]" />
+                    رقم الجوال / Phone
                   </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {['شقق', 'فلل', 'أراضي', 'تجاري'].map((cat, i) => (
-                      <div key={i} className="relative">
-                        <img
-                          src={images[i % images.length]}
-                          alt={cat}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                        <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-xs text-center py-1 rounded-b-lg">{cat}</span>
-                      </div>
-                    ))}
-                    <button className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center hover:border-[#01411C] transition-colors">
-                      <Plus className="w-6 h-6 text-gray-400" />
-                    </button>
-                  </div>
-                  <button className="mt-2 text-[#01411C] text-sm font-medium flex items-center gap-1">
-                    <Layers className="w-4 h-4" />
-                    إضافة فئات فرعية
-                  </button>
+                  <Input
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+966500000000"
+                    className="bg-gray-50 border-gray-200"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* رقم الواتساب */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <MessageSquare className="w-4 h-4 text-green-600" />
+                    واتساب / WhatsApp
+                  </label>
+                  <Input
+                    value={formData.whatsapp}
+                    onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+                    placeholder="رقم الواتساب"
+                    className="bg-gray-50 border-gray-200"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* البريد الإلكتروني */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Mail className="w-4 h-4 text-[#01411C]" />
+                    البريد الإلكتروني / Email
+                  </label>
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    className="bg-gray-50 border-gray-200"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* الموقع الإلكتروني */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Globe className="w-4 h-4 text-[#01411C]" />
+                    الموقع الإلكتروني / Website
+                  </label>
+                  <Input
+                    value={formData.website}
+                    onChange={e => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="https://..."
+                    className="bg-gray-50 border-gray-200"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* رخصة فال */}
+                <div className="bg-[#01411C]/5 rounded-xl p-4 border border-[#01411C]/20">
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-2">
+                    <FileText className="w-4 h-4" />
+                    رخصة فال / FAL License
+                  </label>
+                  <Input
+                    placeholder="رقم رخصة فال"
+                    className="bg-white border-gray-200"
+                    dir="ltr"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">رخصة الهيئة العامة للعقار</p>
                 </div>
               </div>
             )}
 
-            {activeTab === 'inventory' && (
+            {activeTab === 'deed' && (
               <div className="space-y-5">
+                {/* رقم الصك */}
+                <div className="bg-[#D4AF37]/10 rounded-xl p-4 border border-[#D4AF37]/30">
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-2">
+                    <FileCheck className="w-4 h-4" />
+                    رقم الصك / Deed Number
+                  </label>
+                  <Input
+                    placeholder="أدخل رقم الصك"
+                    className="bg-white border-gray-200"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* تاريخ الصك */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <FileText className="w-4 h-4 text-[#01411C]" />
+                    تاريخ الصك / Deed Date
+                  </label>
+                  <Input
+                    type="date"
+                    className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+
+                {/* نوع الملكية */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    نوع الملكية / Ownership Type
+                  </label>
+                  <select className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm">
+                    <option value="individual">فردي</option>
+                    <option value="joint">مشترك</option>
+                    <option value="company">شركة</option>
+                    <option value="inheritance">ورثة</option>
+                  </select>
+                </div>
+
+                {/* المساحة بالصك */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                     <Package className="w-4 h-4 text-[#01411C]" />
-                    المساحة / Area
+                    المساحة بالصك / Deed Area
                   </label>
                   <div className="flex gap-2">
                     <Input
@@ -418,31 +514,11 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-bold text-gray-700 mb-2 block">غرف النوم</label>
-                    <Input
-                      type="number"
-                      value={formData.bedrooms}
-                      onChange={e => setFormData({ ...formData, bedrooms: Number(e.target.value) })}
-                      className="bg-gray-50 border-gray-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-gray-700 mb-2 block">الحمامات</label>
-                    <Input
-                      type="number"
-                      value={formData.bathrooms}
-                      onChange={e => setFormData({ ...formData, bathrooms: Number(e.target.value) })}
-                      className="bg-gray-50 border-gray-200"
-                    />
-                  </div>
-                </div>
-
+                {/* الموقع */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                     <MapPin className="w-4 h-4 text-[#01411C]" />
-                    الموقع / Location
+                    الموقع بالصك / Location
                   </label>
                   <Input
                     value={formData.city}
@@ -459,7 +535,44 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   <Input
                     value={formData.street}
                     onChange={e => setFormData({ ...formData, street: e.target.value })}
-                    placeholder="الشارع"
+                    placeholder="رقم القطعة"
+                    className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+
+                {/* الحدود والأطوال */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+                    الحدود والأطوال / Boundaries
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">الشمال</label>
+                      <Input placeholder="م" className="bg-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">الجنوب</label>
+                      <Input placeholder="م" className="bg-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">الشرق</label>
+                      <Input placeholder="م" className="bg-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">الغرب</label>
+                      <Input placeholder="م" className="bg-white" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ملاحظات الصك */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    ملاحظات الصك / Notes
+                  </label>
+                  <Textarea
+                    placeholder="أي ملاحظات إضافية على الصك..."
+                    rows={3}
                     className="bg-gray-50 border-gray-200"
                   />
                 </div>
