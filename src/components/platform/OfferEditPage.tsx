@@ -35,7 +35,13 @@ import {
   AlertCircle,
   CheckCircle,
   Bell,
-  Home
+  Home,
+  Key,
+  FileUp,
+  Link,
+  RefreshCw,
+  LogOut,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,14 +118,24 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     deedNotes: '',
     propertyNotes: '',
     // الهاشتاقات
-    hashtags: ['#شقة', '#للبيع', '#الرياض'] as string[]
+    hashtags: ['#شقة', '#للبيع', '#الرياض'] as string[],
+    // معلومات التأجير
+    contractDuration: 12, // بالأشهر
+    contractStartDate: '',
+    isCurrentlyRented: false,
+    contractEndDate: '',
+    rentalContractFile: null as string | null,
+    rentalContractFileName: ''
   });
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
   const [deedVerificationStatus, setDeedVerificationStatus] = useState<'idle' | 'verifying' | 'verified' | 'failed'>('idle');
+  const [ejarVerificationStatus, setEjarVerificationStatus] = useState<'idle' | 'verifying' | 'verified' | 'failed'>('idle');
   const [newHashtag, setNewHashtag] = useState('');
+  const [showRentalEndOptions, setShowRentalEndOptions] = useState(false);
   const deedImageInputRef = useRef<HTMLInputElement>(null);
+  const rentalContractInputRef = useRef<HTMLInputElement>(null);
 
   const images = listing.images?.length ? listing.images : [
     listing.image,
@@ -132,7 +148,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     { id: 'basic', label: 'معلومات أساسية', labelEn: 'Basic info' },
     { id: 'owner', label: 'تفاصيل المالك', labelEn: 'Owner Details' },
     { id: 'deed', label: 'معلومات الصك', labelEn: 'Deed Info' },
-    { id: 'more', label: 'المزيد', labelEn: 'More' }
+    { id: 'rental', label: 'معلومات التأجير', labelEn: 'Rental Info' }
   ];
 
   // حساب تاريخ انتهاء الإعلان
@@ -197,6 +213,131 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
       });
     }, 2000);
   };
+
+  // حساب تاريخ انتهاء عقد التأجير
+  const calculateContractEndDate = () => {
+    if (!formData.contractStartDate) return '';
+    const startDate = new Date(formData.contractStartDate);
+    startDate.setMonth(startDate.getMonth() + formData.contractDuration);
+    return startDate.toISOString().split('T')[0];
+  };
+
+  // حساب المتبقي من عقد التأجير
+  const calculateRemainingRental = () => {
+    const endDate = formData.contractEndDate || calculateContractEndDate();
+    if (!endDate) return { months: 0, days: 0, isExpired: true };
+    
+    const end = new Date(endDate);
+    const today = new Date();
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 0) return { months: 0, days: 0, isExpired: true };
+    
+    const months = Math.floor(diffDays / 30);
+    const days = diffDays % 30;
+    return { months, days, isExpired: false };
+  };
+
+  // رفع ملف عقد التأجير
+  const handleRentalContractUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ 
+          ...formData, 
+          rentalContractFile: reader.result as string,
+          rentalContractFileName: file.name
+        });
+        toast({ title: '✅ تم رفع ملف عقد التأجير بنجاح' });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // التحقق من منصة إيجار
+  const verifyEjar = () => {
+    setEjarVerificationStatus('verifying');
+    setTimeout(() => {
+      setEjarVerificationStatus('verified');
+      toast({ title: '✅ تم التحقق من منصة إيجار بنجاح' });
+    }, 2000);
+  };
+
+  // زر تم التأجير
+  const handleRentalConfirmed = () => {
+    // حفظ في التقويم
+    const calendarEvent = new CustomEvent('addCalendarEvent', {
+      detail: {
+        title: `انتهاء عقد التأجير - ${formData.ownerName}`,
+        date: formData.contractEndDate || calculateContractEndDate(),
+        type: 'rental_end',
+        ownerName: formData.ownerName,
+        deedNumber: formData.deedNumber,
+        city: formData.city,
+        district: formData.district,
+        contractDuration: formData.contractDuration
+      }
+    });
+    window.dispatchEvent(calendarEvent);
+
+    // حفظ في بطاقة المالك
+    const ownerCardEvent = new CustomEvent('addOwnerRentedProperty', {
+      detail: {
+        ownerName: formData.ownerName,
+        propertyTitle: formData.title,
+        contractStartDate: formData.contractStartDate,
+        contractEndDate: formData.contractEndDate || calculateContractEndDate(),
+        contractDuration: formData.contractDuration,
+        deedNumber: formData.deedNumber,
+        city: formData.city,
+        district: formData.district
+      }
+    });
+    window.dispatchEvent(ownerCardEvent);
+
+    toast({ title: '✅ تم تسجيل التأجير وإضافته للتقويم وبطاقة المالك' });
+  };
+
+  // معالجة خيارات انتهاء العقد
+  const handleRentalEndOption = (option: 'renewed' | 'moved_out' | 'extension') => {
+    setShowRentalEndOptions(false);
+    switch (option) {
+      case 'renewed':
+        toast({ title: '✅ تم تجديد العقد - يرجى تحديث تاريخ البداية الجديد' });
+        break;
+      case 'moved_out':
+        setFormData({ ...formData, isCurrentlyRented: false });
+        toast({ title: '📤 تم تسجيل خروج المستأجر' });
+        break;
+      case 'extension':
+        toast({ title: '⏳ تم طلب مهلة - سيتم إشعار المالك' });
+        break;
+    }
+  };
+
+  // إشعارات انتهاء عقد التأجير
+  useEffect(() => {
+    if (formData.isCurrentlyRented) {
+      const remaining = calculateRemainingRental();
+      const totalDays = remaining.months * 30 + remaining.days;
+      
+      // إشعار قبل شهرين (60 يوم)
+      if (totalDays === 60) {
+        toast({ title: '🔔 تنبيه: عقد التأجير سينتهي خلال شهرين' });
+      }
+      // إشعار قبل شهر (30 يوم)
+      if (totalDays === 30) {
+        toast({ title: '🔔 تنبيه: عقد التأجير سينتهي خلال شهر واحد' });
+      }
+      // إشعار عند الانتهاء
+      if (remaining.isExpired) {
+        setShowRentalEndOptions(true);
+        toast({ title: '⛔ انتهى عقد التأجير', variant: 'destructive' });
+      }
+    }
+  }, [formData.contractStartDate, formData.contractDuration, formData.isCurrentlyRented]);
 
   // جدولة الإشعارات
   useEffect(() => {
@@ -836,57 +977,232 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
               </div>
             )}
 
-            {activeTab === 'more' && (
+            {activeTab === 'rental' && (
               <div className="space-y-5">
-                {/* الفيديو والصور */}
+                {/* مدة العقد */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <Video className="w-4 h-4 text-[#01411C]" />
-                    الفيديو والصور / Video/Pictures
+                    <Timer className="w-4 h-4 text-[#01411C]" />
+                    مدة العقد / Contract Duration
                   </label>
-                  <p className="text-xs text-gray-400 mb-3">اختر اللون والصورة</p>
-                  <div className="flex gap-3">
-                    <button className="flex-1 py-8 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center hover:border-[#01411C] transition-colors">
-                      <Video className="w-8 h-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500">إضافة فيديو</span>
+                  <select
+                    value={formData.contractDuration}
+                    onChange={e => setFormData({ ...formData, contractDuration: Number(e.target.value) })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => i + 1).map(month => (
+                      <option key={month} value={month}>
+                        {month} {month === 1 ? 'شهر' : month <= 10 ? 'أشهر' : 'شهر'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* تاريخ ابتداء العقد */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 text-[#01411C]" />
+                    تاريخ ابتداء العقد / Contract Start Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.contractStartDate}
+                    onChange={e => setFormData({ ...formData, contractStartDate: e.target.value })}
+                    className="bg-gray-50 border-gray-200"
+                  />
+                </div>
+
+                {/* هل لازال مأجر */}
+                <div className="bg-[#01411C]/5 rounded-xl p-4 border border-[#01411C]/20">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isCurrentlyRented}
+                      onChange={e => setFormData({ ...formData, isCurrentlyRented: e.target.checked })}
+                      className="w-5 h-5 rounded border-gray-300 text-[#01411C] focus:ring-[#01411C]"
+                    />
+                    <span className="font-bold text-[#01411C] flex items-center gap-2">
+                      <Key className="w-5 h-5" />
+                      لازال مأجر / Currently Rented
+                    </span>
+                  </label>
+
+                  {/* عرض المتبقي من العقد */}
+                  {formData.isCurrentlyRented && formData.contractStartDate && (
+                    <div className="mt-4 p-3 bg-white rounded-lg border border-[#01411C]/20">
+                      {(() => {
+                        const remaining = calculateRemainingRental();
+                        return remaining.isExpired ? (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <AlertCircle className="w-5 h-5" />
+                            <span className="font-bold">انتهى العقد</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-[#01411C]">
+                            <Clock className="w-5 h-5" />
+                            <span className="font-bold">
+                              المتبقي: {remaining.months > 0 && `${remaining.months} شهر`} {remaining.days > 0 && `و ${remaining.days} يوم`}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* تاريخ انتهاء العقد */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 text-red-500" />
+                    تاريخ انتهاء العقد / Contract End Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.contractEndDate || calculateContractEndDate()}
+                    onChange={e => setFormData({ ...formData, contractEndDate: e.target.value })}
+                    className="bg-gray-50 border-gray-200"
+                  />
+                  {formData.contractStartDate && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      يتم حسابه تلقائياً بناءً على تاريخ البداية ومدة العقد
+                    </p>
+                  )}
+                </div>
+
+                {/* رفع ملف عقد التأجير */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                    <FileUp className="w-4 h-4 text-[#01411C]" />
+                    رفع ملف عقد التأجير / Upload Rental Contract
+                  </label>
+                  <input
+                    type="file"
+                    ref={rentalContractInputRef}
+                    onChange={handleRentalContractUpload}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    className="hidden"
+                  />
+                  {formData.rentalContractFile ? (
+                    <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <div className="flex-1">
+                        <p className="font-bold text-green-800">{formData.rentalContractFileName}</p>
+                        <p className="text-xs text-green-600">تم رفع الملف بنجاح</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setFormData({ ...formData, rentalContractFile: null, rentalContractFileName: '' })}
+                          className="w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => rentalContractInputRef.current?.click()}
+                          className="w-8 h-8 bg-[#01411C] hover:bg-[#01411C]/90 rounded-full flex items-center justify-center text-white"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => rentalContractInputRef.current?.click()}
+                      className="w-full py-10 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center hover:border-[#01411C] transition-colors bg-gray-50"
+                    >
+                      <FileUp className="w-10 h-10 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-500">اضغط لرفع ملف عقد التأجير</span>
+                      <span className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, JPG, PNG</span>
                     </button>
-                    <button className="flex-1 py-8 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center hover:border-[#01411C] transition-colors">
-                      <ImageIcon className="w-8 h-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500">إضافة صور</span>
-                    </button>
+                  )}
+                </div>
+
+                {/* رابط التحقق من منصة إيجار */}
+                <div className="bg-[#D4AF37]/10 rounded-xl p-4 border border-[#D4AF37]/30">
+                  <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-3">
+                    <Link className="w-4 h-4" />
+                    التحقق من منصة إيجار / Ejar Platform Verification
+                  </label>
+                  <div className="flex gap-2">
+                    <a
+                      href="https://ejar.sa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 text-center py-2 px-4 bg-white border border-[#01411C] text-[#01411C] rounded-lg hover:bg-[#01411C]/5 transition-colors text-sm font-medium"
+                    >
+                      فتح منصة إيجار
+                    </a>
+                    <Button
+                      onClick={verifyEjar}
+                      disabled={ejarVerificationStatus === 'verifying'}
+                      className={`px-6 ${
+                        ejarVerificationStatus === 'verified' ? 'bg-green-500 hover:bg-green-600' :
+                        'bg-[#01411C] hover:bg-[#01411C]/90'
+                      } text-white`}
+                    >
+                      {ejarVerificationStatus === 'verifying' ? (
+                        <span className="animate-spin">⏳</span>
+                      ) : ejarVerificationStatus === 'verified' ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        'تحقق'
+                      )}
+                    </Button>
                   </div>
+                  {ejarVerificationStatus === 'verified' && (
+                    <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" /> تم التحقق من العقد في منصة إيجار
+                    </p>
+                  )}
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <Globe className="w-4 h-4 text-[#01411C]" />
-                    الموقع الإلكتروني
-                  </label>
-                  <Input
-                    value={formData.website}
-                    onChange={e => setFormData({ ...formData, website: e.target.value })}
-                    placeholder="https://..."
-                    className="bg-gray-50 border-gray-200"
-                    dir="ltr"
-                  />
+                {/* زر تم التأجير */}
+                <div className="pt-4 border-t border-gray-200">
+                  <Button
+                    onClick={handleRentalConfirmed}
+                    disabled={!formData.contractStartDate || !formData.ownerName}
+                    className="w-full py-4 bg-[#01411C] hover:bg-[#01411C]/90 text-white text-lg font-bold rounded-xl"
+                  >
+                    <CheckCircle className="w-5 h-5 ml-2" />
+                    تم التأجير
+                  </Button>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    سيتم حفظ معلومات التأجير في التقويم وبطاقة المالك تلقائياً
+                  </p>
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    اسم الشركة
-                  </label>
-                  <Input
-                    value={formData.company}
-                    onChange={e => setFormData({ ...formData, company: e.target.value })}
-                    className="mb-2 bg-gray-50 border-gray-200"
-                  />
-                  <Input
-                    value={formData.companyEn}
-                    onChange={e => setFormData({ ...formData, companyEn: e.target.value })}
-                    className="bg-gray-50 border-gray-200"
-                    dir="ltr"
-                  />
-                </div>
+                {/* خيارات انتهاء العقد */}
+                {showRentalEndOptions && (
+                  <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                    <h4 className="font-bold text-red-800 mb-3 flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      انتهى عقد التأجير - اختر الإجراء
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      <Button
+                        onClick={() => handleRentalEndOption('renewed')}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <RefreshCw className="w-4 h-4 ml-2" />
+                        تم التجديد
+                      </Button>
+                      <Button
+                        onClick={() => handleRentalEndOption('moved_out')}
+                        className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        <LogOut className="w-4 h-4 ml-2" />
+                        تم الخروج
+                      </Button>
+                      <Button
+                        onClick={() => handleRentalEndOption('extension')}
+                        variant="outline"
+                        className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                      >
+                        <Timer className="w-4 h-4 ml-2" />
+                        تم طلب مهلة
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
