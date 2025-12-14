@@ -521,12 +521,13 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 md:grid-cols-10 w-full bg-white border-2 border-[#D4AF37] mb-4">
+          <TabsList className="grid grid-cols-6 md:grid-cols-11 w-full bg-white border-2 border-[#D4AF37] mb-4">
             <TabsTrigger value="overview" className="text-xs">📊 نظرة شاملة</TabsTrigger>
             <TabsTrigger value="activity" className="text-xs">💬 التفاعلات</TabsTrigger>
             <TabsTrigger value="reminders" className="text-xs">⏰ التذكيرات</TabsTrigger>
             <TabsTrigger value="analytics" className="text-xs">📈 التحليلات</TabsTrigger>
             <TabsTrigger value="properties" className="text-xs">العقارات</TabsTrigger>
+            <TabsTrigger value="rented" className="text-xs">🏠 عقار مؤجر</TabsTrigger>
             <TabsTrigger value="tasks" className="text-xs">المهام</TabsTrigger>
             <TabsTrigger value="notes" className="text-xs">الملاحظات</TabsTrigger>
             <TabsTrigger value="documents" className="text-xs">المستندات</TabsTrigger>
@@ -908,6 +909,195 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       <p>لا توجد عقارات مرتبطة</p>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Rented Properties Tab - تبويب عقار مؤجر */}
+          <TabsContent value="rented">
+            <Card className="border-2 border-[#D4AF37]">
+              <CardHeader className="bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  <Home className="w-5 h-5" />
+                  العقارات المؤجرة للمالك
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {/* Mock rented properties for this owner */}
+                <div className="space-y-4">
+                  {/* Rented Property 1 */}
+                  <div className="p-4 border-2 border-emerald-200 rounded-lg bg-emerald-50/50">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-lg">فيلا في حي النرجس</h4>
+                          <Badge className="bg-emerald-500 text-white">نشط</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            الرياض - حي النرجس
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="w-4 h-4" />
+                            المستأجر: خالد سعيد
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            بداية العقد: 2024-01-15
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-red-500" />
+                            نهاية العقد: 2025-01-15
+                          </span>
+                          <span className="text-emerald-600 font-bold">
+                            المتبقي: 32 يوم
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#D4AF37] font-bold text-lg">8,000 ريال/شهر</span>
+                          <span className="text-gray-500">| مدة العقد: 12 شهر</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button size="sm" variant="outline" className="border-[#01411C] text-[#01411C]">
+                          <FileText className="w-4 h-4 ml-1" />
+                          عرض العقد
+                        </Button>
+                        <Button size="sm" className="bg-[#01411C]">
+                          <Send className="w-4 h-4 ml-1" />
+                          إرسال تنبيه
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rented Property 2 */}
+                  <div className="p-4 border-2 border-amber-200 rounded-lg bg-amber-50/50">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-lg">شقة في حي العليا</h4>
+                          <Badge className="bg-amber-500 text-white animate-pulse">ينتهي قريباً</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            الرياض - حي العليا
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="w-4 h-4" />
+                            المستأجر: أحمد فهد
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            بداية العقد: 2023-12-01
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-red-500" />
+                            نهاية العقد: 2024-12-01
+                          </span>
+                          <span className="text-amber-600 font-bold">
+                            المتبقي: 15 يوم
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#D4AF37] font-bold text-lg">4,500 ريال/شهر</span>
+                          <span className="text-gray-500">| مدة العقد: 12 شهر</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button size="sm" variant="outline" className="border-[#01411C] text-[#01411C]">
+                          <FileText className="w-4 h-4 ml-1" />
+                          عرض العقد
+                        </Button>
+                        <Button size="sm" variant="destructive">
+                          <AlertTriangle className="w-4 h-4 ml-1" />
+                          إشعار عاجل
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rented Property 3 - Expired */}
+                  <div className="p-4 border-2 border-red-200 rounded-lg bg-red-50/50">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-lg">مكتب تجاري في طريق الملك فهد</h4>
+                          <Badge className="bg-red-500 text-white">منتهي</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            الرياض - طريق الملك فهد
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="w-4 h-4" />
+                            المستأجر: شركة الأمل للتجارة
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            بداية العقد: 2023-12-01
+                          </span>
+                          <span className="flex items-center gap-1 text-red-600">
+                            <Calendar className="w-4 h-4" />
+                            انتهى في: 2024-12-01
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#D4AF37] font-bold text-lg">15,000 ريال/شهر</span>
+                          <span className="text-gray-500">| مدة العقد: 12 شهر</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                          تجديد العقد
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-red-500 text-red-500">
+                          إخلاء العقار
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          طلب مهلة
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Stats */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-emerald-50 border-emerald-200">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-emerald-600">3</div>
+                      <div className="text-sm text-gray-600">إجمالي العقارات</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">1</div>
+                      <div className="text-sm text-gray-600">عقود نشطة</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-amber-600">1</div>
+                      <div className="text-sm text-gray-600">تنتهي قريباً</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-[#D4AF37]/10 border-[#D4AF37]">
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-[#D4AF37]">27,500</div>
+                      <div className="text-sm text-gray-600">إجمالي الإيجار الشهري</div>
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>
