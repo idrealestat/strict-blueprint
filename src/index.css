@@ -177,4 +177,33 @@
   .animate-marquee {
     animation: marquee 20s linear infinite;
   }
+
+  /* Hide scrollbars but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* Apply to all scrollable elements */
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Ensure touch scrolling works smoothly */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
 }
