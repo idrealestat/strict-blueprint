@@ -55,6 +55,7 @@ import {
   FileText,
   X,
 } from "lucide-react";
+import PropertyPublishForm from "./PropertyPublishForm";
 import { toast } from "sonner";
 
 // ===================== Types =====================
@@ -1181,195 +1182,61 @@ export default function MyPlatformComplete({
         </DialogContent>
       </Dialog>
 
-      {/* Publish Dialog */}
+      {/* Publish Dialog - النموذج الكامل */}
       <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-[#01411C]" />
-              نشر عقار جديد
+        <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden p-0" dir="rtl">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Plus className="w-6 h-6 text-[#01411C]" />
+              نشر عقار جديد - النموذج الكامل
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Title */}
-            <div className="col-span-2">
-              <Label>العنوان *</Label>
-              <Input 
-                value={publishForm.title}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="مثال: فيلا فاخرة في حي النرجس"
-              />
-            </div>
+          <div className="p-6 pt-4">
+            <PropertyPublishForm
+              onPublish={(data) => {
+                // تحويل البيانات للشكل المطلوب
+                const newOffer: HierarchicalOffer = {
+                  id: `NEW-${Date.now()}`,
+                  title: `${data.propertyType} ${data.purpose} - ${data.locationDetails.city}`,
+                  location: `${data.locationDetails.city}${data.locationDetails.district ? ` - ${data.locationDetails.district}` : ''}`,
+                  city: data.locationDetails.city,
+                  district: data.locationDetails.district,
+                  price: data.price ? `${Number(data.price).toLocaleString()} ريال` : 'السعر عند الطلب',
+                  adNumber: `AD-${Date.now().toString().slice(-6)}`,
+                  images: [],
+                  views: 0,
+                  requests: 0,
+                  isPinned: false,
+                  lastOpened: 'الآن',
+                  date: new Date(),
+                  status: 'draft',
+                  purpose: data.purpose.includes('بيع') ? 'sale' : 'rent',
+                  propertyType: data.propertyType,
+                  category: data.propertyCategory === 'تجاري' ? 'commercial' : 'residential',
+                  bedrooms: data.bedrooms ? Number(data.bedrooms) : undefined,
+                  bathrooms: data.bathrooms ? Number(data.bathrooms) : undefined,
+                  area: data.area ? Number(data.area) : undefined,
+                  owner: {
+                    name: user?.name || '',
+                    phone: user?.phone || '',
+                  },
+                  subOffers: [],
+                  rootOffers: [],
+                  isExpanded: false,
+                };
 
-            {/* Description */}
-            <div className="col-span-2">
-              <Label>الوصف</Label>
-              <Textarea 
-                value={publishForm.description}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="وصف تفصيلي للعقار..."
-                rows={3}
-              />
-            </div>
+                setOffers(prev => {
+                  const updated = [newOffer, ...prev];
+                  saveToStorage(updated);
+                  return updated;
+                });
 
-            {/* Property Type */}
-            <div>
-              <Label>نوع العقار *</Label>
-              <Select 
-                value={publishForm.propertyType}
-                onValueChange={(v) => setPublishForm(prev => ({ ...prev, propertyType: v }))}
-              >
-                <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
-                <SelectContent>
-                  {propertyTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Purpose */}
-            <div>
-              <Label>الغرض *</Label>
-              <Select 
-                value={publishForm.purpose}
-                onValueChange={(v) => setPublishForm(prev => ({ ...prev, purpose: v as 'sale' | 'rent' }))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sale">بيع</SelectItem>
-                  <SelectItem value="rent">إيجار</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Category */}
-            <div>
-              <Label>التصنيف</Label>
-              <Select 
-                value={publishForm.category}
-                onValueChange={(v) => setPublishForm(prev => ({ ...prev, category: v as 'residential' | 'commercial' }))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="residential">سكني</SelectItem>
-                  <SelectItem value="commercial">تجاري</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* City */}
-            <div>
-              <Label>المدينة *</Label>
-              <Select 
-                value={publishForm.city}
-                onValueChange={(v) => setPublishForm(prev => ({ ...prev, city: v }))}
-              >
-                <SelectTrigger><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
-                <SelectContent>
-                  {cities.map(city => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* District */}
-            <div>
-              <Label>الحي</Label>
-              <Input 
-                value={publishForm.district}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, district: e.target.value }))}
-                placeholder="اسم الحي"
-              />
-            </div>
-
-            {/* Price */}
-            <div>
-              <Label>السعر *</Label>
-              <Input 
-                type="number"
-                value={publishForm.price || ''}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, price: Number(e.target.value) }))}
-                placeholder="0"
-              />
-            </div>
-
-            {/* Area */}
-            <div>
-              <Label>المساحة (م²)</Label>
-              <Input 
-                type="number"
-                value={publishForm.area || ''}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, area: Number(e.target.value) }))}
-                placeholder="0"
-              />
-            </div>
-
-            {/* Bedrooms */}
-            <div>
-              <Label>غرف النوم</Label>
-              <Input 
-                type="number"
-                value={publishForm.bedrooms || ''}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, bedrooms: Number(e.target.value) }))}
-                placeholder="0"
-              />
-            </div>
-
-            {/* Bathrooms */}
-            <div>
-              <Label>دورات المياه</Label>
-              <Input 
-                type="number"
-                value={publishForm.bathrooms || ''}
-                onChange={(e) => setPublishForm(prev => ({ ...prev, bathrooms: Number(e.target.value) }))}
-                placeholder="0"
-              />
-            </div>
-
-            {/* Owner Info */}
-            <div className="col-span-2 border-t pt-4 mt-2">
-              <h4 className="font-bold text-sm mb-3">معلومات المالك</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>اسم المالك</Label>
-                  <Input 
-                    value={publishForm.ownerName}
-                    onChange={(e) => setPublishForm(prev => ({ ...prev, ownerName: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>هاتف المالك</Label>
-                  <Input 
-                    value={publishForm.ownerPhone}
-                    onChange={(e) => setPublishForm(prev => ({ ...prev, ownerPhone: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>إيميل المالك</Label>
-                  <Input 
-                    value={publishForm.ownerEmail}
-                    onChange={(e) => setPublishForm(prev => ({ ...prev, ownerEmail: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
+                setShowPublishDialog(false);
+              }}
+              onCancel={() => setShowPublishDialog(false)}
+            />
           </div>
-
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setShowPublishDialog(false)}>
-              إلغاء
-            </Button>
-            <Button 
-              className="bg-[#01411C] text-[#D4AF37]"
-              onClick={handlePublishSubmit}
-            >
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة العرض
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
