@@ -60,7 +60,25 @@ import {
   Download,
   FileSpreadsheet,
   Check,
+  AlertTriangle,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import CustomerDetailsPage from "./CustomerDetailsPage";
 
@@ -262,6 +280,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [draggedCustomer, setDraggedCustomer] = useState<string | null>(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // البطاقة الموسعة
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   
   // Filter State
   const [filters, setFilters] = useState({
@@ -414,6 +434,30 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const handleCustomerUpdate = (updatedCustomer: Customer) => {
     setCustomers(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
     setSelectedCustomer(updatedCustomer);
+  };
+
+  // Handle delete customer
+  const handleDeleteCustomer = (customer: Customer) => {
+    setCustomerToDelete(customer);
+    setShowDeleteConfirm(true);
+  };
+
+  // Confirm delete customer
+  const confirmDeleteCustomer = () => {
+    if (!customerToDelete) return;
+    
+    // Remove from customers array
+    setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
+    
+    // Remove from columns
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      customerIds: col.customerIds.filter(id => id !== customerToDelete.id)
+    })));
+    
+    setShowDeleteConfirm(false);
+    setCustomerToDelete(null);
+    toast.success('تم حذف العميل بنجاح');
   };
 
   // Check if customer is unread
@@ -712,8 +756,58 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       )}
                                     </div>
                                     
-                                    {/* 1.4 أيقونة التوسيع + السحب */}
+                                    {/* 1.4 ثلاث نقاط + أيقونة التوسيع + السحب */}
                                     <div className="flex items-center gap-1">
+                                      {/* زر ثلاث نقاط مع Dropdown */}
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0 hover:bg-gray-100"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <MoreVertical className="w-4 h-4 text-gray-500" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-40 bg-white z-50">
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedCustomer(customer);
+                                              setShowFullDetails(true);
+                                              markAsRead(customer.id);
+                                            }}
+                                            className="flex items-center gap-2"
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                            <span>عرض التفاصيل</span>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedCustomer(customer);
+                                              setShowCustomerDetails(true);
+                                            }}
+                                            className="flex items-center gap-2"
+                                          >
+                                            <Edit className="w-4 h-4" />
+                                            <span>تعديل</span>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteCustomer(customer);
+                                            }}
+                                            className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span>حذف</span>
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                      
                                       {expandedCardId === customer.id ? (
                                         <ChevronUp className="w-4 h-4 text-[#D4AF37]" />
                                       ) : (
@@ -1071,6 +1165,55 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                               >
                                 <MessageSquare className="w-4 h-4 text-green-600" />
                               </Button>
+                              
+                              {/* زر ثلاث نقاط في List View */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40 bg-white z-50">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCustomer(customer);
+                                      setShowFullDetails(true);
+                                      markAsRead(customer.id);
+                                    }}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    <span>عرض التفاصيل</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedCustomer(customer);
+                                      setShowCustomerDetails(true);
+                                    }}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                    <span>تعديل</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteCustomer(customer);
+                                    }}
+                                    className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>حذف</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </td>
                         </tr>
@@ -1685,6 +1828,35 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           />
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              تأكيد حذف العميل
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف العميل "{customerToDelete?.name}"؟
+              <br />
+              <span className="text-red-500 font-medium">
+                هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع بيانات العميل نهائياً.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteCustomer}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف نهائياً
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Spacer for bottom bar */}
       <div className="h-24"></div>

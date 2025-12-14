@@ -27,6 +27,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowRight,
@@ -48,6 +58,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   Star,
   Share2,
   Send,
@@ -171,8 +182,22 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [linkedProperties, setLinkedProperties] = useState<LinkedProperty[]>(mockLinkedProperties);
   const [showAddNote, setShowAddNote] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', priority: 'medium' });
+
+  // Handle delete customer
+  const handleDeleteCustomer = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  // Confirm delete customer
+  const confirmDeleteCustomer = () => {
+    // TODO: Implement actual delete logic with backend
+    toast.success('تم حذف العميل بنجاح');
+    setShowDeleteConfirm(false);
+    onBack();
+  };
 
   // Handle save
   const handleSave = () => {
@@ -778,12 +803,16 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div>
-                    <p className="font-medium">حذف العميل</p>
-                    <p className="text-sm text-gray-500">حذف العميل وجميع بياناته نهائياً</p>
+                    <p className="font-medium text-red-700">حذف العميل</p>
+                    <p className="text-sm text-red-500">حذف العميل وجميع بياناته نهائياً</p>
                   </div>
-                  <Button variant="destructive" size="sm">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={handleDeleteCustomer}
+                  >
                     <Trash2 className="w-4 h-4 ml-1" />
                     حذف
                   </Button>
@@ -881,6 +910,35 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              تأكيد حذف العميل
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف العميل "{customer.name}"؟
+              <br />
+              <span className="text-red-500 font-medium">
+                هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع بيانات العميل نهائياً.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteCustomer}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف نهائياً
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
