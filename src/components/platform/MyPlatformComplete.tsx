@@ -164,38 +164,141 @@ interface MyPlatformCompleteProps {
 
 // ===================== Mock Data =====================
 
+// ===================== Hierarchical Structure Types =====================
+
+// نوع العرض الفردي (أصغر وحدة)
+interface SingleOffer {
+  id: string;
+  title: string;
+  price: string;
+  image: string;
+  status: 'published' | 'draft';
+  views: number;
+  requests: number;
+  propertyType: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
+  owner: { name: string; phone: string };
+}
+
+// مستوى الحي (يحتوي على عروض)
+interface DistrictLevel {
+  districtName: string;
+  offers: SingleOffer[];
+  isExpanded: boolean;
+}
+
+// مستوى المدينة (يحتوي على أحياء)
+interface CityLevel {
+  cityName: string;
+  districts: DistrictLevel[];
+  directOffers: SingleOffer[]; // عروض مباشرة بدون حي
+  isExpanded: boolean;
+}
+
+// بيانات تجريبية بالهيكل الجديد
+const mockCityHierarchy: CityLevel[] = [
+  {
+    cityName: 'جدة',
+    isExpanded: false,
+    directOffers: [],
+    districts: [
+      {
+        districtName: 'حي الروضة',
+        isExpanded: false,
+        offers: [
+          { id: 'jed-1', title: 'شقة فاخرة للإيجار', price: '3,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', status: 'published', views: 1250, requests: 45, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 180, owner: { name: 'أحمد محمد', phone: '0501234567' } },
+          { id: 'jed-2', title: 'شقة عائلية مميزة', price: '4,500 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', status: 'published', views: 890, requests: 32, propertyType: 'شقة', bedrooms: 4, bathrooms: 3, area: 220, owner: { name: 'خالد علي', phone: '0551234567' } },
+          { id: 'jed-3', title: 'استوديو مؤثث', price: '2,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400', status: 'draft', views: 340, requests: 12, propertyType: 'استوديو', bedrooms: 1, bathrooms: 1, area: 45, owner: { name: 'سعد الحربي', phone: '0561234567' } },
+        ]
+      },
+      {
+        districtName: 'حي الحمراء',
+        isExpanded: false,
+        offers: [
+          { id: 'jed-4', title: 'فيلا للبيع', price: '2,500,000 ريال', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400', status: 'published', views: 2100, requests: 78, propertyType: 'فيلا', bedrooms: 6, bathrooms: 5, area: 500, owner: { name: 'عبدالله السعيد', phone: '0571234567' } },
+        ]
+      },
+      {
+        districtName: 'حي المروة',
+        isExpanded: false,
+        offers: [
+          { id: 'jed-5', title: 'دوبلكس فاخر', price: '1,800,000 ريال', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', status: 'published', views: 1560, requests: 56, propertyType: 'دوبلكس', bedrooms: 5, bathrooms: 4, area: 350, owner: { name: 'محمد الشهري', phone: '0581234567' } },
+        ]
+      }
+    ]
+  },
+  {
+    cityName: 'الرياض',
+    isExpanded: false,
+    directOffers: [],
+    districts: [
+      {
+        districtName: 'حي النرجس',
+        isExpanded: false,
+        offers: [
+          { id: 'riy-1', title: 'فيلا فاخرة جديدة', price: '3,200,000 ريال', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400', status: 'published', views: 3450, requests: 156, propertyType: 'فيلا', bedrooms: 7, bathrooms: 6, area: 600, owner: { name: 'فهد العتيبي', phone: '0591234567' } },
+          { id: 'riy-2', title: 'فيلا مودرن', price: '2,800,000 ريال', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400', status: 'published', views: 2890, requests: 123, propertyType: 'فيلا', bedrooms: 5, bathrooms: 4, area: 450, owner: { name: 'سلطان المطيري', phone: '0501234568' } },
+        ]
+      },
+      {
+        districtName: 'حي الياسمين',
+        isExpanded: false,
+        offers: [
+          { id: 'riy-3', title: 'شقة فاخرة للبيع', price: '850,000 ريال', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', status: 'published', views: 1200, requests: 67, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 200, owner: { name: 'عمر الدوسري', phone: '0511234567' } },
+        ]
+      }
+    ]
+  },
+  {
+    cityName: 'الدمام',
+    isExpanded: false,
+    directOffers: [
+      { id: 'dam-direct-1', title: 'أرض تجارية', price: '5,000,000 ريال', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400', status: 'published', views: 890, requests: 34, propertyType: 'أرض', area: 2000, owner: { name: 'ناصر الغامدي', phone: '0521234567' } },
+    ],
+    districts: [
+      {
+        districtName: 'حي الفيصلية',
+        isExpanded: false,
+        offers: [
+          { id: 'dam-1', title: 'مكتب تجاري', price: '8,000 ريال/شهرياً', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400', status: 'published', views: 560, requests: 23, propertyType: 'مكتب', area: 150, owner: { name: 'حسن القحطاني', phone: '0531234567' } },
+        ]
+      }
+    ]
+  }
+];
+
+// ===================== Legacy Mock Data (للتوافق مع الكود القديم) =====================
+
 const mockHierarchicalOffers: HierarchicalOffer[] = [
   {
     id: '1',
-    title: 'فلل النرجس - مجموعة استثمارية',
-    location: 'الرياض - حي النرجس',
-    city: 'الرياض',
-    district: 'حي النرجس',
-    price: '2,500,000 - 4,500,000 ريال',
+    title: 'شقق الروضة للإيجار',
+    location: 'جدة - حي الروضة',
+    city: 'جدة',
+    district: 'حي الروضة',
+    price: '3,000 - 8,000 ريال/شهرياً',
     adNumber: 'AD-001',
-    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400'],
-    views: 3250,
-    requests: 145,
+    images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400'],
+    views: 2890,
+    requests: 132,
     isPinned: true,
     lastOpened: 'منذ 2 ساعة',
     date: new Date(),
     status: 'published',
-    purpose: 'sale',
-    propertyType: 'فيلا',
+    purpose: 'rent',
+    propertyType: 'شقة',
     category: 'residential',
-    bedrooms: 5,
-    bathrooms: 4,
-    area: 450,
-    owner: { name: 'محمد أحمد', phone: '0501234567' },
+    bedrooms: 3,
+    bathrooms: 2,
+    area: 180,
+    owner: { name: 'أحمد محمد', phone: '0501234567' },
     subOffers: [
-      { id: '1-1', title: 'فيلا A - الواجهة الشمالية', price: '2,500,000 ريال', adNumber: 'AD-001-A', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', imageCount: 12, status: 'published', views: 1200, requests: 45 },
-      { id: '1-2', title: 'فيلا B - الواجهة الجنوبية', price: '3,200,000 ريال', adNumber: 'AD-001-B', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400', imageCount: 8, status: 'published', views: 890, requests: 32 },
-      { id: '1-3', title: 'فيلا C - زاوية', price: '4,500,000 ريال', adNumber: 'AD-001-C', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400', imageCount: 15, status: 'draft', views: 560, requests: 28 },
+      { id: '1-1', title: 'شقة 3 غرف - الدور الثاني', price: '3,500 ريال/شهرياً', adNumber: 'AD-001-A', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', imageCount: 12, status: 'published', views: 1200, requests: 45 },
+      { id: '1-2', title: 'شقة 4 غرف - الدور الثالث', price: '4,500 ريال/شهرياً', adNumber: 'AD-001-B', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400', imageCount: 8, status: 'published', views: 890, requests: 32 },
     ],
-    rootOffers: [
-      { id: '1-1-1', title: 'الدور الأرضي', price: '1,200,000 ريال', image: '', status: 'published' },
-      { id: '1-1-2', title: 'الدور العلوي', price: '1,300,000 ريال', image: '', status: 'published' },
-    ],
+    rootOffers: [],
     isExpanded: false,
   },
   {
@@ -340,6 +443,11 @@ export default function MyPlatformComplete({
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
   
+  // Hierarchical State (مدينة ← حي ← عروض)
+  const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(mockCityHierarchy);
+  const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
+  const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
+  
   // Dialogs
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -398,7 +506,7 @@ export default function MyPlatformComplete({
     return { total, published, draft, totalViews, totalRequests };
   }, [offers]);
 
-  // Toggle Expand
+  // Toggle Expand (للعروض الفرعية القديمة)
   const toggleExpand = (offerId: string) => {
     setExpandedOffers(prev => {
       const newSet = new Set(prev);
@@ -409,6 +517,51 @@ export default function MyPlatformComplete({
       }
       return newSet;
     });
+  };
+
+  // Toggle City Expand (المستوى الأول: المدينة)
+  const toggleCityExpand = (cityName: string) => {
+    setExpandedCities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(cityName)) {
+        newSet.delete(cityName);
+      } else {
+        newSet.add(cityName);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle District Expand (المستوى الثاني: الحي)
+  const toggleDistrictExpand = (districtKey: string) => {
+    setExpandedDistricts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(districtKey)) {
+        newSet.delete(districtKey);
+      } else {
+        newSet.add(districtKey);
+      }
+      return newSet;
+    });
+  };
+
+  // حساب إحصائيات المدينة
+  const getCityStats = (city: CityLevel) => {
+    let totalOffers = city.directOffers.length;
+    let totalViews = city.directOffers.reduce((sum, o) => sum + o.views, 0);
+    city.districts.forEach(d => {
+      totalOffers += d.offers.length;
+      totalViews += d.offers.reduce((sum, o) => sum + o.views, 0);
+    });
+    return { totalOffers, totalViews, districtsCount: city.districts.length };
+  };
+
+  // حساب إحصائيات الحي
+  const getDistrictStats = (district: DistrictLevel) => {
+    return {
+      offersCount: district.offers.length,
+      totalViews: district.offers.reduce((sum, o) => sum + o.views, 0),
+    };
   };
 
   // Toggle Publish Status
@@ -812,214 +965,162 @@ export default function MyPlatformComplete({
               </CardContent>
             </Card>
 
-            {/* Hierarchical Offers List */}
-            <div className="space-y-4">
-              {filteredOffers.map(offer => (
-                <Card 
-                  key={offer.id} 
-                  className={`border-2 transition-all ${offer.isPinned ? 'border-[#D4AF37] bg-[#D4AF37]/5' : 'border-gray-200'}`}
-                >
-                  {/* Main Offer Row */}
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      {/* Image */}
-                      <div className="relative w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                        <img 
-                          src={offer.images[0] || 'https://via.placeholder.com/200x150?text=عقار'} 
-                          alt={offer.title}
-                          className="w-full h-full object-cover"
-                        />
-                        {offer.subOffers.length > 0 && (
-                          <Badge className="absolute bottom-1 right-1 bg-[#01411C] text-[#D4AF37] text-xs">
-                            {offer.subOffers.length} فرع
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-lg text-[#01411C]">{offer.title}</h3>
-                              {offer.isPinned && <Pin className="w-4 h-4 text-[#D4AF37]" />}
-                              {/* Status Badge */}
-                              {offer.status === 'published' ? (
-                                <Badge className="bg-green-500 text-white">
-                                  <span className="w-2 h-2 bg-white rounded-full animate-pulse ml-1" />
-                                  منشور
-                                </Badge>
-                              ) : (
-                                <Badge className="bg-yellow-500 text-white">مسودة</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                              <MapPin className="w-3 h-3" />
-                              {offer.location}
-                            </p>
-                            <p className="text-lg font-bold text-[#D4AF37] mt-1">{offer.price}</p>
+            {/* === الهيكل الهرمي الجديد: مدينة ← حي ← عروض === */}
+            <div className="space-y-4" dir="rtl">
+              {cityHierarchy.map((city) => {
+                const cityStats = getCityStats(city);
+                const isCityExpanded = expandedCities.has(city.cityName);
+                
+                return (
+                  <Card key={city.cityName} className="border-2 border-[#01411C]/30 overflow-hidden transition-all duration-300">
+                    {/* === المستوى الأول: المدينة === */}
+                    <div 
+                      className={`p-4 cursor-pointer transition-all duration-300 ${isCityExpanded ? 'bg-[#01411C] text-white' : 'bg-gradient-to-l from-[#01411C]/5 to-[#D4AF37]/5 hover:bg-[#01411C]/10'}`}
+                      onClick={() => toggleCityExpand(city.cityName)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isCityExpanded ? 'bg-[#D4AF37]' : 'bg-[#01411C]'}`}>
+                            <MapPin className={`w-5 h-5 ${isCityExpanded ? 'text-[#01411C]' : 'text-[#D4AF37]'}`} />
                           </div>
-
-                          {/* Stats */}
-                          <div className="text-left text-sm text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-4 h-4" />
-                              {offer.views.toLocaleString()}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MessageSquare className="w-4 h-4" />
-                              {offer.requests}
-                            </div>
+                          <div>
+                            <h3 className={`font-bold text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
+                            <p className={`text-sm ${isCityExpanded ? 'text-white/80' : 'text-gray-500'}`}>
+                              {cityStats.districtsCount} أحياء • {cityStats.totalOffers} عرض • {cityStats.totalViews.toLocaleString()} مشاهدة
+                            </p>
                           </div>
                         </div>
-
-                        {/* Actions Row */}
-                        <div className="flex items-center gap-2 mt-3 flex-wrap">
-                          {/* 6 Required Buttons */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="outline" onClick={() => togglePin(offer.id)}>
-                                  <Pin className={`w-4 h-4 ${offer.isPinned ? 'text-[#D4AF37]' : ''}`} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{offer.isPinned ? 'إلغاء التثبيت' : 'تثبيت'}</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="outline" onClick={() => openShareModal(offer)}>
-                                  <Share2 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>مشاركة</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="outline">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>تعديل</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="outline" className="text-red-500" onClick={() => deleteOffer(offer.id)}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>حذف</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          {/* Publish/Hide Button */}
-                          {offer.status === 'published' ? (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="border-red-300 text-red-600"
-                              onClick={() => togglePublishStatus(offer.id)}
-                            >
-                              <EyeOff className="w-4 h-4 ml-1" />
-                              إخفاء
-                            </Button>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`${isCityExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-[#01411C] text-[#D4AF37]'}`}>
+                            {cityStats.totalOffers} عرض
+                          </Badge>
+                          {isCityExpanded ? (
+                            <ChevronUp className="w-6 h-6" />
                           ) : (
-                            <Button 
-                              size="sm" 
-                              className="bg-green-500 text-white hover:bg-green-600"
-                              onClick={() => togglePublishStatus(offer.id)}
-                            >
-                              <Globe className="w-4 h-4 ml-1" />
-                              نشر
-                            </Button>
-                          )}
-
-                          {/* Communication Buttons */}
-                          <div className="flex gap-1 mr-auto">
-                            <Button size="sm" className="bg-green-500 text-white" onClick={() => handleWhatsApp(offer.owner.phone, offer.title)}>
-                              <MessageSquare className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(offer.owner.phone)}>
-                              <Phone className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleAppointment(offer.id, offer.title)}>
-                              <Calendar className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" className="bg-[#D4AF37] text-[#01411C]" onClick={() => handleDeposit(offer.id, offer.title)}>
-                              <DollarSign className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          {/* Expand Button for Sub-Offers */}
-                          {offer.subOffers.length > 0 && (
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => toggleExpand(offer.id)}
-                            >
-                              {expandedOffers.has(offer.id) ? (
-                                <ChevronUp className="w-5 h-5" />
-                              ) : (
-                                <ChevronDown className="w-5 h-5" />
-                              )}
-                              {offer.subOffers.length} فرع
-                            </Button>
+                            <ChevronDown className="w-6 h-6" />
                           )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Sub-Offers (Expandable) */}
-                    {expandedOffers.has(offer.id) && offer.subOffers.length > 0 && (
-                      <div className="mt-4 pr-8 border-r-4 border-[#D4AF37]/50 space-y-3">
-                        <h4 className="text-sm font-bold text-gray-600">العروض الفرعية:</h4>
-                        {offer.subOffers.map(sub => (
-                          <div key={sub.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                            <img 
-                              src={sub.image || 'https://via.placeholder.com/80x60'} 
-                              alt={sub.title}
-                              className="w-20 h-14 rounded object-cover"
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{sub.title}</span>
-                                <Badge variant={sub.status === 'published' ? 'default' : 'secondary'} className="text-xs">
-                                  {sub.status === 'published' ? 'منشور' : 'مسودة'}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-[#D4AF37] font-bold">{sub.price}</p>
+                    {/* العروض المباشرة والأحياء (عند التوسيع) */}
+                    {isCityExpanded && (
+                      <div className="border-t-2 border-[#D4AF37]/30 animate-fade-in">
+                        {/* العروض المباشرة (بدون حي) */}
+                        {city.directOffers.length > 0 && (
+                          <div className="p-4 bg-[#D4AF37]/5 border-b border-[#D4AF37]/20">
+                            <h4 className="text-sm font-bold text-gray-600 mb-3">عروض مباشرة في {city.cityName}:</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {city.directOffers.map((offer) => (
+                                <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-all border-2 border-transparent hover:border-[#D4AF37]">
+                                  <div className="relative h-32">
+                                    <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
+                                    <Badge className={`absolute top-2 left-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                                      {offer.status === 'published' ? 'منشور' : 'مسودة'}
+                                    </Badge>
+                                  </div>
+                                  <CardContent className="p-3">
+                                    <h5 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h5>
+                                    <p className="text-[#D4AF37] font-bold text-sm mt-1">{offer.price}</p>
+                                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{offer.views}</span>
+                                      <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{offer.requests}</span>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{sub.views}</span>
-                              <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{sub.requests}</span>
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Root Offers */}
-                        {offer.rootOffers.length > 0 && (
-                          <div className="pr-8 border-r-4 border-[#01411C]/30 space-y-2 mt-3">
-                            <h5 className="text-xs font-bold text-gray-500">العروض الجذرية:</h5>
-                            {offer.rootOffers.map(root => (
-                              <div key={root.id} className="flex items-center gap-2 bg-white p-2 rounded text-sm">
-                                <span className="font-medium">{root.title}</span>
-                                <span className="text-[#D4AF37] font-bold">{root.price}</span>
-                                <Badge variant={root.status === 'published' ? 'default' : 'secondary'} className="text-xs mr-auto">
-                                  {root.status === 'published' ? 'منشور' : 'مسودة'}
-                                </Badge>
-                              </div>
-                            ))}
                           </div>
                         )}
+
+                        {/* === المستوى الثاني: الأحياء === */}
+                        <div className="p-4 space-y-3">
+                          {city.districts.map((district) => {
+                            const districtKey = `${city.cityName}-${district.districtName}`;
+                            const districtStats = getDistrictStats(district);
+                            const isDistrictExpanded = expandedDistricts.has(districtKey);
+                            
+                            return (
+                              <div key={districtKey} className="border-2 border-[#D4AF37]/30 rounded-lg overflow-hidden transition-all duration-300">
+                                <div 
+                                  className={`p-3 cursor-pointer transition-all duration-300 ${isDistrictExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-white hover:bg-[#D4AF37]/10'}`}
+                                  onClick={() => toggleDistrictExpand(districtKey)}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDistrictExpanded ? 'bg-[#01411C]' : 'bg-[#D4AF37]'}`}>
+                                        <Building className={`w-4 h-4 ${isDistrictExpanded ? 'text-[#D4AF37]' : 'text-[#01411C]'}`} />
+                                      </div>
+                                      <div>
+                                        <h4 className={`font-bold ${isDistrictExpanded ? 'text-[#01411C]' : 'text-[#01411C]'}`}>{district.districtName}</h4>
+                                        <p className={`text-xs ${isDistrictExpanded ? 'text-[#01411C]/70' : 'text-gray-500'}`}>
+                                          {districtStats.offersCount} عرض • {districtStats.totalViews.toLocaleString()} مشاهدة
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge className={`text-xs ${isDistrictExpanded ? 'bg-[#01411C] text-[#D4AF37]' : 'bg-[#D4AF37] text-[#01411C]'}`}>
+                                        {districtStats.offersCount} عرض
+                                      </Badge>
+                                      {isDistrictExpanded ? (
+                                        <ChevronUp className="w-5 h-5" />
+                                      ) : (
+                                        <ChevronDown className="w-5 h-5" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* === المستوى الثالث: العروض === */}
+                                {isDistrictExpanded && (
+                                  <div className="p-4 bg-gray-50 border-t border-[#D4AF37]/20 animate-fade-in">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {district.offers.map((offer) => (
+                                        <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-all border-2 border-transparent hover:border-[#01411C] bg-white">
+                                          <div className="relative h-36">
+                                            <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
+                                            <Badge className={`absolute top-2 left-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                                              <span className={`w-2 h-2 rounded-full ml-1 ${offer.status === 'published' ? 'bg-white animate-pulse' : 'bg-white'}`} />
+                                              {offer.status === 'published' ? 'منشور' : 'مسودة'}
+                                            </Badge>
+                                          </div>
+                                          <CardContent className="p-3">
+                                            <h5 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h5>
+                                            <p className="text-[#D4AF37] font-bold mt-1">{offer.price}</p>
+                                            <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                                              <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{offer.views.toLocaleString()}</span>
+                                              <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{offer.requests}</span>
+                                              {offer.bedrooms && <span className="flex items-center gap-1"><Bed className="w-3 h-3" />{offer.bedrooms}</span>}
+                                              {offer.area && <span className="flex items-center gap-1"><Maximize className="w-3 h-3" />{offer.area}م²</span>}
+                                            </div>
+                                            {/* أزرار الإجراءات */}
+                                            <div className="flex items-center gap-2 mt-3 border-t pt-3">
+                                              <Button size="sm" variant="outline" className="flex-1 text-xs">
+                                                <Eye className="w-3 h-3 ml-1" />
+                                                عرض
+                                              </Button>
+                                              <Button size="sm" className="flex-1 text-xs bg-green-500 text-white">
+                                                <MessageSquare className="w-3 h-3 ml-1" />
+                                                واتساب
+                                              </Button>
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
 
-              {filteredOffers.length === 0 && (
+              {cityHierarchy.length === 0 && (
                 <Card className="p-12 text-center">
                   <Building className="w-16 h-16 mx-auto text-gray-300 mb-4" />
                   <p className="text-xl text-gray-500">لا توجد عروض</p>
