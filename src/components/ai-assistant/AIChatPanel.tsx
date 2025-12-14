@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
-import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus } from "lucide-react";
+import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useWasataAI } from "@/hooks/useWasataAI";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface Message {
   id: number;
@@ -60,7 +62,7 @@ const realEstateReferences = {
   indicators: { name: 'المؤشرات العقارية', url: 'https://rega.gov.sa/indicators' }
 };
 
-// أسعار الفوائد التقريبية للبنوك السعودية (محدثة)
+// أسعار الفوائد التقريبية للبنوك السعودية
 const bankRates = {
   rajhi: { name: 'مصرف الراجحي', rate: '5.25%', type: 'ثابت' },
   ahli: { name: 'البنك الأهلي', rate: '5.15%', type: 'متغير' },
@@ -70,12 +72,33 @@ const bankRates = {
   inma: { name: 'مصرف الإنماء', rate: '5.10%', type: 'ثابت' }
 };
 
+// الحصول على اسم المستخدم من البطاقة الرقمية
+const getUserName = (): string => {
+  try {
+    // محاولة الحصول على الاسم من localStorage (البطاقة الرقمية)
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (key.startsWith('business_card_')) {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        if (data.userName) return data.userName;
+      }
+    }
+  } catch (e) {
+    console.error('Error getting user name:', e);
+  }
+  return 'صديقي';
+};
+
 export function AIChatPanel({ onClose }: AIChatPanelProps) {
+  const userName = getUserName();
+  const { isLoading: aiLoading, error: aiError, sendMessage } = useWasataAI();
+  const { isRecording, startRecording, stopRecording } = useVoiceRecorder();
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       role: "assistant",
-      content: `سم طال عمرك.. أنا وساطه AI 🏠✨\n\nمساعدك العقاري المتخصص في السوق السعودي\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n• موقع عقار وعقار ساس\n\n✨ كيف أقدر أخدمك اليوم؟`,
+      content: `عودتك يا صديقي ${userName}! 🏠✨\n\nأنا وساطه AI، الوعي الرقمي العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n• موقع عقار وعقار ساس\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
       timestamp: new Date(),
       actions: [
         { icon: '👥', text: 'عرض العملاء', action: 'navigate:crm', type: 'navigate' },
@@ -132,6 +155,13 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Show error toast
+  useEffect(() => {
+    if (aiError) {
+      toast.error(aiError);
+    }
+  }, [aiError]);
 
   const handleActionClick = (action: ActionButton) => {
     const [type, target] = action.action.split(':');
@@ -217,6 +247,78 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     setTimeout(() => handleSend(actionText), 100);
   };
 
+  // Extract context-aware actions from AI response
+  const extractActions = (content: string, userInput: string): ActionButton[] => {
+    const actions: ActionButton[] = [];
+    const userInputLower = userInput.toLowerCase();
+
+    if (userInputLower.includes('عملاء') || userInputLower.includes('كانبان')) {
+      actions.push({ icon: '👥', text: 'فتح الكانبان', action: 'navigate:crm', type: 'navigate' });
+      if (customers.length > 0) {
+        actions.push({
+          icon: '📞',
+          text: `اتصال بـ ${customers[0].name}`,
+          action: 'call:customer',
+          type: 'call',
+          data: { phone: customers[0].phone, name: customers[0].name }
+        });
+      }
+    }
+
+    if (userInputLower.includes('عروض') || userInputLower.includes('منصة')) {
+      actions.push({ icon: '🏠', text: 'فتح منصتي', action: 'navigate:platform', type: 'navigate' });
+    }
+
+    if (userInputLower.includes('موعد') || userInputLower.includes('تقويم')) {
+      actions.push({ icon: '📅', text: 'فتح التقويم', action: 'navigate:calendar', type: 'navigate' });
+    }
+
+    if (userInputLower.includes('تقارير') || userInputLower.includes('إحصائيات')) {
+      actions.push({ icon: '📊', text: 'التقارير', action: 'navigate:reports', type: 'navigate' });
+    }
+
+    if (userInputLower.includes('حاسبة') || userInputLower.includes('تمويل')) {
+      actions.push({ icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' });
+    }
+
+    // Default actions if none found
+    if (actions.length === 0) {
+      actions.push(
+        { icon: '👥', text: 'العملاء', action: 'navigate:crm', type: 'navigate' },
+        { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' }
+      );
+    }
+
+    return actions;
+  };
+
+  // Build context for AI
+  const buildContextMessage = (userInput: string): string => {
+    const inputLower = userInput.toLowerCase();
+    let context = userInput;
+
+    // Add relevant context based on keywords
+    if (inputLower.includes('عملاء') || inputLower.includes('كانبان')) {
+      context += `\n\n[سياق: لدي ${customers.length} عملاء في النظام. حالة الكانبان: ${kanbanColumns.map(c => `${c.name}: ${c.count}`).join(', ')}. آخر العملاء: ${customers.slice(0, 3).map(c => c.name).join(', ')}]`;
+    }
+
+    if (inputLower.includes('عروض') || inputLower.includes('عقارات')) {
+      const availableOffers = offers.filter(o => o.status === 'available');
+      context += `\n\n[سياق: لدي ${availableOffers.length} عروض متاحة. العروض: ${availableOffers.map(o => `${o.title} - ${o.price.toLocaleString()} ريال`).join(', ')}]`;
+    }
+
+    if (inputLower.includes('صفقات') || inputLower.includes('عمولة')) {
+      const totalCommission = deals.reduce((sum, d) => sum + d.commission, 0);
+      context += `\n\n[سياق: لدي ${deals.length} صفقات. إجمالي العمولات: ${totalCommission.toLocaleString()} ريال. الصفقات: ${deals.map(d => `${d.customer} - ${d.offer} - ${d.status}`).join(', ')}]`;
+    }
+
+    if (inputLower.includes('طلبات')) {
+      context += `\n\n[سياق: لدي ${requests.length} طلبات. الطلبات: ${requests.map(r => `${r.customer} يريد ${r.type} في ${r.city} بميزانية ${r.budget}`).join(', ')}]`;
+    }
+
+    return context;
+  };
+
   const handleSend = async (overrideInput?: string) => {
     const textToSend = overrideInput || inputValue;
     if (!textToSend.trim()) return;
@@ -229,233 +331,48 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const userInput = textToSend.toLowerCase();
     setInputValue("");
     setIsTyping(true);
 
     try {
-      let aiResponse = "";
-      let actions: ActionButton[] = [];
+      // Build conversation history for AI
+      const conversationHistory = messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: m.content }));
 
-      // تحليل نوع الطلب والاستجابة بأزرار التفاعل مع الأسلوب السعودي
-      if (userInput.includes('عملاء') || userInput.includes('كانبان') || userInput.includes('crm')) {
-        aiResponse = `ابشر طال عمرك.. هذي حالة العملاء في الكانبان 📊\n\n`;
-        kanbanColumns.forEach(col => {
-          aiResponse += `• ${col.name}: ${col.count} عميل\n`;
-        });
-        aiResponse += `\n**آخر العملاء المضافين:**\n`;
-        customers.slice(0, 3).forEach(c => {
-          const tags = c.tags?.join(', ') || '';
-          aiResponse += `• ${c.name} (${c.type === 'buyer' ? 'مشتري' : 'بائع'}) ${tags ? `[${tags}]` : ''}\n`;
-        });
-        aiResponse += `\nالله يسعدك.. اختر الي يناسبك:`;
+      // Add context to user message
+      const contextualMessage = buildContextMessage(textToSend);
+      conversationHistory.push({ role: 'user', content: contextualMessage });
 
-        actions = [
-          { icon: '👥', text: 'فتح الكانبان', action: 'navigate:crm', type: 'navigate' },
-          { icon: '📞', text: `اتصال بـ ${customers[0].name}`, action: 'call:customer', type: 'call', data: { phone: customers[0].phone, name: customers[0].name } },
-          { icon: '💬', text: `واتساب ${customers[0].name}`, action: 'whatsapp:customer', type: 'whatsapp', data: { phone: customers[0].phone, name: customers[0].name } },
-          { icon: '📅', text: 'حجز موعد', action: 'appointment:create', type: 'appointment', data: { customerId: customers[0].id, customerName: customers[0].name, customerPhone: customers[0].phone } }
-        ];
+      let assistantContent = "";
+      const assistantMessageId = Date.now() + 1;
 
-      } else if (userInput.includes('عروض') || userInput.includes('عقارات') || userInput.includes('منصة')) {
-        aiResponse = `حياك الله.. هذي العروض المتاحة في منصتك 🏠\n\n`;
-        offers.filter(o => o.status === 'available').forEach(o => {
-          aiResponse += `• ${o.title}\n  💰 ${o.price.toLocaleString()} ريال | 📐 ${o.area} م²\n\n`;
-        });
-        aiResponse += `تحت أمرك.. وش تبي تسوي؟`;
-
-        actions = [
-          { icon: '🏠', text: 'فتح منصتي', action: 'navigate:platform', type: 'navigate' },
-          { icon: '📝', text: `تفاصيل ${offers[0].title.slice(0, 15)}...`, action: 'offer:details', type: 'action', data: { id: offers[0].id, title: offers[0].title } },
-          { icon: '📤', text: 'مشاركة عرض', action: 'share:offer', type: 'action', data: { id: offers[0].id } },
-          { icon: '➕', text: 'إضافة عرض جديد', action: 'navigate:platform', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('صفقات') || userInput.includes('صفقة') || userInput.includes('عمولة')) {
-        aiResponse = `ابشر.. هذي صفقاتك الحالية طال عمرك 💼\n\n`;
-        deals.forEach(d => {
-          const statusText = d.status === 'completed' ? '✅ مكتمل' : d.status === 'negotiation' ? '🔄 مفاوضة' : '📄 توثيق';
-          aiResponse += `• ${d.customer} ← ${d.offer}\n  ${statusText} | 💰 ${d.value.toLocaleString()} ريال\n  💵 العمولة: ${d.commission.toLocaleString()} ريال\n\n`;
-        });
-
-        const totalCommission = deals.reduce((sum, d) => sum + d.commission, 0);
-        aiResponse += `\n📈 **إجمالي العمولات:** ${totalCommission.toLocaleString()} ريال\n\nالله يبارك لك ويزيدك 🤲`;
-
-        actions = [
-          { icon: '📊', text: 'تقرير الصفقات', action: 'navigate:reports', type: 'navigate' },
-          { icon: '👥', text: 'عرض العملاء', action: 'navigate:crm', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('طلبات') || userInput.includes('طلب')) {
-        aiResponse = `تم طال عمرك.. هذي طلبات العملاء 📋\n\n`;
-        requests.forEach(r => {
-          const statusText = r.status === 'new' ? '🆕 جديد' : '🔄 نشط';
-          const typeText = r.type === 'villa' ? 'فيلا' : r.type === 'apartment' ? 'شقة' : 'أرض';
-          aiResponse += `• ${r.customer}\n  🏠 ${typeText} في ${r.city}\n  💰 الميزانية: ${r.budget}\n  ${statusText}\n\n`;
-        });
-        aiResponse += `خدمتك واجب.. تبي نبحث لهم عقار مناسب؟`;
-
-        actions = [
-          { icon: '📋', text: 'فتح الطلبات', action: 'navigate:platform', type: 'navigate' },
-          { icon: '🔍', text: 'بحث عقارات مطابقة', action: 'search:matching', type: 'action' }
-        ];
-
-      } else if (userInput.includes('موعد') || userInput.includes('تقويم') || userInput.includes('مواعيد')) {
-        aiResponse = `حاضر طال عمرك.. هذي مواعيدك 📅\n\n`;
-        aiResponse += `• مواعيد اليوم: 3\n`;
-        aiResponse += `• مواعيد الأسبوع: 12\n`;
-        aiResponse += `• مواعيد معلقة: 2\n\n`;
-        aiResponse += `تبي تحجز موعد جديد؟ اختر العميل:`;
-
-        actions = [
-          { icon: '📅', text: 'فتح التقويم', action: 'navigate:calendar', type: 'navigate' },
-          { icon: '➕', text: `موعد مع ${customers[0].name}`, action: 'appointment:create', type: 'appointment', data: { customerId: customers[0].id, customerName: customers[0].name, customerPhone: customers[0].phone } },
-          { icon: '➕', text: `موعد مع ${customers[1].name}`, action: 'appointment:create', type: 'appointment', data: { customerId: customers[1].id, customerName: customers[1].name, customerPhone: customers[1].phone } },
-          { icon: '➕', text: `موعد مع ${customers[2].name}`, action: 'appointment:create', type: 'appointment', data: { customerId: customers[2].id, customerName: customers[2].name, customerPhone: customers[2].phone } }
-        ];
-
-      } else if (userInput.includes('تاقات') || userInput.includes('تاج') || userInput.includes('تصنيف')) {
-        aiResponse = `ابشر.. هذي التاقات والتصنيفات للعملاء 🏷️\n\n`;
-        const allTags = customers.flatMap(c => c.tags || []);
-        const uniqueTags = [...new Set(allTags)];
-        uniqueTags.forEach(tag => {
-          const count = customers.filter(c => c.tags?.includes(tag)).length;
-          aiResponse += `• ${tag}: ${count} عميل\n`;
-        });
-        aiResponse += `\nتحت أمرك.. تبي تعدل شي؟`;
-
-        actions = [
-          { icon: '👥', text: 'إدارة التاقات', action: 'navigate:crm', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('اتصال') || userInput.includes('اتصل') || userInput.includes('هاتف')) {
-        aiResponse = `حياك الله.. هذي قائمة الاتصال السريع 📞\n\n`;
-        customers.slice(0, 5).forEach(c => {
-          aiResponse += `• ${c.name}: ${c.phone}\n`;
-        });
-        aiResponse += `\nاختر الي تبي تتصل عليه:`;
-
-        actions = customers.slice(0, 4).map(c => ({
-          icon: '📞',
-          text: `اتصال ${c.name.split(' ')[0]}`,
-          action: 'call:customer',
-          type: 'call' as const,
-          data: { phone: c.phone, name: c.name }
-        }));
-
-      } else if (userInput.includes('واتساب') || userInput.includes('واتس')) {
-        aiResponse = `تم طال عمرك.. اختر العميل للتواصل 💬\n\n`;
-        customers.slice(0, 5).forEach(c => {
-          aiResponse += `• ${c.name}\n`;
-        });
-
-        actions = customers.slice(0, 4).map(c => ({
-          icon: '💬',
-          text: `واتساب ${c.name.split(' ')[0]}`,
-          action: 'whatsapp:customer',
-          type: 'whatsapp' as const,
-          data: { phone: c.phone, name: c.name }
-        }));
-
-      } else if (userInput.includes('حاسبة') || userInput.includes('حساب') || userInput.includes('تمويل')) {
-        aiResponse = `ابشر.. هذي الحاسبة السريعة للعقار 🧮\n\nتقدر تحسب:\n• الأقساط الشهرية\n• نسبة العمولة (2.5%)\n• تكاليف النقل\n• ضريبة القيمة المضافة (15%)\n\n`;
-        aiResponse += `📊 **أسعار فوائد التمويل العقاري:**\n`;
-        Object.values(bankRates).forEach(bank => {
-          aiResponse += `• ${bank.name}: ${bank.rate} (${bank.type})\n`;
-        });
-        aiResponse += `\n*المصدر: البنوك السعودية الرسمية*`;
-
-        actions = [
-          { icon: '🧮', text: 'فتح الحاسبة', action: 'navigate:calculator', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('تقارير') || userInput.includes('تحليل') || userInput.includes('إحصائيات')) {
-        aiResponse = `هلا والله.. هذي إحصائياتك 📊\n\n`;
-        aiResponse += `• إجمالي العملاء: ${customers.length}\n`;
-        aiResponse += `• العروض النشطة: ${offers.filter(o => o.status === 'available').length}\n`;
-        aiResponse += `• الصفقات المكتملة: ${deals.filter(d => d.status === 'completed').length}\n`;
-        aiResponse += `• إجمالي العمولات: ${deals.reduce((sum, d) => sum + d.commission, 0).toLocaleString()} ريال\n\n`;
-        aiResponse += `الله يبارك في رزقك 🤲`;
-
-        actions = [
-          { icon: '📊', text: 'التقارير الكاملة', action: 'navigate:reports', type: 'navigate' },
-          { icon: '📈', text: 'تحليل الأداء', action: 'navigate:reports', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('اسعار') || userInput.includes('سعر') || userInput.includes('تسعير') || userInput.includes('مؤشر')) {
-        aiResponse = `ابشر طال عمرك.. هذي معلومات الأسعار من المصادر الرسمية 📈\n\n`;
-        aiResponse += `🏛️ **المراجع العقارية الرسمية:**\n`;
-        Object.values(realEstateReferences).forEach(ref => {
-          aiResponse += `• ${ref.name}\n`;
-        });
-        aiResponse += `\n💰 **متوسط أسعار الرياض (تقريبي):**\n`;
-        aiResponse += `• فلل: 1.5 - 4 مليون ريال\n`;
-        aiResponse += `• شقق: 400K - 1.2 مليون ريال\n`;
-        aiResponse += `• أراضي: 1,500 - 3,500 ريال/م²\n\n`;
-        aiResponse += `*المصدر: موقع عقار وعقار ساس*`;
-
-        actions = [
-          { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' },
-          { icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('بنك') || userInput.includes('فائدة') || userInput.includes('تمويل عقاري')) {
-        aiResponse = `حياك الله.. هذي أسعار فوائد التمويل العقاري 🏦\n\n`;
-        Object.values(bankRates).forEach(bank => {
-          aiResponse += `• ${bank.name}: ${bank.rate} (${bank.type})\n`;
-        });
-        aiResponse += `\n*ملاحظة: الأسعار تقريبية وتختلف حسب الملف الائتماني*\n`;
-        aiResponse += `*المصدر: مواقع البنوك السعودية الرسمية*`;
-
-        actions = [
-          { icon: '🧮', text: 'حاسبة التمويل', action: 'navigate:calculator', type: 'navigate' }
-        ];
-
-      } else if (userInput.includes('نظام') || userInput.includes('هيئة') || userInput.includes('تصريح') || userInput.includes('رخصة')) {
-        aiResponse = `ابشر.. هذي المعلومات النظامية من الهيئة العامة للعقار 🏛️\n\n`;
-        aiResponse += `📋 **متطلبات مزاولة الوساطة العقارية:**\n`;
-        aiResponse += `• رخصة فال للوساطة العقارية\n`;
-        aiResponse += `• السجل التجاري\n`;
-        aiResponse += `• شهادة من الهيئة العامة للعقار\n\n`;
-        aiResponse += `🔗 **المراجع الرسمية:**\n`;
-        Object.values(realEstateReferences).forEach(ref => {
-          aiResponse += `• ${ref.name}: ${ref.url}\n`;
-        });
-
-        actions = [
-          { icon: '📊', text: 'التقارير', action: 'navigate:reports', type: 'navigate' }
-        ];
-
-      } else {
-        // رد عام مع الأسلوب السعودي
-        aiResponse = `سم طال عمرك! 🤝\n\nأنا وساطه AI، مساعدك العقاري المتخصص في السوق السعودي\n\n`;
-        aiResponse += `✨ اقدر أخدمك في:\n`;
-        aiResponse += `• إدارة العملاء والكانبان\n`;
-        aiResponse += `• متابعة العروض والطلبات\n`;
-        aiResponse += `• جدولة المواعيد\n`;
-        aiResponse += `• تحليل الصفقات والأسعار\n`;
-        aiResponse += `• معلومات التمويل العقاري\n\n`;
-        aiResponse += `الله يسعدك.. اختر من الأزرار أو اكتب طلبك:`;
-
-        actions = [
-          { icon: '👥', text: 'العملاء', action: 'navigate:crm', type: 'navigate' },
-          { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' },
-          { icon: '📅', text: 'التقويم', action: 'navigate:calendar', type: 'navigate' },
-          { icon: '📊', text: 'التقارير', action: 'navigate:reports', type: 'navigate' }
-        ];
-      }
-
-      // Simulate typing delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const aiMessage: Message = {
-        id: Date.now() + 1,
+      // Create initial assistant message
+      setMessages(prev => [...prev, {
+        id: assistantMessageId,
         role: "assistant",
-        content: aiResponse,
-        timestamp: new Date(),
-        actions: actions.length > 0 ? actions : undefined
-      };
-      setMessages(prev => [...prev, aiMessage]);
+        content: "",
+        timestamp: new Date()
+      }]);
+
+      // Stream the response
+      await sendMessage(conversationHistory, userName, (delta) => {
+        assistantContent += delta;
+        setMessages(prev => prev.map(m => 
+          m.id === assistantMessageId 
+            ? { ...m, content: assistantContent }
+            : m
+        ));
+      });
+
+      // Add actions to the final message
+      const actions = extractActions(assistantContent, textToSend);
+      setMessages(prev => prev.map(m => 
+        m.id === assistantMessageId 
+          ? { ...m, actions }
+          : m
+      ));
+
     } catch (error) {
       console.error("Error:", error);
       const errorMessage: Message = {
@@ -468,6 +385,27 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       toast.error("حدث خطأ في معالجة الطلب");
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  // Voice recording handler
+  const handleVoiceToggle = async () => {
+    if (isRecording) {
+      const audioData = await stopRecording();
+      if (audioData) {
+        // For now, show a toast that voice is captured
+        // In a full implementation, this would be sent to a speech-to-text service
+        toast.success("تم تسجيل الصوت بنجاح! جاري المعالجة...");
+        // Simulate voice to text (in production, use a real service)
+        setInputValue("طلب صوتي - يرجى كتابة طلبك");
+      }
+    } else {
+      try {
+        await startRecording();
+        toast.info("جاري التسجيل... تحدث الآن");
+      } catch (error) {
+        toast.error("لم نتمكن من الوصول للميكروفون");
+      }
     }
   };
 
@@ -512,7 +450,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               <h3 className="text-lg font-bold text-white">وساطه AI</h3>
               <p className="text-[#D4AF37] text-xs flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                متخصص عقاري - السوق السعودي
+                الوعي الرقمي العقاري - {userName}
               </p>
             </div>
           </div>
@@ -650,7 +588,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               ))}
             </AnimatePresence>
 
-            {isTyping && (
+            {(isTyping || aiLoading) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -673,32 +611,44 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           {/* إدخال الرسالة */}
           <div className="relative">
             <div className="flex gap-2">
+              {/* Voice Button */}
+              <button
+                onClick={handleVoiceToggle}
+                className={`px-3 rounded-xl transition-all duration-300 border ${
+                  isRecording 
+                    ? 'bg-red-500 text-white border-red-600 animate-pulse' 
+                    : 'bg-white text-[#01411C] border-[#01411C]/30 hover:bg-[#01411C] hover:text-white'
+                }`}
+                title={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="سم.. كيف أخدمك؟"
+                placeholder="سم طال عمرك.. كيف أخدمك؟"
                 className="flex-1 bg-white text-[#01411C] placeholder-[#01411C]/50 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] border border-[#01411C]/30 shadow-sm"
-                disabled={isTyping}
+                disabled={isTyping || aiLoading}
                 dir="rtl"
               />
               <button
                 onClick={() => handleSend()}
-                disabled={!inputValue.trim() || isTyping}
+                disabled={!inputValue.trim() || isTyping || aiLoading}
                 className="px-4 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white font-medium rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 border border-[#D4AF37]"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
             <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-3 text-xs text-[#01411C]/60">
-                <button className="hover:text-[#D4AF37] transition-colors">🎤</button>
-                <button className="hover:text-[#D4AF37] transition-colors">📎</button>
-                <button className="hover:text-[#D4AF37] transition-colors">📷</button>
+              <div className="flex items-center gap-1 text-[10px] text-[#01411C]/60">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span>وساطه AI - الوعي الرقمي متصل</span>
               </div>
-              <div className="text-[10px] text-[#01411C]/50">
-                Enter للإرسال
+              <div className="text-[10px] text-[#01411C]/40">
+                مدعوم بالذكاء الاصطناعي
               </div>
             </div>
           </div>
@@ -707,5 +657,3 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     </div>
   );
 }
-
-export default AIChatPanel;
