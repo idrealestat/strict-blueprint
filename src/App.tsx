@@ -17,6 +17,7 @@ import { DigitalCardDashboard, CardEditor } from "./components/digital-card";
 import { CalendarAppointments } from "./components/calendar";
 import { TasksManagement } from "./components/tasks";
 import { MapSystemDashboard } from "./components/map";
+import { AdPublishingSections } from "./components/advertising";
 import CustomersListPage from "./pages/CustomersListPage";
 import PublicCardView from "./pages/PublicCardView";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
@@ -177,6 +178,9 @@ const App = () => {
         return <RentedPropertiesReport />;
       case "map-system":
         return <MapSystemDashboard />;
+      case "sales":
+      case "advertising":
+        return <AdPublishingSections onBack={handleBack} />;
       case "calendar-system-complete":
         return (
           <CalendarAppointments 
