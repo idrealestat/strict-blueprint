@@ -1,23 +1,67 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
-import { MessageCircle, Sparkles, GripVertical } from "lucide-react";
-import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { MessageCircle, Sparkles, GripVertical, Maximize2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AIChatPanel } from "./AIChatPanel";
+
+// حساب الحجم الافتراضي بناءً على حجم الشاشة
+const getDefaultSize = () => {
+  if (typeof window === 'undefined') return { width: 400, height: 550 };
+  
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+  
+  // جوال
+  if (screenWidth < 640) {
+    return { 
+      width: Math.min(screenWidth - 48, 350), 
+      height: Math.min(screenHeight - 100, 500) 
+    };
+  }
+  // تابلت
+  if (screenWidth < 1024) {
+    return { 
+      width: Math.min(screenWidth - 80, 420), 
+      height: Math.min(screenHeight - 120, 580) 
+    };
+  }
+  // بي سي
+  return { 
+    width: Math.min(screenWidth - 100, 480), 
+    height: Math.min(screenHeight - 140, 650) 
+  };
+};
 
 export function AIFloatingButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState({ x: 24, y: 24 }); // من الأسفل واليسار
-  const [panelSize, setPanelSize] = useState({ width: 450, height: 600 });
+  const [panelSize, setPanelSize] = useState(getDefaultSize);
   const [isResizing, setIsResizing] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  // إعادة حساب الحجم عند تغيير حجم الشاشة أو الفتح
+  useEffect(() => {
+    const handleResize = () => {
+      if (!isResizing) {
+        setPanelSize(getDefaultSize());
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isResizing]);
+
+  // إعادة تعيين الحجم عند الفتح
+  useEffect(() => {
+    if (isOpen) {
+      setPanelSize(getDefaultSize());
+    }
+  }, [isOpen]);
 
   // النقر خارج اللوحة يغلقها (لكن لا يمسح المحادثة)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isOpen && panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        // لا تغلق إذا كان النقر على زر العائم نفسه
         const floatingButton = document.getElementById('wasata-floating-button');
         if (floatingButton && floatingButton.contains(event.target as Node)) {
           return;
@@ -45,7 +89,7 @@ export function AIFloatingButton() {
     }
   }, [isOpen]);
 
-  // معالجة تغيير الحجم
+  // معالجة تغيير الحجم - تكبير وتصغير متناسق
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -60,12 +104,13 @@ export function AIFloatingButton() {
       const currentX = 'touches' in moveEvent ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const currentY = 'touches' in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY;
       
-      // تغيير الحجم من الزاوية العلوية اليمنى
-      const deltaX = startX - currentX;
-      const deltaY = startY - currentY;
+      // حساب الفرق - السحب للأعلى واليمين يكبر، للأسفل واليسار يصغر
+      const deltaX = currentX - startX; // سحب لليمين = موجب
+      const deltaY = currentY - startY; // سحب للأسفل = موجب
       
-      const newWidth = Math.max(350, Math.min(700, startWidth + deltaX));
-      const newHeight = Math.max(400, Math.min(800, startHeight + deltaY));
+      // الزاوية العلوية اليمنى: سحب لليمين وللأعلى يكبر
+      const newWidth = Math.max(300, Math.min(window.innerWidth - 60, startWidth + deltaX));
+      const newHeight = Math.max(350, Math.min(window.innerHeight - 80, startHeight - deltaY));
       
       setPanelSize({ width: newWidth, height: newHeight });
     };
@@ -80,7 +125,7 @@ export function AIFloatingButton() {
 
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('touchmove', handleMove, { passive: false });
     document.addEventListener('touchend', handleEnd);
   };
 
@@ -95,13 +140,12 @@ export function AIFloatingButton() {
             id="wasata-floating-button"
             drag
             dragMomentum={false}
-            dragElastic={0.1}
+            dragElastic={0}
             dragConstraints={constraintsRef}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 left-6 z-50 cursor-grab active:cursor-grabbing"
-            style={{ touchAction: 'none' }}
+            className="fixed bottom-6 left-6 z-50 cursor-grab active:cursor-grabbing touch-none"
             whileDrag={{ scale: 1.1 }}
           >
             <Button
@@ -145,12 +189,9 @@ export function AIFloatingButton() {
             <div
               onMouseDown={handleResizeStart}
               onTouchStart={handleResizeStart}
-              className={`absolute -top-2 -right-2 w-6 h-6 bg-[#D4AF37] rounded-full cursor-nwse-resize z-10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${isResizing ? 'scale-125' : ''}`}
-              style={{ touchAction: 'none' }}
+              className={`absolute -top-3 -right-3 w-8 h-8 bg-[#D4AF37] rounded-full cursor-nwse-resize z-10 flex items-center justify-center shadow-lg hover:scale-110 transition-transform touch-none ${isResizing ? 'scale-125 bg-[#01411C]' : ''}`}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" className="text-[#01411C]">
-                <path d="M10 2L2 10M10 6L6 10M10 10L10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+              <Maximize2 className={`w-4 h-4 ${isResizing ? 'text-[#D4AF37]' : 'text-[#01411C]'}`} />
             </div>
 
             <AIChatPanel onClose={() => setIsOpen(false)} />
