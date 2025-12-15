@@ -4,7 +4,7 @@
  * Enhanced Broker CRM with Kanban Board - Literal Implementation
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -297,8 +297,33 @@ const mockCustomers: Customer[] = [
 ];
 
 export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMProps) {
+  // Reference for scrolling to right
+  const kanbanContainerRef = useRef<HTMLDivElement>(null);
+  
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [columns, setColumns] = useState<Column[]>(() => {
+    // Try to load saved column order from localStorage
+    const savedOrder = localStorage.getItem('crm_column_order');
+    if (savedOrder) {
+      try {
+        const orderIds = JSON.parse(savedOrder) as string[];
+        const reorderedColumns = orderIds
+          .map(id => defaultColumns.find(col => col.id === id))
+          .filter(Boolean) as Column[];
+        // Add any missing columns
+        defaultColumns.forEach(col => {
+          if (!reorderedColumns.find(c => c.id === col.id)) {
+            reorderedColumns.push(col);
+          }
+        });
+        return reorderedColumns.map(col => ({
+          ...col,
+          customerIds: mockCustomers.filter(c => c.columnId === col.id).map(c => c.id)
+        }));
+      } catch {
+        // Fall back to default
+      }
+    }
     // Distribute customers to columns
     const cols = defaultColumns.map(col => ({
       ...col,
@@ -309,7 +334,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('kanban');
-  const [activeFilterTab, setActiveFilterTab] = useState('all'); // التبويب الجديد: الكل، نشط، محتمل، VIP، أرشيف
+  const [activeFilterTab, setActiveFilterTab] = useState('all');
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -323,15 +348,49 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [dropIndicator, setDropIndicator] = useState<{ columnId: string; position: number } | null>(null);
   const [columnDropIndicator, setColumnDropIndicator] = useState<number | null>(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // البطاقة الموسعة
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
-  const [recentCalls] = useState<RecentCall[]>(mockRecentCalls);
+  const [recentCalls, setRecentCalls] = useState<RecentCall[]>(mockRecentCalls);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState<string | null>(null);
   
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Scroll to right (RTL start) when loaded
+  useEffect(() => {
+    if (!isLoading && kanbanContainerRef.current) {
+      // Scroll to the far right for RTL
+      kanbanContainerRef.current.scrollLeft = kanbanContainerRef.current.scrollWidth;
+    }
+  }, [isLoading]);
+  
+  // Save column order to localStorage whenever it changes
+  useEffect(() => {
+    const orderIds = columns.map(col => col.id);
+    localStorage.setItem('crm_column_order', JSON.stringify(orderIds));
+  }, [columns]);
+  
+  // Try to get real call logs (works in Capacitor native app)
+  useEffect(() => {
+    const loadRealCallLogs = async () => {
+      // Check if running in Capacitor native environment
+      if (typeof (window as any).Capacitor !== 'undefined') {
+        try {
+          // This would use a Capacitor plugin for call logs
+          // For now, we'll use mock data but structure is ready for native
+          console.log('Capacitor detected - native call logs available');
+          // const { CallLog } = await import('@capacitor-community/call-log');
+          // const logs = await CallLog.getCallLogs({ limit: 20 });
+          // Transform and set real call logs here
+        } catch (error) {
+          console.log('Call log plugin not available, using mock data');
+        }
+      }
+    };
+    loadRealCallLogs();
+  }, []);
   
   // Simulate loading
   useEffect(() => {
@@ -974,10 +1033,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                 </div>
               </div>
             ) : (
-            <div className="overflow-x-auto pb-4">
-              <div className="flex flex-row-reverse gap-4 min-w-max">
+            <div 
+              ref={kanbanContainerRef}
+              className="overflow-x-auto pb-4 scroll-smooth"
+              dir="rtl"
+            >
+              <div className="flex gap-3 md:gap-4 min-w-max px-2">
                 {/* عمود الاتصالات الأخيرة - ثابت */}
-                <div className="w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
+                <div className="w-56 md:w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
                   <div className="p-3 border-b-2 border-gray-300 bg-gray-200">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-gray-700 flex items-center gap-2">
@@ -1091,12 +1154,12 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                             handleDrop(column.id, dropIndicator?.position);
                           }
                         }}
-                        className={`w-72 flex-shrink-0 rounded-xl ${colors.bg} ${colors.border} border-2 transition-all ${
+                        className={`w-64 md:w-72 flex-shrink-0 rounded-xl ${colors.bg} ${colors.border} border-2 transition-all ${
                           draggedColumn === column.id ? 'opacity-50' : ''
                         }`}
                       >
                         {/* Column Header */}
-                        <div className={`p-3 border-b-2 ${colors.border} cursor-move`}>
+                        <div className={`p-2 md:p-3 border-b-2 ${colors.border} cursor-move`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <GripVertical className="w-4 h-4 text-gray-400" />
