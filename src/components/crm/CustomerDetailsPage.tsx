@@ -279,6 +279,86 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [showAddTabDialog, setShowAddTabDialog] = useState(false);
+  const [newTabName, setNewTabName] = useState('');
+  
+  // التبويبات القابلة للتخصيص
+  const [customTabs, setCustomTabs] = useState(() => {
+    const saved = localStorage.getItem(`customer_tabs_${customer.id}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+  
+  // Default tabs
+  const defaultTabs = [
+    { id: 'overview', name: '📊 نظرة شاملة', removable: false },
+    { id: 'personal_info', name: '👤 المعلومات', removable: false },
+    { id: 'transactions', name: '💰 المعاملات', removable: true },
+    { id: 'activity', name: '💬 التفاعلات', removable: false },
+    { id: 'reminders', name: '⏰ التذكيرات', removable: true },
+    { id: 'analytics', name: '📈 التحليلات', removable: true },
+    { id: 'properties', name: '🏘️ العقارات', removable: true },
+    { id: 'rented', name: '🏠 عقار مؤجر', removable: true },
+    { id: 'offers', name: '🎯 العروض', removable: true },
+    { id: 'requests', name: '📋 الطلبات', removable: true },
+    { id: 'invoices', name: '🧾 الفواتير', removable: true },
+    { id: 'tasks', name: '✅ المهام', removable: true },
+    { id: 'notes', name: '📝 الملاحظات', removable: true },
+    { id: 'documents', name: '📁 المستندات', removable: true },
+    { id: 'history', name: '⏳ السجل', removable: true },
+    { id: 'settings', name: '⚙️ الإعدادات', removable: false },
+  ];
+  
+  const [visibleTabs, setVisibleTabs] = useState(() => {
+    const saved = localStorage.getItem(`visible_tabs_${customer.id}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return defaultTabs.map(t => t.id);
+      }
+    }
+    return defaultTabs.map(t => t.id);
+  });
+  
+  // حفظ التبويبات المرئية
+  useEffect(() => {
+    localStorage.setItem(`visible_tabs_${customer.id}`, JSON.stringify(visibleTabs));
+  }, [visibleTabs, customer.id]);
+  
+  // حذف تبويب
+  const removeTab = (tabId: string) => {
+    const tab = defaultTabs.find(t => t.id === tabId);
+    if (tab && !tab.removable) {
+      toast.error('لا يمكن حذف هذا التبويب');
+      return;
+    }
+    setVisibleTabs(prev => prev.filter(id => id !== tabId));
+    if (activeTab === tabId) {
+      setActiveTab('overview');
+    }
+    toast.success('تم إخفاء التبويب');
+  };
+  
+  // إضافة تبويب مخفي
+  const addHiddenTab = (tabId: string) => {
+    if (!visibleTabs.includes(tabId)) {
+      setVisibleTabs(prev => [...prev, tabId]);
+      toast.success('تم إظهار التبويب');
+    }
+  };
+  
+  // التمرير بالسحب للتبويبات
+  const handleTabsScroll = (e: React.TouchEvent) => {
+    // Touch scrolling is handled natively
+  };
 
   // Auto-save functionality - saves after 2 seconds of inactivity
   const triggerAutoSave = useCallback(() => {
@@ -590,28 +670,85 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           </CardContent>
         </Card>
 
-        {/* Tabs - 16 تبويب كامل */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <ScrollArea className="w-full">
-            <TabsList className="flex flex-nowrap gap-1 bg-white border-2 border-[#D4AF37] mb-4 p-1 min-w-max">
-              <TabsTrigger value="overview" className="text-xs whitespace-nowrap">📊 نظرة شاملة</TabsTrigger>
-              <TabsTrigger value="personal_info" className="text-xs whitespace-nowrap">👤 المعلومات</TabsTrigger>
-              <TabsTrigger value="transactions" className="text-xs whitespace-nowrap">💰 المعاملات</TabsTrigger>
-              <TabsTrigger value="activity" className="text-xs whitespace-nowrap">💬 التفاعلات</TabsTrigger>
-              <TabsTrigger value="reminders" className="text-xs whitespace-nowrap">⏰ التذكيرات</TabsTrigger>
-              <TabsTrigger value="analytics" className="text-xs whitespace-nowrap">📈 التحليلات</TabsTrigger>
-              <TabsTrigger value="properties" className="text-xs whitespace-nowrap">🏘️ العقارات</TabsTrigger>
-              <TabsTrigger value="rented" className="text-xs whitespace-nowrap">🏠 عقار مؤجر</TabsTrigger>
-              <TabsTrigger value="offers" className="text-xs whitespace-nowrap">🎯 العروض</TabsTrigger>
-              <TabsTrigger value="requests" className="text-xs whitespace-nowrap">📋 الطلبات</TabsTrigger>
-              <TabsTrigger value="invoices" className="text-xs whitespace-nowrap">🧾 الفواتير</TabsTrigger>
-              <TabsTrigger value="tasks" className="text-xs whitespace-nowrap">✅ المهام</TabsTrigger>
-              <TabsTrigger value="notes" className="text-xs whitespace-nowrap">📝 الملاحظات</TabsTrigger>
-              <TabsTrigger value="documents" className="text-xs whitespace-nowrap">📁 المستندات</TabsTrigger>
-              <TabsTrigger value="history" className="text-xs whitespace-nowrap">⏳ السجل</TabsTrigger>
-              <TabsTrigger value="settings" className="text-xs whitespace-nowrap">⚙️ الإعدادات</TabsTrigger>
-            </TabsList>
-          </ScrollArea>
+        {/* Tabs - تبويبات قابلة للسحب والتخصيص */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+          <div className="flex items-center gap-2 mb-4">
+            {/* التبويبات القابلة للسحب */}
+            <div 
+              ref={tabsContainerRef}
+              className="flex-1 overflow-x-auto scrollbar-hide touch-pan-x"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              onTouchStart={handleTabsScroll}
+            >
+              <TabsList className="flex flex-nowrap gap-1 bg-white border-2 border-[#D4AF37] p-1 min-w-max">
+                {defaultTabs.filter(tab => visibleTabs.includes(tab.id)).map((tab) => (
+                  <div key={tab.id} className="relative group flex items-center">
+                    <TabsTrigger 
+                      value={tab.id} 
+                      className="text-xs whitespace-nowrap pr-6"
+                    >
+                      {tab.name}
+                    </TabsTrigger>
+                    {tab.removable && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTab(tab.id);
+                        }}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </TabsList>
+            </div>
+            
+            {/* زر إضافة تبويب مخفي */}
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-8 p-0 border-[#D4AF37] hover:bg-[#D4AF37]/10"
+                onClick={() => setShowAddTabDialog(true)}
+              >
+                <Plus className="w-4 h-4 text-[#01411C]" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* حوار إضافة تبويب */}
+          <Dialog open={showAddTabDialog} onOpenChange={setShowAddTabDialog}>
+            <DialogContent dir="rtl" className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>إظهار تبويب</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {defaultTabs.filter(tab => !visibleTabs.includes(tab.id)).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      addHiddenTab(tab.id);
+                      setShowAddTabDialog(false);
+                    }}
+                    className="w-full text-right px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    {tab.name}
+                  </button>
+                ))}
+                {defaultTabs.filter(tab => !visibleTabs.includes(tab.id)).length === 0 && (
+                  <p className="text-center text-gray-500 py-4">جميع التبويبات ظاهرة</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddTabDialog(false)}>
+                  إغلاق
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
 
           {/* Overview Tab */}
           <TabsContent value="overview">
