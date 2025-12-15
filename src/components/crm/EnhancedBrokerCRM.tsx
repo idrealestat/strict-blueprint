@@ -88,6 +88,7 @@ import {
 import { toast } from "sonner";
 import CustomerDetailsPage from "./CustomerDetailsPage";
 import { useCallLogs } from "@/hooks/useCallLogs";
+import { clientTypes, interestLevels, reportCategories, ClientType, InterestLevel } from "@/types/offer";
 
 // Types
 interface Customer {
@@ -358,6 +359,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showAddCallLog, setShowAddCallLog] = useState(false);
   const [newCallLog, setNewCallLog] = useState({ phone: '', name: '', type: 'incoming' as const });
   const callLogFileInputRef = useRef<HTMLInputElement>(null);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportCustomer, setReportCustomer] = useState<Customer | null>(null);
+  const [selectedReportCategory, setSelectedReportCategory] = useState<string>('');
+  const [selectedReportSubCategory, setSelectedReportSubCategory] = useState<string>('');
   
   // استخدام hook سجل المكالمات
   const { 
@@ -1285,14 +1290,19 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     handleDrop(column.id, customerIndex);
                                   }}
                                   className={`
-                                    bg-white rounded-lg shadow-md cursor-move mb-2
+                                    bg-white rounded-lg shadow-md cursor-move mb-2 overflow-hidden relative
                                     hover:shadow-xl transition-all duration-200
-                                    ${typeColors.border}
-                                    ${interestColors.border}
-                                    ${typeColors.bg}
                                     ${draggedCustomer === customer.id ? 'opacity-50' : ''}
                                   `}
                                 >
+                                  {/* خط نوع العميل أعلى البطاقة */}
+                                  <div 
+                                    className="h-1.5 w-full"
+                                    style={{ 
+                                      backgroundColor: clientTypes[customer.type as ClientType]?.color || '#6B7280'
+                                    }}
+                                  />
+                                  
                                   {/* البطاقة المضغوطة */}
                                   <div 
                                     className="p-3"
@@ -1374,6 +1384,19 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                             <span>تعديل</span>
                                           </DropdownMenuItem>
                                           <DropdownMenuSeparator />
+                                          {/* البلاغات */}
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setReportCustomer(customer);
+                                              setShowReportDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 text-orange-600 focus:text-orange-600"
+                                          >
+                                            <AlertTriangle className="w-4 h-4" />
+                                            <span>بلاغ</span>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
                                           <DropdownMenuItem
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -1396,27 +1419,88 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </div>
                                   </div>
                                   
-                                  {/* 2. معلومات الاتصال + مستوى الاهتمام */}
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-1 text-xs text-gray-700">
-                                      <Phone className="w-3 h-3" />
-                                      <span className="truncate" dir="ltr">{customer.phone}</span>
-                                    </div>
-                                    <Badge className={`text-xs ${
-                                      customer.interestLevel === 'hot' ? 'bg-red-100 text-red-700' :
-                                      customer.interestLevel === 'warm' ? 'bg-orange-100 text-orange-700' :
-                                      customer.interestLevel === 'moderate' ? 'bg-blue-100 text-blue-700' :
-                                      'bg-gray-100 text-gray-700'
-                                    }`}>
-                                      {customer.interestLevel === 'hot' ? '🔥 ساخن' :
-                                       customer.interestLevel === 'warm' ? '☀️ دافئ' :
-                                       customer.interestLevel === 'moderate' ? '🌤️ متوسط' : '❄️ بارد'}
-                                    </Badge>
+                                  {/* قوائم نوع العميل ودرجة الاهتمام */}
+                                  <div className="flex items-center gap-2 mb-2 px-3">
+                                    {/* نوع العميل */}
+                                    <Select
+                                      value={customer.type || 'buyer'}
+                                      onValueChange={(value) => {
+                                        setCustomers(prev => prev.map(c => 
+                                          c.id === customer.id ? { ...c, type: value as Customer['type'] } : c
+                                        ));
+                                      }}
+                                    >
+                                      <SelectTrigger 
+                                        className="h-6 text-[10px] w-auto px-2 border-0"
+                                        style={{ 
+                                          backgroundColor: clientTypes[customer.type as ClientType]?.bgColor || '#F3F4F6',
+                                          color: clientTypes[customer.type as ClientType]?.color || '#6B7280'
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-white z-50">
+                                        {Object.entries(clientTypes).map(([key, config]) => (
+                                          <SelectItem 
+                                            key={key} 
+                                            value={key}
+                                            className="text-xs"
+                                          >
+                                            <span className="flex items-center gap-1">
+                                              <span>{config.icon}</span>
+                                              <span style={{ color: config.color }}>{config.label}</span>
+                                            </span>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    
+                                    {/* درجة الاهتمام */}
+                                    <Select
+                                      value={customer.interestLevel || 'medium'}
+                                      onValueChange={(value) => {
+                                        setCustomers(prev => prev.map(c => 
+                                          c.id === customer.id ? { ...c, interestLevel: value as Customer['interestLevel'] } : c
+                                        ));
+                                      }}
+                                    >
+                                      <SelectTrigger 
+                                        className={`h-6 text-[10px] w-auto px-2 border-0 ${interestLevels[customer.interestLevel as InterestLevel]?.animation || ''}`}
+                                        style={{ 
+                                          backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.bgColor || '#F3F4F6',
+                                          color: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-white z-50">
+                                        {Object.entries(interestLevels).map(([key, config]) => (
+                                          <SelectItem 
+                                            key={key} 
+                                            value={key}
+                                            className="text-xs"
+                                          >
+                                            <span className={`flex items-center gap-1 ${config.animation || ''}`}>
+                                              <span>{config.icon}</span>
+                                              <span style={{ color: config.color }}>{config.label}</span>
+                                            </span>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  {/* 2. معلومات الاتصال */}
+                                  <div className="flex items-center gap-1 text-xs text-gray-700 mb-2 px-3">
+                                    <Phone className="w-3 h-3" />
+                                    <span className="truncate" dir="ltr">{customer.phone}</span>
                                   </div>
                                   
                                   {/* 3. التاقات */}
                                   {customer.tags && customer.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-2">
+                                    <div className="flex flex-wrap gap-1 mb-2 px-3">
                                       {customer.tags.slice(0, 3).map((tag, idx) => {
                                         const tagColor = getTagColor(tag);
                                         return (
@@ -1766,7 +1850,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </motion.div>
                                   )}
                                 </AnimatePresence>
-                              </motion.div>
+                                  
+                                  {/* خط درجة الاهتمام أسفل البطاقة */}
+                                  <div 
+                                    className={`h-1.5 w-full ${interestLevels[customer.interestLevel as InterestLevel]?.animation || ''}`}
+                                    style={{ 
+                                      backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
+                                    }}
+                                  />
+                                </motion.div>
                               
                               {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}
                               {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex + 1 && customerIndex === columnCustomers.length - 1 && (
@@ -2717,6 +2809,116 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               }}
             >
               إضافة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* حوار البلاغات */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="w-5 h-5" />
+              إرسال بلاغ عن العميل: {reportCustomer?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* فئة البلاغ */}
+            <div>
+              <Label>فئة البلاغ *</Label>
+              <Select 
+                value={selectedReportCategory} 
+                onValueChange={(v) => {
+                  setSelectedReportCategory(v);
+                  setSelectedReportSubCategory('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر فئة البلاغ" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  {Object.keys(reportCategories).map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.replace('_', ' ')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* نوع البلاغ الفرعي */}
+            {selectedReportCategory && (
+              <div>
+                <Label>نوع البلاغ *</Label>
+                <Select value={selectedReportSubCategory} onValueChange={setSelectedReportSubCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر نوع البلاغ" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">
+                    {reportCategories[selectedReportCategory as keyof typeof reportCategories]?.map((subCategory) => (
+                      <SelectItem key={subCategory} value={subCategory}>
+                        {subCategory}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {/* تفاصيل البلاغ */}
+            <div>
+              <Label>تفاصيل البلاغ</Label>
+              <Textarea
+                placeholder="اكتب تفاصيل إضافية عن البلاغ..."
+                className="min-h-[100px]"
+              />
+            </div>
+            
+            {/* مستوى الخطورة */}
+            <div>
+              <Label>مستوى الخطورة</Label>
+              <Select defaultValue="متوسط">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="منخفض">🟢 منخفض</SelectItem>
+                  <SelectItem value="متوسط">🟡 متوسط</SelectItem>
+                  <SelectItem value="عالي">🟠 عالي</SelectItem>
+                  <SelectItem value="حرج">🔴 حرج</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowReportDialog(false);
+                setSelectedReportCategory('');
+                setSelectedReportSubCategory('');
+                setReportCustomer(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button 
+              className="bg-orange-600 hover:bg-orange-700"
+              onClick={() => {
+                if (!selectedReportCategory || !selectedReportSubCategory) {
+                  toast.error('يرجى اختيار فئة ونوع البلاغ');
+                  return;
+                }
+                toast.success('تم إرسال البلاغ بنجاح');
+                setShowReportDialog(false);
+                setSelectedReportCategory('');
+                setSelectedReportSubCategory('');
+                setReportCustomer(null);
+              }}
+            >
+              <AlertTriangle className="w-4 h-4 ml-2" />
+              إرسال البلاغ
             </Button>
           </DialogFooter>
         </DialogContent>
