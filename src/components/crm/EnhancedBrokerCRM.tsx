@@ -975,7 +975,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               </div>
             ) : (
             <div className="overflow-x-auto pb-4">
-              <div className="flex gap-4 min-w-max">
+              <div className="flex flex-row-reverse gap-4 min-w-max">
                 {/* عمود الاتصالات الأخيرة - ثابت */}
                 <div className="w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
                   <div className="p-3 border-b-2 border-gray-300 bg-gray-200">
