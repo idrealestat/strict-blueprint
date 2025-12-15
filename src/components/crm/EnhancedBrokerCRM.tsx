@@ -87,6 +87,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import CustomerDetailsPage from "./CustomerDetailsPage";
+import { useCallLogs } from "@/hooks/useCallLogs";
 
 // Types
 interface Customer {
@@ -351,9 +352,23 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
-  const [recentCalls, setRecentCalls] = useState<RecentCall[]>(mockRecentCalls);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState<string | null>(null);
+  const [showImportCallLogs, setShowImportCallLogs] = useState(false);
+  const [showAddCallLog, setShowAddCallLog] = useState(false);
+  const [newCallLog, setNewCallLog] = useState({ phone: '', name: '', type: 'incoming' as const });
+  const callLogFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // استخدام hook سجل المكالمات
+  const { 
+    callLogs: recentCalls, 
+    isLoading: callLogsLoading, 
+    addCallLog, 
+    importFromCSV, 
+    exportToCSV,
+    addSampleData,
+    clearAllLogs 
+  } = useCallLogs();
   
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
@@ -371,26 +386,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     const orderIds = columns.map(col => col.id);
     localStorage.setItem('crm_column_order', JSON.stringify(orderIds));
   }, [columns]);
-  
-  // Try to get real call logs (works in Capacitor native app)
-  useEffect(() => {
-    const loadRealCallLogs = async () => {
-      // Check if running in Capacitor native environment
-      if (typeof (window as any).Capacitor !== 'undefined') {
-        try {
-          // This would use a Capacitor plugin for call logs
-          // For now, we'll use mock data but structure is ready for native
-          console.log('Capacitor detected - native call logs available');
-          // const { CallLog } = await import('@capacitor-community/call-log');
-          // const logs = await CallLog.getCallLogs({ limit: 20 });
-          // Transform and set real call logs here
-        } catch (error) {
-          console.log('Call log plugin not available, using mock data');
-        }
-      }
-    };
-    loadRealCallLogs();
-  }, []);
   
   // Simulate loading
   useEffect(() => {
@@ -1041,19 +1036,94 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               <div className="flex gap-3 md:gap-4 min-w-max px-2">
                 {/* عمود الاتصالات الأخيرة - ثابت */}
                 <div className="w-56 md:w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
-                  <div className="p-3 border-b-2 border-gray-300 bg-gray-200">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                  <div className="p-2 md:p-3 border-b-2 border-gray-300 bg-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-bold text-gray-700 flex items-center gap-1 text-sm">
                         <Phone className="w-4 h-4" />
-                        الاتصالات الأخيرة
+                        الاتصالات
                       </h3>
-                      <Badge className="bg-gray-300 text-gray-700 border border-gray-400">
+                      <Badge className="bg-gray-300 text-gray-700 border border-gray-400 text-xs">
                         {recentCalls.length}
                       </Badge>
                     </div>
+                    {/* أزرار الإدارة */}
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] hover:bg-green-100"
+                        onClick={() => setShowAddCallLog(true)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] hover:bg-blue-100"
+                        onClick={() => callLogFileInputRef.current?.click()}
+                      >
+                        <Upload className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] hover:bg-purple-100"
+                        onClick={() => {
+                          const csv = exportToCSV();
+                          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `call_logs_${new Date().toISOString().split('T')[0]}.csv`;
+                          link.click();
+                          toast.success('تم تصدير سجل المكالمات');
+                        }}
+                      >
+                        <Download className="w-3 h-3" />
+                      </Button>
+                      {recentCalls.length === 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] hover:bg-amber-100"
+                          onClick={() => {
+                            addSampleData();
+                            toast.success('تم إضافة بيانات تجريبية');
+                          }}
+                        >
+                          ➕ تجريبي
+                        </Button>
+                      )}
+                    </div>
+                    {/* مدخل ملف CSV مخفي */}
+                    <input
+                      ref={callLogFileInputRef}
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const text = event.target?.result as string;
+                            const count = importFromCSV(text);
+                            toast.success(`تم استيراد ${count} مكالمة`);
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                    />
                   </div>
-                  <div className="p-2 space-y-2 min-h-[400px] max-h-[600px] overflow-y-auto">
-                    {recentCalls.map((call) => (
+                  <div className="p-2 space-y-2 min-h-[350px] max-h-[500px] overflow-y-auto">
+                    {recentCalls.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400">
+                        <Phone className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">لا توجد مكالمات</p>
+                        <p className="text-[10px] mt-1">أضف مكالمة أو استورد من CSV</p>
+                      </div>
+                    ) : (
+                    recentCalls.map((call) => (
                       <div
                         key={call.id}
                         className={`bg-white rounded-lg shadow-sm p-3 border-r-4 cursor-pointer hover:shadow-md transition-all ${
@@ -1121,7 +1191,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                           </Button>
                         </div>
                       </div>
-                    ))}
+                    ))
+                    )}
                   </div>
                 </div>
 
@@ -1538,13 +1609,13 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       </div>
 
                                       {/* ✅ الشريط السفلي الثلاثي: الإجراءات - التفاصيل - المشاركة */}
-                                      <div className="px-3 py-2 border-t border-gray-100 flex gap-2">
+                                      <div className="px-2 py-2 border-t border-gray-100 grid grid-cols-3 gap-1">
                                         {/* 1. زر الإجراءات مع قائمة منبثقة */}
-                                        <div className="relative flex-1">
+                                        <div className="relative">
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            className="w-full text-xs h-8 border-blue-300 text-blue-700 hover:bg-blue-50"
+                                            className="w-full text-[10px] h-7 px-1 border-blue-300 text-blue-700 hover:bg-blue-50"
                                             onClick={(e) => handleActionsClick(e, customer.id)}
                                           >
                                             <Settings className="w-3 h-3 ml-1" />
@@ -1635,7 +1706,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         {/* 2. زر التفاصيل - يفتح الصفحة الكاملة */}
                                         <Button
                                           size="sm"
-                                          className="flex-1 bg-[#01411C] hover:bg-[#065f41] text-xs h-8"
+                                          className="w-full bg-[#01411C] hover:bg-[#065f41] text-[10px] h-7 px-1"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setSelectedCustomer(customer);
@@ -1643,20 +1714,20 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                             markAsRead(customer.id);
                                           }}
                                         >
-                                          <Eye className="w-3 h-3 ml-1" />
+                                          <Eye className="w-3 h-3 ml-0.5" />
                                           التفاصيل
                                         </Button>
                                         
                                         {/* 3. زر المشاركة مع قائمة منبثقة */}
-                                        <div className="relative flex-1">
+                                        <div className="relative">
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            className="w-full text-xs h-8 border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
+                                            className="w-full text-[10px] h-7 px-1 border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
                                             onClick={(e) => handleShareClick(e, customer.id)}
                                           >
-                                            <Share2 className="w-3 h-3 ml-1" />
-                                            المشاركة
+                                            <Share2 className="w-3 h-3 ml-0.5" />
+                                            مشاركة
                                           </Button>
                                           
                                           {/* قائمة المشاركة المنبثقة */}
@@ -2593,6 +2664,63 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* حوار إضافة مكالمة جديدة */}
+      <Dialog open={showAddCallLog} onOpenChange={setShowAddCallLog}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>إضافة مكالمة</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>رقم الهاتف *</Label>
+              <Input
+                value={newCallLog.phone}
+                onChange={(e) => setNewCallLog(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="05xxxxxxxx"
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <Label>الاسم (اختياري)</Label>
+              <Input
+                value={newCallLog.name}
+                onChange={(e) => setNewCallLog(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="اسم المتصل"
+              />
+            </div>
+            <div>
+              <Label>نوع المكالمة</Label>
+              <Select value={newCallLog.type} onValueChange={(v: any) => setNewCallLog(prev => ({ ...prev, type: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="incoming">📞 واردة</SelectItem>
+                  <SelectItem value="outgoing">📱 صادرة</SelectItem>
+                  <SelectItem value="missed">❌ فائتة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddCallLog(false)}>إلغاء</Button>
+            <Button 
+              className="bg-[#01411C]"
+              onClick={() => {
+                if (!newCallLog.phone) {
+                  toast.error('رقم الهاتف مطلوب');
+                  return;
+                }
+                addCallLog({ ...newCallLog, time: 'الآن' });
+                setNewCallLog({ phone: '', name: '', type: 'incoming' });
+                setShowAddCallLog(false);
+                toast.success('تم إضافة المكالمة');
+              }}
+            >
+              إضافة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Spacer for bottom bar */}
       <div className="h-24"></div>
