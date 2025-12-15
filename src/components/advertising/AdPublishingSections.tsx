@@ -93,9 +93,45 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
 
   // حالة قسم المحتوى والإبداع
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
+  const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
   const [brandColor, setBrandColor] = useState('#3B82F6');
   const [fontStyle, setFontStyle] = useState('modern');
+  const [contentCallToAction, setContentCallToAction] = useState('');
+
+  // خيارات الخطوط
+  const fontStyles = [
+    { id: 'modern', name: 'حديث', font: 'font-sans' },
+    { id: 'classic', name: 'كلاسيكي', font: 'font-serif' },
+    { id: 'elegant', name: 'أنيق', font: 'font-mono' },
+    { id: 'bold', name: 'عريض', font: 'font-bold' }
+  ];
+  
+  // ألوان العلامة التجارية
+  const brandColors = [
+    { id: 'blue', value: '#3B82F6', name: 'أزرق' },
+    { id: 'green', value: '#10B981', name: 'أخضر' },
+    { id: 'purple', value: '#8B5CF6', name: 'بنفسجي' },
+    { id: 'red', value: '#EF4444', name: 'أحمر' },
+    { id: 'orange', value: '#F59E0B', name: 'برتقالي' },
+    { id: 'wasata', value: '#01411C', name: 'وساطة' }
+  ];
+  
+  // إجراءات الدعوة للمحتوى
+  const contentCallToActionOptions = [
+    { id: 'shop_now', text: 'تسوق الآن', color: 'bg-red-500' },
+    { id: 'learn_more', text: 'تعرف أكثر', color: 'bg-blue-500' },
+    { id: 'sign_up', text: 'سجل الآن', color: 'bg-green-500' },
+    { id: 'download', text: 'حمل التطبيق', color: 'bg-purple-500' },
+    { id: 'contact_us', text: 'اتصل بنا', color: 'bg-amber-500' }
+  ];
+  
+  // معاينة الإعلان
+  const adPreview = {
+    headline: headline || 'عنوان إعلانك الجذاب هنا',
+    description: description || 'وصف مختصر وجذاب للإعلان يشرح الفوائد والتفاصيل المهمة للمستخدم',
+    callToAction: contentCallToActionOptions.find(cta => cta.id === contentCallToAction)?.text || 'تعرف أكثر'
+  };
 
   // ===================== البيانات الثابتة =====================
   
@@ -1217,33 +1253,102 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* المحرر */}
                 <div className="space-y-6">
                   {/* الصورة الرئيسية */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">الصورة الرئيسية</label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                      onClick={() => document.getElementById('primary-image-input')?.click()}
+                    >
                       {primaryImage ? (
                         <div className="relative">
-                          <img src={primaryImage} alt="Primary" className="w-full h-48 object-cover rounded-lg" />
-                          <button onClick={() => setPrimaryImage(null)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1">✕</button>
+                          <img src={primaryImage} alt="الصورة الرئيسية" className="w-full h-48 object-cover rounded-lg" />
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setPrimaryImage(null); }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
+                          >
+                            ×
+                          </button>
                         </div>
                       ) : (
-                        <div>
-                          <div className="text-4xl mb-3">📤</div>
-                          <p className="text-gray-600 mb-2">اسحب الصورة هنا أو اضغط للاختيار</p>
-                          <p className="text-xs text-gray-400">PNG, JPG, GIF - الحجم الأقصى 10MB</p>
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = () => setPrimaryImage(reader.result as string);
-                              reader.readAsDataURL(file);
-                            }
-                          }} />
-                        </div>
+                        <>
+                          <div className="text-4xl mb-2">🖼️</div>
+                          <div className="text-gray-600 mb-2">اسحب وأفلت صورة هنا</div>
+                          <div className="text-sm text-gray-500">أو انقر للاختيار</div>
+                          <div className="text-xs text-gray-400 mt-2">الحجم الموصى: 1200x628 بكسل</div>
+                        </>
                       )}
+                      <input 
+                        id="primary-image-input"
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => setPrimaryImage(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* الصور الثانوية */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">الصور الإضافية (اختياري)</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[0, 1, 2].map((index) => (
+                        <div 
+                          key={index} 
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                          onClick={() => document.getElementById(`secondary-image-${index}`)?.click()}
+                        >
+                          {secondaryImages[index] ? (
+                            <div className="relative">
+                              <img src={secondaryImages[index]} alt={`صورة ${index + 1}`} className="w-full h-24 object-cover rounded" />
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newImages = [...secondaryImages];
+                                  newImages.splice(index, 1);
+                                  setSecondaryImages(newImages);
+                                }}
+                                className="absolute top-1 right-1 bg-red-500 text-white text-xs p-0.5 rounded-full"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-xl">➕</div>
+                              <div className="text-xs text-gray-500 mt-1">إضافة</div>
+                            </>
+                          )}
+                          <input 
+                            id={`secondary-image-${index}`}
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const newImages = [...secondaryImages];
+                                  newImages[index] = reader.result as string;
+                                  setSecondaryImages(newImages);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }} 
+                          />
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -1252,20 +1357,139 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
                     <label className="block text-sm font-medium text-gray-700 mb-2">رابط الفيديو (اختياري)</label>
                     <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
                   </div>
+                </div>
 
-                  {/* لون العلامة التجارية */}
+                {/* المعاينة */}
+                <div>
+                  <div className="bg-gray-900 rounded-xl p-6">
+                    {/* محاكاة هاتف */}
+                    <div className="bg-gray-800 rounded-2xl p-4 mx-auto max-w-xs">
+                      {/* رأس المحاكاة */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-white text-sm">9:41</div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        </div>
+                      </div>
+
+                      {/* محتوى الإعلان */}
+                      <div className="bg-white rounded-xl overflow-hidden">
+                        {/* الصورة */}
+                        {primaryImage ? (
+                          <img src={primaryImage} alt="معاينة الإعلان" className="w-full h-40 object-cover" />
+                        ) : (
+                          <div className="w-full h-40 bg-gradient-to-r from-blue-100 to-cyan-100 flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="text-3xl">🖼️</div>
+                              <div className="text-gray-600 text-sm">صورة الإعلان</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* المحتوى النصي */}
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-8 h-8 rounded-full" style={{ backgroundColor: brandColor }}></div>
+                            <div>
+                              <div className="font-bold text-gray-900 text-sm">اسم العلامة</div>
+                              <div className="text-xs text-gray-500">ساعة واحدة</div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className={`font-bold text-gray-900 ${fontStyles.find(f => f.id === fontStyle)?.font || ''}`}>
+                              {adPreview.headline}
+                            </div>
+                            <div className="text-sm text-gray-700">{adPreview.description}</div>
+                          </div>
+
+                          {/* إجراء الدعوة */}
+                          <button 
+                            className={`w-full mt-4 py-2 text-white rounded-lg font-medium ${contentCallToActionOptions.find(cta => cta.id === contentCallToAction)?.color || 'bg-blue-500'}`}
+                            style={!contentCallToAction ? { backgroundColor: brandColor } : {}}
+                          >
+                            {adPreview.callToAction}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* نقاط الجودة */}
+                  <div className="grid grid-cols-3 gap-2 mt-4">
+                    <div className="bg-green-50 rounded-lg p-2 text-center">
+                      <div className="text-green-600 text-sm">نصوص</div>
+                      <div className="font-bold text-green-800">{headline ? '9/10' : '5/10'}</div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-2 text-center">
+                      <div className="text-blue-600 text-sm">صور</div>
+                      <div className="font-bold text-blue-800">{primaryImage ? '8/10' : '3/10'}</div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-2 text-center">
+                      <div className="text-purple-600 text-sm">إبداع</div>
+                      <div className="font-bold text-purple-800">{fontStyle !== 'modern' ? '9/10' : '7/10'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* أدوات التخصيص */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* العمود الأيسر */}
+                <div className="space-y-6">
+                  {/* النصوص */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">العنوان الرئيسي</label>
+                    <Input
+                      value={headline}
+                      onChange={(e) => setHeadline(e.target.value)}
+                      placeholder="اكتب عنواناً جذاباً..."
+                      maxLength={100}
+                    />
+                    <div className="text-xs text-gray-400 mt-1 text-left">{headline.length}/100</div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="اكتب وصفاً مفصلاً..."
+                      rows={3}
+                      maxLength={500}
+                    />
+                    <div className="text-xs text-gray-400 mt-1 text-left">{description.length}/500</div>
+                  </div>
+                </div>
+
+                {/* العمود الأيمن */}
+                <div className="space-y-6">
+                  {/* التخصيص */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">لون العلامة التجارية</label>
-                    <div className="flex items-center gap-2">
-                      {['#3B82F6', '#10B981', '#8B5CF6', '#EF4444', '#F59E0B', '#01411C'].map((color) => (
+                    <div className="grid grid-cols-6 gap-2">
+                      {brandColors.map((color) => (
                         <button
-                          key={color}
-                          onClick={() => setBrandColor(color)}
-                          className={`w-10 h-10 rounded-lg border-2 ${brandColor === color ? 'border-gray-800 ring-2 ring-offset-2' : 'border-gray-200'}`}
-                          style={{ backgroundColor: color }}
+                          key={color.id}
+                          onClick={() => setBrandColor(color.value)}
+                          className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                            brandColor === color.value ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-200'
+                          }`}
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
                         />
                       ))}
-                      <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer" />
+                      <input 
+                        type="color" 
+                        value={brandColor} 
+                        onChange={(e) => setBrandColor(e.target.value)} 
+                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200" 
+                        title="لون مخصص"
+                      />
                     </div>
                   </div>
 
@@ -1273,49 +1497,42 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">نمط الخط</label>
                     <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { id: 'modern', name: 'حديث' },
-                        { id: 'classic', name: 'كلاسيكي' },
-                        { id: 'elegant', name: 'أنيق' },
-                        { id: 'bold', name: 'عريض' }
-                      ].map((font) => (
+                      {fontStyles.map((font) => (
                         <button
                           key={font.id}
                           onClick={() => setFontStyle(font.id)}
-                          className={`p-2 rounded-lg border transition-all ${fontStyle === font.id ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                          className={`p-3 rounded-lg border transition-all duration-200 text-center ${
+                            fontStyle === font.id
+                              ? 'border-red-500 bg-red-50 text-red-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          } ${font.font}`}
                         >
                           {font.name}
                         </button>
                       ))}
                     </div>
                   </div>
-                </div>
 
-                {/* المعاينة */}
-                <div className="bg-gray-100 rounded-xl p-6">
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-sm mx-auto">
-                    <div className="flex items-center gap-3 p-3 border-b">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: brandColor }}>
-                        <span className="text-white text-sm">🏢</span>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">اسم الشركة</div>
-                        <div className="text-xs text-gray-500">ممول</div>
-                      </div>
-                    </div>
-                    {primaryImage ? (
-                      <img src={primaryImage} alt="Preview" className="w-full h-48 object-cover" />
-                    ) : (
-                      <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                        <span className="text-gray-400 text-6xl">🖼️</span>
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <h3 className="font-bold text-gray-900 mb-2">{headline || 'عنوان الإعلان الجذاب'}</h3>
-                      <p className="text-sm text-gray-600 mb-4">{description || 'وصف مختصر للإعلان يشرح الفوائد'}</p>
-                      <button className="w-full py-2 text-white rounded-lg font-medium" style={{ backgroundColor: brandColor }}>
-                        {callToActions.find(c => c.id === callToAction)?.text || 'تعرف أكثر'}
-                      </button>
+                  {/* إجراء الدعوة */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">إجراء الدعوة</label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {contentCallToActionOptions.map((cta) => (
+                        <button
+                          key={cta.id}
+                          onClick={() => setContentCallToAction(cta.id)}
+                          className={`p-2 rounded-lg border transition-all duration-200 text-center ${
+                            contentCallToAction === cta.id
+                              ? 'border-red-500 bg-red-50 text-red-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className={`w-full h-8 ${cta.color} rounded mb-1 flex items-center justify-center text-white text-xs`}>
+                            {cta.text.charAt(0)}
+                          </div>
+                          <div className="text-xs">{cta.text}</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
