@@ -63,6 +63,10 @@ import {
   AlertTriangle,
   Loader2,
   FileUp,
+  Share2,
+  Copy,
+  Link,
+  Settings,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -123,6 +127,24 @@ interface EnhancedBrokerCRMProps {
     phone: string;
   } | null;
 }
+
+// Recent Calls (Mock phone records)
+interface RecentCall {
+  id: string;
+  phone: string;
+  name?: string;
+  time: string;
+  type: 'incoming' | 'outgoing' | 'missed';
+  duration?: string;
+}
+
+const mockRecentCalls: RecentCall[] = [
+  { id: 'rc1', phone: '0501234567', name: 'أحمد محمد', time: '10:30', type: 'incoming', duration: '3:45' },
+  { id: 'rc2', phone: '0559876543', time: '09:15', type: 'outgoing', duration: '2:10' },
+  { id: 'rc3', phone: '0541112233', name: 'محمد علي', time: '08:45', type: 'missed' },
+  { id: 'rc4', phone: '0533334444', time: 'أمس', type: 'incoming', duration: '5:20' },
+  { id: 'rc5', phone: '0512223344', name: 'عبدالله سعد', time: 'أمس', type: 'outgoing', duration: '1:30' },
+];
 
 // Default Columns (6 columns)
 const defaultColumns: Column[] = [
@@ -297,10 +319,16 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showColorsManager, setShowColorsManager] = useState(false);
   const [unreadCustomers, setUnreadCustomers] = useState<string[]>(['1', '3']);
   const [draggedCustomer, setDraggedCustomer] = useState<string | null>(null);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{ columnId: string; position: number } | null>(null);
+  const [columnDropIndicator, setColumnDropIndicator] = useState<number | null>(null);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null); // البطاقة الموسعة
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [recentCalls] = useState<RecentCall[]>(mockRecentCalls);
+  const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState<string | null>(null);
   
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
@@ -552,13 +580,35 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     markAsRead(customer.id);
   };
 
-  // Handle drag start
+  // Handle drag start for customer
   const handleDragStart = (customerId: string) => {
     setDraggedCustomer(customerId);
   };
 
-  // Handle drop
-  const handleDrop = (columnId: string) => {
+  // Handle column drag start
+  const handleColumnDragStart = (columnId: string) => {
+    setDraggedColumn(columnId);
+  };
+
+  // Handle drag over for card positioning with green line indicator
+  const handleDragOverCard = (e: React.DragEvent, columnId: string, position: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedCustomer) {
+      setDropIndicator({ columnId, position });
+    }
+  };
+
+  // Handle column drag over
+  const handleColumnDragOver = (e: React.DragEvent, position: number) => {
+    e.preventDefault();
+    if (draggedColumn) {
+      setColumnDropIndicator(position);
+    }
+  };
+
+  // Handle drop with position
+  const handleDrop = (columnId: string, position?: number) => {
     if (!draggedCustomer) return;
 
     setColumns(prev => {
@@ -569,7 +619,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       
       const targetColumn = newColumns.find(col => col.id === columnId);
       if (targetColumn) {
-        targetColumn.customerIds.push(draggedCustomer);
+        if (position !== undefined && position >= 0) {
+          targetColumn.customerIds.splice(position, 0, draggedCustomer);
+        } else {
+          targetColumn.customerIds.push(draggedCustomer);
+        }
       }
       
       return newColumns;
@@ -580,7 +634,71 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     ));
 
     setDraggedCustomer(null);
+    setDropIndicator(null);
     toast.success('تم نقل العميل بنجاح');
+  };
+
+  // Handle column drop (reorder columns)
+  const handleColumnDrop = (targetPosition: number) => {
+    if (!draggedColumn) return;
+    
+    setColumns(prev => {
+      const currentIndex = prev.findIndex(col => col.id === draggedColumn);
+      if (currentIndex === -1 || currentIndex === targetPosition) return prev;
+      
+      const newColumns = [...prev];
+      const [movedColumn] = newColumns.splice(currentIndex, 1);
+      newColumns.splice(targetPosition, 0, movedColumn);
+      return newColumns;
+    });
+    
+    setDraggedColumn(null);
+    setColumnDropIndicator(null);
+    toast.success('تم نقل العمود بنجاح');
+  };
+
+  // Handle drag end - cleanup
+  const handleDragEnd = () => {
+    setDraggedCustomer(null);
+    setDraggedColumn(null);
+    setDropIndicator(null);
+    setColumnDropIndicator(null);
+  };
+
+  // Handle actions menu
+  const handleActionsClick = (e: React.MouseEvent, customerId: string) => {
+    e.stopPropagation();
+    setShowActionsMenu(showActionsMenu === customerId ? null : customerId);
+    setShowShareMenu(null);
+  };
+
+  // Handle share menu
+  const handleShareClick = (e: React.MouseEvent, customerId: string) => {
+    e.stopPropagation();
+    setShowShareMenu(showShareMenu === customerId ? null : customerId);
+    setShowActionsMenu(null);
+  };
+
+  // Share actions
+  const handleShareWhatsApp = (customer: Customer) => {
+    const message = `معلومات العميل:\nالاسم: ${customer.name}\nالهاتف: ${customer.phone}${customer.email ? `\nالبريد: ${customer.email}` : ''}${customer.propertyType ? `\nنوع العقار: ${customer.propertyType}` : ''}${customer.budget ? `\nالميزانية: ${customer.budget}` : ''}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    setShowShareMenu(null);
+    toast.success('تم فتح الواتساب');
+  };
+
+  const handleCopyLink = (customer: Customer) => {
+    const text = `${customer.name} - ${customer.phone}`;
+    navigator.clipboard.writeText(text);
+    setShowShareMenu(null);
+    toast.success('تم نسخ البيانات');
+  };
+
+  const handleSendEmail = (customer: Customer) => {
+    const subject = `معلومات العميل: ${customer.name}`;
+    const body = `الاسم: ${customer.name}\nالهاتف: ${customer.phone}${customer.email ? `\nالبريد: ${customer.email}` : ''}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setShowShareMenu(null);
   };
 
   // Handle add customer
@@ -858,59 +976,195 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
             ) : (
             <div className="overflow-x-auto pb-4">
               <div className="flex gap-4 min-w-max">
-                {columns.map((column) => {
+                {/* عمود الاتصالات الأخيرة - ثابت */}
+                <div className="w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
+                  <div className="p-3 border-b-2 border-gray-300 bg-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        الاتصالات الأخيرة
+                      </h3>
+                      <Badge className="bg-gray-300 text-gray-700 border border-gray-400">
+                        {recentCalls.length}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="p-2 space-y-2 min-h-[400px] max-h-[600px] overflow-y-auto">
+                    {recentCalls.map((call) => (
+                      <div
+                        key={call.id}
+                        className={`bg-white rounded-lg shadow-sm p-3 border-r-4 cursor-pointer hover:shadow-md transition-all ${
+                          call.type === 'incoming' ? 'border-r-green-500' :
+                          call.type === 'outgoing' ? 'border-r-blue-500' :
+                          'border-r-red-500'
+                        }`}
+                        onClick={() => {
+                          // البحث عن العميل بالرقم أو إضافته
+                          const existingCustomer = customers.find(c => c.phone === call.phone);
+                          if (existingCustomer) {
+                            setSelectedCustomer(existingCustomer);
+                            setShowFullDetails(true);
+                          } else {
+                            setNewCustomer(prev => ({ ...prev, name: call.name || '', phone: call.phone }));
+                            setShowAddCustomer(true);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            call.type === 'incoming' ? 'bg-green-100' :
+                            call.type === 'outgoing' ? 'bg-blue-100' :
+                            'bg-red-100'
+                          }`}>
+                            <Phone className={`w-4 h-4 ${
+                              call.type === 'incoming' ? 'text-green-600' :
+                              call.type === 'outgoing' ? 'text-blue-600' :
+                              'text-red-600'
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-gray-900 truncate">
+                              {call.name || call.phone}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span dir="ltr">{call.phone}</span>
+                              {call.duration && <span>({call.duration})</span>}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">{call.time}</div>
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs hover:bg-green-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`https://wa.me/${call.phone}`, '_blank');
+                            }}
+                          >
+                            <MessageSquare className="w-3 h-3 text-green-600" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs hover:bg-blue-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `tel:${call.phone}`;
+                            }}
+                          >
+                            <Phone className="w-3 h-3 text-blue-600" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* خط أخضر مؤشر للإفلات بين الأعمدة */}
+                {columnDropIndicator === 0 && (
+                  <div className="w-1 bg-green-500 rounded-full animate-pulse self-stretch" />
+                )}
+
+                {columns.map((column, columnIndex) => {
                   const colors = COLUMN_COLORS[column.id] || COLUMN_COLORS['leads'];
                   const columnCustomers = getCustomersForColumn(column.id);
                   
                   return (
-                    <div
-                      key={column.id}
-                      className={`w-72 flex-shrink-0 rounded-xl ${colors.bg} ${colors.border} border-2`}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => handleDrop(column.id)}
-                    >
-                      {/* Column Header */}
-                      <div className={`p-3 border-b-2 ${colors.border}`}>
-                        <div className="flex items-center justify-between">
-                          <h3 className={`font-bold ${colors.text}`}>
-                            {column.title}
-                          </h3>
-                          <Badge className={`${colors.bg} ${colors.text} border ${colors.border}`}>
-                            {columnCustomers.length}
-                          </Badge>
+                    <>
+                      <div
+                        key={column.id}
+                        draggable
+                        onDragStart={() => handleColumnDragStart(column.id)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (draggedColumn) {
+                            handleColumnDragOver(e, columnIndex);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedColumn) {
+                            handleColumnDrop(columnIndex);
+                          } else if (draggedCustomer) {
+                            handleDrop(column.id, dropIndicator?.position);
+                          }
+                        }}
+                        className={`w-72 flex-shrink-0 rounded-xl ${colors.bg} ${colors.border} border-2 transition-all ${
+                          draggedColumn === column.id ? 'opacity-50' : ''
+                        }`}
+                      >
+                        {/* Column Header */}
+                        <div className={`p-3 border-b-2 ${colors.border} cursor-move`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <GripVertical className="w-4 h-4 text-gray-400" />
+                              <h3 className={`font-bold ${colors.text}`}>
+                                {column.title}
+                              </h3>
+                            </div>
+                            <Badge className={`${colors.bg} ${colors.text} border ${colors.border}`}>
+                              {columnCustomers.length}
+                            </Badge>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Column Content */}
-                      <div className="p-2 space-y-2 min-h-[400px] max-h-[600px] overflow-y-auto">
-                        <AnimatePresence>
-                          {columnCustomers.map((customer) => {
+                        {/* Column Content */}
+                        <div 
+                          className="p-2 space-y-0 min-h-[400px] max-h-[600px] overflow-y-auto"
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            if (draggedCustomer && columnCustomers.length === 0) {
+                              setDropIndicator({ columnId: column.id, position: 0 });
+                            }
+                          }}
+                        >
+                          {/* خط أخضر أول إذا كان العمود فارغ */}
+                          {dropIndicator?.columnId === column.id && dropIndicator.position === 0 && columnCustomers.length === 0 && (
+                            <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
+                          )}
+                          
+                          <AnimatePresence>
+                          {columnCustomers.map((customer, customerIndex) => {
                             const typeColors = CUSTOMER_TYPE_COLORS[customer.type || 'other'];
                             const interestColors = INTEREST_LEVEL_COLORS[customer.interestLevel || 'moderate'];
                             
                             return (
-                              <motion.div
-                                key={customer.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                layout
-                                draggable
-                                onDragStart={() => handleDragStart(customer.id)}
-                                className={`
-                                  bg-white rounded-lg shadow-md cursor-move
-                                  hover:shadow-xl transition-all duration-200
-                                  ${typeColors.border}
-                                  ${interestColors.border}
-                                  ${typeColors.bg}
-                                  ${expandedCardId === customer.id ? 'ring-2 ring-[#D4AF37]' : ''}
-                                `}
-                              >
-                                {/* البطاقة المضغوطة */}
-                                <div 
-                                  className="p-3"
-                                  onClick={() => toggleCardExpansion(customer.id)}
+                              <div key={customer.id}>
+                                {/* خط أخضر مؤشر للإفلات قبل البطاقة */}
+                                {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex && (
+                                  <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
+                                )}
+                                
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  layout
+                                  draggable
+                                  onDragStart={() => handleDragStart(customer.id)}
+                                  onDragEnd={handleDragEnd}
+                                  onDragOver={(e) => handleDragOverCard(e, column.id, customerIndex)}
+                                  onDrop={(e) => {
+                                    e.stopPropagation();
+                                    handleDrop(column.id, customerIndex);
+                                  }}
+                                  className={`
+                                    bg-white rounded-lg shadow-md cursor-move mb-2
+                                    hover:shadow-xl transition-all duration-200
+                                    ${typeColors.border}
+                                    ${interestColors.border}
+                                    ${typeColors.bg}
+                                    ${draggedCustomer === customer.id ? 'opacity-50' : ''}
+                                  `}
                                 >
+                                  {/* البطاقة المضغوطة */}
+                                  <div 
+                                    className="p-3"
+                                    onClick={() => toggleCardExpansion(customer.id)}
+                                  >
                                   {/* 1. Header: الصورة + الاسم + أيقونة السحب */}
                                   <div className="flex items-center gap-2 mb-2">
                                     {/* 1.1 الصورة الشخصية */}
@@ -1221,8 +1475,102 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         </div>
                                       </div>
 
-                                      {/* أزرار عرض التفاصيل وتعديل */}
+                                      {/* ✅ الشريط السفلي الثلاثي: الإجراءات - التفاصيل - المشاركة */}
                                       <div className="px-3 py-2 border-t border-gray-100 flex gap-2">
+                                        {/* 1. زر الإجراءات مع قائمة منبثقة */}
+                                        <div className="relative flex-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full text-xs h-8 border-blue-300 text-blue-700 hover:bg-blue-50"
+                                            onClick={(e) => handleActionsClick(e, customer.id)}
+                                          >
+                                            <Settings className="w-3 h-3 ml-1" />
+                                            الإجراءات
+                                          </Button>
+                                          
+                                          {/* قائمة الإجراءات المنبثقة */}
+                                          {showActionsMenu === customer.id && (
+                                            <div 
+                                              className="absolute bottom-full mb-1 right-0 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <div className="p-1 space-y-1">
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 rounded"
+                                                  onClick={() => {
+                                                    window.location.href = `tel:${customer.phone}`;
+                                                    setShowActionsMenu(null);
+                                                  }}
+                                                >
+                                                  <Phone className="w-3 h-3 text-blue-600" />
+                                                  اتصال
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded"
+                                                  onClick={() => {
+                                                    window.open(`https://wa.me/${customer.phone}`, '_blank');
+                                                    setShowActionsMenu(null);
+                                                  }}
+                                                >
+                                                  <MessageSquare className="w-3 h-3 text-green-600" />
+                                                  واتساب
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-purple-50 rounded"
+                                                  onClick={() => {
+                                                    if (customer.email) {
+                                                      window.location.href = `mailto:${customer.email}`;
+                                                    } else {
+                                                      toast.error('لا يوجد بريد إلكتروني');
+                                                    }
+                                                    setShowActionsMenu(null);
+                                                  }}
+                                                >
+                                                  <Mail className="w-3 h-3 text-purple-600" />
+                                                  بريد إلكتروني
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-orange-50 rounded"
+                                                  onClick={() => {
+                                                    window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
+                                                      detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
+                                                    }));
+                                                    setShowActionsMenu(null);
+                                                  }}
+                                                >
+                                                  <Calendar className="w-3 h-3 text-orange-600" />
+                                                  إنشاء موعد
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-yellow-50 rounded"
+                                                  onClick={() => {
+                                                    window.dispatchEvent(new CustomEvent('createTaskFromCRM', {
+                                                      detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
+                                                    }));
+                                                    setShowActionsMenu(null);
+                                                  }}
+                                                >
+                                                  <Check className="w-3 h-3 text-yellow-600" />
+                                                  إنشاء مهمة
+                                                </button>
+                                                <div className="border-t border-gray-100 my-1" />
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 rounded text-red-600"
+                                                  onClick={() => {
+                                                    handleDeleteCustomer(customer);
+                                                    setShowActionsMenu(null);
+                                                  }}
+                                                >
+                                                  <Trash2 className="w-3 h-3" />
+                                                  حذف العميل
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        {/* 2. زر التفاصيل - يفتح الصفحة الكاملة */}
                                         <Button
                                           size="sm"
                                           className="flex-1 bg-[#01411C] hover:bg-[#065f41] text-xs h-8"
@@ -1234,27 +1582,65 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           }}
                                         >
                                           <Eye className="w-3 h-3 ml-1" />
-                                          التفاصيل الكاملة
+                                          التفاصيل
                                         </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="text-xs h-8 border-[#D4AF37]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedCustomer(customer);
-                                            setShowCustomerDetails(true);
-                                          }}
-                                        >
-                                          <Edit className="w-3 h-3 ml-1" />
-                                          تعديل
-                                        </Button>
+                                        
+                                        {/* 3. زر المشاركة مع قائمة منبثقة */}
+                                        <div className="relative flex-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full text-xs h-8 border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
+                                            onClick={(e) => handleShareClick(e, customer.id)}
+                                          >
+                                            <Share2 className="w-3 h-3 ml-1" />
+                                            المشاركة
+                                          </Button>
+                                          
+                                          {/* قائمة المشاركة المنبثقة */}
+                                          {showShareMenu === customer.id && (
+                                            <div 
+                                              className="absolute bottom-full mb-1 left-0 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <div className="p-1 space-y-1">
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded"
+                                                  onClick={() => handleShareWhatsApp(customer)}
+                                                >
+                                                  <MessageSquare className="w-3 h-3 text-green-600" />
+                                                  مشاركة عبر واتساب
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 rounded"
+                                                  onClick={() => handleCopyLink(customer)}
+                                                >
+                                                  <Copy className="w-3 h-3 text-blue-600" />
+                                                  نسخ البيانات
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-purple-50 rounded"
+                                                  onClick={() => handleSendEmail(customer)}
+                                                >
+                                                  <Mail className="w-3 h-3 text-purple-600" />
+                                                  إرسال بالبريد
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </motion.div>
                                   )}
                                 </AnimatePresence>
                               </motion.div>
-                            );
+                              
+                              {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}
+                              {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex + 1 && customerIndex === columnCustomers.length - 1 && (
+                                <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
+                              )}
+                            </div>
+                          );
                           })}
                         </AnimatePresence>
 
@@ -1265,8 +1651,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                             <p className="text-sm">لا يوجد عملاء</p>
                           </div>
                         )}
+                        </div>
                       </div>
-                    </div>
+                      
+                      {/* خط أخضر مؤشر للإفلات بين الأعمدة */}
+                      {columnDropIndicator === columnIndex + 1 && (
+                        <div className="w-1 bg-green-500 rounded-full animate-pulse self-stretch" />
+                      )}
+                    </>
                   );
                 })}
               </div>
