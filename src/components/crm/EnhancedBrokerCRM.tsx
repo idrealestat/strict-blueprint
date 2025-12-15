@@ -65,6 +65,10 @@ import {
   FileUp,
   Share2,
   Copy,
+  Users,
+  CloudUpload,
+  RefreshCw,
+  HardDrive,
   Link,
   Settings,
 } from "lucide-react";
@@ -363,6 +367,19 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [reportCustomer, setReportCustomer] = useState<Customer | null>(null);
   const [selectedReportCategory, setSelectedReportCategory] = useState<string>('');
   const [selectedReportSubCategory, setSelectedReportSubCategory] = useState<string>('');
+  const [searchType, setSearchType] = useState<'name' | 'tag'>('name');
+  const [searchTab, setSearchTab] = useState<'all' | 'offers' | 'requests'>('all');
+  const [showColleagueDialog, setShowColleagueDialog] = useState(false);
+  const [colleagueCustomer, setColleagueCustomer] = useState<Customer | null>(null);
+  
+  // قائمة الزملاء (Mock)
+  const colleagues = [
+    { id: '1', name: 'أحمد السالم', role: 'وسيط عقاري' },
+    { id: '2', name: 'محمد الفهد', role: 'مدير مبيعات' },
+    { id: '3', name: 'خالد العتيبي', role: 'وسيط معتمد' },
+    { id: '4', name: 'سارة الحربي', role: 'مستشارة عقارية' },
+    { id: '5', name: 'نورة القحطاني', role: 'مديرة فرع' },
+  ];
   
   // استخدام hook سجل المكالمات
   const { 
@@ -901,85 +918,157 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           </Button>
         </div>
 
-        {/* Dashboard Stats - إحصائيات لوحة التحكم */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
-          <Card className="border-blue-200 bg-white">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">👥</span>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+12.5%</span>
+        {/* Dashboard Stats - إحصائيات مصغرة */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-blue-200 shadow-sm">
+            <span className="text-sm">👥</span>
+            <span className="text-sm font-bold text-gray-900">{customers.length}</span>
+            <span className="text-xs text-gray-500">إجمالي</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-green-200 shadow-sm">
+            <span className="text-sm">✅</span>
+            <span className="text-sm font-bold text-gray-900">{tabCounts.active}</span>
+            <span className="text-xs text-gray-500">نشط</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-purple-200 shadow-sm">
+            <span className="text-sm">🆕</span>
+            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'leads').length}</span>
+            <span className="text-xs text-gray-500">جدد</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-amber-200 shadow-sm">
+            <span className="text-sm">💰</span>
+            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'negotiation').length}</span>
+            <span className="text-xs text-gray-500">صفقات</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-emerald-200 shadow-sm">
+            <span className="text-sm">🎯</span>
+            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'closed').length}</span>
+            <span className="text-xs text-gray-500">مغلق</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-red-200 shadow-sm">
+            <span className="text-sm">🔥</span>
+            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.interestLevel === 'hot').length}</span>
+            <span className="text-xs text-gray-500">ساخن</span>
+          </div>
+        </div>
+        
+        {/* شريط البحث + المزامنة */}
+        <div className="mt-3 bg-white rounded-lg border border-gray-200 p-3">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* البحث */}
+            <div className="flex-1 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={searchType === 'name' ? "ابحث باسم العميل..." : "ابحث بالتاق..."}
+                  className="pr-9 h-9 text-sm"
+                />
               </div>
-              <div className="text-xl font-bold text-gray-900">{customers.length}</div>
-              <div className="text-xs text-gray-600">إجمالي العملاء</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-green-200 bg-white">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">✅</span>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+8.2%</span>
-              </div>
-              <div className="text-xl font-bold text-gray-900">{tabCounts.active}</div>
-              <div className="text-xs text-gray-600">نشط اليوم</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-purple-200 bg-white">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🆕</span>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+15.3%</span>
-              </div>
-              <div className="text-xl font-bold text-gray-900">{customers.filter(c => c.columnId === 'leads').length}</div>
-              <div className="text-xs text-gray-600">عملاء جدد</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-amber-200 bg-white">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">💰</span>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+7.8%</span>
-              </div>
-              <div className="text-xl font-bold text-gray-900">{customers.filter(c => c.columnId === 'negotiation').length}</div>
-              <div className="text-xs text-gray-600">صفقات نشطة</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-emerald-200 bg-white">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📈</span>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+3.1%</span>
-              </div>
-              <div className="text-xl font-bold text-gray-900">{customers.length > 0 ? `${((customers.filter(c => c.columnId === 'closed').length / customers.length) * 100).toFixed(1)}%` : '0%'}</div>
-              <div className="text-xs text-gray-600">معدل التحويل</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-rose-200 bg-white">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">⭐</span>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">+2.4%</span>
-              </div>
-              <div className="text-xl font-bold text-gray-900">{tabCounts.vip}</div>
-              <div className="text-xs text-gray-600">عملاء VIP</div>
-            </CardContent>
-          </Card>
+              {/* نوع البحث */}
+              <Select value={searchType} onValueChange={(v) => setSearchType(v as 'name' | 'tag')}>
+                <SelectTrigger className="w-24 h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="name">الاسم</SelectItem>
+                  <SelectItem value="tag">التاق</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* تبويب العرض/الطلب */}
+              <Select value={searchTab} onValueChange={(v) => setSearchTab(v as 'all' | 'offers' | 'requests')}>
+                <SelectTrigger className="w-24 h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="offers">عروض</SelectItem>
+                  <SelectItem value="requests">طلبات</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* أزرار المزامنة والحفظ */}
+            <div className="flex gap-2">
+              {/* مزامنة */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs"
+                onClick={() => {
+                  toast.success('جاري المزامنة...');
+                  setTimeout(() => toast.success('تمت المزامنة بنجاح'), 1500);
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">مزامنة</span>
+              </Button>
+              
+              {/* رفع/استيراد */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+                    <CloudUpload className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">رفع/حفظ</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 bg-white z-50">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const dataStr = JSON.stringify(customers, null, 2);
+                      const blob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `wasata_customers_${new Date().toISOString().split('T')[0]}.json`;
+                      link.click();
+                      URL.revokeObjectURL(url);
+                      toast.success('تم حفظ البيانات في الجهاز');
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <HardDrive className="w-4 h-4" />
+                    <span>حفظ في الجهاز (JSON)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-2"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>تصدير Excel/CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      toast.info('سيتم الرفع إلى iCloud');
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <CloudUpload className="w-4 h-4 text-blue-500" />
+                    <span>رفع إلى iCloud</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      toast.info('سيتم الرفع إلى Google Drive');
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <CloudUpload className="w-4 h-4 text-green-500" />
+                    <span>رفع إلى Google Drive</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setShowImport(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>استيراد من ملف</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1276,13 +1365,12 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                   <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
                                 )}
                                 
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -10 }}
-                                  layout
+                                <div
                                   draggable
-                                  onDragStart={() => handleDragStart(customer.id)}
+                                  onDragStart={(e) => {
+                                    e.stopPropagation();
+                                    handleDragStart(customer.id);
+                                  }}
                                   onDragEnd={handleDragEnd}
                                   onDragOver={(e) => handleDragOverCard(e, column.id, customerIndex)}
                                   onDrop={(e) => {
@@ -1291,8 +1379,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                   }}
                                   className={`
                                     bg-white rounded-lg shadow-md cursor-move mb-2 overflow-hidden relative
-                                    hover:shadow-xl transition-all duration-200
-                                    ${draggedCustomer === customer.id ? 'opacity-50' : ''}
+                                    hover:shadow-xl transition-shadow duration-200
+                                    ${draggedCustomer === customer.id ? 'opacity-50 scale-95' : ''}
                                   `}
                                 >
                                   {/* خط نوع العميل أعلى البطاقة */}
@@ -1308,223 +1396,247 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     className="p-3"
                                     onClick={() => toggleCardExpansion(customer.id)}
                                   >
-                                  {/* 1. Header: الصورة + الاسم + أيقونة السحب */}
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {/* 1.1 الصورة الشخصية */}
-                                    <div className="relative">
-                                      <Avatar className="w-10 h-10 border-2 border-[#D4AF37]">
-                                        {(customer.image || customer.profileImage) && (
-                                          <AvatarImage 
-                                            src={customer.image || customer.profileImage} 
-                                            alt={customer.name} 
-                                          />
-                                        )}
-                                        <AvatarFallback className="bg-gradient-to-br from-[#01411C] to-[#065f41] text-white font-bold">
-                                          {customer.name.charAt(0)}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      
-                                      {/* 1.2 مؤشر غير مقروء */}
-                                      {isCustomerUnread(customer.id) && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* 1.3 الاسم والشركة + VIP Badge */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-1">
-                                        <h3 className="font-bold text-[14px] text-gray-900 truncate">
-                                          {customer.name}
-                                        </h3>
-                                        {customer.tags?.includes('VIP') && (
-                                          <span className="text-[#D4AF37] text-sm">⭐</span>
+                                    {/* 1. Header: الصورة + الاسم + أيقونة السحب */}
+                                    <div className="flex items-center gap-2 mb-2">
+                                      {/* 1.1 الصورة الشخصية */}
+                                      <div className="relative">
+                                        <Avatar className="w-10 h-10 border-2 border-[#D4AF37]">
+                                          {(customer.image || customer.profileImage) && (
+                                            <AvatarImage 
+                                              src={customer.image || customer.profileImage} 
+                                              alt={customer.name} 
+                                            />
+                                          )}
+                                          <AvatarFallback className="bg-gradient-to-br from-[#01411C] to-[#065f41] text-white font-bold">
+                                            {customer.name.charAt(0)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        
+                                        {/* 1.2 مؤشر غير مقروء */}
+                                        {isCustomerUnread(customer.id) && (
+                                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
                                         )}
                                       </div>
-                                      {customer.company && (
-                                        <p className="text-xs text-gray-600 truncate">{customer.company}</p>
-                                      )}
+                                      
+                                      {/* 1.3 الاسم والشركة + VIP Badge */}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1">
+                                          <h3 className="font-bold text-[14px] text-gray-900 truncate">
+                                            {customer.name}
+                                          </h3>
+                                          {customer.tags?.includes('VIP') && (
+                                            <span className="text-[#D4AF37] text-sm">⭐</span>
+                                          )}
+                                        </div>
+                                        {customer.company && (
+                                          <p className="text-xs text-gray-600 truncate">{customer.company}</p>
+                                        )}
+                                      </div>
+                                      
+                                      {/* 1.4 ثلاث نقاط + أيقونة التوسيع + السحب */}
+                                      <div className="flex items-center gap-1">
+                                        {/* زر ثلاث نقاط مع Dropdown */}
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-6 w-6 p-0 hover:bg-gray-100"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <MoreVertical className="w-4 h-4 text-gray-500" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end" className="w-40 bg-white z-50">
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedCustomer(customer);
+                                                setShowFullDetails(true);
+                                                markAsRead(customer.id);
+                                              }}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <Eye className="w-4 h-4" />
+                                              <span>عرض التفاصيل</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedCustomer(customer);
+                                                setShowCustomerDetails(true);
+                                              }}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <Edit className="w-4 h-4" />
+                                              <span>تعديل</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            {/* البلاغات */}
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setReportCustomer(customer);
+                                                setShowReportDialog(true);
+                                              }}
+                                              className="flex items-center gap-2 text-orange-600 focus:text-orange-600"
+                                            >
+                                              <AlertTriangle className="w-4 h-4" />
+                                              <span>بلاغ</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteCustomer(customer);
+                                              }}
+                                              className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                              <span>حذف</span>
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        
+                                        {expandedCardId === customer.id ? (
+                                          <ChevronUp className="w-4 h-4 text-[#D4AF37]" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                                        )}
+                                        <GripVertical className="w-4 h-4 text-gray-400" />
+                                      </div>
                                     </div>
                                     
-                                    {/* 1.4 ثلاث نقاط + أيقونة التوسيع + السحب */}
-                                    <div className="flex items-center gap-1">
-                                      {/* زر ثلاث نقاط مع Dropdown */}
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-6 w-6 p-0 hover:bg-gray-100"
+                                    {/* 2. معلومات الاتصال */}
+                                    <div className="flex items-center gap-1 text-xs text-gray-700 mb-2">
+                                      <Phone className="w-3 h-3" />
+                                      <span className="truncate" dir="ltr">{customer.phone}</span>
+                                    </div>
+                                    
+                                    {/* 3. نوع العميل + درجة الاهتمام (يسار) + التاقات (يمين) */}
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                      {/* اليسار: نوع العميل + درجة الاهتمام */}
+                                      <div className="flex flex-col gap-1">
+                                        {/* نوع العميل */}
+                                        <Select
+                                          value={customer.type || 'buyer'}
+                                          onValueChange={(value) => {
+                                            setCustomers(prev => prev.map(c => 
+                                              c.id === customer.id ? { ...c, type: value as Customer['type'] } : c
+                                            ));
+                                          }}
+                                        >
+                                          <SelectTrigger 
+                                            className="h-5 text-[9px] w-auto px-1.5 border-0 min-w-[60px]"
+                                            style={{ 
+                                              backgroundColor: clientTypes[customer.type as ClientType]?.bgColor || '#F3F4F6',
+                                              color: clientTypes[customer.type as ClientType]?.color || '#6B7280'
+                                            }}
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <MoreVertical className="w-4 h-4 text-gray-500" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40 bg-white z-50">
-                                          <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectedCustomer(customer);
-                                              setShowFullDetails(true);
-                                              markAsRead(customer.id);
-                                            }}
-                                            className="flex items-center gap-2"
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                            <span>عرض التفاصيل</span>
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectedCustomer(customer);
-                                              setShowCustomerDetails(true);
-                                            }}
-                                            className="flex items-center gap-2"
-                                          >
-                                            <Edit className="w-4 h-4" />
-                                            <span>تعديل</span>
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          {/* البلاغات */}
-                                          <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setReportCustomer(customer);
-                                              setShowReportDialog(true);
-                                            }}
-                                            className="flex items-center gap-2 text-orange-600 focus:text-orange-600"
-                                          >
-                                            <AlertTriangle className="w-4 h-4" />
-                                            <span>بلاغ</span>
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
-                                          <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteCustomer(customer);
-                                            }}
-                                            className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span>حذف</span>
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                      
-                                      {expandedCardId === customer.id ? (
-                                        <ChevronUp className="w-4 h-4 text-[#D4AF37]" />
-                                      ) : (
-                                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                                      )}
-                                      <GripVertical className="w-4 h-4 text-gray-400" />
-                                    </div>
-                                  </div>
-                                  
-                                  {/* قوائم نوع العميل ودرجة الاهتمام */}
-                                  <div className="flex items-center gap-2 mb-2 px-3">
-                                    {/* نوع العميل */}
-                                    <Select
-                                      value={customer.type || 'buyer'}
-                                      onValueChange={(value) => {
-                                        setCustomers(prev => prev.map(c => 
-                                          c.id === customer.id ? { ...c, type: value as Customer['type'] } : c
-                                        ));
-                                      }}
-                                    >
-                                      <SelectTrigger 
-                                        className="h-6 text-[10px] w-auto px-2 border-0"
-                                        style={{ 
-                                          backgroundColor: clientTypes[customer.type as ClientType]?.bgColor || '#F3F4F6',
-                                          color: clientTypes[customer.type as ClientType]?.color || '#6B7280'
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-white z-50">
-                                        {Object.entries(clientTypes).map(([key, config]) => (
-                                          <SelectItem 
-                                            key={key} 
-                                            value={key}
-                                            className="text-xs"
-                                          >
-                                            <span className="flex items-center gap-1">
-                                              <span>{config.icon}</span>
-                                              <span style={{ color: config.color }}>{config.label}</span>
-                                            </span>
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    
-                                    {/* درجة الاهتمام */}
-                                    <Select
-                                      value={customer.interestLevel || 'medium'}
-                                      onValueChange={(value) => {
-                                        setCustomers(prev => prev.map(c => 
-                                          c.id === customer.id ? { ...c, interestLevel: value as Customer['interestLevel'] } : c
-                                        ));
-                                      }}
-                                    >
-                                      <SelectTrigger 
-                                        className={`h-6 text-[10px] w-auto px-2 border-0 ${interestLevels[customer.interestLevel as InterestLevel]?.animation || ''}`}
-                                        style={{ 
-                                          backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.bgColor || '#F3F4F6',
-                                          color: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-white z-50">
-                                        {Object.entries(interestLevels).map(([key, config]) => (
-                                          <SelectItem 
-                                            key={key} 
-                                            value={key}
-                                            className="text-xs"
-                                          >
-                                            <span className={`flex items-center gap-1 ${config.animation || ''}`}>
-                                              <span>{config.icon}</span>
-                                              <span style={{ color: config.color }}>{config.label}</span>
-                                            </span>
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  
-                                  {/* 2. معلومات الاتصال */}
-                                  <div className="flex items-center gap-1 text-xs text-gray-700 mb-2 px-3">
-                                    <Phone className="w-3 h-3" />
-                                    <span className="truncate" dir="ltr">{customer.phone}</span>
-                                  </div>
-                                  
-                                  {/* 3. التاقات */}
-                                  {customer.tags && customer.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-2 px-3">
-                                      {customer.tags.slice(0, 3).map((tag, idx) => {
-                                        const tagColor = getTagColor(tag);
-                                        return (
-                                          <Badge 
-                                            key={idx}
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-white z-50">
+                                            {Object.entries(clientTypes).map(([key, config]) => (
+                                              <SelectItem 
+                                                key={key} 
+                                                value={key}
+                                                className="text-xs"
+                                              >
+                                                <span className="flex items-center gap-1">
+                                                  <span>{config.icon}</span>
+                                                  <span style={{ color: config.color }}>{config.label}</span>
+                                                </span>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        
+                                        {/* درجة الاهتمام */}
+                                        <Select
+                                          value={customer.interestLevel || 'medium'}
+                                          onValueChange={(value) => {
+                                            setCustomers(prev => prev.map(c => 
+                                              c.id === customer.id ? { ...c, interestLevel: value as Customer['interestLevel'] } : c
+                                            ));
+                                          }}
+                                        >
+                                          <SelectTrigger 
+                                            className={`h-5 text-[9px] w-auto px-1.5 border-0 min-w-[60px] ${interestLevels[customer.interestLevel as InterestLevel]?.animation || ''}`}
                                             style={{ 
-                                              backgroundColor: tagColor.bg,
-                                              color: tagColor.text,
-                                              borderColor: tagColor.border
+                                              backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.bgColor || '#F3F4F6',
+                                              color: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
                                             }}
-                                            className="text-xs px-2 py-0.5 border"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
-                                            {tag}
-                                          </Badge>
-                                        );
-                                      })}
-                                      {customer.tags.length > 3 && (
-                                        <Badge variant="outline" className="text-xs px-2 py-0.5">
-                                          +{customer.tags.length - 3}
-                                        </Badge>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-white z-50">
+                                            {Object.entries(interestLevels).map(([key, config]) => (
+                                              <SelectItem 
+                                                key={key} 
+                                                value={key}
+                                                className="text-xs"
+                                              >
+                                                <span className={`flex items-center gap-1 ${config.animation || ''}`}>
+                                                  <span>{config.icon}</span>
+                                                  <span style={{ color: config.color }}>{config.label}</span>
+                                                </span>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      
+                                      {/* اليمين: التاقات (سطرين كحد أقصى) */}
+                                      {customer.tags && customer.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-0.5 justify-end max-w-[120px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
+                                          {(expandedCardId === customer.id ? customer.tags.slice(0, 9) : customer.tags.slice(0, 4)).map((tag, idx) => {
+                                            const tagColor = getTagColor(tag);
+                                            return (
+                                              <Badge 
+                                                key={idx}
+                                                style={{ 
+                                                  backgroundColor: tagColor.bg,
+                                                  color: tagColor.text,
+                                                  borderColor: tagColor.border
+                                                }}
+                                                className="text-[8px] px-1 py-0 border h-4"
+                                              >
+                                                {tag}
+                                              </Badge>
+                                            );
+                                          })}
+                                          {customer.tags.length > (expandedCardId === customer.id ? 9 : 4) && (
+                                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-dashed">
+                                              +{customer.tags.length - (expandedCardId === customer.id ? 9 : 4)}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
-                                  )}
-                                </div>
+                                    
+                                    {/* 4. زر إضافة زميل للمتابعة */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setColleagueCustomer(customer);
+                                        setShowColleagueDialog(true);
+                                      }}
+                                      className="w-full py-1 text-[10px] text-blue-600 border border-dashed border-blue-400 rounded hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
+                                    >
+                                      <Users className="w-3 h-3" />
+                                      إضافة زميل للمتابعة
+                                    </button>
+                                  </div>
+                                  
+                                  {/* خط درجة الاهتمام أسفل البطاقة */}
+                                  <div 
+                                    className="h-1.5 w-full"
+                                    style={{ 
+                                      backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
+                                    }}
+                                  />
 
                                 {/* البطاقة الموسعة - 7 أزرار سريعة + معلومات إضافية */}
                                 <AnimatePresence>
@@ -1850,15 +1962,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </motion.div>
                                   )}
                                 </AnimatePresence>
-                                  
-                                  {/* خط درجة الاهتمام أسفل البطاقة */}
-                                  <div 
-                                    className={`h-1.5 w-full ${interestLevels[customer.interestLevel as InterestLevel]?.animation || ''}`}
-                                    style={{ 
-                                      backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
-                                    }}
-                                  />
-                                </motion.div>
+                                </div>
                               
                               {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}
                               {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex + 1 && customerIndex === columnCustomers.length - 1 && (
@@ -2921,6 +3025,46 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               إرسال البلاغ
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة إضافة زميل للمتابعة */}
+      <Dialog open={showColleagueDialog} onOpenChange={setShowColleagueDialog}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              إضافة زميل للمتابعة
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-3">
+              اختر زميلاً لمتابعة العميل: {colleagueCustomer?.name}
+            </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {colleagues.map((colleague) => (
+                <button
+                  key={colleague.id}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors text-right"
+                  onClick={() => {
+                    toast.success(`تم إضافة ${colleague.name} لمتابعة العميل`);
+                    setShowColleagueDialog(false);
+                    setColleagueCustomer(null);
+                  }}
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                      {colleague.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-sm">{colleague.name}</p>
+                    <p className="text-xs text-gray-500">{colleague.role}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
