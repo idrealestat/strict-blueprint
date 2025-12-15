@@ -4,7 +4,7 @@
  * Enhanced Broker CRM with Kanban Board - Literal Implementation
  */
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1072,9 +1072,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                   const columnCustomers = getCustomersForColumn(column.id);
                   
                   return (
-                    <>
+                    <React.Fragment key={column.id}>
                       <div
-                        key={column.id}
                         draggable
                         onDragStart={() => handleColumnDragStart(column.id)}
                         onDragEnd={handleDragEnd}
@@ -1658,7 +1657,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                       {columnDropIndicator === columnIndex + 1 && (
                         <div className="w-1 bg-green-500 rounded-full animate-pulse self-stretch" />
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </div>
