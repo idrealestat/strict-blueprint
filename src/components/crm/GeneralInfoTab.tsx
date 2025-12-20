@@ -82,30 +82,23 @@ interface GeneralInfoTabProps {
   setEditedCustomer: (customer: Customer) => void;
 }
 
-// أنواع العملاء الكاملة مع الأيقونات والألوان - من الملف الأصلي
+// أنواع العملاء - مطابق للصورة تماماً
 const CUSTOMER_TYPES = [
-  { id: 'individual', name: 'فردي', icon: '👤', bg_color: 'bg-blue-100', text_color: 'text-blue-800' },
-  { id: 'corporate', name: 'شركة', icon: '🏢', bg_color: 'bg-purple-100', text_color: 'text-purple-800' },
-  { id: 'vip', name: 'مهم', icon: '⭐', bg_color: 'bg-amber-100', text_color: 'text-amber-800' },
-  { id: 'government', name: 'حكومي', icon: '🏛️', bg_color: 'bg-emerald-100', text_color: 'text-emerald-800' },
-  { id: 'international', name: 'دولي', icon: '🌍', bg_color: 'bg-red-100', text_color: 'text-red-800' },
-  { id: 'partner', name: 'شريك', icon: '🤝', bg_color: 'bg-indigo-100', text_color: 'text-indigo-800' },
-  { id: 'buyer', name: 'مشتري', icon: '🛒', bg_color: 'bg-sky-100', text_color: 'text-sky-800' },
-  { id: 'seller', name: 'بائع', icon: '💰', bg_color: 'bg-green-100', text_color: 'text-green-800' },
-  { id: 'renter', name: 'مستأجر', icon: '🏠', bg_color: 'bg-violet-100', text_color: 'text-violet-800' },
-  { id: 'owner', name: 'مالك', icon: '🔑', bg_color: 'bg-orange-100', text_color: 'text-orange-800' },
-  { id: 'investor', name: 'مستثمر', icon: '📈', bg_color: 'bg-yellow-100', text_color: 'text-yellow-800' },
-  { id: 'other', name: 'آخر', icon: '📋', bg_color: 'bg-gray-100', text_color: 'text-gray-800' },
+  { id: 'seller', name: 'بائع', dotColor: '#3B82F6' }, // أزرق
+  { id: 'buyer', name: 'مشتري', dotColor: '#22C55E' }, // أخضر
+  { id: 'landlord', name: 'مؤجر', dotColor: '#F97316' }, // برتقالي
+  { id: 'renter', name: 'مستأجر', dotColor: '#FACC15' }, // أصفر
+  { id: 'finance', name: 'تمويل', dotColor: '#A855F7' }, // بنفسجي
+  { id: 'other', name: 'أخرى', dotColor: '#374151' }, // رمادي غامق
 ];
 
-// درجات الاهتمام الكاملة مع الأيقونات والألوان - من الملف الأصلي
+// درجات الاهتمام - مطابق للصورة تماماً
 const INTEREST_LEVELS = [
-  { id: 'hot', name: 'ساخن', icon: '🔥', bg_color: 'bg-red-100', text_color: 'text-red-800', dotColor: 'bg-red-500' },
-  { id: 'warm', name: 'دافئ', icon: '🌡️', bg_color: 'bg-orange-100', text_color: 'text-orange-800', dotColor: 'bg-orange-500' },
-  { id: 'cold', name: 'بارد', icon: '❄️', bg_color: 'bg-blue-100', text_color: 'text-blue-800', dotColor: 'bg-blue-500' },
-  { id: 'lead', name: 'قائد', icon: '👑', bg_color: 'bg-green-100', text_color: 'text-green-800', dotColor: 'bg-green-500' },
-  { id: 'prospect', name: 'محتمل', icon: '🔍', bg_color: 'bg-violet-100', text_color: 'text-violet-800', dotColor: 'bg-violet-500' },
-  { id: 'moderate', name: 'متوسط', icon: '🌤️', bg_color: 'bg-amber-100', text_color: 'text-amber-800', dotColor: 'bg-amber-500' },
+  { id: 'passionate', name: 'شغوف', dotColor: '#EF4444' }, // أحمر
+  { id: 'interested', name: 'مهتم', dotColor: '#F97316' }, // برتقالي
+  { id: 'moderate', name: 'معتدل', dotColor: '#8B5CF6' }, // بنفسجي
+  { id: 'limited', name: 'محدود', dotColor: '#92400E' }, // بني
+  { id: 'not_interested', name: 'غير مهتم', dotColor: '#1F2937' }, // أسود
 ];
 
 export default function GeneralInfoTab({ 
@@ -259,11 +252,25 @@ export default function GeneralInfoTab({
     }
   };
 
+  // الحصول على ألوان الخطوط من نوع العميل ودرجة الاهتمام
+  const topLineColor = customerType?.dotColor || '#E5E7EB';
+  const bottomLineColor = interestLevel?.dotColor || '#E5E7EB';
+
   return (
     <div className="space-y-4 pb-8">
       {/* القسم الرئيسي - المعلومات العامة */}
-      <Card className="border border-gray-200 rounded-xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-gray-100 py-3">
+      <Card className="border border-gray-200 rounded-xl overflow-hidden relative">
+        {/* خط علوي بلون نوع العميل */}
+        <div 
+          className="absolute top-0 left-0 right-0 h-1" 
+          style={{ backgroundColor: topLineColor }}
+        />
+        {/* خط سفلي بلون درجة الاهتمام */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-1" 
+          style={{ backgroundColor: bottomLineColor }}
+        />
+        <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-gray-100 py-3 mt-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
               <User className="w-4 h-4 text-emerald-700" />
@@ -367,7 +374,7 @@ export default function GeneralInfoTab({
               </div>
             </div>
 
-            {/* نوع العميل - مع الأيقونات والألوان الأصلية */}
+            {/* نوع العميل - مطابق للصورة */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
               <div className="flex items-center gap-3 flex-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
@@ -375,31 +382,50 @@ export default function GeneralInfoTab({
                 </Button>
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500 block mb-1">نوع العميل</Label>
-                  {isEditing ? (
-                    <Select 
-                      value={editedCustomer.type} 
-                      onValueChange={(value: any) => setEditedCustomer({...editedCustomer, type: value})}
+                  <Select 
+                    value={isEditing ? editedCustomer.type : customer.type} 
+                    onValueChange={(value: any) => {
+                      if (isEditing) {
+                        setEditedCustomer({...editedCustomer, type: value});
+                      }
+                    }}
+                  >
+                    <SelectTrigger 
+                      className="h-10 border-2 border-amber-400 rounded-lg bg-white"
+                      style={{ borderTopColor: customerType?.dotColor }}
                     >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white z-50">
-                        {CUSTOMER_TYPES.map(type => (
-                          <SelectItem key={type.id} value={type.id}>
-                            <span className="flex items-center gap-2">
-                              <span>{type.icon}</span>
-                              <span>{type.name}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={`${customerType?.bg_color} ${customerType?.text_color} border-0 px-3 py-1`}>
-                      <span className="ml-1">{customerType?.icon}</span>
-                      {customerType?.name || 'غير محدد'}
-                    </Badge>
-                  )}
+                      <SelectValue>
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: customerType?.dotColor }}
+                          />
+                          <span className="font-medium">{customerType?.name || 'اختر نوع العميل'}</span>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50 border-0 shadow-lg">
+                      {CUSTOMER_TYPES.map((type, index) => (
+                        <SelectItem 
+                          key={type.id} 
+                          value={type.id}
+                          className={`cursor-pointer ${
+                            (isEditing ? editedCustomer.type : customer.type) === type.id 
+                              ? 'bg-blue-600 text-white' 
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 w-full justify-end">
+                            <span className="font-medium">{type.name}</span>
+                            <span 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: type.dotColor }}
+                            />
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -412,7 +438,7 @@ export default function GeneralInfoTab({
               </div>
             </div>
 
-            {/* درجة الاهتمام - مع الأيقونات والألوان الأصلية */}
+            {/* درجة الاهتمام - مطابق للصورة */}
             <div className="flex items-center justify-between py-3 group">
               <div className="flex items-center gap-3 flex-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
@@ -420,34 +446,50 @@ export default function GeneralInfoTab({
                 </Button>
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500 block mb-1">درجة الاهتمام</Label>
-                  {isEditing ? (
-                    <Select 
-                      value={editedCustomer.interestLevel} 
-                      onValueChange={(value: any) => setEditedCustomer({...editedCustomer, interestLevel: value})}
+                  <Select 
+                    value={isEditing ? editedCustomer.interestLevel : customer.interestLevel} 
+                    onValueChange={(value: any) => {
+                      if (isEditing) {
+                        setEditedCustomer({...editedCustomer, interestLevel: value});
+                      }
+                    }}
+                  >
+                    <SelectTrigger 
+                      className="h-10 border-2 border-amber-400 rounded-lg bg-white"
+                      style={{ borderTopColor: interestLevel?.dotColor }}
                     >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white z-50">
-                        {INTEREST_LEVELS.map(level => (
-                          <SelectItem key={level.id} value={level.id}>
-                            <span className="flex items-center gap-2">
-                              <span>{level.icon}</span>
-                              <span>{level.name}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${interestLevel?.dotColor}`}></span>
-                      <Badge className={`${interestLevel?.bg_color} ${interestLevel?.text_color} border-0 px-3 py-1`}>
-                        <span className="ml-1">{interestLevel?.icon}</span>
-                        {interestLevel?.name || 'غير محدد'}
-                      </Badge>
-                    </div>
-                  )}
+                      <SelectValue>
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: interestLevel?.dotColor }}
+                          />
+                          <span className="font-medium">{interestLevel?.name || 'اختر درجة الاهتمام'}</span>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white z-50 border-0 shadow-lg">
+                      {INTEREST_LEVELS.map((level) => (
+                        <SelectItem 
+                          key={level.id} 
+                          value={level.id}
+                          className={`cursor-pointer ${
+                            (isEditing ? editedCustomer.interestLevel : customer.interestLevel) === level.id 
+                              ? 'bg-blue-600 text-white' 
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 w-full justify-end">
+                            <span className="font-medium">{level.name}</span>
+                            <span 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: level.dotColor }}
+                            />
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
