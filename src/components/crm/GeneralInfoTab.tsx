@@ -1,9 +1,10 @@
 /**
  * GeneralInfoTab.tsx
  * تبويب المعلومات العامة - مطابق للتصميم من Figma
+ * مع الخريطة والتعبئة التلقائية للعنوان
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,10 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
+  Navigation,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Customer {
   id: string;
@@ -59,6 +63,18 @@ interface Customer {
   nextFollowUp?: string;
 }
 
+interface AddressDetails {
+  city: string;
+  district: string;
+  street: string;
+  nationalAddress: string;
+  postalCode: string;
+  buildingNumber: string;
+  additionalNumber: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface GeneralInfoTabProps {
   customer: Customer;
   isEditing: boolean;
@@ -66,22 +82,30 @@ interface GeneralInfoTabProps {
   setEditedCustomer: (customer: Customer) => void;
 }
 
-// نوع العميل مع الألوان
+// أنواع العملاء الكاملة مع الأيقونات والألوان - من الملف الأصلي
 const CUSTOMER_TYPES = [
-  { id: 'buyer', name: 'مشتري', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-  { id: 'seller', name: 'بائع', color: 'bg-red-100 text-red-800 border-red-300' },
-  { id: 'renter', name: 'مستأجر', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-  { id: 'owner', name: 'مالك', color: 'bg-purple-100 text-purple-800 border-purple-300' },
-  { id: 'investor', name: 'مستثمر', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-  { id: 'other', name: 'آخر', color: 'bg-gray-100 text-gray-800 border-gray-300' },
+  { id: 'individual', name: 'فردي', icon: '👤', bg_color: 'bg-blue-100', text_color: 'text-blue-800' },
+  { id: 'corporate', name: 'شركة', icon: '🏢', bg_color: 'bg-purple-100', text_color: 'text-purple-800' },
+  { id: 'vip', name: 'مهم', icon: '⭐', bg_color: 'bg-amber-100', text_color: 'text-amber-800' },
+  { id: 'government', name: 'حكومي', icon: '🏛️', bg_color: 'bg-emerald-100', text_color: 'text-emerald-800' },
+  { id: 'international', name: 'دولي', icon: '🌍', bg_color: 'bg-red-100', text_color: 'text-red-800' },
+  { id: 'partner', name: 'شريك', icon: '🤝', bg_color: 'bg-indigo-100', text_color: 'text-indigo-800' },
+  { id: 'buyer', name: 'مشتري', icon: '🛒', bg_color: 'bg-sky-100', text_color: 'text-sky-800' },
+  { id: 'seller', name: 'بائع', icon: '💰', bg_color: 'bg-green-100', text_color: 'text-green-800' },
+  { id: 'renter', name: 'مستأجر', icon: '🏠', bg_color: 'bg-violet-100', text_color: 'text-violet-800' },
+  { id: 'owner', name: 'مالك', icon: '🔑', bg_color: 'bg-orange-100', text_color: 'text-orange-800' },
+  { id: 'investor', name: 'مستثمر', icon: '📈', bg_color: 'bg-yellow-100', text_color: 'text-yellow-800' },
+  { id: 'other', name: 'آخر', icon: '📋', bg_color: 'bg-gray-100', text_color: 'text-gray-800' },
 ];
 
-// درجة الاهتمام مع الألوان
+// درجات الاهتمام الكاملة مع الأيقونات والألوان - من الملف الأصلي
 const INTEREST_LEVELS = [
-  { id: 'hot', name: 'متحمس', color: 'bg-red-500 text-white', dotColor: 'bg-red-500' },
-  { id: 'warm', name: 'مهتم', color: 'bg-orange-500 text-white', dotColor: 'bg-orange-500' },
-  { id: 'moderate', name: 'متوسط', color: 'bg-yellow-400 text-gray-800', dotColor: 'bg-yellow-400' },
-  { id: 'cold', name: 'بارد', color: 'bg-blue-400 text-white', dotColor: 'bg-blue-400' },
+  { id: 'hot', name: 'ساخن', icon: '🔥', bg_color: 'bg-red-100', text_color: 'text-red-800', dotColor: 'bg-red-500' },
+  { id: 'warm', name: 'دافئ', icon: '🌡️', bg_color: 'bg-orange-100', text_color: 'text-orange-800', dotColor: 'bg-orange-500' },
+  { id: 'cold', name: 'بارد', icon: '❄️', bg_color: 'bg-blue-100', text_color: 'text-blue-800', dotColor: 'bg-blue-500' },
+  { id: 'lead', name: 'قائد', icon: '👑', bg_color: 'bg-green-100', text_color: 'text-green-800', dotColor: 'bg-green-500' },
+  { id: 'prospect', name: 'محتمل', icon: '🔍', bg_color: 'bg-violet-100', text_color: 'text-violet-800', dotColor: 'bg-violet-500' },
+  { id: 'moderate', name: 'متوسط', icon: '🌤️', bg_color: 'bg-amber-100', text_color: 'text-amber-800', dotColor: 'bg-amber-500' },
 ];
 
 export default function GeneralInfoTab({ 
@@ -93,12 +117,146 @@ export default function GeneralInfoTab({
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [documents, setDocuments] = useState<File[]>([]);
+  const [showMap, setShowMap] = useState(false);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [addressDetails, setAddressDetails] = useState<AddressDetails>({
+    city: '',
+    district: '',
+    street: '',
+    nationalAddress: '',
+    postalCode: '',
+    buildingNumber: '',
+    additionalNumber: '',
+    latitude: 24.7136,
+    longitude: 46.6753,
+  });
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   const customerType = CUSTOMER_TYPES.find(t => t.id === customer.type);
   const interestLevel = INTEREST_LEVELS.find(l => l.id === customer.interestLevel);
 
   const handleAddPhone = () => {
     setAdditionalPhones([...additionalPhones, '']);
+  };
+
+  // جلب تفاصيل العنوان من الإحداثيات باستخدام Nominatim (OpenStreetMap)
+  const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+    setIsLoadingLocation(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`
+      );
+      const data = await response.json();
+      
+      if (data && data.address) {
+        const addr = data.address;
+        
+        // استخراج البيانات من الاستجابة
+        const newAddress: AddressDetails = {
+          city: addr.city || addr.town || addr.village || addr.state || '',
+          district: addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '',
+          street: addr.road || addr.street || '',
+          nationalAddress: `${addr.house_number || ''} ${addr.road || ''} ${addr.suburb || ''} ${addr.city || ''}`.trim(),
+          postalCode: addr.postcode || '',
+          buildingNumber: addr.house_number || '',
+          additionalNumber: '',
+          latitude: lat,
+          longitude: lng,
+        };
+        
+        // توليد رقم إضافي عشوائي (للمحاكاة)
+        newAddress.additionalNumber = Math.floor(1000 + Math.random() * 9000).toString();
+        
+        setAddressDetails(newAddress);
+        toast.success('تم تحديد الموقع بنجاح');
+      }
+    } catch (error) {
+      console.error('Error fetching address:', error);
+      toast.error('فشل في جلب تفاصيل العنوان');
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  // تهيئة الخريطة باستخدام Leaflet
+  useEffect(() => {
+    if (showMap && mapRef.current && !mapInstanceRef.current) {
+      // تحميل Leaflet CSS
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+
+      // تحميل Leaflet JS
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => {
+        const L = (window as any).L;
+        
+        const map = L.map(mapRef.current).setView([addressDetails.latitude, addressDetails.longitude], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // إضافة علامة قابلة للسحب
+        const marker = L.marker([addressDetails.latitude, addressDetails.longitude], {
+          draggable: true
+        }).addTo(map);
+        
+        // عند سحب العلامة
+        marker.on('dragend', function(e: any) {
+          const position = marker.getLatLng();
+          fetchAddressFromCoordinates(position.lat, position.lng);
+        });
+        
+        // عند النقر على الخريطة
+        map.on('click', function(e: any) {
+          marker.setLatLng(e.latlng);
+          fetchAddressFromCoordinates(e.latlng.lat, e.latlng.lng);
+        });
+        
+        mapInstanceRef.current = map;
+        markerRef.current = marker;
+      };
+      document.head.appendChild(script);
+    }
+    
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [showMap]);
+
+  // الحصول على الموقع الحالي
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setIsLoadingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          if (mapInstanceRef.current && markerRef.current) {
+            mapInstanceRef.current.setView([lat, lng], 17);
+            markerRef.current.setLatLng([lat, lng]);
+          }
+          
+          fetchAddressFromCoordinates(lat, lng);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast.error('فشل في الحصول على الموقع الحالي');
+          setIsLoadingLocation(false);
+        }
+      );
+    } else {
+      toast.error('المتصفح لا يدعم خدمة تحديد الموقع');
+    }
   };
 
   return (
@@ -209,7 +367,7 @@ export default function GeneralInfoTab({
               </div>
             </div>
 
-            {/* نوع العميل */}
+            {/* نوع العميل - مع الأيقونات والألوان الأصلية */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
               <div className="flex items-center gap-3 flex-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
@@ -225,14 +383,20 @@ export default function GeneralInfoTab({
                       <SelectTrigger className="h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white z-50">
                         {CUSTOMER_TYPES.map(type => (
-                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                          <SelectItem key={type.id} value={type.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{type.icon}</span>
+                              <span>{type.name}</span>
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge className={`${customerType?.color} border px-3 py-1`}>
+                    <Badge className={`${customerType?.bg_color} ${customerType?.text_color} border-0 px-3 py-1`}>
+                      <span className="ml-1">{customerType?.icon}</span>
                       {customerType?.name || 'غير محدد'}
                     </Badge>
                   )}
@@ -248,7 +412,7 @@ export default function GeneralInfoTab({
               </div>
             </div>
 
-            {/* درجة الاهتمام */}
+            {/* درجة الاهتمام - مع الأيقونات والألوان الأصلية */}
             <div className="flex items-center justify-between py-3 group">
               <div className="flex items-center gap-3 flex-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
@@ -264,16 +428,22 @@ export default function GeneralInfoTab({
                       <SelectTrigger className="h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white z-50">
                         {INTEREST_LEVELS.map(level => (
-                          <SelectItem key={level.id} value={level.id}>{level.name}</SelectItem>
+                          <SelectItem key={level.id} value={level.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{level.icon}</span>
+                              <span>{level.name}</span>
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className={`w-3 h-3 rounded-full ${interestLevel?.dotColor}`}></span>
-                      <Badge className={`${interestLevel?.color} px-3 py-1`}>
+                      <Badge className={`${interestLevel?.bg_color} ${interestLevel?.text_color} border-0 px-3 py-1`}>
+                        <span className="ml-1">{interestLevel?.icon}</span>
                         {interestLevel?.name || 'غير محدد'}
                       </Badge>
                     </div>
@@ -337,19 +507,135 @@ export default function GeneralInfoTab({
         </CardContent>
       </Card>
 
-      {/* الموقع - خريطة */}
+      {/* الموقع - خريطة مع التعبئة التلقائية */}
       <Card className="border border-gray-200 rounded-xl overflow-hidden">
         <CardContent className="p-4">
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <MapPin className="w-6 h-6 text-gray-400" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-medium text-gray-700">الموقع</span>
             </div>
-            <p className="text-sm text-gray-500 mb-3">اضغط للاختيار من خرائط قوقل</p>
-            <Button variant="outline" className="gap-2 text-emerald-600 border-emerald-300 hover:bg-emerald-50">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-2 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+              onClick={() => setShowMap(!showMap)}
+            >
               <MapPin className="w-4 h-4" />
-              فتح الخريطة
+              {showMap ? 'إخفاء الخريطة' : 'فتح الخريطة'}
             </Button>
           </div>
+
+          {!showMap ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                <MapPin className="w-6 h-6 text-gray-400" />
+              </div>
+              <p className="text-sm text-gray-500 mb-3">اضغط للاختيار من خرائط قوقل</p>
+              <Button 
+                variant="outline" 
+                className="gap-2 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                onClick={() => setShowMap(true)}
+              >
+                <MapPin className="w-4 h-4" />
+                فتح الخريطة
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* الخريطة */}
+              <div 
+                ref={mapRef}
+                className="w-full h-64 rounded-lg border border-gray-200 bg-gray-100"
+              />
+              
+              {/* زر الموقع الحالي */}
+              <Button 
+                variant="outline" 
+                className="w-full gap-2"
+                onClick={getCurrentLocation}
+                disabled={isLoadingLocation}
+              >
+                {isLoadingLocation ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Navigation className="w-4 h-4" />
+                )}
+                تحديد موقعي الحالي
+              </Button>
+
+              {/* حقول العنوان المعبأة تلقائياً */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-gray-500">المدينة</Label>
+                  <Input 
+                    value={addressDetails.city} 
+                    onChange={(e) => setAddressDetails({...addressDetails, city: e.target.value})}
+                    className="h-9 mt-1"
+                    placeholder="الرياض"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">الحي</Label>
+                  <Input 
+                    value={addressDetails.district} 
+                    onChange={(e) => setAddressDetails({...addressDetails, district: e.target.value})}
+                    className="h-9 mt-1"
+                    placeholder="النرجس"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">الشارع</Label>
+                  <Input 
+                    value={addressDetails.street} 
+                    onChange={(e) => setAddressDetails({...addressDetails, street: e.target.value})}
+                    className="h-9 mt-1"
+                    placeholder="شارع الملك فهد"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">الرمز البريدي</Label>
+                  <Input 
+                    value={addressDetails.postalCode} 
+                    onChange={(e) => setAddressDetails({...addressDetails, postalCode: e.target.value})}
+                    className="h-9 mt-1"
+                    placeholder="12345"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">رقم المبنى</Label>
+                  <Input 
+                    value={addressDetails.buildingNumber} 
+                    onChange={(e) => setAddressDetails({...addressDetails, buildingNumber: e.target.value})}
+                    className="h-9 mt-1"
+                    placeholder="1234"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500">الرقم الإضافي</Label>
+                  <Input 
+                    value={addressDetails.additionalNumber} 
+                    onChange={(e) => setAddressDetails({...addressDetails, additionalNumber: e.target.value})}
+                    className="h-9 mt-1"
+                    placeholder="5678"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-gray-500">العنوان الوطني</Label>
+                <Input 
+                  value={addressDetails.nationalAddress} 
+                  onChange={(e) => setAddressDetails({...addressDetails, nationalAddress: e.target.value})}
+                  className="h-9 mt-1"
+                  placeholder="العنوان الوطني الكامل"
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
