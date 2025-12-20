@@ -1517,7 +1517,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     <div className="flex items-start justify-between gap-2 mb-2">
                                       {/* اليسار: نوع العميل + درجة الاهتمام */}
                                       <div className="flex flex-col gap-1">
-                                        {/* نوع العميل */}
+                                        {/* نوع العميل - مطابق للصورة */}
                                         <Select
                                           value={customer.type || 'buyer'}
                                           onValueChange={(value) => {
@@ -1527,32 +1527,41 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           }}
                                         >
                                           <SelectTrigger 
-                                            className="h-5 text-[9px] w-auto px-1.5 border-0 min-w-[60px]"
-                                            style={{ 
-                                              backgroundColor: clientTypes[customer.type as ClientType]?.bgColor || '#F3F4F6',
-                                              color: clientTypes[customer.type as ClientType]?.color || '#6B7280'
-                                            }}
+                                            className="h-6 text-[10px] w-auto px-2 border-2 border-amber-400 rounded-md bg-white min-w-[70px]"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <SelectValue />
+                                            <div className="flex items-center gap-1.5">
+                                              <span 
+                                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                                style={{ backgroundColor: clientTypes[customer.type as ClientType]?.color || '#6B7280' }}
+                                              />
+                                              <span className="font-medium text-gray-800">{clientTypes[customer.type as ClientType]?.label || 'اختر'}</span>
+                                            </div>
                                           </SelectTrigger>
-                                          <SelectContent className="bg-white z-50">
+                                          <SelectContent className="bg-white z-50 border-0 shadow-lg min-w-[100px]">
                                             {Object.entries(clientTypes).map(([key, config]) => (
                                               <SelectItem 
                                                 key={key} 
                                                 value={key}
-                                                className="text-xs"
+                                                className={`text-xs cursor-pointer ${
+                                                  customer.type === key 
+                                                    ? 'bg-blue-600 text-white' 
+                                                    : 'hover:bg-gray-100'
+                                                }`}
                                               >
-                                                <span className="flex items-center gap-1">
-                                                  <span>{config.icon}</span>
-                                                  <span style={{ color: config.color }}>{config.label}</span>
-                                                </span>
+                                                <div className="flex items-center gap-2 w-full justify-end">
+                                                  <span className="font-medium">{config.label}</span>
+                                                  <span 
+                                                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                                                    style={{ backgroundColor: config.color }}
+                                                  />
+                                                </div>
                                               </SelectItem>
                                             ))}
                                           </SelectContent>
                                         </Select>
                                         
-                                        {/* درجة الاهتمام */}
+                                        {/* درجة الاهتمام - مطابق للصورة */}
                                         <Select
                                           value={customer.interestLevel || 'medium'}
                                           onValueChange={(value) => {
@@ -1562,26 +1571,35 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           }}
                                         >
                                           <SelectTrigger 
-                                            className={`h-5 text-[9px] w-auto px-1.5 border-0 min-w-[60px] ${interestLevels[customer.interestLevel as InterestLevel]?.animation || ''}`}
-                                            style={{ 
-                                              backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.bgColor || '#F3F4F6',
-                                              color: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
-                                            }}
+                                            className="h-6 text-[10px] w-auto px-2 border-2 border-amber-400 rounded-md bg-white min-w-[70px]"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <SelectValue />
+                                            <div className="flex items-center gap-1.5">
+                                              <span 
+                                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                                style={{ backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280' }}
+                                              />
+                                              <span className="font-medium text-gray-800">{interestLevels[customer.interestLevel as InterestLevel]?.label || 'اختر'}</span>
+                                            </div>
                                           </SelectTrigger>
-                                          <SelectContent className="bg-white z-50">
+                                          <SelectContent className="bg-white z-50 border-0 shadow-lg min-w-[100px]">
                                             {Object.entries(interestLevels).map(([key, config]) => (
                                               <SelectItem 
                                                 key={key} 
                                                 value={key}
-                                                className="text-xs"
+                                                className={`text-xs cursor-pointer ${
+                                                  customer.interestLevel === key 
+                                                    ? 'bg-blue-600 text-white' 
+                                                    : 'hover:bg-gray-100'
+                                                }`}
                                               >
-                                                <span className={`flex items-center gap-1 ${config.animation || ''}`}>
-                                                  <span>{config.icon}</span>
-                                                  <span style={{ color: config.color }}>{config.label}</span>
-                                                </span>
+                                                <div className="flex items-center gap-2 w-full justify-end">
+                                                  <span className="font-medium">{config.label}</span>
+                                                  <span 
+                                                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                                                    style={{ backgroundColor: config.color }}
+                                                  />
+                                                </div>
                                               </SelectItem>
                                             ))}
                                           </SelectContent>
