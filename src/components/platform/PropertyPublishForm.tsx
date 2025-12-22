@@ -4,7 +4,7 @@
  * حسب الملف: PUBLISH_AD_SECTIONS_COMPLETE_PROMPT.md
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +33,15 @@ import {
   Zap,
   Copy,
   RefreshCw,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
+import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone } from "@/hooks/usePublishedAdsManager";
+import PublishSuccessActions from "./PublishSuccessActions";
 
 // ===================== Types =====================
 
@@ -98,6 +105,17 @@ interface PropertyData {
   // السعر
   price: string;
   priceType: string;
+
+  // معلومات المالك
+  ownerName: string;
+  ownerPhone: string;
+  ownerEmail: string;
+  ownerIdNumber: string;
+
+  // معلومات الصك
+  deedNumber: string;
+  deedDate: string;
+  deedCity: string;
 }
 
 interface PropertyPublishFormProps {
@@ -184,6 +202,15 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
     descriptionLength: 'متوسط (100 كلمة)',
     price: '',
     priceType: 'ريال',
+    // معلومات المالك
+    ownerName: '',
+    ownerPhone: '',
+    ownerEmail: '',
+    ownerIdNumber: '',
+    // معلومات الصك
+    deedNumber: '',
+    deedDate: '',
+    deedCity: '',
   });
 
   // المسار التلقائي المقترح
@@ -271,6 +298,11 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
     toast.success('تم توليد الوصف بنجاح');
   };
 
+  // Published ad manager
+  const { publishAdWithCustomerLink } = usePublishedAdsManager();
+  const [publishedAd, setPublishedAd] = useState<PublishedAdData | null>(null);
+  const [showSuccessActions, setShowSuccessActions] = useState(false);
+
   // Handle Publish
   const handlePublish = async () => {
     // Validation
@@ -279,25 +311,55 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
       return;
     }
 
+    if (!propertyData.ownerName || !propertyData.ownerPhone) {
+      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الجوال');
+      return;
+    }
+
     setIsPublishing(true);
     
     try {
-      // TODO: حفظ البيانات في قاعدة البيانات
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Create published ad data
+      const adData: PublishedAdData = {
+        id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        ...propertyData,
+        publishedAt: new Date().toISOString(),
+        status: 'published',
+      };
+
+      // Publish with customer linking
+      const result = await publishAdWithCustomerLink(adData);
       
-      onPublish(propertyData);
-      toast.success('تم نشر الإعلان بنجاح!');
-      
-      // إرسال حدث للتحليلات
-      window.dispatchEvent(new CustomEvent('analyticsEvent', {
-        detail: { eventType: 'property_published', propertyType: propertyData.propertyType, city: propertyData.locationDetails.city }
-      }));
-      
+      if (result.success) {
+        setPublishedAd({ ...adData, linkedCustomerId: result.customerId || undefined });
+        setShowSuccessActions(true);
+        onPublish(propertyData);
+        
+        // إرسال حدث للتحليلات
+        window.dispatchEvent(new CustomEvent('analyticsEvent', {
+          detail: { eventType: 'property_published', propertyType: propertyData.propertyType, city: propertyData.locationDetails.city }
+        }));
+      } else {
+        toast.error(result.message);
+      }
     } catch (error) {
       toast.error('حدث خطأ أثناء نشر الإعلان');
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  // Handle republish
+  const handleRepublish = () => {
+    setShowSuccessActions(false);
+    setPublishedAd(null);
+  };
+
+  // Navigate to owner
+  const handleNavigateToOwner = (customerId: string) => {
+    window.dispatchEvent(new CustomEvent('navigateToPage', { 
+      detail: { page: 'crm', customerId } 
+    }));
   };
 
   return (
