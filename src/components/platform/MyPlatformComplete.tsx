@@ -58,6 +58,7 @@ import {
   Move,
   FileDown,
   PlusCircle,
+  User,
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
 import MyPublicPlatformContent from "./MyPublicPlatformContent";
@@ -188,6 +189,7 @@ interface SingleOffer {
   bathrooms?: number;
   area?: number;
   owner: { name: string; phone: string };
+  ownerName?: string;
   isHidden: boolean;
   liveViewers: number;
 }
@@ -1730,6 +1732,13 @@ export default function MyPlatformComplete({
                                           <CardContent className="p-3">
                                             <h5 className="font-bold text-[#01411C] line-clamp-1 text-sm md:text-base">{offer.title}</h5>
                                             <p className="text-[#D4AF37] font-bold text-sm mt-1">{offer.price}</p>
+                                            {/* اسم المالك */}
+                                            {offer.ownerName && (
+                                              <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                                                <User className="w-3 h-3" />
+                                                {offer.ownerName}
+                                              </p>
+                                            )}
                                             <div className="flex items-center gap-2 md:gap-4 text-xs text-gray-500 mt-2 flex-wrap">
                                               <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{offer.views.toLocaleString()}</span>
                                               <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{offer.requests}</span>

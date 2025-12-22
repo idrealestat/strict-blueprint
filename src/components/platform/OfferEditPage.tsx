@@ -424,71 +424,73 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
             </div>
           </div>
 
-          {/* الصور تحت التبويبات مباشرة */}
-          <div className="bg-gray-100 p-4">
-            {/* الصورة الرئيسية الكبيرة */}
-            <div 
-              className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden mb-3 cursor-pointer"
-              onClick={() => setShowZoom(true)}
-            >
-              <img
-                src={images[selectedImageIndex]}
-                alt="العرض"
-                className="w-full h-full object-cover"
-              />
-              <button
-                className="absolute top-3 right-3 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
-                onClick={(e) => { e.stopPropagation(); setShowZoom(true); }}
+          {/* الصور تحت التبويبات مباشرة - تظهر فقط في تبويب المعلومات الأساسية */}
+          {activeTab === 'basic' && (
+            <div className="bg-gray-100 p-4">
+              {/* الصورة الرئيسية الكبيرة */}
+              <div 
+                className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden mb-3 cursor-pointer"
+                onClick={() => setShowZoom(true)}
               >
-                <ZoomIn className="w-5 h-5 text-white" />
-              </button>
-              {images.length > 1 && (
-                <>
+                <img
+                  src={images[selectedImageIndex]}
+                  alt="العرض"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  className="absolute top-3 right-3 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
+                  onClick={(e) => { e.stopPropagation(); setShowZoom(true); }}
+                >
+                  <ZoomIn className="w-5 h-5 text-white" />
+                </button>
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { 
+                        e.stopPropagation();
+                        setSelectedImageIndex(prev => (prev - 1 + images.length) % images.length);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
+                    >
+                      <ChevronRight className="w-6 h-6 text-white" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedImageIndex(prev => (prev + 1) % images.length);
+                      }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
+                    >
+                      <ChevronLeft className="w-6 h-6 text-white" />
+                    </button>
+                  </>
+                )}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                  {selectedImageIndex + 1} / {images.length}
+                </div>
+              </div>
+
+              {/* الصور المصغرة */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {images.map((img, index) => (
                   <button
-                    onClick={(e) => { 
-                      e.stopPropagation();
-                      setSelectedImageIndex(prev => (prev - 1 + images.length) % images.length);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden transition-all ${
+                      index === selectedImageIndex 
+                        ? 'ring-2 ring-[#01411C] scale-105' 
+                        : 'opacity-60 hover:opacity-100'
+                    }`}
                   >
-                    <ChevronRight className="w-6 h-6 text-white" />
+                    <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedImageIndex(prev => (prev + 1) % images.length);
-                    }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
-                  >
-                    <ChevronLeft className="w-6 h-6 text-white" />
-                  </button>
-                </>
-              )}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
-                {selectedImageIndex + 1} / {images.length}
+                ))}
+                <button className="flex-shrink-0 w-16 h-16 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all">
+                  <Plus className="w-6 h-6 text-gray-500" />
+                </button>
               </div>
             </div>
-
-            {/* الصور المصغرة */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {images.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden transition-all ${
-                    index === selectedImageIndex 
-                      ? 'ring-2 ring-[#01411C] scale-105' 
-                      : 'opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-              <button className="flex-shrink-0 w-16 h-16 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all">
-                <Plus className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* المحتوى - نموذج التعديل */}
           <div className="p-4 pb-24">
@@ -714,6 +716,23 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
 
             {activeTab === 'owner' && (
               <div className="space-y-5">
+                {/* زر الانتقال الى بطاقة اسم المالك */}
+                <Button
+                  onClick={() => {
+                    // يمكن إضافة منطق الانتقال هنا
+                    toast({ title: '🔗 جاري الانتقال الى بطاقة المالك...' });
+                    // dispatch event to navigate to owner card
+                    const event = new CustomEvent('navigateToOwnerCard', {
+                      detail: { ownerName: formData.ownerName }
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                  className="w-full bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold"
+                >
+                  <User className="w-4 h-4 ml-2" />
+                  الانتقال الى بطاقة اسم المالك
+                </Button>
+                
                 {/* اسم المالك */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
