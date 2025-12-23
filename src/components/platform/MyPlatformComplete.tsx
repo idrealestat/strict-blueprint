@@ -4,7 +4,9 @@
  * حسب البرومبت الأصلي: منصتي / العروض / الطلبات / نشر عقار
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
+import PulsingDot from "@/components/ui/PulsingDot";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1512,7 +1514,11 @@ export default function MyPlatformComplete({
                             <h4 className="text-sm font-bold text-gray-600 mb-3">عروض مباشرة في {city.cityName}:</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {city.directOffers.map((offer) => (
-                                <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white`}>
+                                <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white relative`}>
+                                  {/* النقطة الحمراء للعرض الجديد */}
+                                  {isNew('published_ad', offer.id) && (
+                                    <PulsingDot show={true} size="md" position="top-right" />
+                                  )}
                                   <div className="relative h-32">
                                     <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
                                     <Badge className={`absolute top-2 left-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
@@ -1711,6 +1717,12 @@ export default function MyPlatformComplete({
                                             <div className="absolute top-2 left-2 z-10 cursor-grab active:cursor-grabbing p-1 bg-white/80 rounded shadow" title="اسحب لنقل العرض">
                                               <GripVertical className="w-4 h-4 text-gray-600" />
                                             </div>
+                                            {/* النقطة الحمراء للعرض الجديد */}
+                                            {isNew('published_ad', offer.id) && (
+                                              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
+                                                <PulsingDot show={true} size="md" position="top-right" className="relative" />
+                                              </div>
+                                            )}
                                             <img src={offer.image} alt={offer.title} className="w-full h-full object-cover" />
                                             <Badge className={`absolute top-2 right-2 ${offer.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'}`}>
                                               <span className={`w-2 h-2 rounded-full ml-1 ${offer.status === 'published' ? 'bg-white animate-pulse' : 'bg-white'}`} />

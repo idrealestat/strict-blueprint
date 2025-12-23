@@ -4,7 +4,9 @@
  * Enhanced Broker CRM with Kanban Board - Literal Implementation
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
+import PulsingDot from "@/components/ui/PulsingDot";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -647,6 +649,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   // Mark customer as read
   const markAsRead = (customerId: string) => {
     setUnreadCustomers(prev => prev.filter(id => id !== customerId));
+    // أيضاً إزالة علامة "جديد" من نظام التتبع
+    markAsViewed('customer', customerId);
   };
 
   // Handle opening customer details
@@ -1412,9 +1416,9 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           </AvatarFallback>
                                         </Avatar>
                                         
-                                        {/* 1.2 مؤشر غير مقروء */}
-                                        {isCustomerUnread(customer.id) && (
-                                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                                        {/* 1.2 مؤشر غير مقروء - النقطة الحمراء النابضة */}
+                                        {(isCustomerUnread(customer.id) || isNew('customer', customer.id)) && (
+                                          <PulsingDot show={true} size="sm" position="top-right" />
                                         )}
                                       </div>
                                       
