@@ -121,6 +121,10 @@ interface PropertyData {
 interface PropertyPublishFormProps {
   onPublish: (data: PropertyData) => void;
   onCancel: () => void;
+  user?: {
+    name?: string;
+    phone?: string;
+  };
 }
 
 // ===================== Constants =====================
@@ -152,7 +156,7 @@ const descriptionLengths = ["قصير (50 كلمة)", "متوسط (100 كلمة)
 
 // ===================== Component =====================
 
-export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPublishFormProps) {
+export default function PropertyPublishForm({ onPublish, onCancel, user }: PropertyPublishFormProps) {
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [newCustomFeature, setNewCustomFeature] = useState('');
@@ -1093,7 +1097,112 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
           </CardContent>
         </Card>
 
-        {/* ===================== 8. زر نشر الإعلان ===================== */}
+        {/* ===================== 8. معلومات المالك ===================== */}
+        <Card className="border-2 border-[#D4AF37]">
+          <CardHeader>
+            <CardTitle className="text-[#01411C] flex items-center gap-2">
+              <User className="w-5 h-5" />
+              معلومات المالك
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-[#01411C] text-right">اسم المالك *</Label>
+                <Input
+                  value={propertyData.ownerName}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, ownerName: e.target.value }))}
+                  placeholder="أدخل اسم المالك"
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <Label className="text-[#01411C] text-right">رقم جوال المالك *</Label>
+                <Input
+                  value={propertyData.ownerPhone}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, ownerPhone: e.target.value }))}
+                  placeholder="05xxxxxxxx"
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <Label className="text-[#01411C] text-right">البريد الإلكتروني</Label>
+                <Input
+                  type="email"
+                  value={propertyData.ownerEmail}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, ownerEmail: e.target.value }))}
+                  placeholder="example@email.com"
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="ltr"
+                />
+              </div>
+              <div>
+                <Label className="text-[#01411C] text-right">رقم الهوية</Label>
+                <Input
+                  value={propertyData.ownerIdNumber}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, ownerIdNumber: e.target.value }))}
+                  placeholder="رقم الهوية الوطنية"
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ===================== 9. معلومات الصك ===================== */}
+        <Card className="border-2 border-[#D4AF37]">
+          <CardHeader>
+            <CardTitle className="text-[#01411C] flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              معلومات الصك
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-[#01411C] text-right">رقم الصك</Label>
+                <Input
+                  value={propertyData.deedNumber}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, deedNumber: e.target.value }))}
+                  placeholder="رقم الصك"
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <Label className="text-[#01411C] text-right">تاريخ الصك</Label>
+                <Input
+                  type="date"
+                  value={propertyData.deedDate}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, deedDate: e.target.value }))}
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="rtl"
+                />
+              </div>
+              <div>
+                <Label className="text-[#01411C] text-right">مدينة الصك</Label>
+                <Select 
+                  value={propertyData.deedCity} 
+                  onValueChange={(value) => setPropertyData(prev => ({ ...prev, deedCity: value }))}
+                >
+                  <SelectTrigger className="border-[#D4AF37] focus:border-[#01411C] text-right" dir="rtl">
+                    <SelectValue placeholder="اختر المدينة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cities.map((city) => (
+                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ===================== 10. زر نشر الإعلان ===================== */}
         <Card className="border-2 border-[#01411C] bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
           <CardContent className="p-6">
             {/* ملخص سريع */}
@@ -1115,6 +1224,14 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
                 <div>
                   <span className="text-gray-500">المساحة:</span>{' '}
                   <span className="font-medium">{propertyData.area ? `${propertyData.area} م²` : '-'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">المالك:</span>{' '}
+                  <span className="font-medium">{propertyData.ownerName || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">جوال المالك:</span>{' '}
+                  <span className="font-medium">{propertyData.ownerPhone || '-'}</span>
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
@@ -1138,7 +1255,7 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
               </Button>
               <Button
                 onClick={handlePublish}
-                disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city}
+                disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone}
                 className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37] font-bold text-lg py-6"
               >
                 {isPublishing ? (
@@ -1156,11 +1273,24 @@ export default function PropertyPublishForm({ onPublish, onCancel }: PropertyPub
             </div>
 
             {/* تحذير الحقول المطلوبة */}
-            {(!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city) && (
+            {(!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone) && (
               <div className="mt-3 flex items-center gap-2 text-amber-600 text-sm">
                 <AlertCircle className="w-4 h-4" />
-                يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة
+                يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة، اسم المالك، جوال المالك
               </div>
+            )}
+
+            {/* أزرار ما بعد النشر */}
+            {showSuccessActions && publishedAd && (
+              <PublishSuccessActions
+                publishedAd={publishedAd}
+                onRepublish={handleRepublish}
+                onNavigateToOwner={handleNavigateToOwner}
+                brokerInfo={user ? {
+                  name: user.name || 'الوسيط العقاري',
+                  phone: user.phone || '',
+                } : undefined}
+              />
             )}
           </CardContent>
         </Card>
