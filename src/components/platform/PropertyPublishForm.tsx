@@ -502,65 +502,136 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
 
   // مولد الأسعار الذكي
   const generateSmartPrices = async () => {
+    if (!propertyData.area || !propertyData.purpose) {
+      toast.error('يرجى تحديد المساحة والغرض أولاً');
+      return;
+    }
+    
     setIsGeneratingPrices(true);
     
-    // محاكاة البحث عن الأسعار
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const basePrice = parseInt(propertyData.area) * (propertyData.purpose === 'للإيجار' ? 50 : 3000);
-    const variation = basePrice * 0.15;
-    
-    setSuggestedPrices([
-      { source: 'موقع عقار', price: Math.round(basePrice + variation * 0.1).toLocaleString() },
-      { source: 'عقار ساس', price: Math.round(basePrice - variation * 0.05).toLocaleString() },
-      { source: 'المؤشرات العقارية', price: Math.round(basePrice).toLocaleString() },
-    ]);
-    
-    setIsGeneratingPrices(false);
-    toast.success('تم توليد الأسعار المقترحة');
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-smart-prices`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            propertyData: {
+              propertyType: propertyData.propertyType,
+              category: propertyData.category,
+              purpose: propertyData.purpose,
+              area: propertyData.area,
+              city: propertyData.locationDetails.city,
+              district: propertyData.locationDetails.district,
+              bedrooms: propertyData.bedrooms,
+              propertyAge: propertyData.propertyAge,
+              furnishing: propertyData.furnishing,
+            }
+          }),
+        }
+      );
+      
+      if (!response.ok) throw new Error('فشل في توليد الأسعار');
+      
+      const data = await response.json();
+      
+      setSuggestedPrices(data.prices.map((p: any) => ({
+        source: p.source,
+        price: p.price.toLocaleString(),
+        url: p.url,
+      })));
+      
+      // تحديث الدفعات إذا كان للإيجار
+      if (data.paymentBreakdown) {
+        setPropertyData(prev => ({
+          ...prev,
+          paymentPrices: {
+            onePayment: data.paymentBreakdown.onePayment.toLocaleString(),
+            twoPayments: data.paymentBreakdown.twoPayments.toLocaleString(),
+            fourPayments: data.paymentBreakdown.fourPayments.toLocaleString(),
+            monthly: data.paymentBreakdown.monthly.toLocaleString(),
+          }
+        }));
+      }
+      
+      toast.success(`تم توليد الأسعار المقترحة (${data.priceUnit})`);
+    } catch (error) {
+      console.error('Error generating prices:', error);
+      toast.error('فشل في توليد الأسعار');
+    } finally {
+      setIsGeneratingPrices(false);
+    }
   };
 
   // Generate AI Description
   const generateAIDescription = async () => {
+    if (!propertyData.propertyType || !propertyData.purpose) {
+      toast.error('يرجى تحديد نوع العقار والغرض أولاً');
+      return;
+    }
+    
     setIsGeneratingDescription(true);
     
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const purposeText = propertyData.purpose;
-    const typeText = propertyData.propertyType;
-    const areaText = propertyData.area;
-    const districtText = propertyData.locationDetails.district;
-    const cityText = propertyData.locationDetails.city;
-    
-    let description = `${purposeText} ${typeText} ${areaText ? `بمساحة ${areaText} م²` : ''} في ${districtText ? `حي ${districtText}،` : ''} ${cityText}.\n\n`;
-    
-    if (propertyData.bedrooms) description += `عدد غرف النوم: ${propertyData.bedrooms}\n`;
-    if (propertyData.bathrooms) description += `عدد دورات المياه: ${propertyData.bathrooms}\n`;
-    if (propertyData.livingRooms) description += `عدد الصالات: ${propertyData.livingRooms}\n`;
-    if (propertyData.councils) description += `عدد المجالس: ${propertyData.councils}\n`;
-    if (propertyData.floors) description += `عدد الأدوار: ${propertyData.floors}\n`;
-    if (propertyData.furnishing) description += `التأثيث: ${propertyData.furnishing}\n`;
-    if (propertyData.propertyAge) description += `عمر العقار: ${propertyData.propertyAge} سنوات\n`;
-    
-    if (propertyData.features.length > 0) {
-      description += `\nالمميزات: ${propertyData.features.join('، ')}\n`;
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-property-description`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            propertyData: {
+              propertyType: propertyData.propertyType,
+              category: propertyData.category,
+              purpose: propertyData.purpose,
+              area: propertyData.area,
+              city: propertyData.locationDetails.city,
+              district: propertyData.locationDetails.district,
+              bedrooms: propertyData.bedrooms,
+              bathrooms: propertyData.bathrooms,
+              livingRooms: propertyData.livingRooms,
+              councils: propertyData.councils,
+              floors: propertyData.floors,
+              furnishing: propertyData.furnishing,
+              propertyAge: propertyData.propertyAge,
+              features: propertyData.features,
+              warranties: propertyData.warranties,
+              adLicense: propertyData.adLicense,
+              brokerPhone: propertyData.brokerPhone,
+              descriptionStyle: propertyData.descriptionStyle,
+              descriptionLength: propertyData.descriptionLength,
+              descriptionLanguage: propertyData.descriptionLanguage,
+              streetWidth: propertyData.streetWidth,
+              facade: propertyData.facade,
+              acUnits: propertyData.acUnits,
+              balconies: propertyData.balconies,
+              entrances: propertyData.entrances,
+            }
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'فشل في توليد الوصف');
+      }
+      
+      const data = await response.json();
+      setPropertyData(prev => ({ ...prev, aiDescription: data.description }));
+      toast.success('تم توليد الوصف بنجاح');
+    } catch (error) {
+      console.error('Error generating description:', error);
+      toast.error(error instanceof Error ? error.message : 'فشل في توليد الوصف');
+    } finally {
+      setIsGeneratingDescription(false);
     }
-    
-    if (propertyData.warranties.length > 0) {
-      description += `\nالضمانات: ${propertyData.warranties.map(w => `${w.type} (${w.duration})`).join('، ')}\n`;
-    }
-    
-    if (propertyData.adLicense) {
-      description += `\nترخيص إعلاني: ${propertyData.adLicense}\n`;
-    }
-    
-    if (propertyData.brokerPhone) {
-      description += `للتواصل والاستفسار: ${propertyData.brokerPhone}`;
-    }
-    
-    setPropertyData(prev => ({ ...prev, aiDescription: description }));
-    setIsGeneratingDescription(false);
-    toast.success('تم توليد الوصف بنجاح');
   };
 
   // Published ad manager

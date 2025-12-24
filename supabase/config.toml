@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.send-rental-notification]
 verify_jwt = false
+
+[functions.generate-property-description]
+verify_jwt = false
+
+[functions.generate-smart-prices]
+verify_jwt = false
