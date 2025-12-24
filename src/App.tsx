@@ -207,27 +207,35 @@ const App = () => {
     };
   }, []);
 
-  // Listen for opening customer details from AI Assistant (with optional active tab)
+  // Listen for opening customer details from anywhere (CRM/Offers/AI)
   useEffect(() => {
     const handleOpenCustomerDetails = (event: CustomEvent) => {
-      const { customerId, activeTab } = event.detail;
-      // Mock customer data - في التطبيق الحقيقي ستأتي من قاعدة البيانات
-      const mockCustomer = {
+      const { customerId, activeTab } = event.detail || {};
+
+      const customers = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('crm_customers') || '[]');
+        } catch {
+          return [];
+        }
+      })();
+
+      const found = customers.find((c: any) => c.id === customerId);
+
+      // fallback بسيط لو لم يوجد (حتى لا تتعطل الشاشة)
+      const customer = found || {
         id: customerId,
-        name: customerId === 'owner-1' ? 'محمد أحمد العتيبي' : 
-              customerId === 'owner-2' ? 'عبدالله محمد الشمري' :
-              customerId === 'owner-3' ? 'سعد عبدالرحمن' :
-              customerId === 'owner-4' ? 'فهد سليمان' : 'عميل',
-        phone: '0501234567',
-        email: 'owner@example.com',
+        name: 'عميل',
+        phone: '',
+        email: '',
         type: 'owner',
         status: 'active',
         columnId: 'active',
-        createdAt: '2024-01-15',
-        activeTab: activeTab || 'overview'
+        createdAt: new Date().toISOString(),
       };
-      setSelectedCustomerForDetails(mockCustomer);
-      setCurrentPage("customer-details");
+
+      setSelectedCustomerForDetails({ ...customer, activeTab: activeTab || 'overview' });
+      setCurrentPage('customer-details');
     };
 
     window.addEventListener('openCustomerDetails', handleOpenCustomerDetails as EventListener);

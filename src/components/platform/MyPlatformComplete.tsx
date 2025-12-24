@@ -1773,22 +1773,39 @@ export default function MyPlatformComplete({
                                           onDragStart={(e) => handleDragStartOffer(e, offer, city.cityName, district.districtName)}
                                           onDragEnd={() => setDraggedItem(null)}
                                           onClick={() => {
+                                            // عند فتح العرض: نقرأ بيانات الإعلان الكاملة من التخزين لضمان نقل كل الحقول للتبويبات
+                                            const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+                                            const fullAd = publishedAds.find((ad: any) => ad.id === offer.id);
+
+                                            const images = (fullAd?.images?.length ? fullAd.images : [offer.image]).filter(Boolean);
+                                            const videos = (fullAd?.videos || []).filter(Boolean);
+
                                             setSelectedOfferForEdit({
                                               id: offer.id,
-                                              title: offer.title,
-                                              price: parseInt(offer.price.replace(/[^\d]/g, '')) || 0,
-                                              propertyType: offer.propertyType || 'شقة',
+                                              title: fullAd?.title || offer.title,
+                                              price: parseInt((fullAd?.price || offer.price || '').toString().replace(/[^\d]/g, '')) || 0,
+                                              propertyType: fullAd?.propertyType || offer.propertyType || 'شقة',
                                               area: offer.area,
                                               bedrooms: offer.bedrooms,
                                               bathrooms: offer.bathrooms,
-                                              image: offer.image,
-                                              imageCount: 4,
-                                              city: city.cityName,
-                                              district: district.districtName,
-                                              description: '',
-                                              ownerName: '',
-                                              ownerPhone: '',
-                                              images: [offer.image]
+                                              image: images[0] || offer.image,
+                                              imageCount: images.length || 1,
+                                              city: fullAd?.locationDetails?.city || city.cityName,
+                                              district: fullAd?.locationDetails?.district || district.districtName,
+                                              description: fullAd?.aiDescription || '',
+                                              ownerName: fullAd?.ownerName || offer.ownerName || '',
+                                              ownerPhone: fullAd?.ownerPhone || offer.owner?.phone || '',
+                                              ownerEmail: fullAd?.ownerEmail || '',
+                                              ownerBirthDate: fullAd?.ownerBirthDate || '',
+                                              ownerCity: fullAd?.ownerCity || '',
+                                              ownerDistrict: fullAd?.ownerDistrict || '',
+                                              deedNumber: fullAd?.deedNumber || '',
+                                              deedDate: fullAd?.deedDate || '',
+                                              deedCity: fullAd?.deedCity || '',
+                                              images,
+                                              videos,
+                                              tour3DUrl: fullAd?.tour3DUrl || '',
+                                              linkedCustomerId: fullAd?.linkedCustomerId || undefined,
                                             });
                                             setShowEditPage(true);
                                           }}
