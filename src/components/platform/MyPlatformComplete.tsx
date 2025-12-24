@@ -605,6 +605,88 @@ export default function MyPlatformComplete({
     return { totalOffers, totalViews, districtsCount: city.districts.length };
   };
 
+  // الاستماع لحدث نشر الإعلان وإضافته للهيكل الهرمي
+  useEffect(() => {
+    const handleAdPublished = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { adId } = customEvent.detail;
+      
+      // جلب بيانات الإعلان المنشور من localStorage
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      const newAd = publishedAds.find((ad: any) => ad.id === adId);
+      
+      if (!newAd) return;
+      
+      const city = newAd.locationDetails?.city || 'أخرى';
+      const district = newAd.locationDetails?.district || 'عروض مباشرة';
+      
+      // إنشاء العرض بالشكل المطلوب
+      const newOffer: SingleOffer = {
+        id: newAd.id,
+        title: `${newAd.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${newAd.propertyType} - ${newAd.area || ''}م`,
+        price: newAd.price ? `${newAd.price} ريال` : 'السعر عند التواصل',
+        image: newAd.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
+        status: 'published',
+        views: 0,
+        requests: 0,
+        propertyType: newAd.propertyType,
+        bedrooms: parseInt(newAd.bedrooms) || undefined,
+        bathrooms: parseInt(newAd.bathrooms) || undefined,
+        area: parseInt(newAd.area) || undefined,
+        owner: { name: newAd.ownerName, phone: newAd.ownerPhone },
+        ownerName: newAd.ownerName,
+        isHidden: false,
+        liveViewers: 0,
+      };
+      
+      setCityHierarchy(prev => {
+        let updated = [...prev];
+        
+        // البحث عن المدينة أو إنشاؤها
+        let cityIndex = updated.findIndex(c => c.cityName === city);
+        if (cityIndex === -1) {
+          updated.push({
+            cityName: city,
+            isExpanded: false,
+            isHidden: false,
+            liveViewers: 0,
+            directOffers: [],
+            districts: []
+          });
+          cityIndex = updated.length - 1;
+        }
+        
+        // البحث عن الحي أو إنشاؤه
+        if (district && district !== 'عروض مباشرة') {
+          let districtIndex = updated[cityIndex].districts.findIndex(d => d.districtName === district || d.districtName === `حي ${district}`);
+          if (districtIndex === -1) {
+            updated[cityIndex].districts.push({
+              districtName: district.startsWith('حي ') ? district : `حي ${district}`,
+              offers: [],
+              isExpanded: false,
+              isHidden: false,
+              liveViewers: 0
+            });
+            districtIndex = updated[cityIndex].districts.length - 1;
+          }
+          // إضافة العرض للحي
+          updated[cityIndex].districts[districtIndex].offers.push(newOffer);
+        } else {
+          // إضافة للعروض المباشرة
+          updated[cityIndex].directOffers.push(newOffer);
+        }
+        
+        return updated;
+      });
+      
+      // توسيع المدينة لإظهار العرض الجديد
+      setExpandedCities(prev => new Set([...prev, city]));
+    };
+    
+    window.addEventListener('adPublished', handleAdPublished);
+    return () => window.removeEventListener('adPublished', handleAdPublished);
+  }, []);
+
   // حساب إحصائيات الحي
   const getDistrictStats = (district: DistrictLevel) => {
     return {

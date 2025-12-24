@@ -81,6 +81,7 @@ export interface PublishedAdData {
   // Media
   images?: string[];
   videos?: string[];
+  tour3DUrl?: string;
   
   // Metadata
   publishedAt: string;
