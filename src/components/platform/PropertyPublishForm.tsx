@@ -49,6 +49,7 @@ import {
 import { toast } from "sonner";
 import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone } from "@/hooks/usePublishedAdsManager";
 import PublishSuccessActions from "./PublishSuccessActions";
+import PropertyMediaUpload, { MediaFile } from "./PropertyMediaUpload";
 
 // ===================== Types =====================
 
@@ -142,6 +143,10 @@ interface PropertyData {
   descriptionLanguage: string;
   descriptionStyle: string;
   aiDescription: string;
+
+  // 13. الوسائط (صور وفيديو)
+  media: MediaFile[];
+  tour3DUrl: string;
 }
 
 interface PropertyPublishFormProps {
@@ -294,6 +299,10 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     descriptionLanguage: 'عربي',
     descriptionStyle: 'احترافي',
     aiDescription: '',
+
+    // 13. الوسائط
+    media: [],
+    tour3DUrl: '',
   });
 
   // المسار الذكي التلقائي
@@ -698,6 +707,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         deedNumber: propertyData.deedNumber,
         deedDate: propertyData.deedDate,
         deedCity: propertyData.deedCity,
+        images: propertyData.media.filter(m => m.type === 'image').map(m => m.url),
+        videos: propertyData.media.filter(m => m.type === 'video').map(m => m.url),
+        tour3DUrl: propertyData.tour3DUrl,
         publishedAt: new Date().toISOString(),
         status: 'published',
       };
@@ -1067,6 +1079,14 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
             </div>
           </CardContent>
         </Card>
+
+        {/* ===================== قسم الوسائط - صور وفيديو ===================== */}
+        <PropertyMediaUpload
+          media={propertyData.media}
+          onMediaChange={(media) => setPropertyData(prev => ({ ...prev, media }))}
+          tour3DUrl={propertyData.tour3DUrl}
+          onTour3DChange={(url) => setPropertyData(prev => ({ ...prev, tour3DUrl: url }))}
+        />
 
         {/* ===================== 5. المسار الذكي ===================== */}
         <Card className="border-2 border-[#D4AF37]">
