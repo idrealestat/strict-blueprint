@@ -61,10 +61,28 @@ interface Listing {
   imageCount: number;
   city: string;
   district: string;
+  street?: string;
+
+  // Media
   images?: string[];
+  videos?: string[];
+  tour3DUrl?: string;
+
+  // Owner
   ownerName?: string;
   ownerPhone?: string;
-  street?: string;
+  ownerEmail?: string;
+  ownerBirthDate?: string;
+  ownerCity?: string;
+  ownerDistrict?: string;
+
+  // Deed
+  deedNumber?: string;
+  deedDate?: string;
+  deedCity?: string;
+
+  // Link to CRM
+  linkedCustomerId?: string;
 }
 
 interface OfferEditPageProps {
@@ -81,41 +99,43 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
   onSave
 }) => {
   const [activeTab, setActiveTab] = useState('basic');
-  const [formData, setFormData] = useState({
-    title: listing.title || '',
-    sku: `AD${listing.id.slice(0, 6).toUpperCase()}`,
-    price: listing.price || 0,
+
+  const buildInitialFormData = (l: Listing) => ({
+    title: l.title || '',
+    sku: `AD${l.id.slice(0, 6).toUpperCase()}`,
+    price: l.price || 0,
     priceType: 'total',
-    description: listing.description || '',
-    phone: listing.ownerPhone || '+966541176696',
-    whatsapp: '720' + listing.id.slice(0, 7),
+    description: l.description || '',
+    phone: l.ownerPhone || '+966541176696',
+    whatsapp: '720' + l.id.slice(0, 7),
     website: 'https://www.id-realestat.com',
     company: 'شركة مبتكر ومميز العقارية',
     companyEn: 'Innovative and Distinguished Real Estate Company',
-    city: listing.city || '',
-    district: listing.district || '',
-    street: listing.street || '',
-    area: listing.area || 0,
-    bedrooms: listing.bedrooms || 0,
-    bathrooms: listing.bathrooms || 0,
-    propertyType: listing.propertyType || '',
+    city: l.city || '',
+    district: l.district || '',
+    street: l.street || '',
+    area: l.area || 0,
+    bedrooms: l.bedrooms || 0,
+    bathrooms: l.bathrooms || 0,
+    propertyType: l.propertyType || '',
     // حقول الإعلان الجديدة
     adDate: new Date().toISOString().split('T')[0],
     adDuration: 6, // بالأشهر
-    // حقول تفاصيل المالك الجديدة
-    ownerName: '',
-    ownerBirthDate: '',
-    ownerMobile: '',
-    ownerWhatsapp: '',
-    ownerEmail: '',
+    // حقول تفاصيل المالك
+    ownerName: l.ownerName || '',
+    ownerBirthDate: l.ownerBirthDate || '',
+    ownerMobile: l.ownerPhone || '',
+    ownerWhatsapp: l.ownerPhone || '',
+    ownerEmail: l.ownerEmail || '',
     ownerNationalAddress: '',
     ownerGoogleLocation: '',
     ownerNotes: '',
-    // حقول معلومات الصك الجديدة
-    deedNumber: '',
-    deedDate: '',
+    // حقول معلومات الصك
+    deedNumber: l.deedNumber || '',
+    deedDate: l.deedDate || '',
     deedImage: null as string | null,
     deedNotes: '',
+    deedCity: l.deedCity || '',
     propertyNotes: '',
     // الهاشتاقات
     hashtags: ['#شقة', '#للبيع', '#الرياض'] as string[],
@@ -125,8 +145,15 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     isCurrentlyRented: false,
     contractEndDate: '',
     rentalContractFile: null as string | null,
-    rentalContractFileName: ''
+    rentalContractFileName: '',
   });
+
+  const [formData, setFormData] = useState(() => buildInitialFormData(listing));
+
+  useEffect(() => {
+    setFormData(buildInitialFormData(listing));
+    setSelectedImageIndex(0);
+  }, [listing.id]);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
@@ -142,6 +169,13 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
     'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
     'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+  ];
+
+  const videos = listing.videos?.length ? listing.videos : [];
+
+  const mediaItems: Array<{ type: 'image' | 'video'; url: string }> = [
+    ...images.filter(Boolean).map((url) => ({ type: 'image' as const, url })),
+    ...videos.filter(Boolean).map((url) => ({ type: 'video' as const, url })),
   ];
 
   const tabs = [
@@ -432,11 +466,20 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                 className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden mb-3 cursor-pointer"
                 onClick={() => setShowZoom(true)}
               >
-                <img
-                  src={images[selectedImageIndex]}
-                  alt="العرض"
-                  className="w-full h-full object-cover"
-                />
+                {mediaItems[selectedImageIndex]?.type === 'video' ? (
+                  <video
+                    src={mediaItems[selectedImageIndex]?.url}
+                    className="w-full h-full object-cover"
+                    controls
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={mediaItems[selectedImageIndex]?.url}
+                    alt="صور وفيديو العرض"
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <button
                   className="absolute top-3 right-3 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
                   onClick={(e) => { e.stopPropagation(); setShowZoom(true); }}
@@ -465,9 +508,9 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     </button>
                   </>
                 )}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
-                  {selectedImageIndex + 1} / {images.length}
-                </div>
+                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                   {selectedImageIndex + 1} / {mediaItems.length}
+                 </div>
               </div>
 
               {/* الصور المصغرة */}
@@ -719,13 +762,22 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                 {/* زر الانتقال الى بطاقة اسم المالك */}
                 <Button
                   onClick={() => {
-                    // يمكن إضافة منطق الانتقال هنا
-                    toast({ title: '🔗 جاري الانتقال الى بطاقة المالك...' });
-                    // dispatch event to navigate to owner card
-                    const event = new CustomEvent('navigateToOwnerCard', {
-                      detail: { ownerName: formData.ownerName }
-                    });
-                    window.dispatchEvent(event);
+                    // فتح بطاقة المالك داخل إدارة الأعمال (CRM)
+                    const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+                    const matched = listing.linkedCustomerId
+                      ? customers.find((c: any) => c.id === listing.linkedCustomerId)
+                      : customers.find((c: any) => (c.phone && c.phone === formData.ownerMobile) || c.name === formData.ownerName);
+
+                    const customerId = matched?.id || listing.linkedCustomerId;
+
+                    if (!customerId) {
+                      toast({ title: '⚠️ لم يتم العثور على بطاقة المالك بعد' , variant: 'destructive' });
+                      return;
+                    }
+
+                    window.dispatchEvent(new CustomEvent('openCustomerDetails', {
+                      detail: { customerId, activeTab: 'overview' }
+                    }));
                   }}
                   className="w-full bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold"
                 >
