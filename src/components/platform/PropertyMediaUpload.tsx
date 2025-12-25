@@ -19,10 +19,12 @@ import {
   Play,
   Link,
   Globe,
-  Camera
+  Camera,
+  Expand
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ImageLightbox from './ImageLightbox';
 
 export interface MediaFile {
   id: string;
@@ -49,6 +51,15 @@ export default function PropertyMediaUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   // Upload file to Supabase Storage
   const uploadFile = useCallback(async (file: File): Promise<string | null> => {
@@ -241,9 +252,10 @@ export default function PropertyMediaUpload({
             {media.map((item, index) => (
               <div
                 key={item.id}
-                className={`relative aspect-square rounded-lg overflow-hidden group ${
+                className={`relative aspect-square rounded-lg overflow-hidden group cursor-pointer ${
                   item.isMain ? 'ring-2 ring-[hsl(var(--gold))] ring-offset-2' : ''
                 }`}
+                onClick={() => openLightbox(index)}
               >
                 {item.type === 'image' ? (
                   <img
@@ -265,6 +277,18 @@ export default function PropertyMediaUpload({
 
                 {/* Overlay Actions */}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(index);
+                    }}
+                    className="h-8"
+                  >
+                    <Expand className="w-4 h-4 ml-1" />
+                    عرض
+                  </Button>
                   {item.type === 'image' && !item.isMain && (
                     <Button
                       size="sm"
@@ -341,6 +365,14 @@ export default function PropertyMediaUpload({
             أضف رابط جولة افتراضية من Matterport أو أي منصة مشابهة
           </p>
         </div>
+
+        {/* Lightbox */}
+        <ImageLightbox
+          media={media.map(m => ({ url: m.url, type: m.type }))}
+          initialIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
       </CardContent>
     </Card>
   );
