@@ -83,6 +83,12 @@ interface Listing {
 
   // Link to CRM
   linkedCustomerId?: string;
+
+  // Rental Info
+  contractDuration?: number;
+  contractStartDate?: string;
+  contractEndDate?: string;
+  isCurrentlyRented?: boolean;
 }
 
 interface OfferEditPageProps {
@@ -118,6 +124,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     bedrooms: l.bedrooms || 0,
     bathrooms: l.bathrooms || 0,
     propertyType: l.propertyType || '',
+    tour3DUrl: l.tour3DUrl || '',
     // حقول الإعلان الجديدة
     adDate: new Date().toISOString().split('T')[0],
     adDuration: 6, // بالأشهر
@@ -140,10 +147,10 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     // الهاشتاقات
     hashtags: ['#شقة', '#للبيع', '#الرياض'] as string[],
     // معلومات التأجير
-    contractDuration: 12, // بالأشهر
-    contractStartDate: '',
-    isCurrentlyRented: false,
-    contractEndDate: '',
+    contractDuration: l.contractDuration || 12,
+    contractStartDate: l.contractStartDate || '',
+    isCurrentlyRented: l.isCurrentlyRented || false,
+    contractEndDate: l.contractEndDate || '',
     rentalContractFile: null as string | null,
     rentalContractFileName: '',
   });
@@ -458,10 +465,10 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
             </div>
           </div>
 
-          {/* الصور تحت التبويبات مباشرة - تظهر فقط في تبويب المعلومات الأساسية */}
+          {/* الصور والفيديو تحت التبويبات - تظهر في تبويب المعلومات الأساسية */}
           {activeTab === 'basic' && (
             <div className="bg-gray-100 p-4">
-              {/* الصورة الرئيسية الكبيرة */}
+              {/* الصورة/الفيديو الرئيسي */}
               <div 
                 className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden mb-3 cursor-pointer"
                 onClick={() => setShowZoom(true)}
@@ -475,7 +482,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   />
                 ) : (
                   <img
-                    src={mediaItems[selectedImageIndex]?.url}
+                    src={mediaItems[selectedImageIndex]?.url || 'https://via.placeholder.com/800x600?text=لا+توجد+صور'}
                     alt="صور وفيديو العرض"
                     className="w-full h-full object-cover"
                   />
@@ -486,12 +493,12 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                 >
                   <ZoomIn className="w-5 h-5 text-white" />
                 </button>
-                {images.length > 1 && (
+                {mediaItems.length > 1 && (
                   <>
                     <button
                       onClick={(e) => { 
                         e.stopPropagation();
-                        setSelectedImageIndex(prev => (prev - 1 + images.length) % images.length);
+                        setSelectedImageIndex(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
                       }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
                     >
@@ -500,7 +507,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedImageIndex(prev => (prev + 1) % images.length);
+                        setSelectedImageIndex(prev => (prev + 1) % mediaItems.length);
                       }}
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center"
                     >
@@ -508,30 +515,61 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     </button>
                   </>
                 )}
-                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
-                   {selectedImageIndex + 1} / {mediaItems.length}
-                 </div>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                  {selectedImageIndex + 1} / {mediaItems.length || 1}
+                </div>
               </div>
 
-              {/* الصور المصغرة */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {images.map((img, index) => (
+              {/* شبكة الصور والفيديو على شكل انستقرام */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {mediaItems.map((item, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden transition-all ${
+                    className={`relative aspect-square rounded-lg overflow-hidden transition-all ${
                       index === selectedImageIndex 
                         ? 'ring-2 ring-[#01411C] scale-105' 
-                        : 'opacity-60 hover:opacity-100'
+                        : 'opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    {item.type === 'video' ? (
+                      <>
+                        <video src={item.url} className="w-full h-full object-cover" muted />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Video className="w-6 h-6 text-white" />
+                        </div>
+                        <span className="absolute bottom-1 right-1 bg-[#01411C] text-white text-[10px] px-1.5 py-0.5 rounded">فيديو</span>
+                      </>
+                    ) : (
+                      <img src={item.url} alt="" className="w-full h-full object-cover" />
+                    )}
+                    {index === 0 && (
+                      <span className="absolute top-1 right-1 bg-[#D4AF37] text-[#01411C] text-[10px] px-1.5 py-0.5 rounded font-bold">رئيسية</span>
+                    )}
                   </button>
                 ))}
-                <button className="flex-shrink-0 w-16 h-16 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all">
+                <button className="aspect-square rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all">
                   <Plus className="w-6 h-6 text-gray-500" />
                 </button>
               </div>
+
+              {/* رابط الجولة 3D */}
+              {listing.tour3DUrl && (
+                <div className="bg-[#01411C]/10 border border-[#01411C]/30 rounded-xl p-3 flex items-center gap-3">
+                  <Globe className="w-5 h-5 text-[#01411C]" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-[#01411C]">رابط الجولة الافتراضية 3D</p>
+                    <a 
+                      href={listing.tour3DUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 underline truncate block"
+                    >
+                      {listing.tour3DUrl}
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -664,7 +702,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   </div>
                 </div>
 
-                {/* الوصف */}
+                {/* الوصف - عمودي */}
                 <div>
                   <label className="flex items-center justify-between text-sm font-bold text-gray-700 mb-2">
                     <span className="flex items-center gap-2">
@@ -673,12 +711,15 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     </span>
                     <span className="text-xs text-gray-400">يُدار بواسطة إعدادات الكتالوج</span>
                   </label>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 whitespace-pre-wrap text-sm text-gray-700 min-h-[120px]">
+                    {formData.description || 'لا يوجد وصف'}
+                  </div>
                   <Textarea
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                     placeholder="رقم الاعلان: 0453489&#10;شقة مؤثثة للبيع في فندق 4 نجوم..."
                     rows={6}
-                    className="text-right bg-gray-50 border-gray-200"
+                    className="text-right bg-gray-50 border-gray-200 mt-2"
                   />
                 </div>
 
