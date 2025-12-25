@@ -193,6 +193,79 @@ const defaultFeatures = [
   "ملحق خارجي", "شرفة", "تراس", "إطلالة بحرية", "إطلالة حديقة"
 ];
 
+// ===================== Constants =====================
+
+const STORAGE_KEY = 'wasata_property_draft';
+
+// Default empty property data
+const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
+  ownerName: '',
+  ownerBirthDate: '',
+  ownerPhone: '',
+  ownerEmail: '',
+  ownerCity: '',
+  ownerDistrict: '',
+  deedNumber: '',
+  deedDate: '',
+  deedCity: '',
+  propertyType: '',
+  category: '',
+  area: '',
+  purpose: '',
+  locationDetails: {
+    city: '',
+    district: '',
+    street: '',
+    buildingNumber: '',
+    postalCode: '',
+    additionalNumber: '',
+    latitude: 24.7136,
+    longitude: 46.6753,
+  },
+  smartPath: '',
+  floors: '',
+  livingRooms: '',
+  councils: '',
+  bedrooms: '',
+  bathrooms: '',
+  streetWidth: '',
+  facade: '',
+  furnishing: '',
+  propertyAge: '',
+  entrances: '',
+  warehouses: '',
+  hasLaundryRoom: false,
+  balconies: '',
+  acUnits: '',
+  curtains: '',
+  hasExtraKitchen: false,
+  extraKitchenAppliances: '',
+  features: [],
+  customFeatures: [],
+  warranties: [],
+  price: '',
+  priceSource: '',
+  priceStatus: '',
+  paymentOption: '',
+  paymentPrices: {
+    onePayment: '',
+    twoPayments: '',
+    fourPayments: '',
+    monthly: '',
+  },
+  collaborateWithCompany: '',
+  hashtags: [],
+  customHashtags: [],
+  brokerPhone: userPhone || '',
+  adLicense: '',
+  descriptionLength: 'متوسط',
+  descriptionLanguage: 'عربي',
+  descriptionStyle: 'احترافي',
+  aiDescription: '',
+  media: [],
+  tour3DUrl: '',
+});
+
 // ===================== Component =====================
 
 export default function PropertyPublishForm({ onPublish, onCancel, user }: PropertyPublishFormProps) {
@@ -207,103 +280,84 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const [showMap, setShowMap] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [suggestedPrices, setSuggestedPrices] = useState<{source: string; price: string}[]>([]);
+  
+  // Recovery dialog state
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  const [propertyData, setPropertyData] = useState<PropertyData>({
-    // 1. معلومات المالك
-    ownerName: '',
-    ownerBirthDate: '',
-    ownerPhone: '',
-    ownerEmail: '',
-    ownerCity: '',
-    ownerDistrict: '',
-    
-    // 2. معلومات الصك
-    deedNumber: '',
-    deedDate: '',
-    deedCity: '',
-    
-    // 3. معلومات العقار
-    propertyType: '',
-    category: '',
-    area: '',
-    purpose: '',
-    
-    // 4. الموقع
-    locationDetails: {
-      city: '',
-      district: '',
-      street: '',
-      buildingNumber: '',
-      postalCode: '',
-      additionalNumber: '',
-      latitude: 24.7136,
-      longitude: 46.6753,
-    },
-    
-    // 5. المسار الذكي
-    smartPath: '',
-    
-    // 6. المواصفات التفصيلية
-    floors: '',
-    livingRooms: '',
-    councils: '',
-    bedrooms: '',
-    bathrooms: '',
-    streetWidth: '',
-    facade: '',
-    furnishing: '',
-    propertyAge: '',
-    
-    // 7. معلومات إضافية
-    entrances: '',
-    warehouses: '',
-    hasLaundryRoom: false,
-    balconies: '',
-    acUnits: '',
-    curtains: '',
-    hasExtraKitchen: false,
-    extraKitchenAppliances: '',
-    
-    // 8. المميزات المخصصة
-    features: [],
-    customFeatures: [],
-    
-    // 9. الضمانات والكفالات
-    warranties: [],
-    
-    // 10. مولد الأسعار الذكي
-    price: '',
-    priceSource: '',
-    priceStatus: '',
-    paymentOption: '',
-    paymentPrices: {
-      onePayment: '',
-      twoPayments: '',
-      fourPayments: '',
-      monthly: '',
-    },
-    collaborateWithCompany: '',
-    
-    // 11. الهاشتاقات
-    hashtags: [],
-    customHashtags: [],
-    
-    // 12. مولد الوصف
-    brokerPhone: user?.phone || '',
-    adLicense: '',
-    descriptionLength: 'متوسط',
-    descriptionLanguage: 'عربي',
-    descriptionStyle: 'احترافي',
-    aiDescription: '',
+  const [propertyData, setPropertyData] = useState<PropertyData>(getDefaultPropertyData(user?.phone));
 
-    // 13. الوسائط
-    media: [],
-    tour3DUrl: '',
-  });
+  // Check for saved draft on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(STORAGE_KEY);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        // Check if there's meaningful data saved (at least one important field filled)
+        const hasData = parsed.ownerName || parsed.ownerPhone || parsed.propertyType || 
+                       parsed.locationDetails?.city || (parsed.media && parsed.media.length > 0);
+        if (hasData) {
+          setHasSavedDraft(true);
+          setShowRecoveryDialog(true);
+        }
+      } catch (e) {
+        console.error('Error parsing saved draft:', e);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // Auto-save to localStorage on changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Only save if there's meaningful data
+      const hasData = propertyData.ownerName || propertyData.ownerPhone || propertyData.propertyType || 
+                     propertyData.locationDetails.city || propertyData.media.length > 0;
+      if (hasData) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(propertyData));
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [propertyData]);
+
+  // Restore saved data
+  const restoreSavedData = () => {
+    const savedDraft = localStorage.getItem(STORAGE_KEY);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setPropertyData(prev => ({
+          ...getDefaultPropertyData(user?.phone),
+          ...parsed,
+          brokerPhone: parsed.brokerPhone || user?.phone || '',
+        }));
+        toast.success('تم استعادة البيانات المحفوظة');
+      } catch (e) {
+        console.error('Error restoring draft:', e);
+        toast.error('فشل في استعادة البيانات');
+      }
+    }
+    setShowRecoveryDialog(false);
+  };
+
+  // Clear saved data and start fresh
+  const clearSavedData = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setPropertyData(getDefaultPropertyData(user?.phone));
+    setHasSavedDraft(false);
+    setShowRecoveryDialog(false);
+    toast.success('تم مسح البيانات السابقة');
+  };
+
+  // Dismiss recovery dialog without action
+  const dismissRecoveryDialog = () => {
+    setShowRecoveryDialog(false);
+  };
 
   // المسار الذكي التلقائي
   const smartPath = useMemo(() => {
@@ -748,6 +802,59 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   return (
     <ScrollArea className="h-[80vh]">
       <div className="space-y-6 p-1" dir="rtl">
+        
+        {/* Recovery Dialog */}
+        {showRecoveryDialog && (
+          <Card className="border-2 border-[hsl(var(--gold))] bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg">
+            <CardContent className="py-4">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-[hsl(var(--gold))]/20 flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-[hsl(var(--gold))]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-[hsl(var(--forest-green))]">
+                    توجد بيانات محفوظة مسبقاً
+                  </h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    هل تريد استعادة المعلومات المدخلة سابقاً؟
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={restoreSavedData}
+                    className="bg-[hsl(var(--forest-green))] hover:bg-[hsl(var(--forest-green))]/90 text-white"
+                  >
+                    <RefreshCw className="w-4 h-4 ml-2" />
+                    نعم، استعد البيانات
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={dismissRecoveryDialog}
+                    className="border-[hsl(var(--gold))]"
+                  >
+                    لا، ابدأ من جديد
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Header with Clear Button */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[hsl(var(--forest-green))]">
+            نشر إعلان عقاري
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearSavedData}
+            className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+          >
+            <Trash2 className="w-4 h-4 ml-2" />
+            مسح ومن جديد
+          </Button>
+        </div>
         
         {/* ===================== 1. معلومات المالك ===================== */}
         <Card className="border-2 border-[#D4AF37]">
