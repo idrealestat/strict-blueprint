@@ -122,13 +122,36 @@ ${stylePrompt}
 ${lengthPrompt}
 ${languagePrompt}
 
-القواعد:
-1. ابدأ العنوان بـ: ${propertyData.purpose} ${propertyData.propertyType} ${propertyData.area ? `${propertyData.area} م²` : ''} في ${propertyData.district ? `حي ${propertyData.district}،` : ''} ${propertyData.city}
-2. اذكر جميع المواصفات المتوفرة بشكل جذاب
-3. أبرز المميزات والضمانات إن وجدت
-4. ${propertyData.adLicense ? `أضف في النهاية: ترخيص إعلاني: ${propertyData.adLicense}` : 'لا تذكر رقم الترخيص الإعلاني'}
-5. ${propertyData.brokerPhone ? `أضف في النهاية: للتواصل والاستفسار: ${propertyData.brokerPhone}` : 'لا تذكر رقم التواصل'}
-6. لا تضف معلومات غير موجودة في البيانات`;
+يجب أن يكون الوصف بالتنسيق التالي بالضبط:
+
+1. **العنوان الرئيسي**: سطر واحد يبدأ بـ "${propertyData.purpose} ${propertyData.propertyType}" ثم الموقع
+
+2. **النص التسويقي**: فقرة قصيرة (سطر ونصف إلى سطرين) تركز على القيمة المضافة والمميزات الرئيسية بأسلوب جذاب
+
+3. **المواصفات**: قائمة منسقة بالشكل التالي (كل مواصفة في سطر منفصل):
+• المساحة: [القيمة] م²
+• غرف النوم: [العدد]
+• دورات المياه: [العدد]
+• الصالات: [العدد]
+• المجالس: [العدد]
+• الأدوار: [العدد]
+• التأثيث: [الحالة]
+• عمر العقار: [السنوات]
+• الواجهة: [الاتجاه]
+• عرض الشارع: [العرض] م
+
+4. **المميزات**: قائمة نقطية بالمميزات الإضافية
+
+5. **الضمانات**: قائمة بالضمانات إن وجدت
+
+6. **معلومات التواصل**: ${propertyData.adLicense ? `ترخيص إعلاني: ${propertyData.adLicense}` : ''} ${propertyData.brokerPhone ? `| للتواصل: ${propertyData.brokerPhone}` : ''}
+
+مهم جداً:
+- كل قسم يجب أن يكون في أسطر منفصلة
+- استخدم النقاط (•) للقوائم
+- لا تضع كل المعلومات في سطر واحد
+- اجعل التنسيق واضح ومقروء
+- لا تضف معلومات غير موجودة في البيانات`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -140,7 +163,7 @@ ${languagePrompt}
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `اكتب وصفاً لهذا العقار:\n\n${propertyInfo}` }
+          { role: "user", content: `اكتب وصفاً لهذا العقار بالتنسيق المطلوب:\n\n${propertyInfo}` }
         ],
       }),
     });
