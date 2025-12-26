@@ -68,6 +68,7 @@ import {
   Activity,
   History,
   Settings,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -278,6 +279,38 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', priority: 'medium' });
   const [newReminder, setNewReminder] = useState({ title: '', description: '', date: '', priority: 'medium' });
   const [isSaving, setIsSaving] = useState(false);
+  
+  // العقارات المنشورة للعميل
+  const [publishedAds, setPublishedAds] = useState<any[]>([]);
+  
+  // تحميل العقارات المنشورة للمالك
+  useEffect(() => {
+    const loadPublishedAds = () => {
+      try {
+        const allAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+        // Filter ads that belong to this customer by phone or linkedCustomerId
+        const customerAds = allAds.filter((ad: any) => 
+          ad.linkedCustomerId === customer.id || 
+          ad.ownerPhone === customer.phone ||
+          ad.ownerName === customer.name
+        );
+        setPublishedAds(customerAds);
+      } catch (e) {
+        console.error('Error loading published ads:', e);
+        setPublishedAds([]);
+      }
+    };
+    
+    loadPublishedAds();
+    
+    // Listen for new ads being published
+    const handleAdPublished = () => loadPublishedAds();
+    window.addEventListener('adPublished', handleAdPublished);
+    
+    return () => {
+      window.removeEventListener('adPublished', handleAdPublished);
+    };
+  }, [customer.id, customer.phone, customer.name]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -301,6 +334,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const defaultTabs = [
     { id: 'overview', name: '📊 نظرة شاملة', removable: false },
     { id: 'personal_info', name: '👤 المعلومات', removable: false },
+    { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
     { id: 'transactions', name: '💰 المعاملات', removable: true },
     { id: 'activity', name: '💬 التفاعلات', removable: false },
     { id: 'reminders', name: '⏰ التذكيرات', removable: true },
@@ -903,6 +937,177 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Published Ads Tab - تبويب العقارات المنشورة */}
+          <TabsContent value="published_ads">
+            <Card className="border-2 border-[#D4AF37]">
+              <CardHeader className="bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  العقارات المنشورة للمالك
+                  {publishedAds.length > 0 && (
+                    <Badge className="bg-[#D4AF37] text-[#01411C]">{publishedAds.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {publishedAds.length > 0 ? (
+                  <div className="space-y-4">
+                    {publishedAds.map((ad) => (
+                      <div key={ad.id} className="p-4 border-2 border-[#D4AF37]/50 rounded-lg bg-gradient-to-r from-amber-50/50 to-yellow-50/50">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                          {/* معلومات العقار */}
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-bold text-lg text-[#01411C]">
+                                {ad.purpose} {ad.propertyType}
+                              </h4>
+                              <Badge className="bg-emerald-100 text-emerald-700">
+                                {ad.status === 'published' ? 'منشور' : 'مسودة'}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {ad.locationDetails?.city} - {ad.locationDetails?.district}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Home className="w-4 h-4" />
+                                {ad.area} م²
+                              </span>
+                              {ad.bedrooms && (
+                                <span>🛏️ {ad.bedrooms} غرف</span>
+                              )}
+                              {ad.bathrooms && (
+                                <span>🚿 {ad.bathrooms} حمام</span>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                              <span className="text-[#D4AF37] font-bold text-lg">
+                                {ad.price ? `${parseInt(ad.price).toLocaleString()} ريال` : 'السعر غير محدد'}
+                              </span>
+                              <span className="text-gray-500 text-sm">
+                                تاريخ النشر: {new Date(ad.publishedAt).toLocaleDateString('ar-SA')}
+                              </span>
+                            </div>
+
+                            {/* الصور المصغرة */}
+                            {ad.images && ad.images.length > 0 && (
+                              <div className="flex gap-2 overflow-x-auto pb-2">
+                                {ad.images.slice(0, 4).map((img: string, idx: number) => (
+                                  <img 
+                                    key={idx}
+                                    src={img} 
+                                    alt={`صورة ${idx + 1}`}
+                                    className="w-16 h-16 object-cover rounded-lg border"
+                                  />
+                                ))}
+                                {ad.images.length > 4 && (
+                                  <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-600 text-sm">
+                                    +{ad.images.length - 4}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* أزرار الإجراءات */}
+                          <div className="flex flex-col gap-2 min-w-[160px]">
+                            <Button 
+                              size="sm"
+                              className="bg-[#01411C] text-white hover:bg-[#01411C]/90"
+                              onClick={() => {
+                                // فتح نموذج النشر مع البيانات
+                                window.dispatchEvent(new CustomEvent('openPublishForm', {
+                                  detail: { adData: ad }
+                                }));
+                              }}
+                            >
+                              <Send className="w-4 h-4 ml-1" />
+                              نشر مرة أخرى
+                            </Button>
+                            
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="border-[#D4AF37] text-[#01411C]"
+                              onClick={() => {
+                                // Generate and download PDF
+                                const pdfData = {
+                                  propertyType: ad.propertyType,
+                                  purpose: ad.purpose,
+                                  location: `${ad.locationDetails?.city} - ${ad.locationDetails?.district}`,
+                                  area: ad.area,
+                                  price: ad.price,
+                                  bedrooms: ad.bedrooms,
+                                  bathrooms: ad.bathrooms,
+                                  ownerName: ad.ownerName,
+                                  ownerPhone: ad.ownerPhone,
+                                  features: ad.features,
+                                  description: ad.aiDescription,
+                                };
+                                
+                                // Simple PDF download using jsPDF would go here
+                                toast.success('جاري تحميل ملف PDF...');
+                                
+                                // Dispatch event for PDF generation
+                                window.dispatchEvent(new CustomEvent('downloadPropertyPDF', {
+                                  detail: { adData: ad, includeOwner: true }
+                                }));
+                              }}
+                            >
+                              <FileText className="w-4 h-4 ml-1" />
+                              تحميل PDF
+                            </Button>
+                            
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                // Navigate to offer details
+                                window.dispatchEvent(new CustomEvent('openOfferDetails', {
+                                  detail: { offerId: ad.id }
+                                }));
+                              }}
+                            >
+                              <Eye className="w-4 h-4 ml-1" />
+                              عرض التفاصيل
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Building2 className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <h3 className="text-lg font-medium mb-2">لا توجد عقارات منشورة</h3>
+                    <p className="text-sm mb-4">لم يتم نشر أي عقار مرتبط بهذا المالك بعد</p>
+                    <Button
+                      onClick={() => {
+                        // فتح نموذج النشر مع معلومات المالك مسبقة التعبئة
+                        window.dispatchEvent(new CustomEvent('openPublishForm', {
+                          detail: { 
+                            prefillOwner: {
+                              ownerName: customer.name,
+                              ownerPhone: customer.phone,
+                              ownerEmail: customer.email,
+                            }
+                          }
+                        }));
+                      }}
+                      className="bg-[#01411C] text-[#D4AF37]"
+                    >
+                      <Plus className="w-4 h-4 ml-1" />
+                      نشر عقار جديد
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
