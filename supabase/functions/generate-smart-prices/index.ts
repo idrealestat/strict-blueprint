@@ -15,6 +15,7 @@ interface PriceRequest {
   bedrooms: string;
   propertyAge: string;
   furnishing: string;
+  userPrice?: string; // السعر المدخل من المالك
 }
 
 // أسعار تقريبية للمتر المربع حسب المدينة (بيع)
@@ -103,6 +104,7 @@ serve(async (req) => {
     const propertyType = propertyData.propertyType || "شقة";
     const furnishing = propertyData.furnishing || "غير مؤثث";
     const propertyAge = parseInt(propertyData.propertyAge) || 0;
+    const userPrice = propertyData.userPrice ? parseFloat(propertyData.userPrice.replace(/,/g, '')) : null;
     
     // الحصول على السعر الأساسي
     let basePrice = purpose === "للإيجار" 
@@ -157,10 +159,55 @@ serve(async (req) => {
     // حساب متوسط السوق
     const marketAverage = Math.round(prices.reduce((sum, p) => sum + p.price, 0) / prices.length);
     
+    // تقييم السعر بالذكاء الاصطناعي
+    let priceEvaluation = null;
+    if (userPrice !== null && userPrice > 0) {
+      const lowerBound = marketAverage * 0.85; // 15% أقل من المتوسط
+      const upperBound = marketAverage * 1.15; // 15% أعلى من المتوسط
+      const highBound = marketAverage * 1.30; // 30% أعلى من المتوسط
+      
+      let status: 'أقل من السوق' | 'مناسب' | 'مبالغ فيه';
+      let color: 'green' | 'blue' | 'red';
+      let message: string;
+      let percentage: number;
+      
+      if (userPrice < lowerBound) {
+        status = 'أقل من السوق';
+        color = 'green';
+        percentage = Math.round(((marketAverage - userPrice) / marketAverage) * 100);
+        message = `السعر أقل من متوسط السوق بنسبة ${percentage}% - فرصة جيدة للمشتري`;
+      } else if (userPrice >= lowerBound && userPrice <= upperBound) {
+        status = 'مناسب';
+        color = 'blue';
+        percentage = Math.abs(Math.round(((userPrice - marketAverage) / marketAverage) * 100));
+        message = `السعر مناسب ومتوافق مع أسعار السوق (${percentage > 0 ? `±${percentage}%` : 'مطابق'})`;
+      } else {
+        status = 'مبالغ فيه';
+        color = 'red';
+        percentage = Math.round(((userPrice - marketAverage) / marketAverage) * 100);
+        if (userPrice > highBound) {
+          message = `⚠️ تحذير: السعر أعلى من متوسط السوق بنسبة ${percentage}% - قد يصعب البيع/التأجير`;
+        } else {
+          message = `السعر أعلى من متوسط السوق بنسبة ${percentage}% - يمكن التفاوض`;
+        }
+      }
+      
+      priceEvaluation = {
+        status,
+        color,
+        message,
+        percentage,
+        userPrice,
+        marketAverage,
+        difference: userPrice - marketAverage,
+        isWarning: userPrice > highBound,
+      };
+    }
+    
     // حساب الدفعات للإيجار
     let paymentBreakdown = null;
     if (purpose === "للإيجار") {
-      const annualPrice = marketAverage;
+      const annualPrice = userPrice || marketAverage;
       paymentBreakdown = {
         onePayment: annualPrice,
         twoPayments: Math.round(annualPrice / 2),
@@ -169,12 +216,15 @@ serve(async (req) => {
       };
     }
 
+    console.log('Price evaluation:', priceEvaluation);
+
     return new Response(JSON.stringify({ 
       prices,
       marketAverage,
       paymentBreakdown,
       purpose,
       priceUnit: purpose === "للإيجار" ? "ريال/سنوياً" : "ريال",
+      priceEvaluation,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

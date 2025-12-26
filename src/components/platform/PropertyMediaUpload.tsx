@@ -1,6 +1,6 @@
 /**
  * PropertyMediaUpload.tsx
- * مكون رفع الصور والفيديو بشكل Instagram Grid
+ * مكون رفع الصور والفيديو بشكل Instagram Grid مع إعادة الترتيب بالسحب
  */
 
 import { useState, useRef, useCallback } from 'react';
@@ -20,7 +20,8 @@ import {
   Link,
   Globe,
   Camera,
-  Expand
+  Expand,
+  GripVertical
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -56,9 +57,66 @@ export default function PropertyMediaUpload({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
+  };
+
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  // Handle drag leave
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  // Handle drop
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newMedia = [...media];
+    const [draggedItem] = newMedia.splice(draggedIndex, 1);
+    newMedia.splice(dropIndex, 0, draggedItem);
+
+    // If the first item changed, update main status
+    if (draggedIndex === 0 || dropIndex === 0) {
+      newMedia.forEach((item, idx) => {
+        item.isMain = idx === 0;
+      });
+    }
+
+    onMediaChange(newMedia);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    toast.success('تم إعادة ترتيب الوسائط');
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   // Upload file to Supabase Storage
@@ -194,6 +252,12 @@ export default function PropertyMediaUpload({
         <CardTitle className="text-[hsl(var(--forest-green))] flex items-center gap-2">
           <Camera className="w-5 h-5" />
           صور وفيديوهات العقار
+          {media.length > 0 && (
+            <Badge variant="outline" className="mr-2 text-xs">
+              <GripVertical className="w-3 h-3 ml-1" />
+              اسحب لإعادة الترتيب
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-4">
@@ -246,22 +310,32 @@ export default function PropertyMediaUpload({
           </div>
         )}
 
-        {/* Instagram-style Grid */}
+        {/* Instagram-style Grid with Drag & Drop */}
         {media.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
             {media.map((item, index) => (
               <div
                 key={item.id}
-                className={`relative aspect-square rounded-lg overflow-hidden group cursor-pointer ${
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`relative aspect-square rounded-lg overflow-hidden group cursor-grab active:cursor-grabbing transition-all duration-200 ${
                   item.isMain ? 'ring-2 ring-[hsl(var(--gold))] ring-offset-2' : ''
+                } ${
+                  draggedIndex === index ? 'opacity-50 scale-95' : ''
+                } ${
+                  dragOverIndex === index ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : ''
                 }`}
-                onClick={() => openLightbox(index)}
               >
                 {item.type === 'image' ? (
                   <img
                     src={item.url}
                     alt={`Property ${index + 1}`}
                     className="w-full h-full object-cover"
+                    draggable={false}
                   />
                 ) : (
                   <div className="relative w-full h-full bg-black">
@@ -274,6 +348,16 @@ export default function PropertyMediaUpload({
                     </div>
                   </div>
                 )}
+
+                {/* Drag Handle */}
+                <div className="absolute top-2 left-2 bg-black/50 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <GripVertical className="w-4 h-4 text-white" />
+                </div>
+
+                {/* Order Number */}
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-bold">
+                  {index + 1}
+                </div>
 
                 {/* Overlay Actions */}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">

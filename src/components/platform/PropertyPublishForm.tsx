@@ -280,6 +280,17 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const [showMap, setShowMap] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [suggestedPrices, setSuggestedPrices] = useState<{source: string; price: string}[]>([]);
+  const [priceEvaluation, setPriceEvaluation] = useState<{
+    status: string;
+    color: 'green' | 'blue' | 'red';
+    message: string;
+    percentage: number;
+    userPrice: number;
+    marketAverage: number;
+    difference: number;
+    isWarning: boolean;
+  } | null>(null);
+  const [marketAverage, setMarketAverage] = useState<number>(0);
   
   // Recovery dialog state
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
@@ -563,7 +574,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     }));
   };
 
-  // مولد الأسعار الذكي
+  // مولد الأسعار الذكي مع تقييم تلقائي
   const generateSmartPrices = async () => {
     if (!propertyData.area || !propertyData.purpose) {
       toast.error('يرجى تحديد المساحة والغرض أولاً');
@@ -593,6 +604,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               bedrooms: propertyData.bedrooms,
               propertyAge: propertyData.propertyAge,
               furnishing: propertyData.furnishing,
+              userPrice: propertyData.price,
             }
           }),
         }
@@ -607,6 +619,14 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         price: p.price.toLocaleString(),
         url: p.url,
       })));
+      
+      setMarketAverage(data.marketAverage);
+      
+      // تقييم السعر التلقائي
+      if (data.priceEvaluation) {
+        setPriceEvaluation(data.priceEvaluation);
+        setPropertyData(prev => ({ ...prev, priceStatus: data.priceEvaluation.status }));
+      }
       
       // تحديث الدفعات إذا كان للإيجار
       if (data.paymentBreakdown) {
@@ -1664,30 +1684,54 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#01411C]">السعر المختار (ريال)</Label>
+                <Label className="text-[#01411C]">السعر المطلوب من المالك (ريال)</Label>
                 <Input
                   type="number"
                   value={propertyData.price}
-                  onChange={(e) => setPropertyData(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder="أدخل السعر"
+                  onChange={(e) => {
+                    setPropertyData(prev => ({ ...prev, price: e.target.value }));
+                    setPriceEvaluation(null); // Reset evaluation when price changes
+                  }}
+                  placeholder="أدخل السعر المطلوب"
                   className="border-[#D4AF37] focus:border-[#01411C]"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  أدخل السعر ثم اضغط "توليد الأسعار" للحصول على تقييم تلقائي
+                </p>
               </div>
               <div>
-                <Label className="text-[#01411C]">تقييم السعر</Label>
-                <Select 
-                  value={propertyData.priceStatus} 
-                  onValueChange={(value) => setPropertyData(prev => ({ ...prev, priceStatus: value }))}
-                >
-                  <SelectTrigger className="border-[#D4AF37]">
-                    <SelectValue placeholder="اختر" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="أقل من السوق">أقل من سعر السوق</SelectItem>
-                    <SelectItem value="مناسب">مناسب لسعر السوق</SelectItem>
-                    <SelectItem value="مبالغ فيه">مبالغ فيه وأعلى من السوق</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-[#01411C]">تقييم السعر بالذكاء الاصطناعي</Label>
+                {priceEvaluation ? (
+                  <div className={`p-3 rounded-lg border-2 ${
+                    priceEvaluation.color === 'green' ? 'bg-green-50 border-green-300' :
+                    priceEvaluation.color === 'blue' ? 'bg-blue-50 border-blue-300' :
+                    'bg-red-50 border-red-300'
+                  }`}>
+                    <div className={`font-bold text-lg ${
+                      priceEvaluation.color === 'green' ? 'text-green-700' :
+                      priceEvaluation.color === 'blue' ? 'text-blue-700' :
+                      'text-red-700'
+                    }`}>
+                      {priceEvaluation.status}
+                    </div>
+                    <p className={`text-sm mt-1 ${
+                      priceEvaluation.color === 'green' ? 'text-green-600' :
+                      priceEvaluation.color === 'blue' ? 'text-blue-600' :
+                      'text-red-600'
+                    }`}>
+                      {priceEvaluation.message}
+                    </p>
+                    {marketAverage > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        متوسط السوق: {marketAverage.toLocaleString()} ريال
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-50 border rounded-lg text-gray-500 text-sm">
+                    أدخل السعر واضغط على زر توليد الأسعار للحصول على التقييم التلقائي
+                  </div>
+                )}
               </div>
             </div>
 
