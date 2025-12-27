@@ -480,7 +480,60 @@ export default function MyPlatformComplete({
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
   
   // Hierarchical State (مدينة ← حي ← عروض)
-  const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(mockCityHierarchy);
+  const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(() => {
+    try {
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      if (!Array.isArray(publishedAds) || publishedAds.length === 0) return mockCityHierarchy;
+
+      const toSingleOffer = (ad: any): SingleOffer => ({
+        id: ad.id,
+        title: ad.title || `${ad.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${ad.propertyType} - ${ad.area || ''}م`,
+        price: ad.price ? `${ad.price} ريال` : 'السعر عند التواصل',
+        image: ad.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
+        status: 'published',
+        views: 0,
+        requests: 0,
+        propertyType: ad.propertyType,
+        bedrooms: parseInt(ad.bedrooms) || undefined,
+        bathrooms: parseInt(ad.bathrooms) || undefined,
+        area: parseInt(ad.area) || undefined,
+        owner: { name: ad.ownerName, phone: ad.ownerPhone },
+        ownerName: ad.ownerName,
+        isHidden: false,
+        liveViewers: 0,
+      });
+
+      const updated: CityLevel[] = JSON.parse(JSON.stringify(mockCityHierarchy));
+
+      publishedAds.forEach((ad: any) => {
+        const city = ad.locationDetails?.city || 'أخرى';
+        const districtRaw = ad.locationDetails?.district || 'عروض مباشرة';
+        const offer = toSingleOffer(ad);
+
+        let cityObj = updated.find(c => c.cityName === city);
+        if (!cityObj) {
+          cityObj = { cityName: city, isExpanded: false, isHidden: false, liveViewers: 0, directOffers: [], districts: [] } as any;
+          updated.push(cityObj);
+        }
+
+        if (districtRaw && districtRaw !== 'عروض مباشرة') {
+          const districtName = districtRaw.startsWith('حي ') ? districtRaw : `حي ${districtRaw}`;
+          let districtObj = cityObj.districts.find((d: any) => d.districtName === districtName);
+          if (!districtObj) {
+            districtObj = { districtName, offers: [], isExpanded: false, isHidden: false, liveViewers: 0 } as any;
+            cityObj.districts.push(districtObj);
+          }
+          if (!districtObj.offers.some((o: any) => o.id === offer.id)) districtObj.offers.push(offer);
+        } else {
+          if (!cityObj.directOffers.some((o: any) => o.id === offer.id)) cityObj.directOffers.push(offer);
+        }
+      });
+
+      return updated;
+    } catch {
+      return mockCityHierarchy;
+    }
+  });
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
   

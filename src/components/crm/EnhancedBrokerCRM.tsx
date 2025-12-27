@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
+import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -307,37 +307,59 @@ const mockCustomers: Customer[] = [
 export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMProps) {
   // Reference for scrolling to right
   const kanbanContainerRef = useRef<HTMLDivElement>(null);
-  
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+
+  const mapLinkedToCustomer = useCallback((c: LinkedCustomer): Customer => {
+    // ملاحظة: الـ Kanban يستخدم أعمدة مختلفة عن hook (new/...). نُحوّلها لأقرب قيمة.
+    const columnId = c.columnId === 'new' ? 'leads' : (c.columnId as any) || 'leads';
+    return {
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      // لا نستخدم البريد هنا حسب طلبك
+      whatsapp: c.phone,
+      type: c.type === 'seller' ? 'owner' : (c.type as any),
+      status: c.status || 'active',
+      columnId,
+      createdAt: c.createdAt,
+      lastContact: c.lastContact,
+      notes: c.nationalAddress || undefined,
+    };
+  }, []);
+
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    const stored = getAllCustomers();
+    if (stored.length) return stored.map(mapLinkedToCustomer);
+    return mockCustomers;
+  });
+
   const [columns, setColumns] = useState<Column[]>(() => {
+    const stored = getAllCustomers();
+    const baseCustomers = stored.length ? stored.map(mapLinkedToCustomer) : mockCustomers;
+
     // Try to load saved column order from localStorage
     const savedOrder = localStorage.getItem('crm_column_order');
-    if (savedOrder) {
-      try {
-        const orderIds = JSON.parse(savedOrder) as string[];
-        const reorderedColumns = orderIds
-          .map(id => defaultColumns.find(col => col.id === id))
-          .filter(Boolean) as Column[];
-        // Add any missing columns
-        defaultColumns.forEach(col => {
-          if (!reorderedColumns.find(c => c.id === col.id)) {
-            reorderedColumns.push(col);
-          }
-        });
-        return reorderedColumns.map(col => ({
-          ...col,
-          customerIds: mockCustomers.filter(c => c.columnId === col.id).map(c => c.id)
-        }));
-      } catch {
-        // Fall back to default
+    const baseColumns = (() => {
+      if (savedOrder) {
+        try {
+          const orderIds = JSON.parse(savedOrder) as string[];
+          const reorderedColumns = orderIds
+            .map(id => defaultColumns.find(col => col.id === id))
+            .filter(Boolean) as Column[];
+          defaultColumns.forEach(col => {
+            if (!reorderedColumns.find(c => c.id === col.id)) reorderedColumns.push(col);
+          });
+          return reorderedColumns;
+        } catch {
+          return defaultColumns;
+        }
       }
-    }
-    // Distribute customers to columns
-    const cols = defaultColumns.map(col => ({
+      return defaultColumns;
+    })();
+
+    return baseColumns.map(col => ({
       ...col,
-      customerIds: mockCustomers.filter(c => c.columnId === col.id).map(c => c.id)
+      customerIds: baseCustomers.filter(c => c.columnId === col.id).map(c => c.id),
     }));
-    return cols;
   });
   
   const [searchQuery, setSearchQuery] = useState('');

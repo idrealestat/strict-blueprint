@@ -57,8 +57,9 @@ interface PropertyData {
   // 1. معلومات المالك
   ownerName: string;
   ownerBirthDate: string;
-  ownerPhone: string;
-  ownerEmail: string;
+  ownerIdNumber: string; // رقم الهوية
+  ownerPhone: string; // رقم الجوال
+  ownerNationalAddress: string; // العنوان الوطني
   ownerCity: string;
   ownerDistrict: string;
 
@@ -203,8 +204,9 @@ const STORAGE_KEY = 'wasata_property_draft';
 const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
   ownerName: '',
   ownerBirthDate: '',
+  ownerIdNumber: '',
   ownerPhone: '',
-  ownerEmail: '',
+  ownerNationalAddress: '',
   ownerCity: '',
   ownerDistrict: '',
   deedNumber: '',
@@ -330,8 +332,17 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       // Only save if there's meaningful data
-      const hasData = propertyData.ownerName || propertyData.ownerPhone || propertyData.propertyType || 
-                     propertyData.locationDetails.city || propertyData.media.length > 0;
+      const hasData =
+        propertyData.ownerName ||
+        propertyData.ownerPhone ||
+        propertyData.ownerIdNumber ||
+        propertyData.ownerBirthDate ||
+        propertyData.ownerNationalAddress ||
+        propertyData.ownerCity ||
+        propertyData.ownerDistrict ||
+        propertyData.propertyType ||
+        propertyData.locationDetails.city ||
+        propertyData.media.length > 0;
       if (hasData) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(propertyData));
       }
@@ -764,8 +775,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       return;
     }
 
-    if (!propertyData.ownerName || !propertyData.ownerPhone) {
-      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الجوال');
+    if (!propertyData.ownerName || !propertyData.ownerIdNumber || !propertyData.ownerPhone) {
+      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الهوية ورقم الجوال');
       return;
     }
 
@@ -774,6 +785,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     try {
       const adData: PublishedAdData = {
         id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        title: `${propertyData.purpose || ''} - ${propertyData.propertyType || ''} - ${propertyData.area || ''}م`.
+          replace(/^\s*-\s*/,'').trim(),
         propertyType: propertyData.propertyType,
         category: propertyData.category,
         purpose: propertyData.purpose,
@@ -811,8 +824,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         priceType: propertyData.priceStatus,
         ownerName: propertyData.ownerName,
         ownerPhone: propertyData.ownerPhone,
-        ownerEmail: propertyData.ownerEmail,
-        ownerIdNumber: '',
+        ownerIdNumber: propertyData.ownerIdNumber,
+        ownerBirthDate: propertyData.ownerBirthDate,
+        ownerNationalAddress: propertyData.ownerNationalAddress,
         deedNumber: propertyData.deedNumber,
         deedDate: propertyData.deedDate,
         deedCity: propertyData.deedCity,
@@ -940,6 +954,16 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 />
               </div>
               <div>
+                <Label className="text-[#01411C]">رقم الهوية *</Label>
+                <Input
+                  value={propertyData.ownerIdNumber}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, ownerIdNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))}
+                  placeholder="10 أرقام"
+                  className="border-[#D4AF37] focus:border-[#01411C]"
+                  dir="ltr"
+                />
+              </div>
+              <div>
                 <Label className="text-[#01411C]">رقم الجوال *</Label>
                 <Input
                   value={propertyData.ownerPhone}
@@ -949,17 +973,16 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   dir="ltr"
                 />
               </div>
-              <div>
-                <Label className="text-[#01411C]">البريد الإلكتروني</Label>
-                <Input
-                  type="email"
-                  value={propertyData.ownerEmail}
-                  onChange={(e) => setPropertyData(prev => ({ ...prev, ownerEmail: e.target.value }))}
-                  placeholder="example@email.com"
-                  className="border-[#D4AF37] focus:border-[#01411C]"
-                  dir="ltr"
-                />
-              </div>
+            </div>
+            <div>
+              <Label className="text-[#01411C]">العنوان الوطني للمالك</Label>
+              <Textarea
+                value={propertyData.ownerNationalAddress}
+                onChange={(e) => setPropertyData(prev => ({ ...prev, ownerNationalAddress: e.target.value }))}
+                placeholder="العنوان الوطني الكامل..."
+                rows={2}
+                className="border-[#D4AF37] focus:border-[#01411C]"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
