@@ -131,10 +131,10 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     // حقول تفاصيل المالك
     ownerName: l.ownerName || '',
     ownerBirthDate: l.ownerBirthDate || '',
+    ownerIdNumber: l.ownerIdNumber || '',
     ownerMobile: l.ownerPhone || '',
     ownerWhatsapp: l.ownerPhone || '',
-    ownerEmail: l.ownerEmail || '',
-    ownerNationalAddress: '',
+    ownerNationalAddress: l.ownerNationalAddress || '',
     ownerGoogleLocation: '',
     ownerNotes: '',
     // حقول معلومات الصك
@@ -880,17 +880,16 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   />
                 </div>
 
-                {/* البريد الإلكتروني */}
+                {/* رقم الهوية */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <Mail className="w-4 h-4 text-[#01411C]" />
-                    البريد الإلكتروني / Email
+                    <CreditCard className="w-4 h-4 text-[#01411C]" />
+                    رقم الهوية / ID Number
                   </label>
                   <Input
-                    type="email"
-                    value={formData.ownerEmail}
-                    onChange={e => setFormData({ ...formData, ownerEmail: e.target.value })}
-                    placeholder="email@example.com"
+                    value={(formData as any).ownerIdNumber || ''}
+                    onChange={e => setFormData({ ...(formData as any), ownerIdNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) })}
+                    placeholder="10 أرقام"
                     className="bg-gray-50 border-gray-200"
                     dir="ltr"
                   />

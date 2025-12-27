@@ -9,6 +9,7 @@ import { triggerNotification } from './useNotificationSystem';
 // Published Ad Interface
 export interface PublishedAdData {
   id: string;
+  title?: string;
   // Property Details
   propertyType: string;
   category: string;
@@ -70,8 +71,9 @@ export interface PublishedAdData {
   // Owner Info
   ownerName: string;
   ownerPhone: string;
-  ownerEmail?: string;
   ownerIdNumber?: string;
+  ownerBirthDate?: string;
+  ownerNationalAddress?: string;
   
   // Deed Info
   deedNumber?: string;
@@ -94,7 +96,9 @@ export interface LinkedCustomer {
   id: string;
   name: string;
   phone: string;
-  email?: string;
+  idNumber?: string;
+  birthDate?: string;
+  nationalAddress?: string;
   type: 'seller' | 'owner' | 'buyer' | 'renter' | 'investor' | 'other';
   status: string;
   columnId: string;
