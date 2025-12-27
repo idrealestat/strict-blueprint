@@ -26,6 +26,7 @@ import RentedPropertiesReport from "./components/reports/RentedPropertiesReport"
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
+import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 
 const queryClient = new QueryClient();
 
@@ -124,7 +125,6 @@ const App = () => {
   const renderPage = () => {
     // صفحة تفاصيل العميل الكاملة
     if (currentPage === "customer-details" && selectedCustomerForDetails) {
-      const CustomerDetailsPage = require("./components/crm/CustomerDetailsPage").default;
       return (
         <CustomerDetailsPage
           customer={selectedCustomerForDetails}

@@ -702,24 +702,20 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   </div>
                 </div>
 
-                {/* الوصف - عمودي */}
+                {/* الوصف */}
                 <div>
                   <label className="flex items-center justify-between text-sm font-bold text-gray-700 mb-2">
                     <span className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-[#01411C]" />
                       الوصف / Description
                     </span>
-                    <span className="text-xs text-gray-400">يُدار بواسطة إعدادات الكتالوج</span>
                   </label>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 whitespace-pre-wrap text-sm text-gray-700 min-h-[120px]">
-                    {formData.description || 'لا يوجد وصف'}
-                  </div>
                   <Textarea
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="رقم الاعلان: 0453489&#10;شقة مؤثثة للبيع في فندق 4 نجوم..."
+                    placeholder="وصف العقار..."
                     rows={6}
-                    className="text-right bg-gray-50 border-gray-200 mt-2"
+                    className="text-right bg-gray-50 border-gray-200 whitespace-pre-wrap"
                   />
                 </div>
 

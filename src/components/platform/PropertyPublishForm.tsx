@@ -90,6 +90,8 @@ interface PropertyData {
 
   // 6. المواصفات التفصيلية
   floors: string;
+  floorNumber: string; // في أي دور (للشقق)
+  cornerType: string; // زاوية / بطن
   livingRooms: string;
   councils: string;
   bedrooms: string;
@@ -224,6 +226,8 @@ const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
   },
   smartPath: '',
   floors: '',
+  floorNumber: '',
+  cornerType: '',
   livingRooms: '',
   councils: '',
   bedrooms: '',
@@ -435,6 +439,11 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     }
   };
 
+  // State for map layer
+  const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('satellite');
+  const satelliteLayerRef = useRef<any>(null);
+  const streetLayerRef = useRef<any>(null);
+
   // تهيئة الخريطة
   useEffect(() => {
     if (showMap && mapRef.current && !mapInstanceRef.current) {
@@ -448,11 +457,22 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       script.onload = () => {
         const L = (window as any).L;
         
-        const map = L.map(mapRef.current).setView([propertyData.locationDetails.latitude, propertyData.locationDetails.longitude], 15);
+        const map = L.map(mapRef.current).setView([propertyData.locationDetails.latitude, propertyData.locationDetails.longitude], 17);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        // Street layer (OpenStreetMap)
+        streetLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        });
+        
+        // Satellite layer (ESRI)
+        satelliteLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: '© ESRI',
+          maxZoom: 19,
+        });
+        
+        // Add satellite layer by default
+        satelliteLayerRef.current.addTo(map);
         
         const marker = L.marker([propertyData.locationDetails.latitude, propertyData.locationDetails.longitude], {
           draggable: true
@@ -481,6 +501,21 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       }
     };
   }, [showMap]);
+
+  // Toggle map layer
+  const toggleMapLayer = () => {
+    if (!mapInstanceRef.current) return;
+    
+    if (mapLayer === 'satellite') {
+      mapInstanceRef.current.removeLayer(satelliteLayerRef.current);
+      streetLayerRef.current.addTo(mapInstanceRef.current);
+      setMapLayer('street');
+    } else {
+      mapInstanceRef.current.removeLayer(streetLayerRef.current);
+      satelliteLayerRef.current.addTo(mapInstanceRef.current);
+      setMapLayer('satellite');
+    }
+  };
 
   // الحصول على الموقع الحالي
   const getCurrentLocation = () => {
@@ -1100,6 +1135,18 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
 
             {showMap && (
               <div className="space-y-4">
+                {/* Map Layer Toggle */}
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleMapLayer}
+                    className="gap-2 text-sm"
+                  >
+                    {mapLayer === 'satellite' ? '🛰️ أقمار صناعية' : '🗺️ خريطة شوارع'}
+                    <span className="text-xs text-muted-foreground">(اضغط للتبديل)</span>
+                  </Button>
+                </div>
                 <div 
                   ref={mapRef}
                   className="w-full h-64 rounded-lg border border-gray-200 bg-gray-100"
@@ -1272,6 +1319,51 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   className="border-[#D4AF37]"
                 />
               </div>
+              
+              {/* في أي دور - يظهر فقط للشقق */}
+              {propertyData.propertyType === 'شقة' && (
+                <div>
+                  <Label className="text-[#01411C]">في أي دور</Label>
+                  <Select 
+                    value={propertyData.floorNumber} 
+                    onValueChange={(value) => setPropertyData(prev => ({ ...prev, floorNumber: value }))}
+                  >
+                    <SelectTrigger className="border-[#D4AF37]">
+                      <SelectValue placeholder="اختر الدور" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="أرضي">أرضي</SelectItem>
+                      <SelectItem value="الأول">الأول</SelectItem>
+                      <SelectItem value="الثاني">الثاني</SelectItem>
+                      <SelectItem value="الثالث">الثالث</SelectItem>
+                      <SelectItem value="الرابع">الرابع</SelectItem>
+                      <SelectItem value="الخامس">الخامس</SelectItem>
+                      <SelectItem value="السادس">السادس</SelectItem>
+                      <SelectItem value="السابع أو أعلى">السابع أو أعلى</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              {/* زاوية / بطن */}
+              <div>
+                <Label className="text-[#01411C]">الموقع</Label>
+                <Select 
+                  value={propertyData.cornerType} 
+                  onValueChange={(value) => setPropertyData(prev => ({ ...prev, cornerType: value }))}
+                >
+                  <SelectTrigger className="border-[#D4AF37]">
+                    <SelectValue placeholder="زاوية / بطن" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="زاوية">زاوية</SelectItem>
+                    <SelectItem value="بطن">بطن</SelectItem>
+                    <SelectItem value="ثلاث شوارع">ثلاث شوارع</SelectItem>
+                    <SelectItem value="رأس بلك">رأس بلك</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div>
                 <Label className="text-[#01411C]">عدد الصالات</Label>
                 <Input
