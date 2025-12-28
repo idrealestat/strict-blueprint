@@ -41,7 +41,8 @@ import {
   Link,
   RefreshCw,
   LogOut,
-  Timer
+  Timer,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,8 +72,9 @@ interface Listing {
   // Owner
   ownerName?: string;
   ownerPhone?: string;
-  ownerEmail?: string;
+  ownerIdNumber?: string;
   ownerBirthDate?: string;
+  ownerNationalAddress?: string;
   ownerCity?: string;
   ownerDistrict?: string;
 
