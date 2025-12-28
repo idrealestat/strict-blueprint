@@ -9,6 +9,7 @@ import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { processLocalCommand } from "@/utils/wasataLocalCommands";
+import { triggerNotification } from "@/hooks/useNotificationSystem";
 interface Message {
   id: number;
   role: "user" | "assistant";
@@ -118,6 +119,64 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       { icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' }
     ]
   };
+
+  // دالة إنشاء موعد من المساعد الذكي
+  const createAppointmentFromAI = useCallback((title: string, customerName: string, date?: Date, time?: string) => {
+    const appointmentData = {
+      id: `apt_${Date.now()}`,
+      title,
+      customerName,
+      customerPhone: '',
+      date: date || new Date(),
+      time: time || '10:00',
+      duration: 60,
+      type: 'meeting',
+      status: 'scheduled',
+      reminder: true,
+      reminderTime: 30,
+    };
+    
+    // حفظ في localStorage
+    const existingAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+    existingAppointments.push(appointmentData);
+    localStorage.setItem('appointments', JSON.stringify(existingAppointments));
+    
+    // إرسال حدث لتحديث التقويم
+    window.dispatchEvent(new CustomEvent('appointmentCreated', { detail: appointmentData }));
+    
+    // إشعار
+    triggerNotification({
+      title: '📅 موعد جديد من وساطه AI',
+      message: `تم إنشاء موعد "${title}" مع ${customerName}`,
+      type: 'success',
+      category: 'appointment',
+    });
+    
+    toast.success(`تم إنشاء موعد "${title}" بنجاح`);
+    return appointmentData;
+  }, []);
+
+  // ربط عناوين العروض المنشورة
+  const getPublishedOffersContext = useCallback(() => {
+    try {
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+      
+      if (publishedAds.length === 0) return '';
+      
+      let context = '\n\n[العروض المنشورة في النظام:]';
+      publishedAds.forEach((ad: any, index: number) => {
+        const owner = customers.find((c: any) => c.id === ad.linkedCustomerId);
+        context += `\n${index + 1}. ${ad.title || ad.propertyType} - ${ad.price} ريال`;
+        context += ` - المالك: ${ad.ownerName}`;
+        if (owner) context += ` (معرف البطاقة: ${owner.id})`;
+      });
+      
+      return context;
+    } catch {
+      return '';
+    }
+  }, []);
   
   const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
   const [inputValue, setInputValue] = useState("");
@@ -356,7 +415,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     return actions;
   };
 
-  // Build context for AI
+  // Build context for AI - مع ربط العروض المنشورة
   const buildContextMessage = (userInput: string): string => {
     const inputLower = userInput.toLowerCase();
     let context = userInput;
@@ -369,6 +428,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     if (inputLower.includes('عروض') || inputLower.includes('عقارات')) {
       const availableOffers = offers.filter(o => o.status === 'available');
       context += `\n\n[سياق: لدي ${availableOffers.length} عروض متاحة. العروض: ${availableOffers.map(o => `${o.title} - ${o.price.toLocaleString()} ريال`).join(', ')}]`;
+      // إضافة العروض المنشورة
+      context += getPublishedOffersContext();
     }
 
     if (inputLower.includes('صفقات') || inputLower.includes('عمولة')) {
@@ -378,6 +439,16 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
     if (inputLower.includes('طلبات')) {
       context += `\n\n[سياق: لدي ${requests.length} طلبات. الطلبات: ${requests.map(r => `${r.customer} يريد ${r.type} في ${r.city} بميزانية ${r.budget}`).join(', ')}]`;
+    }
+
+    // إذا كان طلب موعد، أضف سياق المواعيد
+    if (inputLower.includes('موعد') || inputLower.includes('اجتماع') || inputLower.includes('مقابلة')) {
+      context += `\n\n[سياق: المستخدم يريد إنشاء موعد. يمكنك استخراج: عنوان الموعد، اسم العميل، التاريخ والوقت إن وجدوا. عند إنشاء موعد، أكد للمستخدم أنه تم إنشاؤه وسيظهر في التقويم.]`;
+    }
+
+    // إذا ذكر مالك أو بطاقة اسم
+    if (inputLower.includes('مالك') || inputLower.includes('بطاقة') || inputLower.includes('عميل')) {
+      context += getPublishedOffersContext();
     }
 
     return context;
@@ -505,6 +576,24 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
       // حفظ رد المساعد
       saveMessage('assistant', assistantContent, actions);
+
+      // 3️⃣ التحقق من طلب إنشاء موعد وتنفيذه
+      const inputLower = textToSend.toLowerCase();
+      if (inputLower.includes('موعد') || inputLower.includes('اجتماع') || inputLower.includes('مقابلة')) {
+        // استخراج المعلومات من الرد أو الطلب
+        const appointmentMatch = textToSend.match(/موعد\s+(مع\s+)?([^،,]+)/);
+        const customerName = appointmentMatch?.[2]?.trim() || 'عميل';
+        
+        // إنشاء الموعد تلقائياً
+        if (assistantContent.includes('تم إنشاء') || assistantContent.includes('موعد') || inputLower.includes('أنشئ') || inputLower.includes('اعمل')) {
+          createAppointmentFromAI(
+            `موعد من وساطه AI`,
+            customerName,
+            new Date(),
+            '10:00'
+          );
+        }
+      }
 
       // تشغيل الرد الصوتي
       await speakResponse(assistantContent);
