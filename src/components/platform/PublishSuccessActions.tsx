@@ -180,12 +180,12 @@ export default function PublishSuccessActions({
         yPos += 7;
         doc.text(`رقم الجوال: ${publishedAd.ownerPhone || '-'}`, pageWidth - margin, yPos, { align: 'right' });
         yPos += 7;
-        if (publishedAd.ownerEmail) {
-          doc.text(`البريد الإلكتروني: ${publishedAd.ownerEmail}`, pageWidth - margin, yPos, { align: 'right' });
-          yPos += 7;
-        }
         if (publishedAd.ownerIdNumber) {
           doc.text(`رقم الهوية: ${publishedAd.ownerIdNumber}`, pageWidth - margin, yPos, { align: 'right' });
+          yPos += 7;
+        }
+        if (publishedAd.ownerNationalAddress) {
+          doc.text(`العنوان الوطني: ${publishedAd.ownerNationalAddress}`, pageWidth - margin, yPos, { align: 'right' });
           yPos += 7;
         }
         yPos += 10;
