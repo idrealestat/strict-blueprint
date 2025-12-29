@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
+import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
 
 const queryClient = new QueryClient();
 
@@ -261,6 +262,10 @@ const App = () => {
                 } />
                 <Route path="/customers" element={<CustomersListPage />} />
                 <Route path="/cards/:slug" element={<PublicCardView />} />
+                <Route path="/public/offer/:brokerId" element={<PublicOfferForm />} />
+                <Route path="/public/request/:brokerId" element={<PublicRequestForm />} />
+                <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
+                <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

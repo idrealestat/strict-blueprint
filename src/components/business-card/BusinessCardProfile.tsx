@@ -602,7 +602,12 @@ END:VCARD`;
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => toast.info("إرسال عرض - TODO")}
+                onClick={() => {
+                  const link = `${window.location.origin}/public/offer/${user.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("تم نسخ رابط إرسال العرض");
+                  window.open(link, '_blank');
+                }}
               >
                 <Home className="w-5 h-5" />
                 <span className="text-xs">إرسال عرض</span>
@@ -612,40 +617,55 @@ END:VCARD`;
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => toast.info("إرسال طلب - TODO")}
+                onClick={() => {
+                  const link = `${window.location.origin}/public/request/${user.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("تم نسخ رابط إرسال الطلب");
+                  window.open(link, '_blank');
+                }}
               >
                 <Search className="w-5 h-5" />
                 <span className="text-xs">إرسال طلب</span>
-              </Button>
-
-              {/* Finance Calculator */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => toast.info("حاسبة تمويل - TODO")}
-              >
-                <Calculator className="w-5 h-5" />
-                <span className="text-xs">حاسبة تمويل</span>
               </Button>
 
               {/* Price Quote */}
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => toast.info("عرض سعر - TODO")}
+                onClick={() => {
+                  const link = `${window.location.origin}/public/quote/${user.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("تم نسخ رابط عرض السعر");
+                  window.open(link, '_blank');
+                }}
               >
                 <FileText className="w-5 h-5" />
                 <span className="text-xs">عرض سعر</span>
               </Button>
 
-              {/* Receipt */}
+              {/* Appointment */}
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => toast.info("سند قبض - TODO")}
+                onClick={() => {
+                  const link = `${window.location.origin}/public/appointment/${user.id}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("تم نسخ رابط إنشاء موعد");
+                  window.open(link, '_blank');
+                }}
               >
-                <FileText className="w-5 h-5" />
-                <span className="text-xs">سند قبض</span>
+                <Calendar className="w-5 h-5" />
+                <span className="text-xs">إنشاء موعد</span>
+              </Button>
+
+              {/* Finance Calculator */}
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                onClick={() => toast.info("حاسبة تمويل - قريباً")}
+              >
+                <Calculator className="w-5 h-5" />
+                <span className="text-xs">حاسبة تمويل</span>
               </Button>
             </div>
           </CardContent>
