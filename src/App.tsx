@@ -28,6 +28,7 @@ import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
+import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
 
 const queryClient = new QueryClient();
 
@@ -266,6 +267,7 @@ const App = () => {
                 <Route path="/public/request/:brokerId" element={<PublicRequestForm />} />
                 <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
                 <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
+                <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
