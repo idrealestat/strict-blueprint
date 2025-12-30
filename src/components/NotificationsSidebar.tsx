@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
-  ChevronRight, Settings
+  ChevronRight, Settings, Home, Phone
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Switch } from "./ui/switch";
 import { useNotificationSystem, SystemNotification } from "@/hooks/useNotificationSystem";
+import { useViewingNotifications, ViewingAppointment } from "@/hooks/useViewingNotifications";
+import ViewingNotificationModal from "./ViewingNotificationModal";
 
 interface NotificationsSidebarProps {
   isOpen: boolean;
@@ -41,7 +43,27 @@ export default function NotificationsSidebar({
 
   const [activeTab, setActiveTab] = useState("all");
   const [showSettings, setShowSettings] = useState(false);
+  const [viewingModalOpen, setViewingModalOpen] = useState(false);
+  const [selectedViewingAppointment, setSelectedViewingAppointment] = useState<ViewingAppointment | null>(null);
 
+  // Initialize viewing notifications hook
+  useViewingNotifications();
+
+  // Listen for viewing reminder events
+  useEffect(() => {
+    const handleViewingReminder = (event: CustomEvent) => {
+      const { appointment } = event.detail;
+      if (appointment) {
+        setSelectedViewingAppointment(appointment);
+        setViewingModalOpen(true);
+      }
+    };
+
+    window.addEventListener('viewingReminder', handleViewingReminder as EventListener);
+    return () => {
+      window.removeEventListener('viewingReminder', handleViewingReminder as EventListener);
+    };
+  }, []);
   // Filter notifications by tab
   const filteredNotifications = notifications.filter(n => {
     if (activeTab === "all") return true;
@@ -367,6 +389,16 @@ export default function NotificationsSidebar({
           </motion.div>
         </>
       )}
+
+      {/* Viewing Notification Modal */}
+      <ViewingNotificationModal
+        isOpen={viewingModalOpen}
+        onClose={() => {
+          setViewingModalOpen(false);
+          setSelectedViewingAppointment(null);
+        }}
+        appointment={selectedViewingAppointment}
+      />
     </AnimatePresence>
   );
 }
