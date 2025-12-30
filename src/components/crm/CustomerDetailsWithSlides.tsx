@@ -44,11 +44,13 @@ import {
   ExternalLink,
   Megaphone,
   Sparkles,
-  Loader2
+  Loader2,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import TabActionsPanel from './TabActionsPanel';
 
 // واجهة العميل
 interface Customer {
@@ -467,28 +469,73 @@ const MediaSlide = ({ customer }: { customer: Customer }) => {
   );
 };
 
-// السلايد التاسع - إعلان منشور
+// السلايد التاسع - إعلان منشور (مع التبويبات الديناميكية)
 const PublishedAdsSlide = ({ customer }: { customer: Customer }) => {
+  const [customerTabs, setCustomerTabs] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load customer tabs from localStorage
+    const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+    const foundCustomer = customers.find((c: any) => c.phone === customer.phone || c.id === customer.id);
+    if (foundCustomer?.tabs) {
+      setCustomerTabs(foundCustomer.tabs.filter((t: any) => t.type === 'property_offer' || t.type === 'published_ad'));
+    }
+  }, [customer]);
+
+  const handleRepublish = (data: any) => {
+    // Store data for auto-fill in publish form
+    localStorage.setItem('republish_data', JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('republishOffer', { detail: data }));
+  };
+
   return (
     <div className="space-y-4 p-6">
       <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-6 border-2 border-cyan-200">
         <div className="flex items-center gap-3 mb-4">
           <Send className="w-8 h-8 text-cyan-600" />
           <div>
-            <h3 className="text-xl font-bold text-cyan-900">الإعلانات المنشورة</h3>
-            <p className="text-sm text-cyan-700">إعلانات العميل المنشورة</p>
+            <h3 className="text-xl font-bold text-cyan-900">العروض العقارية</h3>
+            <p className="text-sm text-cyan-700">عروض العميل المستلمة والمنشورة</p>
           </div>
         </div>
       </div>
 
-      <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-        <Send className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600 mb-4">لا توجد إعلانات منشورة حالياً</p>
-        <button className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-medium flex items-center gap-2 mx-auto">
-          <Plus className="w-5 h-5" />
-          نشر إعلان جديد
-        </button>
-      </div>
+      {customerTabs.length > 0 ? (
+        <div className="space-y-4">
+          {customerTabs.map((tab: any) => (
+            <div key={tab.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 relative">
+              {tab.isNew && (
+                <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+              )}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-500">
+                  {new Date(tab.createdAt).toLocaleDateString('ar-SA')}
+                </span>
+                <span className="px-2 py-1 bg-cyan-100 text-cyan-800 rounded text-xs">
+                  {tab.type === 'property_offer' ? 'عرض عقاري' : 'إعلان منشور'}
+                </span>
+              </div>
+              
+              {/* Tab Content with Actions */}
+              <TabActionsPanel 
+                tab={tab}
+                customerName={customer.name}
+                customerPhone={customer.phone}
+                onRepublish={handleRepublish}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+          <Send className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-4">لا توجد عروض عقارية حالياً</p>
+          <button className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-medium flex items-center gap-2 mx-auto">
+            <Plus className="w-5 h-5" />
+            نشر إعلان جديد
+          </button>
+        </div>
+      )}
     </div>
   );
 };
