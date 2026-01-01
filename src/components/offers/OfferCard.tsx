@@ -1,8 +1,10 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, Ruler, Bed, Bath, Calendar, Eye, TrendingUp } from "lucide-react";
+import { Building2, MapPin, Ruler, Bed, Bath, Calendar, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
+import LiveViewerIndicator from "@/components/ui/LiveViewerIndicator";
+import { useSingleOfferLiveViewers } from "@/hooks/useLiveViewers";
 
 interface Offer {
   id: string;
@@ -24,9 +26,12 @@ interface Offer {
 interface OfferCardProps {
   offer: Offer;
   onClick: (offer: Offer) => void;
+  showLiveViewers?: boolean;
 }
 
-export function OfferCard({ offer, onClick }: OfferCardProps) {
+export function OfferCard({ offer, onClick, showLiveViewers = true }: OfferCardProps) {
+  const liveViewers = useSingleOfferLiveViewers(showLiveViewers ? offer.id : undefined);
+  
   const statusColors: Record<string, string> = {
     available: "bg-green-100 text-green-800",
     reserved: "bg-yellow-100 text-yellow-800",
@@ -65,17 +70,30 @@ export function OfferCard({ offer, onClick }: OfferCardProps) {
               <Building2 className="w-20 h-20 text-[#D4AF37] opacity-50" />
             </div>
           )}
-          <div className="absolute top-2 right-2">
+          
+          {/* مؤشر المشاهدات المباشرة */}
+          <div className="absolute top-2 right-2 flex items-center gap-2">
+            <LiveViewerIndicator 
+              liveViewers={liveViewers}
+              totalViews={offer.views_count || 0}
+              showTotalViews={true}
+              size="sm"
+            />
+          </div>
+
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-white/90 text-[#01411C]">
+              {propertyTypeLabels[offer.property_type]}
+            </Badge>
+          </div>
+
+          {/* شارة الحالة */}
+          <div className="absolute bottom-2 right-2">
             <Badge className={statusColors[offer.status]}>
               {offer.status === "available" && "متاح"}
               {offer.status === "reserved" && "محجوز"}
               {offer.status === "sold" && "مباع"}
               {offer.status === "cancelled" && "ملغي"}
-            </Badge>
-          </div>
-          <div className="absolute top-2 left-2">
-            <Badge className="bg-white/90 text-[#01411C]">
-              {propertyTypeLabels[offer.property_type]}
             </Badge>
           </div>
         </div>
@@ -118,10 +136,6 @@ export function OfferCard({ offer, onClick }: OfferCardProps) {
           <div className="flex items-center justify-between pt-3 border-t">
             <div className="text-2xl font-bold text-[#01411C]">
               {offer.price.toLocaleString("ar-SA")} <span className="text-sm text-gray-500">ريال</span>
-            </div>
-            <div className="flex items-center gap-1 text-sm text-gray-500">
-              <Eye className="w-4 h-4" />
-              <span>{offer.views_count || 0}</span>
             </div>
           </div>
 
