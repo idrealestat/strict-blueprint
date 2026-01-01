@@ -239,63 +239,143 @@ export function useNotificationSystem() {
     }
   }, [addNotification]);
 
+  // Send SMS notification for appointment
+  const sendAppointmentSMS = useCallback(async (apt: any, minutesUntil: number) => {
+    const message = minutesUntil > 0
+      ? `تذكير: لديك موعد معاينة "${apt.title || apt.propertyTitle}" بعد ${minutesUntil} دقيقة في ${apt.location || apt.propertyLocation || 'الموقع المحدد'}. - وساطة`
+      : `حان الآن موعد معاينة "${apt.title || apt.propertyTitle}" في ${apt.location || apt.propertyLocation || 'الموقع المحدد'}. - وساطة`;
+    
+    const customerPhone = apt.customerPhone || apt.clientPhone;
+    if (!customerPhone) return;
+    
+    try {
+      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+      const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) return;
+      
+      await fetch(`${supabaseUrl}/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          to: customerPhone,
+          message,
+          messageType: 'appointment_reminder',
+          appointmentId: apt.id,
+        }),
+      });
+      console.log('Appointment SMS sent successfully');
+    } catch (error) {
+      console.error('Failed to send appointment SMS:', error);
+    }
+  }, []);
+
   // Check for upcoming appointments
   const checkUpcomingAppointments = useCallback(() => {
-    // Get appointments from localStorage (simulated)
+    // Get appointments from localStorage
     const storedAppointments = localStorage.getItem('appointments');
-    if (!storedAppointments) return;
+    const viewingAppointments = localStorage.getItem('calendar_appointments');
+    
+    let allAppointments: any[] = [];
+    
+    if (storedAppointments) {
+      try {
+        allAppointments = [...allAppointments, ...JSON.parse(storedAppointments)];
+      } catch (e) {}
+    }
+    
+    if (viewingAppointments) {
+      try {
+        const viewings = JSON.parse(viewingAppointments).map((apt: any) => ({
+          ...apt,
+          date: new Date(apt.date),
+          customerName: apt.clientName,
+          customerPhone: apt.clientPhone,
+          reminder: true,
+          reminderTime: 30,
+        }));
+        allAppointments = [...allAppointments, ...viewings];
+      } catch (e) {}
+    }
+    
+    if (allAppointments.length === 0) return;
 
     try {
-      const appointments: Appointment[] = JSON.parse(storedAppointments);
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
 
-      appointments.forEach(apt => {
-        if (apt.status === 'completed' || apt.status === 'cancelled') return;
-        if (!apt.reminder) return;
+      allAppointments.forEach(apt => {
+        if (apt.status === 'completed' || apt.status === 'cancelled' || apt.status === 'مكتمل' || apt.status === 'ملغي') return;
+        if (apt.reminder === false) return;
 
         const aptDate = new Date(apt.date);
         const isToday = aptDate.toDateString() === now.toDateString();
         
         if (!isToday) return;
 
-        const [aptHour, aptMinute] = apt.time.split(':').map(Number);
+        // Parse time - handle both formats
+        let aptHour = 0, aptMinute = 0;
+        const timeStr = apt.time || '';
+        if (timeStr.includes('ص') || timeStr.includes('م')) {
+          const parts = timeStr.replace(' ص', '').replace(' م', '').split(':');
+          aptHour = parseInt(parts[0]) || 0;
+          aptMinute = parseInt(parts[1]) || 0;
+          if (timeStr.includes('م') && aptHour < 12) aptHour += 12;
+        } else {
+          const parts = timeStr.split(':');
+          aptHour = parseInt(parts[0]) || 0;
+          aptMinute = parseInt(parts[1]) || 0;
+        }
+        
         const minutesUntilApt = (aptHour * 60 + aptMinute) - (currentHour * 60 + currentMinute);
-        const aptKey = `apt_${apt.id}_${apt.date}`;
+        const aptKey = `apt_${apt.id}_${aptDate.toDateString()}`;
+        const reminderTime = apt.reminderTime || 30;
 
         // Notify at reminder time (default 30 min)
-        if (minutesUntilApt <= apt.reminderTime && minutesUntilApt > 0 && !notifiedAppointmentsRef.current.has(`${aptKey}_upcoming`)) {
+        if (minutesUntilApt <= reminderTime && minutesUntilApt > 0 && !notifiedAppointmentsRef.current.has(`${aptKey}_upcoming`)) {
           notifiedAppointmentsRef.current.add(`${aptKey}_upcoming`);
+          
+          // إضافة إشعار داخلي
           addNotification({
-            title: '📅 موعد قادم',
-            message: `موعد "${apt.title}" مع ${apt.customerName} بعد ${minutesUntilApt} دقيقة`,
+            title: '📅 موعد معاينة قادم',
+            message: `موعد "${apt.title || apt.propertyTitle}" مع ${apt.customerName || apt.clientName} بعد ${minutesUntilApt} دقيقة`,
             time: 'الآن',
             type: 'reminder',
             category: 'appointment',
             actionType: 'appointment_upcoming',
             relatedId: apt.id,
           });
+          
+          // إرسال SMS
+          sendAppointmentSMS(apt, minutesUntilApt);
         }
 
         // Notify when appointment is now
         if (minutesUntilApt <= 5 && minutesUntilApt >= -5 && !notifiedAppointmentsRef.current.has(`${aptKey}_now`)) {
           notifiedAppointmentsRef.current.add(`${aptKey}_now`);
+          
           addNotification({
-            title: '🔔 الموعد الآن!',
-            message: `حان موعد "${apt.title}" مع ${apt.customerName}`,
+            title: '🔔 موعد المعاينة الآن!',
+            message: `حان موعد "${apt.title || apt.propertyTitle}" مع ${apt.customerName || apt.clientName}`,
             time: 'الآن',
             type: 'warning',
             category: 'appointment',
             actionType: 'appointment_now',
             relatedId: apt.id,
           });
+          
+          // إرسال SMS عند حلول الموعد
+          sendAppointmentSMS(apt, 0);
         }
       });
     } catch (error) {
       console.error('Error checking upcoming appointments:', error);
     }
-  }, [addNotification]);
+  }, [addNotification, sendAppointmentSMS]);
 
   // Toggle sound
   const toggleSound = useCallback(() => {
