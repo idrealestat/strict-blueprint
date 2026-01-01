@@ -1639,6 +1639,24 @@ export default function MyPlatformComplete({
               />
             </div>
 
+            {/* 4. مقارنة أداء العروض - مستطيل قابل للطي */}
+            <CollapsiblePerformanceComparison
+              offers={getAllOffersFlat().map(o => ({
+                id: o.id,
+                title: o.title,
+                city: cityHierarchy.find(c => c.districts.some(d => d.offers.some(of => of.id === o.id)) || c.directOffers.some(of => of.id === o.id))?.cityName || 'غير محدد',
+                views: o.views,
+                calls: Math.floor((o.requests || 0) * 0.3),
+                whatsapp: Math.floor((o.requests || 0) * 0.5),
+                shares: Math.floor((o.requests || 0) * 0.2),
+                favorites: Math.floor(o.views * 0.05),
+                conversionRate: o.views > 0 ? Math.round((o.requests || 0) / o.views * 100) : 0,
+                avgTimeOnPage: 60 + Math.floor(Math.random() * 120),
+              }))}
+              mode={comparisonMode}
+              onModeChange={(m) => setComparisonMode(m)}
+            />
+
             {/* Search & Filters */}
             <Card className="border-2 border-gray-200">
               <CardContent className="p-4 space-y-4">
@@ -1684,24 +1702,6 @@ export default function MyPlatformComplete({
                 </div>
               </CardContent>
             </Card>
-
-            {/* 4. مقارنة أداء العروض - مستطيل قابل للطي */}
-            <CollapsiblePerformanceComparison
-              offers={getAllOffersFlat().map(o => ({
-                id: o.id,
-                title: o.title,
-                city: cityHierarchy.find(c => c.districts.some(d => d.offers.some(of => of.id === o.id)) || c.directOffers.some(of => of.id === o.id))?.cityName || 'غير محدد',
-                views: o.views,
-                calls: Math.floor((o.requests || 0) * 0.3),
-                whatsapp: Math.floor((o.requests || 0) * 0.5),
-                shares: Math.floor((o.requests || 0) * 0.2),
-                favorites: Math.floor(o.views * 0.05),
-                conversionRate: o.views > 0 ? Math.round((o.requests || 0) / o.views * 100) : 0,
-                avgTimeOnPage: 60 + Math.floor(Math.random() * 120),
-              }))}
-              mode={comparisonMode}
-              onModeChange={(m) => setComparisonMode(m)}
-            />
 
             {/* === الهيكل الهرمي الجديد: مدينة ← حي ← عروض === */}
             <div className="space-y-4" dir="rtl">
