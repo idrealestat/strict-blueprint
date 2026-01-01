@@ -328,61 +328,72 @@ export function usePlatformListings(slug?: string) {
       }
 
       // تحويل وإدراج
-      const listingsToInsert = adsToSync.map((ad: any) => ({
-        slug: currentSlug,
-        title: ad.title || 'عرض بدون عنوان',
-        description: ad.description,
-        price: Number(ad.price) || 0,
-        property_type: ad.propertyType || 'شقة',
-        area: ad.area ? Number(ad.area) : null,
-        bedrooms: ad.bedrooms ? Number(ad.bedrooms) : null,
-        bathrooms: ad.bathrooms ? Number(ad.bathrooms) : null,
-        image: ad.image || (ad.images && ad.images[0]),
-        images: ad.images || [],
-        city: ad.city || 'غير محدد',
-        district: ad.district || 'غير محدد',
-        street: ad.street,
-        owner_name: ad.ownerName,
-        owner_phone: ad.ownerPhone,
-        views: ad.views || 0,
-        age: ad.age,
-        direction: ad.direction,
-        features: ad.features || [],
-        video_url: ad.videoUrl,
-        tour_3d_url: ad.tour3DUrl,
-        living_rooms: ad.livingRooms,
-        councils: ad.councils,
-        floors: ad.floors,
-        floor_number: ad.floorNumber,
-        corner_type: ad.cornerType,
-        street_width: ad.streetWidth,
-        furnishing: ad.furnishing,
-        entrances: ad.entrances,
-        balconies: ad.balconies,
-        ac_units: ad.acUnits,
-        warehouses: ad.warehouses,
-        has_laundry_room: ad.hasLaundryRoom || false,
-        curtains: ad.curtains,
-        has_extra_kitchen: ad.hasExtraKitchen || false,
-        extra_kitchen_appliances: ad.extraKitchenAppliances,
-        category: ad.category,
-        purpose: ad.purpose,
-        smart_path: ad.smartPath,
-        warranties: ad.warranties || [],
-        payment_option: ad.paymentOption,
-        payment_prices: ad.paymentPrices || {},
-        hashtags: ad.hashtags || [],
-        custom_hashtags: ad.customHashtags || [],
-        deed_number: ad.deedNumber,
-        deed_date: ad.deedDate,
-        ad_license: ad.adLicense,
-        broker_phone: ad.brokerPhone,
-        lat: ad.lat,
-        lng: ad.lng,
-        status: ad.status || 'published',
-        is_pinned: ad.isPinned || false,
-        is_hidden: ad.isHidden || false,
-      }));
+      const listingsToInsert = adsToSync.map((ad: any) => {
+        // استخراج الصور من media أو images
+        const images = ad.images || 
+          ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || 
+          [];
+        // استخراج الفيديو من videoUrl أو media
+        const videoUrl = ad.videoUrl || 
+          ad.media?.find((m: any) => m.type === 'video')?.url || 
+          null;
+        
+        return {
+          slug: currentSlug,
+          title: ad.title || 'عرض بدون عنوان',
+          description: ad.description || ad.aiDescription,
+          price: Number(ad.price) || 0,
+          property_type: ad.propertyType || 'شقة',
+          area: ad.area ? Number(ad.area) : null,
+          bedrooms: ad.bedrooms ? Number(ad.bedrooms) : null,
+          bathrooms: ad.bathrooms ? Number(ad.bathrooms) : null,
+          image: ad.image || images[0] || null,
+          images: images,
+          city: ad.city || ad.locationDetails?.city || ad.location?.city || 'غير محدد',
+          district: ad.district || ad.locationDetails?.district || ad.location?.district || 'غير محدد',
+          street: ad.street || ad.locationDetails?.street,
+          owner_name: ad.ownerName,
+          owner_phone: ad.ownerPhone,
+          views: ad.views || 0,
+          age: ad.age || ad.propertyAge,
+          direction: ad.direction || ad.facade,
+          features: ad.features || ad.customFeatures || [],
+          video_url: videoUrl,
+          tour_3d_url: ad.tour3DUrl,
+          living_rooms: ad.livingRooms,
+          councils: ad.councils,
+          floors: ad.floors,
+          floor_number: ad.floorNumber,
+          corner_type: ad.cornerType,
+          street_width: ad.streetWidth,
+          furnishing: ad.furnishing,
+          entrances: ad.entrances,
+          balconies: ad.balconies,
+          ac_units: ad.acUnits,
+          warehouses: ad.warehouses,
+          has_laundry_room: ad.hasLaundryRoom || false,
+          curtains: ad.curtains,
+          has_extra_kitchen: ad.hasExtraKitchen || false,
+          extra_kitchen_appliances: ad.extraKitchenAppliances,
+          category: ad.category,
+          purpose: ad.purpose,
+          smart_path: ad.smartPath || ad.platformPath,
+          warranties: ad.warranties || [],
+          payment_option: ad.paymentOption,
+          payment_prices: ad.paymentPrices || {},
+          hashtags: ad.hashtags || [],
+          custom_hashtags: ad.customHashtags || [],
+          deed_number: ad.deedNumber,
+          deed_date: ad.deedDate,
+          ad_license: ad.adLicense,
+          broker_phone: ad.brokerPhone,
+          lat: ad.lat || ad.locationDetails?.latitude,
+          lng: ad.lng || ad.locationDetails?.longitude,
+          status: ad.status || 'published',
+          is_pinned: ad.isPinned || false,
+          is_hidden: ad.isHidden || false,
+        };
+      });
 
       const { data, error: insertError } = await supabase
         .from('platform_listings')
@@ -526,6 +537,16 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
     const city = ad.locationDetails?.city || ad.city || 'غير محدد';
     const district = ad.locationDetails?.district || ad.district || 'غير محدد';
     
+    // استخراج الصور من media أو images
+    const images = ad.images || 
+      ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || 
+      [];
+    // استخراج الفيديو من videoUrl أو videos أو media
+    const videoUrl = ad.videoUrl || 
+      ad.videos?.[0] || 
+      ad.media?.find((m: any) => m.type === 'video')?.url || 
+      null;
+    
     const listingData = {
       slug,
       title: ad.title || 'عرض بدون عنوان',
@@ -535,18 +556,18 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       area: ad.area ? Number(ad.area) : null,
       bedrooms: ad.bedrooms ? Number(ad.bedrooms) : null,
       bathrooms: ad.bathrooms ? Number(ad.bathrooms) : null,
-      image: ad.images?.[0] || ad.image,
-      images: ad.images || [],
+      image: images[0] || ad.image || null,
+      images: images,
       city,
       district,
       street: ad.locationDetails?.street || ad.street,
       owner_name: ad.ownerName,
       owner_phone: ad.ownerPhone,
       views: 0,
-      age: ad.propertyAge ? Number(ad.propertyAge) : null,
+      age: ad.propertyAge ? Number(ad.propertyAge) : (ad.age ? Number(ad.age) : null),
       direction: ad.facade || ad.direction,
-      features: ad.features || [],
-      video_url: ad.videos?.[0] || ad.videoUrl,
+      features: ad.features || ad.customFeatures || [],
+      video_url: videoUrl,
       tour_3d_url: ad.tour3DUrl,
       living_rooms: ad.livingRooms,
       councils: ad.councils,
