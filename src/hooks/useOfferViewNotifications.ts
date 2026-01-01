@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { showPushNotification } from './usePushNotifications';
 
 export interface ViewerInfo {
   ip?: string;
@@ -266,6 +267,13 @@ export function useOfferViewNotifications() {
       if (soundEnabled) {
         soundManager.playSound();
       }
+
+      // إرسال Push notification
+      showPushNotification(
+        `👁️ مشاهدة جديدة: ${offerTitle}`,
+        `${viewerInfo.device} • ${viewerInfo.city || 'موقع غير معروف'}`,
+        { offerId, offerTitle, viewerInfo }
+      );
 
       // عرض toast
       toast.info(`👁️ مشاهدة جديدة: ${offerTitle}`, {
