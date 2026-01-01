@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { triggerNotification } from './useNotificationSystem';
+import { syncSingleListingToDatabase } from './usePlatformListings';
 
 // Published Ad Interface
 export interface PublishedAdData {
@@ -257,6 +258,13 @@ export function usePublishedAdsManager() {
       window.dispatchEvent(new CustomEvent('newItemsAdded', { 
         detail: { type: 'ad', id: adData.id } 
       }));
+
+      // مزامنة تلقائية إلى قاعدة البيانات
+      syncSingleListingToDatabase(adData).then((synced) => {
+        if (synced) {
+          console.log('تمت مزامنة العرض إلى قاعدة البيانات تلقائياً');
+        }
+      });
       
       return {
         success: true,
