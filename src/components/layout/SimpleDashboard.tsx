@@ -66,6 +66,24 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  
+  // Get offers for notifications sidebar
+  const getOffersForNotifications = () => {
+    try {
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      return publishedAds.map((ad: any) => ({
+        id: ad.id || String(Math.random()),
+        title: ad.title || 'عرض',
+        views: ad.views || 0,
+        requests: ad.requests || 0,
+        city: ad.city,
+      }));
+    } catch {
+      return [];
+    }
+  };
+  
+  const notificationOffers = getOffersForNotifications();
 
   return (
     <div
@@ -467,6 +485,7 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
         onNavigate={onNavigate}
+        offers={notificationOffers}
       />
 
       {/* المساعد الذكي العائم يتم عرضه من App.tsx */}
