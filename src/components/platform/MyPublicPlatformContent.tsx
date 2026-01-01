@@ -87,9 +87,16 @@ interface BusinessCardData {
 interface MyPublicPlatformContentProps {
   currentUser?: UserData;
   userId?: string;
+  platformSlug?: string; // slug المستخدم في رابط المنصة العامة
+  businessCardOverride?: (BusinessCardData & { swapState?: boolean }) | null; // بيانات قادمة من قاعدة البيانات للعرض العام
 }
 
-const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ currentUser, userId = 'default' }) => {
+const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
+  currentUser,
+  userId = 'default',
+  platformSlug,
+  businessCardOverride,
+}) => {
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
   const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
@@ -117,11 +124,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
         setHierarchyData(getMockHierarchy());
       }
     };
-    
+
+    // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات
+    if (typeof businessCardOverride !== 'undefined') {
+      setBusinessCardData(businessCardOverride);
+      setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
+      loadData();
+      return;
+    }
+
     const loadCardData = () => {
       // تحميل بيانات بطاقة الأعمال بالكامل من نفس المفتاح
       const savedBusinessCard = localStorage.getItem(STORAGE_KEY);
-      
+
       if (savedBusinessCard) {
         try {
           const data = JSON.parse(savedBusinessCard);
@@ -133,25 +148,25 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       } else {
         setBusinessCardData(null);
       }
-      
+
       // تحميل حالة التبديل
       const swapState = localStorage.getItem(SWAP_KEY);
       setIsSwapped(swapState === 'true');
     };
-    
+
     loadData();
     loadCardData();
-    
+
     const handleUpdate = () => {
       loadData();
       loadCardData();
     };
-    
+
     const handleSwap = () => {
       const swapState = localStorage.getItem(SWAP_KEY);
       setIsSwapped(swapState === 'true');
     };
-    
+
     // الاستماع لحدث تحديث بطاقة الأعمال
     window.addEventListener('businessCardUpdated', handleUpdate);
     window.addEventListener('businessCardSwapped', handleSwap);
@@ -163,7 +178,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       window.removeEventListener('publishedAdSaved', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [currentUser, STORAGE_KEY, SWAP_KEY]);
+  }, [currentUser, STORAGE_KEY, SWAP_KEY, businessCardOverride]);
 
   // حساب مستوى الشارة
   const getBadgeLevel = () => {
@@ -368,11 +383,12 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     );
   };
 
-  // إنشاء رابط المنصة الحقيقي - دائماً يستخدم default
+  // إنشاء رابط المنصة الحقيقي (slug من النشر)
   const getPlatformUrl = () => {
     // يمكن استبدال هذا بالدومين المخصص لاحقاً
     const baseUrl = window.location.origin;
-    return `${baseUrl}/platform/default`;
+    const slug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
+    return `${baseUrl}/platform/${slug}`;
   };
 
   // مشاركة رابط المنصة

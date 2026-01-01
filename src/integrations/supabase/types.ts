@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_cards: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          publish_token_hash: string | null
+          published: boolean
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          publish_token_hash?: string | null
+          published?: boolean
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          publish_token_hash?: string | null
+          published?: boolean
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       map_areas: {
         Row: {
           area_code: string | null

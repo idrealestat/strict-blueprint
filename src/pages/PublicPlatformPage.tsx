@@ -8,47 +8,27 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import MyPublicPlatformContent from '@/components/platform/MyPublicPlatformContent';
+import { usePublicBusinessCard } from '@/hooks/usePublicBusinessCard';
 
 const PublicPlatformPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
-  
-  // بيانات المستخدم من localStorage
-  const [userData, setUserData] = React.useState<any>(null);
-  
-  // استخدام 'default' دائماً لأن البيانات مخزنة تحت هذا المفتاح
-  const actualUserId = 'default';
-  
-  React.useEffect(() => {
-    // تحميل بيانات البطاقة من localStorage - دائماً من default
-    const storageKey = `business_card_${actualUserId}`;
-    const savedData = localStorage.getItem(storageKey);
-    
-    if (savedData) {
-      try {
-        const data = JSON.parse(savedData);
-        setUserData({
-          name: data.userName,
-          title: 'وسيط عقاري معتمد',
-          rating: 4.8,
-          badge: 'ماسي',
-          totalDeals: data.achievements?.totalDeals || 0
-        });
-      } catch (error) {
-        console.error('خطأ في تحميل البيانات:', error);
-      }
-    }
-  }, [userId]);
+  const slug = userId || 'default';
 
-  const pageTitle = userData?.name ? `منصة ${userData.name} العقارية` : 'المنصة العقارية';
-  const pageDescription = userData?.name 
-    ? `تصفح العروض العقارية المميزة من ${userData.name} - وسيط عقاري معتمد`
+  const { data: businessCard, loading } = usePublicBusinessCard(slug);
+
+  const pageTitle = businessCard?.userName ? `منصة ${businessCard.userName} العقارية` : 'المنصة العقارية';
+  const pageDescription = businessCard?.userName
+    ? `تصفح العروض العقارية المميزة من ${businessCard.userName} - وسيط عقاري معتمد`
     : 'منصة عقارية متكاملة لعرض العقارات والخدمات العقارية';
+
+  const canonicalUrl = typeof window !== 'undefined' ? `${window.location.origin}/platform/${slug}` : '';
 
   return (
     <>
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={canonicalUrl} />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="website" />
@@ -56,10 +36,13 @@ const PublicPlatformPage: React.FC = () => {
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
       </Helmet>
-      
-      <MyPublicPlatformContent 
-        currentUser={userData}
-        userId={actualUserId}
+
+      {/* نعرض حتى أثناء التحميل، لأن الهيدر سيتحدث فور وصول البيانات */}
+      <MyPublicPlatformContent
+        currentUser={businessCard ? { name: businessCard.userName } : undefined}
+        userId="public"
+        platformSlug={slug}
+        businessCardOverride={loading ? null : (businessCard as any)}
       />
     </>
   );

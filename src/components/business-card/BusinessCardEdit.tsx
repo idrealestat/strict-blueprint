@@ -18,7 +18,8 @@ import {
   Plus,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  UploadCloud,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface User {
   id: string;
@@ -168,8 +170,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
     }
   }, []);
 
-  // Handle save - حفظ مزدوج للربط مع منصتي
-  const handleSave = () => {
+  // Handle save - حفظ مزدوج للربط مع منصتي + نشر للصفحة العامة
+  const handleSave = async () => {
     try {
       const dataToSave = JSON.stringify(formData);
       // Check if data size is too large (localStorage limit is ~5MB)
@@ -179,7 +181,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
       }
       // حفظ بالمفتاح الأساسي
       localStorage.setItem(STORAGE_KEY, dataToSave);
-      
+
       // حفظ نسخة للربط مع منصتي - صورة البروفايل فقط
       const platformData = {
         profileImage: formData.profileImage, // صورة البروفايل فقط للمنصة
@@ -188,10 +190,34 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
         title: formData.companyName || 'وسيط عقاري معتمد'
       };
       localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
-      
+
+      // نشر بيانات البطاقة للمنصة العامة (ليظهر الهيدر للزوار على أجهزة أخرى)
+      const slug = String(user.id || 'default');
+      const swapState = localStorage.getItem(`business_card_swap_${user.id}`) === 'true';
+      const publishTokenKey = `business_card_publish_token_${slug}`;
+      const existingToken = localStorage.getItem(publishTokenKey) || undefined;
+
+      const payload = {
+        ...formData,
+        swapState,
+      };
+
+      const { data, error } = await supabase.functions.invoke('publish-business-card', {
+        body: {
+          slug,
+          data: payload,
+          token: existingToken,
+        },
+      });
+
+      if (!error && data?.token) {
+        localStorage.setItem(publishTokenKey, data.token);
+        localStorage.setItem('public_platform_slug', slug);
+      }
+
       // إرسال حدث لتحديث المنصة فوراً
       window.dispatchEvent(new CustomEvent('businessCardUpdated'));
-      
+
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
       toast.success("تم حفظ التغييرات بنجاح!");
