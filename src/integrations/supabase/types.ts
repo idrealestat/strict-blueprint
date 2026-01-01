@@ -188,6 +188,48 @@ export type Database = {
           },
         ]
       }
+      sms_logs: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          message_content: string
+          message_type: string | null
+          recipient_phone: string
+          sent_at: string | null
+          status: string
+          twilio_message_sid: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_content: string
+          message_type?: string | null
+          recipient_phone: string
+          sent_at?: string | null
+          status?: string
+          twilio_message_sid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_content?: string
+          message_type?: string | null
+          recipient_phone?: string
+          sent_at?: string | null
+          status?: string
+          twilio_message_sid?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wasata_ai_conversations: {
         Row: {
           created_at: string

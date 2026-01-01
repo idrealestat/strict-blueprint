@@ -29,6 +29,12 @@ export default function NotificationsSidebar({
   onClose,
   onNavigate,
 }: NotificationsSidebarProps) {
+  // All hooks must be called at the top level, unconditionally, in the same order
+  const [activeTab, setActiveTab] = useState("all");
+  const [showSettings, setShowSettings] = useState(false);
+  const [viewingModalOpen, setViewingModalOpen] = useState(false);
+  const [selectedViewingAppointment, setSelectedViewingAppointment] = useState<ViewingAppointment | null>(null);
+
   const {
     notifications,
     unreadCount,
@@ -41,18 +47,14 @@ export default function NotificationsSidebar({
     testSound,
   } = useNotificationSystem();
 
-  const [activeTab, setActiveTab] = useState("all");
-  const [showSettings, setShowSettings] = useState(false);
-  const [viewingModalOpen, setViewingModalOpen] = useState(false);
-  const [selectedViewingAppointment, setSelectedViewingAppointment] = useState<ViewingAppointment | null>(null);
-
-  // Initialize viewing notifications hook
-  useViewingNotifications();
+  // Initialize viewing notifications hook - must be called unconditionally
+  const viewingNotifications = useViewingNotifications();
 
   // Listen for viewing reminder events
   useEffect(() => {
     const handleViewingReminder = (event: CustomEvent) => {
-      const { appointment } = event.detail;
+      const notification = event.detail;
+      const appointment = notification?.appointment || notification?.detail?.appointment;
       if (appointment) {
         setSelectedViewingAppointment(appointment);
         setViewingModalOpen(true);
