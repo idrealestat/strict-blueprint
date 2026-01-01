@@ -3,11 +3,14 @@
  * صفحة المنصة العامة - عرض العروض بشكل هرمي مع بطاقة الوسيط
  */
 
-import React, { useState, useEffect } from 'react';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
+import SimilarOffersSection from './SimilarOffersSection';
+import PlatformSearchFilter from './PlatformSearchFilter';
+import PlatformStats from './PlatformStats';
 import { toast } from 'sonner';
 
 interface Listing {
@@ -98,14 +101,35 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   businessCardOverride,
 }) => {
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
+  const [allListings, setAllListings] = useState<Listing[]>([]);
   const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isSwapped, setIsSwapped] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    city: '',
+    district: '',
+    propertyType: '',
+    minPrice: '',
+    maxPrice: '',
+    bedrooms: ''
+  });
   
   // مفتاح التخزين - نفس المفتاح المستخدم في بطاقة الأعمال
   const STORAGE_KEY = `business_card_${userId}`;
   const SWAP_KEY = `business_card_swap_${userId}`;
+
+  // استخراج جميع العروض المسطحة من التسلسل الهرمي
+  const flattenListings = (hierarchy: CityGroup[]): Listing[] => {
+    const listings: Listing[] = [];
+    hierarchy.forEach(city => {
+      city.districts.forEach(district => {
+        listings.push(...district.listings);
+      });
+    });
+    return listings;
+  };
   
   useEffect(() => {
     const loadData = () => {
@@ -116,12 +140,17 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           const ads = JSON.parse(savedAds).filter((ad: any) => ad.status === 'published');
           const hierarchy = buildHierarchy(ads);
           setHierarchyData(hierarchy);
+          setAllListings(flattenListings(hierarchy));
         } catch (error) {
           console.error('خطأ في تحميل البيانات:', error);
-          setHierarchyData(getMockHierarchy());
+          const mockHierarchy = getMockHierarchy();
+          setHierarchyData(mockHierarchy);
+          setAllListings(flattenListings(mockHierarchy));
         }
       } else {
-        setHierarchyData(getMockHierarchy());
+        const mockHierarchy = getMockHierarchy();
+        setHierarchyData(mockHierarchy);
+        setAllListings(flattenListings(mockHierarchy));
       }
     };
 
@@ -414,6 +443,101 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   // تحديد الصورة الكبيرة فقط بناءً على حالة التبديل (لا نعرض الصورة الصغيرة في منصتي)
   const mainImage = isSwapped ? businessCardData?.logoImage : businessCardData?.profileImage;
 
+  // حساب الإحصائيات
+  const platformStats = useMemo(() => {
+    const totalListings = allListings.length;
+    const cities = new Set(allListings.map(l => l.city));
+    const citiesCount = cities.size;
+    
+    const propertyTypes: { [key: string]: number } = {};
+    allListings.forEach(l => {
+      propertyTypes[l.propertyType] = (propertyTypes[l.propertyType] || 0) + 1;
+    });
+    
+    const totalPrice = allListings.reduce((sum, l) => sum + l.price, 0);
+    const averagePrice = totalListings > 0 ? totalPrice / totalListings : 0;
+    
+    const totalViews = allListings.reduce((sum, l) => sum + (l.views || 0), 0);
+    
+    return { totalListings, citiesCount, propertyTypes, averagePrice, totalViews };
+  }, [allListings]);
+
+  // فلترة العروض
+  const filteredHierarchy = useMemo(() => {
+    if (!filters.search && !filters.city && !filters.district && !filters.propertyType && 
+        !filters.minPrice && !filters.maxPrice && !filters.bedrooms) {
+      return hierarchyData;
+    }
+
+    return hierarchyData.map(city => {
+      // فلترة المدينة
+      if (filters.city && city.name !== filters.city) {
+        return null;
+      }
+
+      const filteredDistricts = city.districts.map(district => {
+        // فلترة الحي
+        if (filters.district && district.name !== filters.district) {
+          return null;
+        }
+
+        const filteredListings = district.listings.filter(listing => {
+          // فلترة نوع العقار
+          if (filters.propertyType && listing.propertyType !== filters.propertyType) return false;
+          
+          // فلترة البحث
+          if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            const matchTitle = listing.title?.toLowerCase().includes(searchLower);
+            const matchDesc = listing.description?.toLowerCase().includes(searchLower);
+            const matchCity = listing.city?.toLowerCase().includes(searchLower);
+            const matchDistrict = listing.district?.toLowerCase().includes(searchLower);
+            if (!matchTitle && !matchDesc && !matchCity && !matchDistrict) return false;
+          }
+          
+          // فلترة السعر
+          if (filters.minPrice && listing.price < Number(filters.minPrice)) return false;
+          if (filters.maxPrice && listing.price > Number(filters.maxPrice)) return false;
+          
+          // فلترة الغرف
+          if (filters.bedrooms) {
+            const bedroomsFilter = filters.bedrooms === '6+' ? 6 : Number(filters.bedrooms);
+            if (filters.bedrooms === '6+') {
+              if (!listing.bedrooms || listing.bedrooms < 6) return false;
+            } else {
+              if (listing.bedrooms !== bedroomsFilter) return false;
+            }
+          }
+          
+          return true;
+        });
+
+        if (filteredListings.length === 0) return null;
+        
+        return { ...district, listings: filteredListings };
+      }).filter(Boolean);
+
+      if (filteredDistricts.length === 0) return null;
+      
+      return { ...city, districts: filteredDistricts } as CityGroup;
+    }).filter(Boolean) as CityGroup[];
+  }, [hierarchyData, filters]);
+
+  // استخراج بيانات الفلاتر
+  const filterOptions = useMemo(() => {
+    const cities = [...new Set(allListings.map(l => l.city))];
+    const districts = [...new Set(allListings.map(l => l.district))];
+    const propertyTypes = [...new Set(allListings.map(l => l.propertyType))];
+    return { cities, districts, propertyTypes };
+  }, [allListings]);
+
+  // حساب عدد النتائج المفلترة
+  const filteredListingsCount = useMemo(() => {
+    return filteredHierarchy.reduce((sum, city) => 
+      sum + city.districts.reduce((dSum, d) => dSum + d.listings.length, 0), 0
+    );
+  }, [filteredHierarchy]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] to-white" dir="rtl">
       {/* Header - مطابق تماماً لبطاقة الأعمال */}
@@ -574,16 +698,38 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+        {/* إحصائيات المنصة */}
+        <PlatformStats
+          totalListings={platformStats.totalListings}
+          citiesCount={platformStats.citiesCount}
+          propertyTypes={platformStats.propertyTypes}
+          averagePrice={platformStats.averagePrice}
+          totalViews={platformStats.totalViews}
+        />
+
+        {/* شريط البحث والفلترة */}
+        <PlatformSearchFilter
+          onFilterChange={setFilters}
+          cities={filterOptions.cities}
+          districts={filterOptions.districts}
+          propertyTypes={filterOptions.propertyTypes}
+          totalResults={filteredListingsCount}
+        />
+
         {/* عرض العروض */}
-        {hierarchyData.length === 0 ? (
+        {filteredHierarchy.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 md:p-16 text-center border-2 border-dashed border-[#d4af37]">
             <div className="text-5xl md:text-6xl mb-4">🏠</div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">لا توجد عروض منشورة</h3>
-            <p className="text-gray-600">ابدأ بنشر أول عرض عقاري</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {allListings.length === 0 ? 'لا توجد عروض منشورة' : 'لا توجد نتائج مطابقة'}
+            </h3>
+            <p className="text-gray-600">
+              {allListings.length === 0 ? 'ابدأ بنشر أول عرض عقاري' : 'جرب تغيير معايير البحث'}
+            </p>
           </div>
         ) : (
           <div className="space-y-8">
-            {hierarchyData.map((city) => {
+            {filteredHierarchy.map((city) => {
               if (city.districts && city.districts.length > 0) {
                 const hasMultipleDistricts = city.districts.length > 1;
                 const totalListings = city.districts.reduce((sum, d) => sum + d.listings.length, 0);
@@ -644,15 +790,20 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         </footer>
       </div>
 
-      {/* صفحة تفاصيل العرض */}
+      {/* صفحة تفاصيل العرض مع العروض المشابهة */}
       {selectedListing && (
         <OfferDetailsPage
-          listing={selectedListing}
+          listing={{
+            ...selectedListing,
+            ownerPhone: businessCardData?.primaryPhone || selectedListing.ownerPhone
+          }}
           isOpen={showDetails}
           onClose={() => {
             setShowDetails(false);
             setSelectedListing(null);
           }}
+          allListings={allListings}
+          brokerPhone={businessCardData?.primaryPhone}
         />
       )}
     </div>
