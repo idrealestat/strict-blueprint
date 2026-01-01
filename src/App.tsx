@@ -29,6 +29,7 @@ import { AIFloatingButton } from "./components/ai-assistant";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
 import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
+import PublicPlatformPage from "./pages/PublicPlatformPage";
 
 const queryClient = new QueryClient();
 
@@ -268,6 +269,7 @@ const App = () => {
                 <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
                 <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
                 <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
+                <Route path="/platform/:userId" element={<PublicPlatformPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
