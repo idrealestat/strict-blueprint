@@ -612,10 +612,11 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   // مشاركة رابط المنصة
   const sharePlatformLink = async () => {
     const platformLink = getPlatformUrl();
+    const effectiveData = businessCardOverride || businessCardData;
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `منصة ${businessCardData?.userName || currentUser?.name || 'الوسيط'}`,
+          title: `منصة ${effectiveData?.userName || currentUser?.name || 'الوسيط'}`,
           text: 'تفضل بزيارة منصتي العقارية',
           url: platformLink
         });
@@ -630,7 +631,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   };
 
   // تحديد الصورة الكبيرة فقط بناءً على حالة التبديل (لا نعرض الصورة الصغيرة في منصتي)
-  const mainImage = isSwapped ? businessCardData?.logoImage : businessCardData?.profileImage;
+  // استخدام البيانات من قاعدة البيانات للصفحة العامة أو من localStorage للمالك
+  const effectiveBusinessCardData = businessCardOverride || businessCardData;
+  const mainImage = isSwapped ? effectiveBusinessCardData?.logoImage : effectiveBusinessCardData?.profileImage;
 
   // حساب الإحصائيات
   const platformStats = useMemo(() => {
@@ -732,14 +735,14 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       {/* Header - مطابق تماماً لبطاقة الأعمال */}
       <div 
         className="relative bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-6 shadow-2xl border-b-4 border-[#D4AF37] bg-cover bg-center transition-all duration-500"
-        style={businessCardData?.coverImage ? {
-          backgroundImage: `url(${businessCardData.coverImage})`,
+        style={effectiveBusinessCardData?.coverImage ? {
+          backgroundImage: `url(${effectiveBusinessCardData.coverImage})`,
           backgroundBlendMode: 'overlay',
           backgroundColor: 'rgba(1, 65, 28, 0.85)'
         } : undefined}
       >
         {/* Pattern overlay - only when no cover image */}
-        {!businessCardData?.coverImage && (
+        {!effectiveBusinessCardData?.coverImage && (
           <div className="absolute inset-0 opacity-10">
             <div className="w-full h-full" style={{
               backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
@@ -785,7 +788,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold bg-[#D4AF37]">
-                    {businessCardData?.userName?.charAt(0) || currentUser?.name?.charAt(0) || 'و'}
+                    {effectiveBusinessCardData?.userName?.charAt(0) || currentUser?.name?.charAt(0) || 'و'}
                   </div>
                 )}
               </div>
@@ -796,20 +799,20 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           {/* Profile Info - نفس التنسيق في بطاقة الأعمال */}
           <div className="pt-4 pb-8 px-4 text-center">
             {/* Name and Badge */}
-            <h1 className="text-2xl font-bold text-white">{businessCardData?.userName || currentUser?.name || 'مستخدم تجريبي'}</h1>
+            <h1 className="text-2xl font-bold text-white">{effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي'}</h1>
             <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
               <span 
                 className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm"
-                title={`${badge.name} - ${businessCardData?.achievements?.totalDeals || 0} صفقة - ${businessCardData?.achievements?.yearsOfExperience || 0} سنوات خبرة`}
+                title={`${badge.name} - ${effectiveBusinessCardData?.achievements?.totalDeals || 0} صفقة - ${effectiveBusinessCardData?.achievements?.yearsOfExperience || 0} سنوات خبرة`}
               >
                 {badge.icon} {badge.name}
               </span>
-              {businessCardData?.achievements?.verified && (
+              {effectiveBusinessCardData?.achievements?.verified && (
                 <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
                   ✅ موثق
                 </span>
               )}
-              {businessCardData?.achievements?.topPerformer && (
+              {effectiveBusinessCardData?.achievements?.topPerformer && (
                 <span className="px-2 py-1 rounded-full text-xs bg-[#D4AF37] text-white">
                   ⭐ أفضل أداء
                 </span>
@@ -817,54 +820,54 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
             </div>
 
             {/* Company */}
-            {businessCardData?.companyName && (
+            {effectiveBusinessCardData?.companyName && (
               <p className="mt-2 text-white/90 flex items-center justify-center gap-1">
                 <Building2 className="w-4 h-4" />
-                {businessCardData.companyName}
+                {effectiveBusinessCardData.companyName}
               </p>
             )}
 
             {/* Licenses */}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {businessCardData?.falLicense && (
+              {effectiveBusinessCardData?.falLicense && (
                 <span className="px-3 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
-                  📜 رخصة فال: {businessCardData.falLicense}
+                  📜 رخصة فال: {effectiveBusinessCardData.falLicense}
                 </span>
               )}
-              {businessCardData?.commercialRegistration && (
+              {effectiveBusinessCardData?.commercialRegistration && (
                 <span className="px-3 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
-                  📋 السجل: {businessCardData.commercialRegistration}
+                  📋 السجل: {effectiveBusinessCardData.commercialRegistration}
                 </span>
               )}
             </div>
 
             {/* Contact Info */}
             <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/90">
-              {businessCardData?.primaryPhone && (
+              {effectiveBusinessCardData?.primaryPhone && (
                 <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
                   <Phone className="w-4 h-4 text-[#D4AF37]" />
-                  {businessCardData.primaryPhone}
+                  {effectiveBusinessCardData.primaryPhone}
                 </span>
               )}
-              {businessCardData?.email && (
+              {effectiveBusinessCardData?.email && (
                 <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
                   <Star className="w-4 h-4 text-[#D4AF37]" />
-                  {businessCardData.email}
+                  {effectiveBusinessCardData.email}
                 </span>
               )}
-              {businessCardData?.location && (
+              {effectiveBusinessCardData?.location && (
                 <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
                   <MapPin className="w-4 h-4 text-[#D4AF37]" />
-                  {businessCardData.location}
+                  {effectiveBusinessCardData.location}
                 </span>
               )}
             </div>
 
             {/* Website/Domain */}
-            {businessCardData?.domain && (
+            {effectiveBusinessCardData?.domain && (
               <div className="mt-3">
                 <a 
-                  href={businessCardData.domain} 
+                  href={effectiveBusinessCardData.domain} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 bg-[#D4AF37] text-[#01411C] px-4 py-1.5 rounded-full text-sm font-medium hover:bg-[#f1c40f] transition-colors"
@@ -880,7 +883,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               <Button 
                 size="sm" 
                 className="bg-green-500 hover:bg-green-600 text-white"
-                onClick={() => window.open(`https://wa.me/${businessCardData?.primaryPhone?.replace(/\D/g, '') || '966501234567'}`, '_blank')}
+                onClick={() => window.open(`https://wa.me/${effectiveBusinessCardData?.primaryPhone?.replace(/\D/g, '') || '966501234567'}`, '_blank')}
               >
                 <MessageSquare className="w-4 h-4 ml-2" />
                 واتساب
@@ -888,7 +891,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               <Button 
                 size="sm" 
                 className="bg-[#D4AF37] hover:bg-[#c9a030] text-[#01411C]"
-                onClick={() => window.open(`tel:${businessCardData?.primaryPhone || '+966501234567'}`, '_blank')}
+                onClick={() => window.open(`tel:${effectiveBusinessCardData?.primaryPhone || '+966501234567'}`, '_blank')}
               >
                 <Phone className="w-4 h-4 ml-2" />
                 اتصال
