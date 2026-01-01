@@ -8,27 +8,38 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
-  ChevronRight, Settings, Home, Phone, ExternalLink
+  ChevronRight, Settings, Home, Phone, ExternalLink,
+  Zap, BellOff
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Switch } from "./ui/switch";
+import { Card, CardContent } from "./ui/card";
 import { useNotificationSystem, SystemNotification } from "@/hooks/useNotificationSystem";
 import { useViewingNotifications, ViewingAppointment } from "@/hooks/useViewingNotifications";
 import ViewingNotificationModal from "./ViewingNotificationModal";
+import { CollapsibleNotificationSettings, SmartAlertsPanel } from "@/components/offers";
 
 interface NotificationsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate?: (page: string, params?: any) => void;
+  offers?: Array<{
+    id: string;
+    title: string;
+    views: number;
+    requests: number;
+    city?: string;
+  }>;
 }
 
 export default function NotificationsSidebar({
   isOpen,
   onClose,
   onNavigate,
+  offers = [],
 }: NotificationsSidebarProps) {
   const navigate = useNavigate();
   // All hooks must be called at the top level, unconditionally, in the same order
@@ -36,6 +47,10 @@ export default function NotificationsSidebar({
   const [showSettings, setShowSettings] = useState(false);
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
   const [selectedViewingAppointment, setSelectedViewingAppointment] = useState<ViewingAppointment | null>(null);
+  
+  // Notification settings state
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationSoundEnabled, setNotificationSoundEnabled] = useState(true);
 
   // Navigate to notification settings
   const goToNotificationSettings = () => {
@@ -375,6 +390,29 @@ export default function NotificationsSidebar({
                     </motion.div>
                   );
                 })
+              )}
+            </div>
+
+            {/* Collapsible Settings & Smart Alerts */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
+              {/* إعدادات الإشعارات */}
+              <CollapsibleNotificationSettings
+                notificationsEnabled={notificationsEnabled}
+                soundEnabled={notificationSoundEnabled}
+                onSettingsChange={(enabled, sound) => {
+                  setNotificationsEnabled(enabled);
+                  setNotificationSoundEnabled(sound);
+                }}
+              />
+
+              {/* التنبيهات الذكية */}
+              {offers.length > 0 && (
+                <SmartAlertsPanel
+                  offers={offers}
+                  onAlertClick={(offerId) => {
+                    onClose();
+                  }}
+                />
               )}
             </div>
 
