@@ -301,11 +301,12 @@ END:VCARD`;
       )}
 
       {/* Full Header Section with Green Background */}
-      <div className="relative bg-gradient-to-b from-[#01411C] via-[#065f41] to-[#01411C]">
-        {/* Cover Image Overlay */}
+      <div className="relative bg-gradient-to-b from-[#01411C] via-[#065f41] to-[#01411C] shadow-2xl border-b-4 border-[#D4AF37]">
+        {/* Cover Image Overlay - with dark tint */}
         {formData.coverImage && (
           <div className="absolute inset-0">
-            <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover opacity-30" />
+            <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/60" />
           </div>
         )}
         {/* Pattern overlay */}
@@ -335,25 +336,25 @@ END:VCARD`;
           </Button>
         </div>
 
-        {/* Profile Image */}
+        {/* Profile Image - Bigger size */}
         <div className="relative z-10 flex justify-center pt-6">
           <div 
             className="relative cursor-pointer group"
             onClick={() => setShowSwappedImage(!showSwappedImage)}
           >
-            {/* Main Profile Image */}
-            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-white/20 to-white/10">
+            {/* Main Profile Image - Increased size */}
+            <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-white/20 to-white/10">
               {formData.profileImage ? (
                 <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold bg-[#D4AF37]">
+                <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold bg-[#D4AF37]">
                   {showSwappedImage ? "🏢" : formData.userName.charAt(0)}
                 </div>
               )}
             </div>
             
             {/* Small Logo Badge */}
-            <div className="absolute bottom-0 right-0 w-10 h-10 rounded-full border-2 border-white shadow-lg bg-[#D4AF37] flex items-center justify-center text-white text-sm overflow-hidden">
+            <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg bg-[#D4AF37] flex items-center justify-center text-white text-sm overflow-hidden">
               {formData.logoImage ? (
                 <img src={formData.logoImage} alt="Logo" className="w-full h-full object-cover" />
               ) : (
@@ -423,6 +424,21 @@ END:VCARD`;
               {formData.location}
             </span>
           </div>
+
+          {/* Website/Domain if available */}
+          {formData.domain && (
+            <div className="mt-3">
+              <a 
+                href={formData.domain} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 bg-[#D4AF37] text-[#01411C] px-4 py-1.5 rounded-full text-sm font-medium hover:bg-[#f1c40f] transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+                زيارة الموقع
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
