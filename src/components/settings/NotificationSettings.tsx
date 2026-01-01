@@ -366,8 +366,83 @@ export default function NotificationSettings() {
       processScheduledMessages();
     }, 60000);
 
-    return () => clearInterval(interval);
+    // الاستماع للتغييرات في الوقت الفعلي
+    const channel = supabase
+      .channel('scheduled-messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'scheduled_messages'
+        },
+        (payload) => {
+          const newStatus = payload.new.status;
+          const phone = payload.new.phone;
+          
+          if (newStatus === 'sent') {
+            toast.success(`تم إرسال الرسالة المجدولة بنجاح إلى ${phone}`, {
+              duration: 5000,
+              icon: '✅'
+            });
+            // تشغيل صوت نجاح
+            playNotificationSound('success');
+          } else if (newStatus === 'failed') {
+            toast.error(`فشل إرسال الرسالة إلى ${phone}: ${payload.new.error_message || 'خطأ غير معروف'}`, {
+              duration: 8000,
+              icon: '❌'
+            });
+            // تشغيل صوت خطأ
+            playNotificationSound('error');
+          } else if (newStatus === 'whatsapp_pending') {
+            toast.info(`رسالة واتساب جاهزة للإرسال إلى ${phone}`, {
+              duration: 5000,
+              icon: '📱'
+            });
+          }
+          
+          // تحديث القائمة
+          loadScheduledMessagesFromDB();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [loadScheduledMessagesFromDB]);
+
+  // تشغيل صوت الإشعار
+  const playNotificationSound = (type: 'success' | 'error') => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      if (type === 'success') {
+        // صوت نجاح (نغمة صاعدة)
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // E5
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2); // G5
+      } else {
+        // صوت خطأ (نغمة هابطة)
+        oscillator.frequency.setValueAtTime(392, audioContext.currentTime); // G4
+        oscillator.frequency.setValueAtTime(330, audioContext.currentTime + 0.15); // E4
+      }
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+    } catch (e) {
+      console.log('Could not play notification sound');
+    }
+  };
 
   // تصدير الإحصائيات كـ PDF
   const exportStatsPDF = async () => {
