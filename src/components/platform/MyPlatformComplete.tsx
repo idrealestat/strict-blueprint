@@ -74,6 +74,7 @@ import { useOfferViewNotifications } from "@/hooks/useOfferViewNotifications";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 
 // ===================== Types =====================
 
@@ -577,7 +578,7 @@ export default function MyPlatformComplete({
       });
     });
     localStorage.setItem('platform_visibility_state', JSON.stringify(visibilityState));
-    
+
     // تحديث حالة isHidden في published_ads_list
     const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
     let updated = false;
@@ -592,6 +593,11 @@ export default function MyPlatformComplete({
       localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
     }
   }, [cityHierarchy]);
+
+  // ✅ مزامنة المنصة العامة مع قائمة العروض المنشورة حتى لا تختفي العروض من «منصتي»
+  useEffect(() => {
+    syncPlatformCompleteFromPublishedAds();
+  }, []);
 
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());

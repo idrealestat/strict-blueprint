@@ -12,6 +12,7 @@ import SimilarOffersSection from './SimilarOffersSection';
 import PlatformSearchFilter from './PlatformSearchFilter';
 import PlatformStats from './PlatformStats';
 import { toast } from 'sonner';
+import { readPlatformComplete, readVisibilityState, syncPlatformCompleteFromPublishedAds } from '@/utils/platformStorage';
 
 interface Listing {
   id: string;
@@ -133,25 +134,27 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   
   useEffect(() => {
     const loadData = () => {
-      // تحميل العروض من localStorage
-      const savedAds = localStorage.getItem('wasata_platform_complete');
-      if (savedAds) {
-        try {
-          const ads = JSON.parse(savedAds).filter((ad: any) => ad.status === 'published');
-          const hierarchy = buildHierarchy(ads);
-          setHierarchyData(hierarchy);
-          setAllListings(flattenListings(hierarchy));
-        } catch (error) {
-          console.error('خطأ في تحميل البيانات:', error);
-          const mockHierarchy = getMockHierarchy();
-          setHierarchyData(mockHierarchy);
-          setAllListings(flattenListings(mockHierarchy));
-        }
-      } else {
-        const mockHierarchy = getMockHierarchy();
-        setHierarchyData(mockHierarchy);
-        setAllListings(flattenListings(mockHierarchy));
+      // ✅ توحيد مصدر البيانات:
+      // - المنصة العامة كانت تعتمد على wasata_platform_complete فقط
+      // - بينما لوحة الإدارة تعتمد على published_ads_list
+      // لذلك نعمل مزامنة/دمج ثم نبني الواجهة.
+      syncPlatformCompleteFromPublishedAds();
+
+      const visibility = readVisibilityState();
+      const ads = readPlatformComplete()
+        .filter((ad: any) => (ad?.status ?? 'published') === 'published')
+        .filter((ad: any) => !(visibility[`offer_${ad.id}`] ?? ad.isHidden ?? false));
+
+      if (ads.length > 0) {
+        const hierarchy = buildHierarchy(ads);
+        setHierarchyData(hierarchy);
+        setAllListings(flattenListings(hierarchy));
+        return;
       }
+
+      const mockHierarchy = getMockHierarchy();
+      setHierarchyData(mockHierarchy);
+      setAllListings(flattenListings(mockHierarchy));
     };
 
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات
