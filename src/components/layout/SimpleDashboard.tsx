@@ -148,8 +148,6 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
         {/* 1. شريط الأخبار العاجلة - 8 أخبار */}
         <NewsBar />
 
-        {/* 2. بطاقة الأعمال المتوهجة */}
-        <BusinessCard />
 
         {/* Profile Card */}
         {user && (
@@ -457,6 +455,9 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#01411C]">موعد</span>
+        {/* بطاقة الأعمال المتوهجة - في نهاية الصفحة */}
+        <BusinessCard />
+        
               </div>
             </div>
           </CardContent>
