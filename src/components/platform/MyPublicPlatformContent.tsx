@@ -36,6 +36,43 @@ interface Listing {
   age?: number;
   direction?: string;
   features?: string[];
+  // حقول إضافية من نموذج النشر
+  videoUrl?: string;
+  tour3DUrl?: string;
+  livingRooms?: string;
+  councils?: string;
+  floors?: string;
+  floorNumber?: string;
+  cornerType?: string;
+  streetWidth?: string;
+  furnishing?: string;
+  entrances?: string;
+  balconies?: string;
+  acUnits?: string;
+  warehouses?: string;
+  hasLaundryRoom?: boolean;
+  curtains?: string;
+  hasExtraKitchen?: boolean;
+  extraKitchenAppliances?: string;
+  category?: string;
+  purpose?: string;
+  smartPath?: string;
+  warranties?: { type: string; duration: string }[];
+  paymentOption?: string;
+  paymentPrices?: {
+    onePayment?: string;
+    twoPayments?: string;
+    fourPayments?: string;
+    monthly?: string;
+  };
+  hashtags?: string[];
+  customHashtags?: string[];
+  deedNumber?: string;
+  deedDate?: string;
+  adLicense?: string;
+  brokerPhone?: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface District {
@@ -295,19 +332,63 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         };
       }
       
+      // نقل جميع البيانات من الإعلان مع ضمان الحقول الأساسية
       cityGroups[city].districts[district].listings.push({
+        ...ad, // نقل جميع الحقول الأصلية
         id: ad.id,
         title: ad.title,
-        description: ad.description,
+        description: ad.description || ad.aiDescription, // الوصف من النموذج
         price: ad.price || 0,
         propertyType: ad.propertyType,
         area: ad.area,
         bedrooms: ad.bedrooms,
         bathrooms: ad.bathrooms,
-        image: ad.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400',
-        imageCount: ad.images?.length || 1,
+        image: ad.images?.[0] || ad.media?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400',
+        imageCount: ad.images?.length || ad.media?.length || 1,
+        images: ad.images || ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || [],
         city: city,
-        district: district
+        district: district,
+        // حقول إضافية
+        videoUrl: ad.videoUrl || ad.media?.find((m: any) => m.type === 'video')?.url,
+        tour3DUrl: ad.tour3DUrl,
+        ownerName: ad.ownerName,
+        ownerPhone: ad.ownerPhone,
+        street: ad.street || ad.locationDetails?.street,
+        age: ad.age || ad.propertyAge,
+        direction: ad.direction || ad.facade,
+        features: ad.features || ad.customFeatures || [],
+        views: ad.views || 0,
+        createdAt: ad.createdAt || ad.publishedAt,
+        // المواصفات التفصيلية
+        livingRooms: ad.livingRooms,
+        councils: ad.councils,
+        floors: ad.floors,
+        floorNumber: ad.floorNumber,
+        cornerType: ad.cornerType,
+        streetWidth: ad.streetWidth,
+        furnishing: ad.furnishing,
+        entrances: ad.entrances,
+        balconies: ad.balconies,
+        acUnits: ad.acUnits,
+        warehouses: ad.warehouses,
+        hasLaundryRoom: ad.hasLaundryRoom,
+        curtains: ad.curtains,
+        hasExtraKitchen: ad.hasExtraKitchen,
+        extraKitchenAppliances: ad.extraKitchenAppliances,
+        category: ad.category,
+        purpose: ad.purpose,
+        smartPath: ad.smartPath,
+        warranties: ad.warranties,
+        paymentOption: ad.paymentOption,
+        paymentPrices: ad.paymentPrices,
+        hashtags: ad.hashtags,
+        customHashtags: ad.customHashtags,
+        deedNumber: ad.deedNumber,
+        deedDate: ad.deedDate,
+        adLicense: ad.adLicense,
+        brokerPhone: ad.brokerPhone,
+        lat: ad.lat || ad.locationDetails?.latitude,
+        lng: ad.lng || ad.locationDetails?.longitude,
       });
     });
     

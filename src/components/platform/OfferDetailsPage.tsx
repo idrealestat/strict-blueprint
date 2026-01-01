@@ -34,7 +34,8 @@ import {
   AlertCircle,
   Video,
   View,
-  ZoomIn
+  ZoomIn,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,41 @@ interface Listing {
   features?: string[];
   lat?: number;
   lng?: number;
+  // حقول إضافية من نموذج النشر
+  videoUrl?: string;
+  tour3DUrl?: string;
+  livingRooms?: string;
+  councils?: string;
+  floors?: string;
+  floorNumber?: string;
+  cornerType?: string;
+  streetWidth?: string;
+  furnishing?: string;
+  entrances?: string;
+  balconies?: string;
+  acUnits?: string;
+  warehouses?: string;
+  hasLaundryRoom?: boolean;
+  curtains?: string;
+  hasExtraKitchen?: boolean;
+  extraKitchenAppliances?: string;
+  category?: string;
+  purpose?: string;
+  smartPath?: string;
+  warranties?: { type: string; duration: string }[];
+  paymentOption?: string;
+  paymentPrices?: {
+    onePayment?: string;
+    twoPayments?: string;
+    fourPayments?: string;
+    monthly?: string;
+  };
+  hashtags?: string[];
+  customHashtags?: string[];
+  deedNumber?: string;
+  deedDate?: string;
+  adLicense?: string;
+  brokerPhone?: string;
 }
 
 interface OfferDetailsPageProps {
@@ -920,23 +956,29 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
               </button>
             </div>
 
-            {/* أزرار الفيديو والجولة الافتراضية */}
-            <div className="flex gap-4 px-6 py-4 bg-gray-50 border-t border-gray-200" dir="rtl">
-              <Button
-                onClick={() => setShowVideo(true)}
-                className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-white font-bold py-3 rounded-xl"
-              >
-                <Video className="w-5 h-5 ml-2" />
-                عرض الفيديو
-              </Button>
-              <Button
-                onClick={() => setShowVirtualTour(true)}
-                className="flex-1 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold py-3 rounded-xl"
-              >
-                <View className="w-5 h-5 ml-2" />
-                جولة افتراضية
-              </Button>
-            </div>
+            {/* أزرار الفيديو والجولة الافتراضية - تظهر فقط إذا كان هناك فيديو أو جولة */}
+            {(listing.videoUrl || listing.tour3DUrl) && (
+              <div className="flex gap-4 px-6 py-4 bg-gray-50 border-t border-gray-200" dir="rtl">
+                {listing.videoUrl && (
+                  <Button
+                    onClick={() => setShowVideo(true)}
+                    className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-white font-bold py-3 rounded-xl"
+                  >
+                    <Video className="w-5 h-5 ml-2" />
+                    عرض الفيديو
+                  </Button>
+                )}
+                {listing.tour3DUrl && (
+                  <Button
+                    onClick={() => setShowVirtualTour(true)}
+                    className="flex-1 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold py-3 rounded-xl"
+                  >
+                    <View className="w-5 h-5 ml-2" />
+                    جولة افتراضية
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* المحتوى */}
             <div className="p-6">
@@ -980,14 +1022,235 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
                 </div>
               </div>
 
-              {/* الوصف */}
+              {/* الوصف - يظهر دائماً إذا موجود */}
               {listing.description && (
                 <div className="bg-gray-50 rounded-xl p-6 mb-6 border-2 border-gray-200">
                   <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-[#01411C]" />
                     وصف العقار
                   </h3>
-                  <p className="text-gray-700 leading-relaxed">{listing.description}</p>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">{listing.description}</p>
+                </div>
+              )}
+
+              {/* المسار الذكي */}
+              {listing.smartPath && (
+                <div className="bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 rounded-xl p-4 mb-6 border-2 border-[#D4AF37]/30">
+                  <div className="flex items-center gap-2 text-[#01411C] font-bold">
+                    <Navigation className="w-5 h-5 text-[#D4AF37]" />
+                    <span>المسار: {listing.smartPath}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* المواصفات التفصيلية */}
+              <div className="bg-white rounded-xl p-6 mb-6 border-2 border-gray-200">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-[#01411C]" />
+                  المواصفات التفصيلية
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  {listing.floors && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">عدد الأدوار:</span>
+                      <span className="font-bold text-gray-800">{listing.floors}</span>
+                    </div>
+                  )}
+                  {listing.floorNumber && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">رقم الدور:</span>
+                      <span className="font-bold text-gray-800">{listing.floorNumber}</span>
+                    </div>
+                  )}
+                  {listing.livingRooms && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">صالات:</span>
+                      <span className="font-bold text-gray-800">{listing.livingRooms}</span>
+                    </div>
+                  )}
+                  {listing.councils && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">مجالس:</span>
+                      <span className="font-bold text-gray-800">{listing.councils}</span>
+                    </div>
+                  )}
+                  {listing.cornerType && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">الموقع:</span>
+                      <span className="font-bold text-gray-800">{listing.cornerType}</span>
+                    </div>
+                  )}
+                  {listing.streetWidth && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">عرض الشارع:</span>
+                      <span className="font-bold text-gray-800">{listing.streetWidth} م</span>
+                    </div>
+                  )}
+                  {listing.furnishing && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">التأثيث:</span>
+                      <span className="font-bold text-gray-800">{listing.furnishing}</span>
+                    </div>
+                  )}
+                  {listing.entrances && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">المداخل:</span>
+                      <span className="font-bold text-gray-800">{listing.entrances}</span>
+                    </div>
+                  )}
+                  {listing.balconies && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">الشرفات:</span>
+                      <span className="font-bold text-gray-800">{listing.balconies}</span>
+                    </div>
+                  )}
+                  {listing.acUnits && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">المكيفات:</span>
+                      <span className="font-bold text-gray-800">{listing.acUnits}</span>
+                    </div>
+                  )}
+                  {listing.warehouses && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">المستودعات:</span>
+                      <span className="font-bold text-gray-800">{listing.warehouses}</span>
+                    </div>
+                  )}
+                  {listing.curtains && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">الستائر:</span>
+                      <span className="font-bold text-gray-800">{listing.curtains}</span>
+                    </div>
+                  )}
+                  {listing.hasLaundryRoom && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">غرفة غسيل:</span>
+                      <span className="font-bold text-green-600">✓ متوفرة</span>
+                    </div>
+                  )}
+                  {listing.hasExtraKitchen && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">مطبخ إضافي:</span>
+                      <span className="font-bold text-green-600">✓ متوفر</span>
+                    </div>
+                  )}
+                  {listing.category && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">التصنيف:</span>
+                      <span className="font-bold text-gray-800">{listing.category}</span>
+                    </div>
+                  )}
+                  {listing.purpose && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">الغرض:</span>
+                      <span className="font-bold text-gray-800">{listing.purpose}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* خيارات الدفع (للإيجار) */}
+              {listing.paymentPrices && (listing.paymentPrices.onePayment || listing.paymentPrices.twoPayments || listing.paymentPrices.fourPayments || listing.paymentPrices.monthly) && (
+                <div className="bg-purple-50 rounded-xl p-6 mb-6 border-2 border-purple-200">
+                  <h3 className="font-bold text-purple-800 mb-4 flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-purple-600" />
+                    خيارات الدفع
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {listing.paymentPrices.onePayment && (
+                      <div className="bg-white rounded-lg p-3 text-center border border-purple-200">
+                        <div className="text-sm text-gray-500">دفعة واحدة</div>
+                        <div className="font-bold text-purple-700">{Number(listing.paymentPrices.onePayment).toLocaleString('ar-SA')} ريال</div>
+                      </div>
+                    )}
+                    {listing.paymentPrices.twoPayments && (
+                      <div className="bg-white rounded-lg p-3 text-center border border-purple-200">
+                        <div className="text-sm text-gray-500">دفعتين</div>
+                        <div className="font-bold text-purple-700">{Number(listing.paymentPrices.twoPayments).toLocaleString('ar-SA')} ريال</div>
+                      </div>
+                    )}
+                    {listing.paymentPrices.fourPayments && (
+                      <div className="bg-white rounded-lg p-3 text-center border border-purple-200">
+                        <div className="text-sm text-gray-500">4 دفعات</div>
+                        <div className="font-bold text-purple-700">{Number(listing.paymentPrices.fourPayments).toLocaleString('ar-SA')} ريال</div>
+                      </div>
+                    )}
+                    {listing.paymentPrices.monthly && (
+                      <div className="bg-white rounded-lg p-3 text-center border border-purple-200">
+                        <div className="text-sm text-gray-500">شهري</div>
+                        <div className="font-bold text-purple-700">{Number(listing.paymentPrices.monthly).toLocaleString('ar-SA')} ريال</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* الضمانات */}
+              {listing.warranties && listing.warranties.length > 0 && (
+                <div className="bg-blue-50 rounded-xl p-6 mb-6 border-2 border-blue-200">
+                  <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-600" />
+                    الضمانات والكفالات
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {listing.warranties.map((warranty, index) => (
+                      <div key={index} className="bg-white rounded-lg p-3 border border-blue-200 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-blue-600" />
+                        <div>
+                          <div className="font-bold text-gray-800 text-sm">{warranty.type}</div>
+                          <div className="text-xs text-gray-500">{warranty.duration}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* معلومات الصك */}
+              {(listing.deedNumber || listing.adLicense) && (
+                <div className="bg-amber-50 rounded-xl p-6 mb-6 border-2 border-amber-200">
+                  <h3 className="font-bold text-amber-800 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-amber-600" />
+                    معلومات التوثيق
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {listing.deedNumber && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">رقم الصك:</span>
+                        <span className="font-bold text-gray-800">{listing.deedNumber}</span>
+                      </div>
+                    )}
+                    {listing.deedDate && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">تاريخ الصك:</span>
+                        <span className="font-bold text-gray-800">{listing.deedDate}</span>
+                      </div>
+                    )}
+                    {listing.adLicense && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">رقم ترخيص الإعلان:</span>
+                        <span className="font-bold text-gray-800">{listing.adLicense}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* الهاشتاقات */}
+              {((listing.hashtags && listing.hashtags.length > 0) || (listing.customHashtags && listing.customHashtags.length > 0)) && (
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-2">
+                    {listing.hashtags?.map((tag, index) => (
+                      <Badge key={`h-${index}`} variant="outline" className="text-[#01411C] border-[#01411C]/30 text-sm">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {listing.customHashtags?.map((tag, index) => (
+                      <Badge key={`c-${index}`} variant="outline" className="text-[#D4AF37] border-[#D4AF37]/30 text-sm">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1236,11 +1499,20 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
                 <X className="w-5 h-5 text-white" />
               </button>
               <div className="aspect-video bg-gray-900 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-bold">فيديو العقار</p>
-                  <p className="text-gray-400 text-sm mt-2">لا يوجد فيديو متاح حالياً</p>
-                </div>
+                {listing.videoUrl ? (
+                  <video
+                    src={listing.videoUrl}
+                    controls
+                    autoPlay
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center text-white">
+                    <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-bold">فيديو العقار</p>
+                    <p className="text-gray-400 text-sm mt-2">لا يوجد فيديو متاح حالياً</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
