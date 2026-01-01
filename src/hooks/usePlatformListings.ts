@@ -7,6 +7,58 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// ===== Helpers (بدون افتراضات على UI، فقط توحيد الربط بين العروض/المنصة/الصفحة العامة) =====
+
+const isEmptyValue = (v: any) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+
+const isUuid = (v: any) =>
+  typeof v === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
+const firstNonEmpty = <T,>(...values: T[]): T | undefined => {
+  for (const v of values) {
+    if (!isEmptyValue(v)) return v;
+  }
+  return undefined;
+};
+
+const normalizeDistrict = (district: string) => district.replace(/^حي\s+/u, '').trim();
+
+const parseCityDistrictFromSmartPath = (smartPath?: string): { city?: string; district?: string } => {
+  if (!smartPath) return {};
+
+  // صيغة المسار عندنا غالباً: "سكني / للإيجار / الخبر / حي الحمراء"
+  const parts = smartPath
+    .split('/')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  // نتوقع: [category, purpose, city, district]
+  const city = parts.length >= 3 ? parts[2] : undefined;
+  const districtRaw = parts.length >= 4 ? parts[3] : undefined;
+  const district = districtRaw ? normalizeDistrict(districtRaw) : undefined;
+
+  return { city, district };
+};
+
+const buildFallbackTitle = (adLike: any, city?: string, district?: string): string => {
+  // مطابق لمنطق العروض في MyPlatformComplete (بدون تغيير التصميم)
+  const purpose = String(firstNonEmpty(adLike?.purpose, '') || '');
+  const normalizedPurpose = purpose === 'للإيجار' ? 'للإيجار' : (purpose === 'للبيع' ? 'للبيع' : purpose);
+  const propertyType = String(firstNonEmpty(adLike?.propertyType, adLike?.property_type, '') || '');
+  const area = firstNonEmpty(adLike?.area, adLike?.features?.area, '') as any;
+  const areaText = !isEmptyValue(area) ? `${String(area).replace(/[^\d]/g, '')}م` : '';
+
+  // العنوان الأساسي كما كان في تبويب العروض
+  const base = `${normalizedPurpose || 'عرض'} - ${propertyType || 'عقار'}${areaText ? ` - ${areaText}` : ''}`;
+
+  // لا نضيف تفاصيل زيادة إلا إذا كانت موجودة فعلاً (بدون تحسين)
+  if (!isEmptyValue(city) && !isEmptyValue(district)) return `${base} - ${city} - ${district}`;
+  if (!isEmptyValue(city)) return `${base} - ${city}`;
+  return base;
+};
+
+
 export interface PlatformListing {
   id: string;
   slug: string;
@@ -72,64 +124,90 @@ export interface PlatformListing {
 }
 
 // تحويل من snake_case إلى camelCase
-const mapDbToListing = (row: any): PlatformListing => ({
-  id: row.id,
-  slug: row.slug,
-  title: row.title,
-  description: row.description,
-  price: Number(row.price),
-  propertyType: row.property_type,
-  area: row.area ? Number(row.area) : undefined,
-  bedrooms: row.bedrooms,
-  bathrooms: row.bathrooms,
-  image: row.image,
-  images: row.images || [],
-  city: row.city,
-  district: row.district,
-  street: row.street,
-  ownerName: row.owner_name,
-  ownerPhone: row.owner_phone,
-  views: row.views || 0,
-  age: row.age,
-  direction: row.direction,
-  features: row.features || [],
-  videoUrl: row.video_url,
-  tour3DUrl: row.tour_3d_url,
-  livingRooms: row.living_rooms,
-  councils: row.councils,
-  floors: row.floors,
-  floorNumber: row.floor_number,
-  cornerType: row.corner_type,
-  streetWidth: row.street_width,
-  furnishing: row.furnishing,
-  entrances: row.entrances,
-  balconies: row.balconies,
-  acUnits: row.ac_units,
-  warehouses: row.warehouses,
-  hasLaundryRoom: row.has_laundry_room,
-  curtains: row.curtains,
-  hasExtraKitchen: row.has_extra_kitchen,
-  extraKitchenAppliances: row.extra_kitchen_appliances,
-  category: row.category,
-  purpose: row.purpose,
-  smartPath: row.smart_path,
-  warranties: row.warranties || [],
-  paymentOption: row.payment_option,
-  paymentPrices: row.payment_prices || {},
-  hashtags: row.hashtags || [],
-  customHashtags: row.custom_hashtags || [],
-  deedNumber: row.deed_number,
-  deedDate: row.deed_date,
-  adLicense: row.ad_license,
-  brokerPhone: row.broker_phone,
-  lat: row.lat ? Number(row.lat) : undefined,
-  lng: row.lng ? Number(row.lng) : undefined,
-  status: row.status,
-  isPinned: row.is_pinned,
-  isHidden: row.is_hidden,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+const mapDbToListing = (row: any): PlatformListing => {
+  const parsedFromPath = parseCityDistrictFromSmartPath(row.smart_path);
+
+  const city = String(
+    firstNonEmpty(row.city, parsedFromPath.city, 'غير محدد') as any
+  );
+  const district = String(
+    firstNonEmpty(row.district, parsedFromPath.district, 'غير محدد') as any
+  );
+
+  const titleFromRow = firstNonEmpty(row.title);
+  const title = !titleFromRow || String(titleFromRow).trim() === 'عرض بدون عنوان'
+    ? buildFallbackTitle(
+        {
+          purpose: row.purpose,
+          propertyType: row.property_type,
+          area: row.area,
+        },
+        city,
+        district
+      )
+    : String(titleFromRow);
+
+  const description = firstNonEmpty(row.description);
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    title,
+    description: description ? String(description) : undefined,
+    price: Number(row.price),
+    propertyType: row.property_type,
+    area: row.area ? Number(row.area) : undefined,
+    bedrooms: row.bedrooms,
+    bathrooms: row.bathrooms,
+    image: row.image,
+    images: row.images || [],
+    city,
+    district,
+    street: row.street,
+    ownerName: row.owner_name,
+    ownerPhone: row.owner_phone,
+    views: row.views || 0,
+    age: row.age,
+    direction: row.direction,
+    features: row.features || [],
+    videoUrl: row.video_url,
+    tour3DUrl: row.tour_3d_url,
+    livingRooms: row.living_rooms,
+    councils: row.councils,
+    floors: row.floors,
+    floorNumber: row.floor_number,
+    cornerType: row.corner_type,
+    streetWidth: row.street_width,
+    furnishing: row.furnishing,
+    entrances: row.entrances,
+    balconies: row.balconies,
+    acUnits: row.ac_units,
+    warehouses: row.warehouses,
+    hasLaundryRoom: row.has_laundry_room,
+    curtains: row.curtains,
+    hasExtraKitchen: row.has_extra_kitchen,
+    extraKitchenAppliances: row.extra_kitchen_appliances,
+    category: row.category,
+    purpose: row.purpose,
+    smartPath: row.smart_path,
+    warranties: row.warranties || [],
+    paymentOption: row.payment_option,
+    paymentPrices: row.payment_prices || {},
+    hashtags: row.hashtags || [],
+    customHashtags: row.custom_hashtags || [],
+    deedNumber: row.deed_number,
+    deedDate: row.deed_date,
+    adLicense: row.ad_license,
+    brokerPhone: row.broker_phone,
+    lat: row.lat ? Number(row.lat) : undefined,
+    lng: row.lng ? Number(row.lng) : undefined,
+    status: row.status,
+    isPinned: row.is_pinned,
+    isHidden: row.is_hidden,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+};
 
 // تحويل من camelCase إلى snake_case
 const mapListingToDb = (listing: Partial<PlatformListing>) => ({
@@ -297,30 +375,40 @@ export function usePlatformListings(slug?: string) {
       // قراءة البيانات من localStorage
       const localData = localStorage.getItem('wasata_platform_complete');
       const publishedAds = localStorage.getItem('published_ads_list');
-      
-      let adsToSync: any[] = [];
-      
+
+      const byId = new Map<string, any>();
+
       if (localData) {
         try {
-          adsToSync = JSON.parse(localData);
+          const parsed = JSON.parse(localData);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((ad: any) => {
+              if (ad?.id) byId.set(String(ad.id), ad);
+            });
+          }
         } catch (e) {
           console.error('Error parsing local data:', e);
         }
       }
-      
+
       if (publishedAds) {
         try {
-          const published = JSON.parse(publishedAds);
-          // دمج مع العروض الموجودة
-          published.forEach((ad: any) => {
-            if (!adsToSync.find((a: any) => a.id === ad.id)) {
-              adsToSync.push(ad);
-            }
-          });
+          const parsed = JSON.parse(publishedAds);
+          if (Array.isArray(parsed)) {
+            // الأهم: published_ads_list هو المصدر الأدق، لذلك يطغى على أي نسخة ناقصة موجودة مسبقاً
+            parsed.forEach((ad: any) => {
+              const id = String(ad?.id ?? '');
+              if (!id) return;
+              const prev = byId.get(id) || {};
+              byId.set(id, { ...prev, ...ad });
+            });
+          }
         } catch (e) {
           console.error('Error parsing published ads:', e);
         }
       }
+
+      const adsToSync = Array.from(byId.values());
 
       if (adsToSync.length === 0) {
         toast.info('لا توجد عروض للمزامنة');
@@ -329,75 +417,99 @@ export function usePlatformListings(slug?: string) {
 
       // تحويل وإدراج
       const listingsToInsert = adsToSync.map((ad: any) => {
-        // استخراج الصور من media أو images
-        const images = ad.images || 
-          ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || 
+        // استخراج الصور
+        const images =
+          ad.images ||
+          ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) ||
           [];
-        // استخراج الفيديو من videoUrl أو media
-        const videoUrl = ad.videoUrl || 
-          ad.media?.find((m: any) => m.type === 'video')?.url || 
+
+        // استخراج الفيديو
+        const videoUrl =
+          ad.videoUrl ||
+          ad.videos?.[0] ||
+          ad.media?.find((m: any) => m.type === 'video')?.url ||
           null;
-        
-        return {
+
+        const smartPath = firstNonEmpty(ad.smartPath, ad.platformPath, ad.smart_path);
+        const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
+
+        const city = String(
+          firstNonEmpty(ad.locationDetails?.city, ad.city, parsedFromPath.city, 'غير محدد') as any
+        );
+        const district = String(
+          firstNonEmpty(ad.locationDetails?.district, ad.district, parsedFromPath.district, 'غير محدد') as any
+        );
+
+        const titleCandidate = firstNonEmpty(ad.title);
+        const title = !titleCandidate || String(titleCandidate).trim() === 'عرض بدون عنوان'
+          ? buildFallbackTitle(ad, city, district)
+          : String(titleCandidate);
+
+        const description = firstNonEmpty(ad.aiDescription, ad.description);
+
+        const base = {
           slug: currentSlug,
-          title: ad.title || 'عرض بدون عنوان',
-          description: ad.description || ad.aiDescription,
-          price: Number(ad.price) || 0,
-          property_type: ad.propertyType || 'شقة',
-          area: ad.area ? Number(ad.area) : null,
-          bedrooms: ad.bedrooms ? Number(ad.bedrooms) : null,
-          bathrooms: ad.bathrooms ? Number(ad.bathrooms) : null,
-          image: ad.image || images[0] || null,
-          images: images,
-          city: ad.city || ad.locationDetails?.city || ad.location?.city || 'غير محدد',
-          district: ad.district || ad.locationDetails?.district || ad.location?.district || 'غير محدد',
-          street: ad.street || ad.locationDetails?.street,
-          owner_name: ad.ownerName,
-          owner_phone: ad.ownerPhone,
-          views: ad.views || 0,
-          age: ad.age || ad.propertyAge,
-          direction: ad.direction || ad.facade,
-          features: ad.features || ad.customFeatures || [],
+          title,
+          description: description ? String(description) : null,
+          price: Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0,
+          property_type: firstNonEmpty(ad.propertyType, ad.property_type, 'شقة'),
+          area: !isEmptyValue(ad.area) ? Number(String(ad.area).replace(/[^\d.]/g, '')) : null,
+          bedrooms: !isEmptyValue(ad.bedrooms) ? Number(String(ad.bedrooms).replace(/[^\d]/g, '')) : null,
+          bathrooms: !isEmptyValue(ad.bathrooms) ? Number(String(ad.bathrooms).replace(/[^\d]/g, '')) : null,
+          image: firstNonEmpty(ad.image, images[0], null),
+          images,
+          city,
+          district,
+          street: firstNonEmpty(ad.locationDetails?.street, ad.street, null),
+          owner_name: firstNonEmpty(ad.ownerName, null),
+          owner_phone: firstNonEmpty(ad.ownerPhone, null),
+          views: Number(firstNonEmpty(ad.views, 0)) || 0,
+          age: !isEmptyValue(ad.propertyAge) ? Number(String(ad.propertyAge).replace(/[^\d]/g, '')) : (!isEmptyValue(ad.age) ? Number(ad.age) : null),
+          direction: firstNonEmpty(ad.facade, ad.direction, null),
+          features: firstNonEmpty(ad.features, ad.customFeatures, []) || [],
           video_url: videoUrl,
-          tour_3d_url: ad.tour3DUrl,
-          living_rooms: ad.livingRooms,
-          councils: ad.councils,
-          floors: ad.floors,
-          floor_number: ad.floorNumber,
-          corner_type: ad.cornerType,
-          street_width: ad.streetWidth,
-          furnishing: ad.furnishing,
-          entrances: ad.entrances,
-          balconies: ad.balconies,
-          ac_units: ad.acUnits,
-          warehouses: ad.warehouses,
-          has_laundry_room: ad.hasLaundryRoom || false,
-          curtains: ad.curtains,
-          has_extra_kitchen: ad.hasExtraKitchen || false,
-          extra_kitchen_appliances: ad.extraKitchenAppliances,
-          category: ad.category,
-          purpose: ad.purpose,
-          smart_path: ad.smartPath || ad.platformPath,
-          warranties: ad.warranties || [],
-          payment_option: ad.paymentOption,
-          payment_prices: ad.paymentPrices || {},
-          hashtags: ad.hashtags || [],
-          custom_hashtags: ad.customHashtags || [],
-          deed_number: ad.deedNumber,
-          deed_date: ad.deedDate,
-          ad_license: ad.adLicense,
-          broker_phone: ad.brokerPhone,
-          lat: ad.lat || ad.locationDetails?.latitude,
-          lng: ad.lng || ad.locationDetails?.longitude,
-          status: ad.status || 'published',
-          is_pinned: ad.isPinned || false,
-          is_hidden: ad.isHidden || false,
+          tour_3d_url: firstNonEmpty(ad.tour3DUrl, ad.tour_3d_url, null),
+          living_rooms: firstNonEmpty(ad.livingRooms, null),
+          councils: firstNonEmpty(ad.councils, null),
+          floors: firstNonEmpty(ad.floors, null),
+          floor_number: firstNonEmpty(ad.floorNumber, null),
+          corner_type: firstNonEmpty(ad.cornerType, null),
+          street_width: firstNonEmpty(ad.streetWidth, null),
+          furnishing: firstNonEmpty(ad.furnishing, null),
+          entrances: firstNonEmpty(ad.entrances, null),
+          balconies: firstNonEmpty(ad.balconies, null),
+          ac_units: firstNonEmpty(ad.acUnits, null),
+          warehouses: firstNonEmpty(ad.warehouses, null),
+          has_laundry_room: Boolean(firstNonEmpty(ad.hasLaundryRoom, false)),
+          curtains: firstNonEmpty(ad.curtains, null),
+          has_extra_kitchen: Boolean(firstNonEmpty(ad.hasExtraKitchen, false)),
+          extra_kitchen_appliances: firstNonEmpty(ad.extraKitchenAppliances, null),
+          category: firstNonEmpty(ad.category, null),
+          purpose: firstNonEmpty(ad.purpose, null),
+          smart_path: smartPath ? String(smartPath) : null,
+          warranties: firstNonEmpty(ad.warranties, []),
+          payment_option: firstNonEmpty(ad.paymentOption, null),
+          payment_prices: firstNonEmpty(ad.paymentPrices, {}),
+          hashtags: firstNonEmpty(ad.hashtags, []),
+          custom_hashtags: firstNonEmpty(ad.customHashtags, []),
+          deed_number: firstNonEmpty(ad.deedNumber, null),
+          deed_date: firstNonEmpty(ad.deedDate, null),
+          ad_license: firstNonEmpty(ad.adLicense, null),
+          broker_phone: firstNonEmpty(ad.brokerPhone, null),
+          lat: firstNonEmpty(ad.locationDetails?.latitude, ad.lat, null),
+          lng: firstNonEmpty(ad.locationDetails?.longitude, ad.lng, null),
+          status: firstNonEmpty(ad.status, 'published'),
+          is_pinned: Boolean(firstNonEmpty(ad.isPinned, false)),
+          is_hidden: Boolean(firstNonEmpty(ad.isHidden, false)),
         };
+
+        // توحيد الربط عبر نفس ID (بدون تكرار/نسخ ناقصة)
+        return isUuid(ad.id) ? { id: ad.id, ...base } : base;
       });
 
       const { data, error: insertError } = await supabase
         .from('platform_listings')
-        .insert(listingsToInsert)
+        .upsert(listingsToInsert, { onConflict: 'id' })
         .select();
 
       if (insertError) throw insertError;
@@ -527,77 +639,95 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
   try {
     // الحصول على الـ slug من localStorage
     const slug = localStorage.getItem('public_platform_slug') || '1';
-    
+
     if (!slug) {
       console.warn('No platform slug found, skipping database sync');
       return false;
     }
 
-    // استخراج البيانات من العرض
-    const city = ad.locationDetails?.city || ad.city || 'غير محدد';
-    const district = ad.locationDetails?.district || ad.district || 'غير محدد';
-    
-    // استخراج الصور من media أو images
-    const images = ad.images || 
-      ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || 
+    const smartPath = firstNonEmpty(ad.smartPath, ad.platformPath, ad.smart_path);
+    const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
+
+    const city = String(
+      firstNonEmpty(ad.locationDetails?.city, ad.city, parsedFromPath.city, 'غير محدد') as any
+    );
+    const district = String(
+      firstNonEmpty(ad.locationDetails?.district, ad.district, parsedFromPath.district, 'غير محدد') as any
+    );
+
+    // استخراج الصور
+    const images =
+      ad.images ||
+      ad.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) ||
       [];
-    // استخراج الفيديو من videoUrl أو videos أو media
-    const videoUrl = ad.videoUrl || 
-      ad.videos?.[0] || 
-      ad.media?.find((m: any) => m.type === 'video')?.url || 
+
+    // استخراج الفيديو
+    const videoUrl =
+      ad.videoUrl ||
+      ad.videos?.[0] ||
+      ad.media?.find((m: any) => m.type === 'video')?.url ||
       null;
-    
+
+    const titleCandidate = firstNonEmpty(ad.title);
+    const title = !titleCandidate || String(titleCandidate).trim() === 'عرض بدون عنوان'
+      ? buildFallbackTitle(ad, city, district)
+      : String(titleCandidate);
+
+    const description = firstNonEmpty(ad.aiDescription, ad.description);
+
     const listingData = {
       slug,
-      title: ad.title || 'عرض بدون عنوان',
-      description: ad.aiDescription || ad.description,
-      price: Number(ad.price) || 0,
-      property_type: ad.propertyType || 'شقة',
-      area: ad.area ? Number(ad.area) : null,
-      bedrooms: ad.bedrooms ? Number(ad.bedrooms) : null,
-      bathrooms: ad.bathrooms ? Number(ad.bathrooms) : null,
-      image: images[0] || ad.image || null,
-      images: images,
+      title,
+      description: description ? String(description) : null,
+      price: Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0,
+      property_type: firstNonEmpty(ad.propertyType, ad.property_type, 'شقة'),
+      area: !isEmptyValue(ad.area) ? Number(String(ad.area).replace(/[^\d.]/g, '')) : null,
+      bedrooms: !isEmptyValue(ad.bedrooms) ? Number(String(ad.bedrooms).replace(/[^\d]/g, '')) : null,
+      bathrooms: !isEmptyValue(ad.bathrooms) ? Number(String(ad.bathrooms).replace(/[^\d]/g, '')) : null,
+      image: firstNonEmpty(images[0], ad.image, null),
+      images,
       city,
       district,
-      street: ad.locationDetails?.street || ad.street,
-      owner_name: ad.ownerName,
-      owner_phone: ad.ownerPhone,
+      street: firstNonEmpty(ad.locationDetails?.street, ad.street, null),
+      owner_name: firstNonEmpty(ad.ownerName, null),
+      owner_phone: firstNonEmpty(ad.ownerPhone, null),
       views: 0,
-      age: ad.propertyAge ? Number(ad.propertyAge) : (ad.age ? Number(ad.age) : null),
-      direction: ad.facade || ad.direction,
-      features: ad.features || ad.customFeatures || [],
+      age: !isEmptyValue(ad.propertyAge)
+        ? Number(String(ad.propertyAge).replace(/[^\d]/g, ''))
+        : (!isEmptyValue(ad.age) ? Number(ad.age) : null),
+      direction: firstNonEmpty(ad.facade, ad.direction, null),
+      features: firstNonEmpty(ad.features, ad.customFeatures, []) || [],
       video_url: videoUrl,
-      tour_3d_url: ad.tour3DUrl,
-      living_rooms: ad.livingRooms,
-      councils: ad.councils,
-      floors: ad.floors,
-      floor_number: ad.floorNumber,
-      corner_type: ad.cornerType,
-      street_width: ad.streetWidth,
-      furnishing: ad.furnishing,
-      entrances: ad.entrances,
-      balconies: ad.balconies,
-      ac_units: ad.acUnits,
-      warehouses: ad.warehouses,
-      has_laundry_room: ad.hasLaundryRoom || false,
-      curtains: ad.curtains,
-      has_extra_kitchen: ad.hasExtraKitchen || false,
-      extra_kitchen_appliances: ad.extraKitchenAppliances,
-      category: ad.category,
-      purpose: ad.purpose,
-      smart_path: ad.platformPath || ad.smartPath,
-      warranties: ad.warranties || [],
-      payment_option: ad.paymentOption,
-      payment_prices: ad.paymentPrices || {},
-      hashtags: ad.hashtags || [],
-      custom_hashtags: ad.customHashtags || [],
-      deed_number: ad.deedNumber,
-      deed_date: ad.deedDate,
-      ad_license: ad.adLicense,
-      broker_phone: ad.brokerPhone,
-      lat: ad.locationDetails?.latitude || ad.lat,
-      lng: ad.locationDetails?.longitude || ad.lng,
+      tour_3d_url: firstNonEmpty(ad.tour3DUrl, ad.tour_3d_url, null),
+      living_rooms: firstNonEmpty(ad.livingRooms, null),
+      councils: firstNonEmpty(ad.councils, null),
+      floors: firstNonEmpty(ad.floors, null),
+      floor_number: firstNonEmpty(ad.floorNumber, null),
+      corner_type: firstNonEmpty(ad.cornerType, null),
+      street_width: firstNonEmpty(ad.streetWidth, null),
+      furnishing: firstNonEmpty(ad.furnishing, null),
+      entrances: firstNonEmpty(ad.entrances, null),
+      balconies: firstNonEmpty(ad.balconies, null),
+      ac_units: firstNonEmpty(ad.acUnits, null),
+      warehouses: firstNonEmpty(ad.warehouses, null),
+      has_laundry_room: Boolean(firstNonEmpty(ad.hasLaundryRoom, false)),
+      curtains: firstNonEmpty(ad.curtains, null),
+      has_extra_kitchen: Boolean(firstNonEmpty(ad.hasExtraKitchen, false)),
+      extra_kitchen_appliances: firstNonEmpty(ad.extraKitchenAppliances, null),
+      category: firstNonEmpty(ad.category, null),
+      purpose: firstNonEmpty(ad.purpose, null),
+      smart_path: smartPath ? String(smartPath) : null,
+      warranties: firstNonEmpty(ad.warranties, []),
+      payment_option: firstNonEmpty(ad.paymentOption, null),
+      payment_prices: firstNonEmpty(ad.paymentPrices, {}),
+      hashtags: firstNonEmpty(ad.hashtags, []),
+      custom_hashtags: firstNonEmpty(ad.customHashtags, []),
+      deed_number: firstNonEmpty(ad.deedNumber, null),
+      deed_date: firstNonEmpty(ad.deedDate, null),
+      ad_license: firstNonEmpty(ad.adLicense, null),
+      broker_phone: firstNonEmpty(ad.brokerPhone, null),
+      lat: firstNonEmpty(ad.locationDetails?.latitude, ad.lat, null),
+      lng: firstNonEmpty(ad.locationDetails?.longitude, ad.lng, null),
       status: 'published',
       is_pinned: false,
       is_hidden: false,
@@ -605,7 +735,7 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
 
     const { error } = await supabase
       .from('platform_listings')
-      .insert(listingData);
+      .upsert(isUuid(ad.id) ? { id: ad.id, ...listingData } : listingData, { onConflict: 'id' });
 
     if (error) {
       console.error('Error syncing listing to database:', error);
