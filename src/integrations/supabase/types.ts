@@ -221,6 +221,45 @@ export type Database = {
           },
         ]
       }
+      scheduled_messages: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message: string
+          message_type: string
+          phone: string
+          scheduled_time: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message: string
+          message_type?: string
+          phone: string
+          scheduled_time: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          message_type?: string
+          phone?: string
+          scheduled_time?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sms_logs: {
         Row: {
           appointment_id: string | null

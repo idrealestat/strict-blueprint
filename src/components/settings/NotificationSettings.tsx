@@ -3,8 +3,9 @@
  * صفحة إعدادات الإشعارات والرسائل النصية
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -173,19 +174,7 @@ export default function NotificationSettings() {
     
     // تحميل إحصائيات الرسائل
     loadMessageStats();
-    
-    // تحميل الرسائل المجدولة
-    loadScheduledMessages();
   }, []);
-
-  const loadScheduledMessages = () => {
-    const saved = localStorage.getItem('scheduled_messages');
-    if (saved) {
-      try {
-        setScheduledMessages(JSON.parse(saved));
-      } catch (e) {}
-    }
-  };
 
   const loadMessageStats = () => {
     const currentMonth = new Date().toLocaleString('ar-SA', { month: 'long', year: 'numeric' });
@@ -247,33 +236,138 @@ export default function NotificationSettings() {
   };
 
   // جدولة رسالة جديدة
-  const scheduleMessage = () => {
+  const scheduleMessage = async () => {
     if (!newScheduledMessage.phone || !newScheduledMessage.message || !newScheduledMessage.scheduledTime) {
       toast.error('يرجى ملء جميع الحقول');
       return;
     }
     
-    const newMessage: ScheduledMessage = {
-      id: `msg_${Date.now()}`,
-      ...newScheduledMessage,
-      status: 'pending'
-    };
-    
-    const updated = [...scheduledMessages, newMessage];
-    setScheduledMessages(updated);
-    localStorage.setItem('scheduled_messages', JSON.stringify(updated));
-    
-    setNewScheduledMessage({ phone: '', message: '', scheduledTime: '', type: 'sms' });
-    toast.success('تم جدولة الرسالة بنجاح');
+    try {
+      // حفظ في قاعدة البيانات
+      const { data, error } = await supabase
+        .from('scheduled_messages')
+        .insert({
+          phone: newScheduledMessage.phone,
+          message: newScheduledMessage.message,
+          scheduled_time: new Date(newScheduledMessage.scheduledTime).toISOString(),
+          message_type: newScheduledMessage.type,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // تحديث القائمة المحلية
+      const newMessage: ScheduledMessage = {
+        id: data.id,
+        phone: data.phone,
+        message: data.message,
+        scheduledTime: data.scheduled_time,
+        type: data.message_type as 'sms' | 'whatsapp',
+        status: data.status as 'pending' | 'sent' | 'failed'
+      };
+      
+      setScheduledMessages(prev => [...prev, newMessage]);
+      setNewScheduledMessage({ phone: '', message: '', scheduledTime: '', type: 'sms' });
+      toast.success('تم جدولة الرسالة بنجاح - سيتم إرسالها تلقائياً في الوقت المحدد');
+    } catch (error) {
+      console.error('Error scheduling message:', error);
+      toast.error('فشل في جدولة الرسالة');
+    }
   };
 
   // حذف رسالة مجدولة
-  const deleteScheduledMessage = (id: string) => {
-    const updated = scheduledMessages.filter(m => m.id !== id);
-    setScheduledMessages(updated);
-    localStorage.setItem('scheduled_messages', JSON.stringify(updated));
-    toast.success('تم حذف الرسالة المجدولة');
+  const deleteScheduledMessage = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('scheduled_messages')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setScheduledMessages(prev => prev.filter(m => m.id !== id));
+      toast.success('تم حذف الرسالة المجدولة');
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('فشل في حذف الرسالة');
+    }
   };
+
+  // تشغيل معالجة الرسائل المجدولة
+  const processScheduledMessages = async () => {
+    try {
+      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+      const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        toast.error('تعذر الاتصال بخدمة الرسائل');
+        return;
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/process-scheduled-messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        if (result.sent > 0) {
+          toast.success(`تم إرسال ${result.sent} رسالة بنجاح`);
+        }
+        if (result.failed > 0) {
+          toast.error(`فشل في إرسال ${result.failed} رسالة`);
+        }
+        // إعادة تحميل الرسائل المجدولة
+        loadScheduledMessagesFromDB();
+      }
+    } catch (error) {
+      console.error('Error processing messages:', error);
+    }
+  };
+
+  // تحميل الرسائل المجدولة من قاعدة البيانات
+  const loadScheduledMessagesFromDB = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_messages')
+        .select('*')
+        .in('status', ['pending', 'whatsapp_pending'])
+        .order('scheduled_time', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setScheduledMessages(data.map(msg => ({
+          id: msg.id,
+          phone: msg.phone,
+          message: msg.message,
+          scheduledTime: msg.scheduled_time,
+          type: msg.message_type as 'sms' | 'whatsapp',
+          status: msg.status as 'pending' | 'sent' | 'failed'
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading scheduled messages:', error);
+    }
+  }, []);
+
+  // تحميل الرسائل عند بدء التشغيل وتشغيل المعالجة كل دقيقة
+  useEffect(() => {
+    loadScheduledMessagesFromDB();
+    
+    // معالجة الرسائل كل دقيقة
+    const interval = setInterval(() => {
+      processScheduledMessages();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [loadScheduledMessagesFromDB]);
 
   // تصدير الإحصائيات كـ PDF
   const exportStatsPDF = async () => {
