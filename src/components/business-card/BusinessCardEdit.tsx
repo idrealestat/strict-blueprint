@@ -16,7 +16,9 @@ import {
   CheckCircle,
   AlertCircle,
   Plus,
-  Trash2
+  Trash2,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +102,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
   const [activeTab, setActiveTab] = useState("basic");
   const [newAward, setNewAward] = useState("");
   const [newCertification, setNewCertification] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -365,16 +368,103 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
             <ArrowRight className="w-5 h-5 ml-2" />
             عودة
           </Button>
-          <h1 className="text-white text-lg font-bold">تعديل بطاقة الأعمال</h1>
-          <Button
-            onClick={handleSave}
-            className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
-          >
-            <Save className="w-4 h-4 ml-2" />
-            حفظ
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setShowPreview(!showPreview)}
+              className="text-white hover:bg-white/20"
+            >
+              {showPreview ? <EyeOff className="w-4 h-4 ml-1" /> : <Eye className="w-4 h-4 ml-1" />}
+              {showPreview ? 'إخفاء' : 'معاينة'}
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
+            >
+              <Save className="w-4 h-4 ml-2" />
+              حفظ
+            </Button>
+          </div>
         </div>
+        <h1 className="text-white text-lg font-bold text-center mt-2">تعديل بطاقة الأعمال</h1>
       </div>
+
+      {/* Live Preview Section */}
+      {showPreview && (
+        <div className="bg-gray-100 p-4 border-b-4 border-[#D4AF37]">
+          <div className="max-w-sm mx-auto">
+            {/* Mini Preview Card */}
+            <div className="bg-gradient-to-b from-[#01411C] via-[#065f41] to-[#01411C] rounded-xl shadow-2xl overflow-hidden border-2 border-[#D4AF37]">
+              {/* Cover with overlay */}
+              <div className="relative h-24">
+                {formData.coverImage && (
+                  <>
+                    <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/60" />
+                  </>
+                )}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="w-full h-full" style={{
+                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+                  }} />
+                </div>
+              </div>
+              
+              {/* Profile section */}
+              <div className="relative -mt-10 text-center px-4 pb-4">
+                {/* Profile Image */}
+                <div className="inline-block relative">
+                  <div className="w-20 h-20 rounded-full border-3 border-[#D4AF37] shadow-xl overflow-hidden bg-[#D4AF37] mx-auto">
+                    {formData.profileImage ? (
+                      <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
+                        {formData.userName.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  {/* Logo badge */}
+                  <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full border border-white bg-[#D4AF37] flex items-center justify-center overflow-hidden">
+                    {formData.logoImage ? (
+                      <img src={formData.logoImage} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs">🏢</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Name */}
+                <h3 className="text-white font-bold mt-2 text-sm">{formData.userName || 'الاسم'}</h3>
+                
+                {/* Company */}
+                {formData.companyName && (
+                  <p className="text-white/80 text-xs flex items-center justify-center gap-1">
+                    <Building className="w-3 h-3" />
+                    {formData.companyName}
+                  </p>
+                )}
+                
+                {/* Contact */}
+                <div className="mt-2 flex flex-wrap justify-center gap-1 text-xs text-white/80">
+                  {formData.primaryPhone && (
+                    <span className="bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-[#D4AF37]" />
+                      {formData.primaryPhone}
+                    </span>
+                  )}
+                  {formData.email && (
+                    <span className="bg-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Mail className="w-3 h-3 text-[#D4AF37]" />
+                      {formData.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="text-center text-xs text-gray-500 mt-2">معاينة مباشرة للبطاقة</p>
+          </div>
+        </div>
+      )}
 
       {/* Image Upload Section */}
       <div className="px-4 py-6 bg-white border-b">
