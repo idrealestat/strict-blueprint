@@ -72,6 +72,8 @@ interface OfferDetailsPageProps {
   listing: Listing;
   isOpen: boolean;
   onClose: () => void;
+  allListings?: Listing[];
+  brokerPhone?: string;
 }
 
 // ============ مودال جدولة المعاينة ============
@@ -586,7 +588,7 @@ const PayDepositModal: React.FC<{
 };
 
 // ============ الصفحة الرئيسية ============
-const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, onClose }) => {
+const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, onClose, allListings = [], brokerPhone }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -640,13 +642,13 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
   };
 
   const handleCall = () => {
-    const phone = listing.ownerPhone || '0500000000';
+    const phone = listing.ownerPhone || brokerPhone || '0500000000';
     window.open(`tel:${phone}`, '_self');
     toast({ title: 'جاري الاتصال...', description: phone });
   };
 
   const handleWhatsApp = () => {
-    const phone = listing.ownerPhone || '0500000000';
+    const phone = listing.ownerPhone || brokerPhone || '0500000000';
     const message = `مرحباً، أنا مهتم بالعقار: ${listing.title}`;
     window.open(`https://wa.me/966${phone.replace(/^0/, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
