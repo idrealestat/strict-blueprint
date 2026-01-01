@@ -52,9 +52,10 @@ interface ViewLog {
 
 interface ViewsLogPageProps {
   onBack?: () => void;
+  embedded?: boolean;
 }
 
-const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack }) => {
+const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack, embedded = false }) => {
   const [logs, setLogs] = useState<ViewLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -210,6 +211,90 @@ const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack }) => {
     }
     return <Monitor className="w-4 h-4 text-gray-500" />;
   };
+
+  // إذا كان مضمناً، عرض نسخة مبسطة
+  if (embedded) {
+    return (
+      <div className="p-4 space-y-4" dir="rtl">
+        {/* فلاتر البحث */}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="بحث في السجلات..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+
+          <Select value={dateFilter} onValueChange={(v: any) => setDateFilter(v)}>
+            <SelectTrigger className="w-28">
+              <Calendar className="w-4 h-4 ml-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">اليوم</SelectItem>
+              <SelectItem value="week">أسبوع</SelectItem>
+              <SelectItem value="month">شهر</SelectItem>
+              <SelectItem value="all">الكل</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" size="sm" onClick={loadLogs}>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+
+          <Button onClick={exportCSV} variant="outline" size="sm">
+            <Download className="w-4 h-4 ml-1" />
+            تصدير
+          </Button>
+        </div>
+
+        <div className="text-sm text-gray-600 flex items-center gap-2">
+          <Filter className="w-4 h-4" />
+          <span>عرض {filteredLogs.length} من {logs.length} سجل</span>
+        </div>
+
+        {/* قائمة السجلات */}
+        <ScrollArea className="h-[400px]">
+          <div className="divide-y divide-gray-100">
+            {filteredLogs.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <Eye className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p>لا توجد سجلات</p>
+              </div>
+            ) : (
+              filteredLogs.slice(0, 20).map((log, index) => (
+                <div key={log.id} className="p-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      {getDeviceIcon(log.device)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">
+                        {log.offerTitle || `عرض #${log.offerId.slice(-6)}`}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {log.city || 'غير معروف'}
+                        </span>
+                        <span>{formatDate(log.timestamp)}</span>
+                      </div>
+                    </div>
+                    {log.interaction && (
+                      <Badge className="bg-green-100 text-green-700 text-xs">تفاعل</Badge>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white" dir="rtl">
