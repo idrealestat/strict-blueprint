@@ -5,6 +5,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Input validation helper functions
+function sanitizeString(input: unknown, maxLength: number = 100): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>"`]/g, '')
+    .substring(0, maxLength)
+    .trim();
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+function validateAndSanitizeMessages(input: unknown, maxMessages: number = 50): ChatMessage[] {
+  if (!Array.isArray(input)) return [];
+  
+  return input
+    .slice(-maxMessages) // Only keep the last N messages to prevent token abuse
+    .filter((msg): msg is { role: unknown; content: unknown } => 
+      typeof msg === 'object' && msg !== null && 'role' in msg && 'content' in msg
+    )
+    .filter(msg => {
+      const role = msg.role;
+      return role === 'user' || role === 'assistant' || role === 'system';
+    })
+    .map(msg => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: typeof msg.content === 'string' 
+        ? msg.content.substring(0, 4000) // Limit individual message length
+        : '',
+    }))
+    .filter(msg => msg.content.length > 0);
+}
+
 // البرومبت المحدث لوساطه AI - المساعد العقاري السعودي المتخصص
 const getSystemPrompt = (userName: string) => `
 # 🏠 وساطه AI - المساعد العقاري السعودي المتخصص
@@ -142,17 +177,54 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, userName } = await req.json();
+    // Validate content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (typeof rawBody !== 'object' || rawBody === null) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = rawBody as Record<string, unknown>;
+    const messages = validateAndSanitizeMessages(body.messages);
+    const userName = sanitizeString(body.userName, 50) || "صديقي";
+
+    if (messages.length === 0) {
+      return new Response(JSON.stringify({ error: "No valid messages provided" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = getSystemPrompt(userName || "صديقي");
+    const systemPrompt = getSystemPrompt(userName);
 
     console.log("Processing chat request for:", userName);
-    console.log("Messages count:", messages?.length);
+    console.log("Messages count:", messages.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

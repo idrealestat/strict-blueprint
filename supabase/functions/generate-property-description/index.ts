@@ -5,6 +5,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation helper functions
+function sanitizeString(input: unknown, maxLength: number = 100): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>"`]/g, '') // Remove potentially dangerous chars for prompt injection
+    .substring(0, maxLength)
+    .trim();
+}
+
+function sanitizeArray(input: unknown, maxItems: number = 50, maxItemLength: number = 100): string[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .slice(0, maxItems)
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => sanitizeString(item, maxItemLength));
+}
+
+interface Warranty {
+  type: string;
+  duration: string;
+}
+
+function sanitizeWarranties(input: unknown, maxItems: number = 20): Warranty[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .slice(0, maxItems)
+    .filter((item): item is { type: unknown; duration: unknown } => 
+      typeof item === 'object' && item !== null && 'type' in item && 'duration' in item
+    )
+    .map(item => ({
+      type: sanitizeString(item.type, 100),
+      duration: sanitizeString(item.duration, 50)
+    }));
+}
+
 interface PropertyData {
   propertyType: string;
   category: string;
@@ -20,7 +55,7 @@ interface PropertyData {
   furnishing: string;
   propertyAge: string;
   features: string[];
-  warranties: { type: string; duration: string }[];
+  warranties: Warranty[];
   adLicense: string;
   brokerPhone: string;
   descriptionStyle: string;
@@ -33,13 +68,73 @@ interface PropertyData {
   entrances: string;
 }
 
+function validateAndSanitizePropertyData(raw: unknown): PropertyData {
+  const data = typeof raw === 'object' && raw !== null ? raw as Record<string, unknown> : {};
+  
+  return {
+    propertyType: sanitizeString(data.propertyType, 50),
+    category: sanitizeString(data.category, 50),
+    purpose: sanitizeString(data.purpose, 50),
+    area: sanitizeString(data.area, 20),
+    city: sanitizeString(data.city, 100),
+    district: sanitizeString(data.district, 100),
+    bedrooms: sanitizeString(data.bedrooms, 10),
+    bathrooms: sanitizeString(data.bathrooms, 10),
+    livingRooms: sanitizeString(data.livingRooms, 10),
+    councils: sanitizeString(data.councils, 10),
+    floors: sanitizeString(data.floors, 10),
+    furnishing: sanitizeString(data.furnishing, 50),
+    propertyAge: sanitizeString(data.propertyAge, 10),
+    features: sanitizeArray(data.features, 50, 100),
+    warranties: sanitizeWarranties(data.warranties, 20),
+    adLicense: sanitizeString(data.adLicense, 50),
+    brokerPhone: sanitizeString(data.brokerPhone, 20),
+    descriptionStyle: sanitizeString(data.descriptionStyle, 30),
+    descriptionLength: sanitizeString(data.descriptionLength, 30),
+    descriptionLanguage: sanitizeString(data.descriptionLanguage, 30),
+    streetWidth: sanitizeString(data.streetWidth, 10),
+    facade: sanitizeString(data.facade, 30),
+    acUnits: sanitizeString(data.acUnits, 10),
+    balconies: sanitizeString(data.balconies, 10),
+    entrances: sanitizeString(data.entrances, 20),
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { propertyData }: { propertyData: PropertyData } = await req.json();
+    // Validate content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (typeof rawBody !== 'object' || rawBody === null || !('propertyData' in rawBody)) {
+      return new Response(JSON.stringify({ error: "Missing propertyData field" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const propertyData = validateAndSanitizePropertyData((rawBody as Record<string, unknown>).propertyData);
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -152,6 +247,8 @@ ${languagePrompt}
 - لا تضع كل المعلومات في سطر واحد
 - اجعل التنسيق واضح ومقروء
 - لا تضف معلومات غير موجودة في البيانات`;
+
+    console.log('Processing property description request');
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
