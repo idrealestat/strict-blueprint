@@ -300,54 +300,53 @@ END:VCARD`;
         </div>
       )}
 
-      {/* Header Section with Cover */}
-      <div className="relative">
-        {/* Cover Image */}
-        <div className="h-48 bg-gradient-to-r from-[#01411C] to-[#065f41] relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/20" />
-          {formData.coverImage && (
-            <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover absolute inset-0" />
-          )}
-          {/* Pattern overlay */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="w-full h-full" style={{
-              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
-            }} />
+      {/* Full Header Section with Green Background */}
+      <div className="relative bg-gradient-to-b from-[#01411C] via-[#065f41] to-[#01411C]">
+        {/* Cover Image Overlay */}
+        {formData.coverImage && (
+          <div className="absolute inset-0">
+            <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover opacity-30" />
           </div>
-          
-          {/* Top Navigation */}
-          <div className="absolute top-4 right-4 left-4 flex justify-between items-center z-10">
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              className="text-white hover:bg-white/20"
-            >
-              <ArrowRight className="w-5 h-5 ml-2" />
-              عودة
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={onEditClick}
-              className="text-white hover:bg-white/20"
-            >
-              <Edit2 className="w-5 h-5 ml-2" />
-              تحرير
-            </Button>
-          </div>
+        )}
+        {/* Pattern overlay */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="w-full h-full" style={{
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+          }} />
+        </div>
+        
+        {/* Top Navigation */}
+        <div className="relative z-10 px-4 pt-4 flex justify-between items-center">
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="text-white hover:bg-white/20"
+          >
+            <ArrowRight className="w-5 h-5 ml-2" />
+            عودة
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={onEditClick}
+            className="text-white hover:bg-white/20"
+          >
+            <Edit2 className="w-5 h-5 ml-2" />
+            تحرير
+          </Button>
         </div>
 
-        {/* Profile Image - Overlapping the cover */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 -bottom-16">
+        {/* Profile Image */}
+        <div className="relative z-10 flex justify-center pt-6">
           <div 
             className="relative cursor-pointer group"
             onClick={() => setShowSwappedImage(!showSwappedImage)}
           >
             {/* Main Profile Image */}
-            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-[#01411C] to-[#065f41]">
+            <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-white/20 to-white/10">
               {formData.profileImage ? (
                 <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
+                <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold bg-[#D4AF37]">
                   {showSwappedImage ? "🏢" : formData.userName.charAt(0)}
                 </div>
               )}
@@ -363,67 +362,67 @@ END:VCARD`;
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Profile Info - Below the cover with spacing for profile image */}
-      <div className="mt-20 px-4 text-center">
-        {/* Name and Badge */}
-        <h1 className="text-2xl font-bold text-gray-900">{formData.userName}</h1>
-        <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
-          <span 
-            className={`px-3 py-1 rounded-full text-sm font-medium ${badge.color} cursor-pointer transition-transform hover:scale-110`}
-            title={`${badge.name} - ${formData.achievements.totalDeals} صفقة - ${formData.achievements.yearsOfExperience} سنوات خبرة`}
-          >
-            {badge.icon} {badge.name}
-          </span>
-          {formData.achievements.verified && (
-            <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-              ✅ موثق
+        {/* Profile Info - All on green background */}
+        <div className="relative z-10 pt-4 pb-8 px-4 text-center">
+          {/* Name and Badge */}
+          <h1 className="text-2xl font-bold text-white">{formData.userName}</h1>
+          <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
+            <span 
+              className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white cursor-pointer transition-transform hover:scale-110 backdrop-blur-sm"
+              title={`${badge.name} - ${formData.achievements.totalDeals} صفقة - ${formData.achievements.yearsOfExperience} سنوات خبرة`}
+            >
+              {badge.icon} {badge.name}
             </span>
-          )}
-          {formData.achievements.topPerformer && (
-            <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-              ⭐ أفضل أداء
-            </span>
-          )}
-        </div>
+            {formData.achievements.verified && (
+              <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
+                ✅ موثق
+              </span>
+            )}
+            {formData.achievements.topPerformer && (
+              <span className="px-2 py-1 rounded-full text-xs bg-[#D4AF37] text-white">
+                ⭐ أفضل أداء
+              </span>
+            )}
+          </div>
 
-        {/* Company */}
-        {formData.companyName && (
-          <p className="mt-2 text-gray-600 flex items-center justify-center gap-1">
-            <Building className="w-4 h-4" />
-            {formData.companyName}
-          </p>
-        )}
-
-        {/* Licenses */}
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {formData.falLicense && (
-            <span className={`px-3 py-1 rounded-full text-xs ${getExpiryColor(formData.falExpiry)}`}>
-              📜 رخصة فال: {formData.falLicense}
-            </span>
+          {/* Company */}
+          {formData.companyName && (
+            <p className="mt-2 text-white/90 flex items-center justify-center gap-1">
+              <Building className="w-4 h-4" />
+              {formData.companyName}
+            </p>
           )}
-          {formData.commercialRegistration && (
-            <span className={`px-3 py-1 rounded-full text-xs ${getExpiryColor(formData.commercialExpiryDate)}`}>
-              📋 السجل: {formData.commercialRegistration}
-            </span>
-          )}
-        </div>
 
-        {/* Contact Info */}
-        <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-gray-600">
-          <span className="flex items-center gap-1">
-            <Phone className="w-4 h-4 text-[#01411C]" />
-            {formData.primaryPhone}
-          </span>
-          <span className="flex items-center gap-1">
-            <Mail className="w-4 h-4 text-[#01411C]" />
-            {formData.email}
-          </span>
-          <span className="flex items-center gap-1">
-            <MapPin className="w-4 h-4 text-[#01411C]" />
-            {formData.location}
-          </span>
+          {/* Licenses */}
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {formData.falLicense && (
+              <span className="px-3 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
+                📜 رخصة فال: {formData.falLicense}
+              </span>
+            )}
+            {formData.commercialRegistration && (
+              <span className="px-3 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
+                📋 السجل: {formData.commercialRegistration}
+              </span>
+            )}
+          </div>
+
+          {/* Contact Info */}
+          <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/90">
+            <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              <Phone className="w-4 h-4 text-[#D4AF37]" />
+              {formData.primaryPhone}
+            </span>
+            <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              <Mail className="w-4 h-4 text-[#D4AF37]" />
+              {formData.email}
+            </span>
+            <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              <MapPin className="w-4 h-4 text-[#D4AF37]" />
+              {formData.location}
+            </span>
+          </div>
         </div>
       </div>
 
