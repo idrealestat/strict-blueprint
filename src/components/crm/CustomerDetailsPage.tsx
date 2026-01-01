@@ -69,8 +69,12 @@ import {
   History,
   Settings,
   Eye,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import PropertyDetailsDialog from "./PropertyDetailsDialog";
+import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 
 interface Customer {
   id: string;
@@ -347,6 +351,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showAddTabDialog, setShowAddTabDialog] = useState(false);
   const [newTabName, setNewTabName] = useState('');
+  
+  // حالة عرض تفاصيل العقار
+  const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<any>(null);
+  const [showPropertyDetailsDialog, setShowPropertyDetailsDialog] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null);
   
   // التبويبات القابلة للتخصيص
   const [customTabs, setCustomTabs] = useState(() => {
@@ -1054,10 +1063,30 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               className="bg-[#01411C] text-white hover:bg-[#01411C]/90"
                               onClick={() => {
-                                // فتح نموذج النشر مع البيانات
+                                // تخزين بيانات الإعلان للتعبئة التلقائية
+                                const republishData = {
+                                  ...ad,
+                                  // إعادة تعيين ID لإنشاء إعلان جديد
+                                  id: undefined,
+                                  publishedAt: undefined,
+                                  status: 'draft',
+                                };
+                                localStorage.setItem('wasata_republish_data', JSON.stringify(republishData));
+                                
+                                // فتح نموذج النشر
                                 window.dispatchEvent(new CustomEvent('openPublishForm', {
-                                  detail: { adData: ad }
+                                  detail: { 
+                                    adData: republishData,
+                                    isRepublish: true 
+                                  }
                                 }));
+                                
+                                // الانتقال لتبويب النشر
+                                window.dispatchEvent(new CustomEvent('switchToDashboardTab', {
+                                  detail: { tabId: 'publish' }
+                                }));
+                                
+                                toast.success('تم تحميل بيانات العقار للنشر مرة أخرى');
                               }}
                             >
                               <Send className="w-4 h-4 ml-1" />
@@ -1068,32 +1097,27 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               variant="outline"
                               className="border-[#D4AF37] text-[#01411C]"
-                              onClick={() => {
-                                // Generate and download PDF
-                                const pdfData = {
-                                  propertyType: ad.propertyType,
-                                  purpose: ad.purpose,
-                                  location: `${ad.locationDetails?.city} - ${ad.locationDetails?.district}`,
-                                  area: ad.area,
-                                  price: ad.price,
-                                  bedrooms: ad.bedrooms,
-                                  bathrooms: ad.bathrooms,
-                                  ownerName: ad.ownerName,
-                                  ownerPhone: ad.ownerPhone,
-                                  features: ad.features,
-                                  description: ad.aiDescription,
-                                };
+                              disabled={isGeneratingPDF === ad.id}
+                              onClick={async () => {
+                                setIsGeneratingPDF(ad.id);
+                                toast.info('جاري إنشاء ملف PDF...');
                                 
-                                // Simple PDF download using jsPDF would go here
-                                toast.success('جاري تحميل ملف PDF...');
-                                
-                                // Dispatch event for PDF generation
-                                window.dispatchEvent(new CustomEvent('downloadPropertyPDF', {
-                                  detail: { adData: ad, includeOwner: true }
-                                }));
+                                try {
+                                  await generatePropertyPDF(ad, true);
+                                  toast.success('تم تحميل ملف PDF بنجاح');
+                                } catch (error) {
+                                  console.error('Error generating PDF:', error);
+                                  toast.error('حدث خطأ أثناء إنشاء ملف PDF');
+                                } finally {
+                                  setIsGeneratingPDF(null);
+                                }
                               }}
                             >
-                              <FileText className="w-4 h-4 ml-1" />
+                              {isGeneratingPDF === ad.id ? (
+                                <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4 ml-1" />
+                              )}
                               تحميل PDF
                             </Button>
                             
@@ -1101,10 +1125,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                // Navigate to offer details
-                                window.dispatchEvent(new CustomEvent('openOfferDetails', {
-                                  detail: { offerId: ad.id }
-                                }));
+                                setSelectedPropertyForDetails(ad);
+                                setShowPropertyDetailsDialog(true);
                               }}
                             >
                               <Eye className="w-4 h-4 ml-1" />
@@ -2791,6 +2813,16 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* مكون عرض تفاصيل العقار */}
+      <PropertyDetailsDialog
+        isOpen={showPropertyDetailsDialog}
+        onClose={() => {
+          setShowPropertyDetailsDialog(false);
+          setSelectedPropertyForDetails(null);
+        }}
+        property={selectedPropertyForDetails}
+      />
     </div>
   );
 }

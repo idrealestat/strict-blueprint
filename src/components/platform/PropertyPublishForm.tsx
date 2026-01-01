@@ -308,8 +308,33 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
 
   const [propertyData, setPropertyData] = useState<PropertyData>(getDefaultPropertyData(user?.phone));
 
-  // Check for saved draft on mount
+  // Check for republish data first (higher priority), then saved draft
   useEffect(() => {
+    // أولاً: التحقق من بيانات إعادة النشر
+    const republishData = localStorage.getItem('wasata_republish_data');
+    if (republishData) {
+      try {
+        const parsed = JSON.parse(republishData);
+        // تحميل بيانات إعادة النشر
+        setPropertyData(prev => ({
+          ...getDefaultPropertyData(user?.phone),
+          ...parsed,
+          brokerPhone: parsed.brokerPhone || user?.phone || '',
+          // إعادة تعيين الحقول التي لا يجب نسخها
+          id: undefined,
+          publishedAt: undefined,
+        }));
+        // حذف بيانات إعادة النشر بعد استخدامها
+        localStorage.removeItem('wasata_republish_data');
+        toast.success('تم تحميل بيانات العقار للنشر مرة أخرى');
+        return; // لا تتحقق من المسودة إذا كان هناك بيانات إعادة نشر
+      } catch (e) {
+        console.error('Error parsing republish data:', e);
+        localStorage.removeItem('wasata_republish_data');
+      }
+    }
+
+    // ثانياً: التحقق من المسودة المحفوظة
     const savedDraft = localStorage.getItem(STORAGE_KEY);
     if (savedDraft) {
       try {
@@ -326,7 +351,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, []);
+  }, [user?.phone]);
 
   // Auto-save to localStorage on changes (debounced)
   useEffect(() => {
