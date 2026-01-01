@@ -321,20 +321,22 @@ END:VCARD`;
       )}
 
       {/* Full Header Section with Green Background */}
-      <div className="relative bg-gradient-to-b from-[#01411C] via-[#065f41] to-[#01411C] shadow-2xl border-b-4 border-[#D4AF37]">
-        {/* Cover Image Overlay - with dark tint */}
-        {formData.coverImage && (
-          <div className="absolute inset-0">
-            <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/60" />
+      <div 
+        className="relative bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-6 shadow-2xl border-b-4 border-[#D4AF37] bg-cover bg-center transition-all duration-500"
+        style={formData.coverImage ? {
+          backgroundImage: `url(${formData.coverImage})`,
+          backgroundBlendMode: 'overlay',
+          backgroundColor: 'rgba(1, 65, 28, 0.85)'
+        } : undefined}
+      >
+        {/* Pattern overlay - only when no cover image */}
+        {!formData.coverImage && (
+          <div className="absolute inset-0 opacity-10">
+            <div className="w-full h-full" style={{
+              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+            }} />
           </div>
         )}
-        {/* Pattern overlay */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="w-full h-full" style={{
-            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
-          }} />
-        </div>
         
         {/* Top Navigation */}
         <div className="relative z-10 px-4 pt-4 flex justify-between items-center">
