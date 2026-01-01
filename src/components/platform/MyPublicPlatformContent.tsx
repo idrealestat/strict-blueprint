@@ -334,6 +334,24 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       setShowDetails(true);
     };
 
+    // تسجيل المشاهدة عند فتح التفاصيل
+    const handleViewDetailsWithTracking = () => {
+      // زيادة عدد المشاهدات في localStorage
+      try {
+        const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+        const adIndex = publishedAds.findIndex((ad: any) => ad.id === listing.id);
+        if (adIndex !== -1) {
+          publishedAds[adIndex].views = (publishedAds[adIndex].views || 0) + 1;
+          localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+          // إطلاق حدث لتحديث الإحصائيات في الصفحات الأخرى
+          window.dispatchEvent(new CustomEvent('offerViewed', { detail: { offerId: listing.id } }));
+        }
+      } catch (error) {
+        console.error('Error tracking view:', error);
+      }
+      handleViewDetails();
+    };
+
     const formatPrice = (price: number) => {
       if (price >= 1000000) {
         return `${(price / 1000000).toFixed(1)} مليون ريال`;
@@ -346,7 +364,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     return (
       <div 
         className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
-        onClick={handleViewDetails}
+        onClick={handleViewDetailsWithTracking}
       >
         <div className="relative h-48">
           <img 
@@ -399,7 +417,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                handleViewDetails();
+                handleViewDetailsWithTracking();
               }}
               className="text-[#01411C] text-sm font-bold hover:text-[#065f41] transition-colors flex items-center gap-1"
             >

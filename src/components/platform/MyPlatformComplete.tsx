@@ -483,6 +483,8 @@ export default function MyPlatformComplete({
   const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(() => {
     try {
       const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      const visibilityState = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
+      
       if (!Array.isArray(publishedAds) || publishedAds.length === 0) return mockCityHierarchy;
 
       const toSingleOffer = (ad: any): SingleOffer => ({
@@ -491,19 +493,19 @@ export default function MyPlatformComplete({
         price: ad.price ? `${ad.price} ريال` : 'السعر عند التواصل',
         image: ad.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
         status: 'published',
-        views: 0,
-        requests: 0,
+        views: ad.views || 0,
+        requests: ad.requests || 0,
         propertyType: ad.propertyType,
         bedrooms: parseInt(ad.bedrooms) || undefined,
         bathrooms: parseInt(ad.bathrooms) || undefined,
         area: parseInt(ad.area) || undefined,
         owner: { name: ad.ownerName, phone: ad.ownerPhone },
         ownerName: ad.ownerName,
-        isHidden: false,
+        isHidden: visibilityState[`offer_${ad.id}`] ?? ad.isHidden ?? false,
         liveViewers: 0,
       });
 
-      const updated: CityLevel[] = JSON.parse(JSON.stringify(mockCityHierarchy));
+      const updated: CityLevel[] = [];
 
       publishedAds.forEach((ad: any) => {
         const city = ad.locationDetails?.city || 'أخرى';
@@ -512,7 +514,14 @@ export default function MyPlatformComplete({
 
         let cityObj = updated.find(c => c.cityName === city);
         if (!cityObj) {
-          cityObj = { cityName: city, isExpanded: false, isHidden: false, liveViewers: 0, directOffers: [], districts: [] } as any;
+          cityObj = { 
+            cityName: city, 
+            isExpanded: false, 
+            isHidden: visibilityState[`city_${city}`] ?? false, 
+            liveViewers: 0, 
+            directOffers: [], 
+            districts: [] 
+          } as any;
           updated.push(cityObj);
         }
 
@@ -520,7 +529,13 @@ export default function MyPlatformComplete({
           const districtName = districtRaw.startsWith('حي ') ? districtRaw : `حي ${districtRaw}`;
           let districtObj = cityObj.districts.find((d: any) => d.districtName === districtName);
           if (!districtObj) {
-            districtObj = { districtName, offers: [], isExpanded: false, isHidden: false, liveViewers: 0 } as any;
+            districtObj = { 
+              districtName, 
+              offers: [], 
+              isExpanded: false, 
+              isHidden: visibilityState[`district_${city}_${districtName}`] ?? false, 
+              liveViewers: 0 
+            } as any;
             cityObj.districts.push(districtObj);
           }
           if (!districtObj.offers.some((o: any) => o.id === offer.id)) districtObj.offers.push(offer);
@@ -529,11 +544,45 @@ export default function MyPlatformComplete({
         }
       });
 
-      return updated;
+      return updated.length > 0 ? updated : mockCityHierarchy;
     } catch {
       return mockCityHierarchy;
     }
   });
+
+  // حفظ حالة الهيكل الهرمي (الإخفاء/الإظهار) في localStorage
+  useEffect(() => {
+    // حفظ حالة isHidden لكل عنصر
+    const visibilityState: Record<string, boolean> = {};
+    cityHierarchy.forEach(city => {
+      visibilityState[`city_${city.cityName}`] = city.isHidden;
+      city.districts.forEach(district => {
+        visibilityState[`district_${city.cityName}_${district.districtName}`] = district.isHidden;
+        district.offers.forEach(offer => {
+          visibilityState[`offer_${offer.id}`] = offer.isHidden;
+        });
+      });
+      city.directOffers.forEach(offer => {
+        visibilityState[`offer_${offer.id}`] = offer.isHidden;
+      });
+    });
+    localStorage.setItem('platform_visibility_state', JSON.stringify(visibilityState));
+    
+    // تحديث حالة isHidden في published_ads_list
+    const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+    let updated = false;
+    publishedAds.forEach((ad: any) => {
+      const isHidden = visibilityState[`offer_${ad.id}`] ?? false;
+      if (ad.isHidden !== isHidden) {
+        ad.isHidden = isHidden;
+        updated = true;
+      }
+    });
+    if (updated) {
+      localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+    }
+  }, [cityHierarchy]);
+
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
   
@@ -740,6 +789,37 @@ export default function MyPlatformComplete({
     return () => window.removeEventListener('adPublished', handleAdPublished);
   }, []);
 
+  // الاستماع لأحداث المشاهدات لتحديث الإحصائيات
+  useEffect(() => {
+    const handleOfferViewed = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { offerId } = customEvent.detail;
+      
+      // تحديث عدد المشاهدات في cityHierarchy
+      setCityHierarchy(prev => prev.map(city => ({
+        ...city,
+        districts: city.districts.map(district => ({
+          ...district,
+          offers: district.offers.map(offer => {
+            if (offer.id === offerId) {
+              return { ...offer, views: offer.views + 1 };
+            }
+            return offer;
+          })
+        })),
+        directOffers: city.directOffers.map(offer => {
+          if (offer.id === offerId) {
+            return { ...offer, views: offer.views + 1 };
+          }
+          return offer;
+        })
+      })));
+    };
+    
+    window.addEventListener('offerViewed', handleOfferViewed);
+    return () => window.removeEventListener('offerViewed', handleOfferViewed);
+  }, []);
+
   // حساب إحصائيات الحي
   const getDistrictStats = (district: DistrictLevel) => {
     return {
@@ -822,16 +902,38 @@ export default function MyPlatformComplete({
   };
 
   // مشاركة عبر واتساب (للهيكل الهرمي)
-  const shareItemWhatsApp = (title: string, id: string) => {
-    const shareUrl = `${platformUrl}/offers/${id}`;
-    const text = `🏠 ${title}\n\n📍 شاهد العرض:\n${shareUrl}`;
+  const shareItemWhatsApp = (title: string, id: string, cityName?: string, districtName?: string) => {
+    // جلب بيانات العرض الكاملة
+    const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+    const ad = publishedAds.find((a: any) => a.id === id);
+    
+    // إنشاء رابط حقيقي للعرض
+    const baseUrl = window.location.origin;
+    const slug = localStorage.getItem('public_platform_slug') || 'default';
+    const shareUrl = `${baseUrl}/platform/${slug}?offer=${id}`;
+    
+    let text = `🏠 *${title}*\n\n`;
+    
+    if (ad) {
+      text += `📍 الموقع: ${ad.locationDetails?.city || cityName || ''} - ${ad.locationDetails?.district || districtName || ''}\n`;
+      if (ad.area) text += `📐 المساحة: ${ad.area} م²\n`;
+      if (ad.price) text += `💰 السعر: ${parseInt(ad.price).toLocaleString()} ريال\n`;
+      if (ad.bedrooms) text += `🛏️ الغرف: ${ad.bedrooms}\n`;
+      if (ad.aiDescription) text += `\n📝 ${ad.aiDescription.slice(0, 150)}${ad.aiDescription.length > 150 ? '...' : ''}\n`;
+    }
+    
+    text += `\n🔗 شاهد العرض:\n${shareUrl}`;
+    
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     toast.success('تم فتح واتساب للمشاركة');
   };
 
   // مشاركة رابط
   const shareItemLink = async (title: string, id: string) => {
-    const shareUrl = `${platformUrl}/offers/${id}`;
+    const baseUrl = window.location.origin;
+    const slug = localStorage.getItem('public_platform_slug') || 'default';
+    const shareUrl = `${baseUrl}/platform/${slug}?offer=${id}`;
+    
     await navigator.clipboard.writeText(shareUrl);
     toast.success('تم نسخ الرابط');
   };
@@ -1918,7 +2020,7 @@ export default function MyPlatformComplete({
                                                 {offer.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                               </Button>
                                               {/* واتساب */}
-                                              <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white flex-1 min-w-0" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
+                                              <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(offer.title, offer.id, city.cityName, district.districtName); }}>
                                                 <MessageSquare className="w-3 h-3" />
                                               </Button>
                                               {/* PDF */}
