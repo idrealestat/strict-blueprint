@@ -221,6 +221,183 @@ export type Database = {
           },
         ]
       }
+      platform_listings: {
+        Row: {
+          ac_units: string | null
+          ad_license: string | null
+          age: number | null
+          area: number | null
+          balconies: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          broker_phone: string | null
+          category: string | null
+          city: string
+          corner_type: string | null
+          councils: string | null
+          created_at: string
+          curtains: string | null
+          custom_hashtags: string[] | null
+          deed_date: string | null
+          deed_number: string | null
+          description: string | null
+          direction: string | null
+          district: string
+          entrances: string | null
+          extra_kitchen_appliances: string | null
+          features: string[] | null
+          floor_number: string | null
+          floors: string | null
+          furnishing: string | null
+          has_extra_kitchen: boolean | null
+          has_laundry_room: boolean | null
+          hashtags: string[] | null
+          id: string
+          image: string | null
+          images: string[] | null
+          is_hidden: boolean | null
+          is_pinned: boolean | null
+          lat: number | null
+          living_rooms: string | null
+          lng: number | null
+          owner_name: string | null
+          owner_phone: string | null
+          payment_option: string | null
+          payment_prices: Json | null
+          price: number
+          property_type: string
+          purpose: string | null
+          slug: string
+          smart_path: string | null
+          status: string
+          street: string | null
+          street_width: string | null
+          title: string
+          tour_3d_url: string | null
+          updated_at: string
+          video_url: string | null
+          views: number | null
+          warehouses: string | null
+          warranties: Json | null
+        }
+        Insert: {
+          ac_units?: string | null
+          ad_license?: string | null
+          age?: number | null
+          area?: number | null
+          balconies?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_phone?: string | null
+          category?: string | null
+          city: string
+          corner_type?: string | null
+          councils?: string | null
+          created_at?: string
+          curtains?: string | null
+          custom_hashtags?: string[] | null
+          deed_date?: string | null
+          deed_number?: string | null
+          description?: string | null
+          direction?: string | null
+          district: string
+          entrances?: string | null
+          extra_kitchen_appliances?: string | null
+          features?: string[] | null
+          floor_number?: string | null
+          floors?: string | null
+          furnishing?: string | null
+          has_extra_kitchen?: boolean | null
+          has_laundry_room?: boolean | null
+          hashtags?: string[] | null
+          id?: string
+          image?: string | null
+          images?: string[] | null
+          is_hidden?: boolean | null
+          is_pinned?: boolean | null
+          lat?: number | null
+          living_rooms?: string | null
+          lng?: number | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          payment_option?: string | null
+          payment_prices?: Json | null
+          price?: number
+          property_type?: string
+          purpose?: string | null
+          slug: string
+          smart_path?: string | null
+          status?: string
+          street?: string | null
+          street_width?: string | null
+          title: string
+          tour_3d_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+          views?: number | null
+          warehouses?: string | null
+          warranties?: Json | null
+        }
+        Update: {
+          ac_units?: string | null
+          ad_license?: string | null
+          age?: number | null
+          area?: number | null
+          balconies?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_phone?: string | null
+          category?: string | null
+          city?: string
+          corner_type?: string | null
+          councils?: string | null
+          created_at?: string
+          curtains?: string | null
+          custom_hashtags?: string[] | null
+          deed_date?: string | null
+          deed_number?: string | null
+          description?: string | null
+          direction?: string | null
+          district?: string
+          entrances?: string | null
+          extra_kitchen_appliances?: string | null
+          features?: string[] | null
+          floor_number?: string | null
+          floors?: string | null
+          furnishing?: string | null
+          has_extra_kitchen?: boolean | null
+          has_laundry_room?: boolean | null
+          hashtags?: string[] | null
+          id?: string
+          image?: string | null
+          images?: string[] | null
+          is_hidden?: boolean | null
+          is_pinned?: boolean | null
+          lat?: number | null
+          living_rooms?: string | null
+          lng?: number | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          payment_option?: string | null
+          payment_prices?: Json | null
+          price?: number
+          property_type?: string
+          purpose?: string | null
+          slug?: string
+          smart_path?: string | null
+          status?: string
+          street?: string | null
+          street_width?: string | null
+          title?: string
+          tour_3d_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+          views?: number | null
+          warehouses?: string | null
+          warranties?: Json | null
+        }
+        Relationships: []
+      }
       scheduled_messages: {
         Row: {
           created_at: string
