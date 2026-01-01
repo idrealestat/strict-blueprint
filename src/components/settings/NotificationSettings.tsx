@@ -29,10 +29,17 @@ import {
   FileText,
   BarChart3,
   Edit3,
-  RotateCcw
+  RotateCcw,
+  Eye,
+  Calendar,
+  Send,
+  Download,
+  Trash2
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import jsPDF from 'jspdf';
 
 interface NotificationPreferences {
   // إعدادات الصوت
@@ -83,7 +90,27 @@ interface MessageStats {
   smsCount: number;
   whatsappCount: number;
   month: string;
+  dailyStats?: { day: string; sms: number; whatsapp: number }[];
 }
+
+interface ScheduledMessage {
+  id: string;
+  phone: string;
+  message: string;
+  scheduledTime: string;
+  type: 'sms' | 'whatsapp';
+  status: 'pending' | 'sent' | 'failed';
+}
+
+const sampleData = {
+  clientName: 'أحمد محمد',
+  propertyLocation: 'الرياض - حي النرجس',
+  date: '2026-01-15',
+  time: '10:00',
+  amount: '850,000',
+  minPrice: '900,000',
+  clientPhone: '0501234567'
+};
 
 const defaultTemplates: MessageTemplates = {
   appointmentReminder: 'مرحباً {clientName}، نذكرك بموعد معاينة العقار في {propertyLocation} يوم {date} الساعة {time}. نتطلع لرؤيتك!',
@@ -122,6 +149,16 @@ export default function NotificationSettings() {
   const [testPhone, setTestPhone] = useState('');
   const [messageStats, setMessageStats] = useState<MessageStats>({ smsCount: 0, whatsappCount: 0, month: '' });
   const [editingTemplate, setEditingTemplate] = useState<keyof MessageTemplates | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<keyof MessageTemplates | null>(null);
+  const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>([]);
+  const [newScheduledMessage, setNewScheduledMessage] = useState({
+    phone: '',
+    message: '',
+    scheduledTime: '',
+    type: 'sms' as 'sms' | 'whatsapp'
+  });
+  const [exportingPDF, setExportingPDF] = useState(false);
+
   // تحميل الإعدادات المحفوظة والإحصائيات
   useEffect(() => {
     const saved = localStorage.getItem('notification_preferences');
@@ -136,7 +173,19 @@ export default function NotificationSettings() {
     
     // تحميل إحصائيات الرسائل
     loadMessageStats();
+    
+    // تحميل الرسائل المجدولة
+    loadScheduledMessages();
   }, []);
+
+  const loadScheduledMessages = () => {
+    const saved = localStorage.getItem('scheduled_messages');
+    if (saved) {
+      try {
+        setScheduledMessages(JSON.parse(saved));
+      } catch (e) {}
+    }
+  };
 
   const loadMessageStats = () => {
     const currentMonth = new Date().toLocaleString('ar-SA', { month: 'long', year: 'numeric' });
@@ -145,16 +194,27 @@ export default function NotificationSettings() {
     
     let smsCount = 0;
     let whatsappCount = 0;
+    const dailyStats: { day: string; sms: number; whatsapp: number }[] = [];
+    
+    // إنشاء بيانات الأيام للشهر الحالي
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+    for (let i = 1; i <= Math.min(daysInMonth, 31); i++) {
+      dailyStats.push({ day: i.toString(), sms: 0, whatsapp: 0 });
+    }
     
     if (smsLogs) {
       try {
         const logs = JSON.parse(smsLogs);
         const thisMonth = new Date().getMonth();
         const thisYear = new Date().getFullYear();
-        smsCount = logs.filter((log: any) => {
+        logs.forEach((log: any) => {
           const logDate = new Date(log.timestamp);
-          return logDate.getMonth() === thisMonth && logDate.getFullYear() === thisYear;
-        }).length;
+          if (logDate.getMonth() === thisMonth && logDate.getFullYear() === thisYear) {
+            smsCount++;
+            const day = logDate.getDate();
+            if (dailyStats[day - 1]) dailyStats[day - 1].sms++;
+          }
+        });
       } catch (e) {}
     }
     
@@ -163,14 +223,136 @@ export default function NotificationSettings() {
         const logs = JSON.parse(whatsappLogs);
         const thisMonth = new Date().getMonth();
         const thisYear = new Date().getFullYear();
-        whatsappCount = logs.filter((log: any) => {
+        logs.forEach((log: any) => {
           const logDate = new Date(log.timestamp);
-          return logDate.getMonth() === thisMonth && logDate.getFullYear() === thisYear;
-        }).length;
+          if (logDate.getMonth() === thisMonth && logDate.getFullYear() === thisYear) {
+            whatsappCount++;
+            const day = logDate.getDate();
+            if (dailyStats[day - 1]) dailyStats[day - 1].whatsapp++;
+          }
+        });
       } catch (e) {}
     }
     
-    setMessageStats({ smsCount, whatsappCount, month: currentMonth });
+    setMessageStats({ smsCount, whatsappCount, month: currentMonth, dailyStats });
+  };
+
+  // معاينة قالب الرسالة مع البيانات التجريبية
+  const getPreviewMessage = (template: string) => {
+    let preview = template;
+    Object.entries(sampleData).forEach(([key, value]) => {
+      preview = preview.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+    });
+    return preview;
+  };
+
+  // جدولة رسالة جديدة
+  const scheduleMessage = () => {
+    if (!newScheduledMessage.phone || !newScheduledMessage.message || !newScheduledMessage.scheduledTime) {
+      toast.error('يرجى ملء جميع الحقول');
+      return;
+    }
+    
+    const newMessage: ScheduledMessage = {
+      id: `msg_${Date.now()}`,
+      ...newScheduledMessage,
+      status: 'pending'
+    };
+    
+    const updated = [...scheduledMessages, newMessage];
+    setScheduledMessages(updated);
+    localStorage.setItem('scheduled_messages', JSON.stringify(updated));
+    
+    setNewScheduledMessage({ phone: '', message: '', scheduledTime: '', type: 'sms' });
+    toast.success('تم جدولة الرسالة بنجاح');
+  };
+
+  // حذف رسالة مجدولة
+  const deleteScheduledMessage = (id: string) => {
+    const updated = scheduledMessages.filter(m => m.id !== id);
+    setScheduledMessages(updated);
+    localStorage.setItem('scheduled_messages', JSON.stringify(updated));
+    toast.success('تم حذف الرسالة المجدولة');
+  };
+
+  // تصدير الإحصائيات كـ PDF
+  const exportStatsPDF = async () => {
+    setExportingPDF(true);
+    try {
+      const doc = new jsPDF();
+      
+      // إضافة عنوان
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('Monthly Message Statistics Report', 105, 20, { align: 'center' });
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Report Date: ${new Date().toLocaleDateString('en-US')}`, 105, 30, { align: 'center' });
+      doc.text(`Month: ${messageStats.month}`, 105, 38, { align: 'center' });
+      
+      // إحصائيات عامة
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('Summary', 20, 55);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(`SMS Messages Sent: ${messageStats.smsCount}`, 25, 65);
+      doc.text(`WhatsApp Messages Sent: ${messageStats.whatsappCount}`, 25, 73);
+      doc.text(`Total Messages: ${messageStats.smsCount + messageStats.whatsappCount}`, 25, 81);
+      
+      // رسم بياني بسيط
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('Distribution Chart', 20, 100);
+      
+      const total = messageStats.smsCount + messageStats.whatsappCount || 1;
+      const smsPercent = Math.round((messageStats.smsCount / total) * 100);
+      const whatsappPercent = 100 - smsPercent;
+      
+      // رسم شريط SMS
+      doc.setFillColor(59, 130, 246);
+      doc.rect(25, 110, smsPercent * 1.5, 15, 'F');
+      doc.text(`SMS: ${smsPercent}%`, 25 + smsPercent * 1.5 + 5, 120);
+      
+      // رسم شريط WhatsApp
+      doc.setFillColor(34, 197, 94);
+      doc.rect(25, 130, whatsappPercent * 1.5, 15, 'F');
+      doc.text(`WhatsApp: ${whatsappPercent}%`, 25 + whatsappPercent * 1.5 + 5, 140);
+      
+      // جدول الإحصائيات اليومية
+      if (messageStats.dailyStats && messageStats.dailyStats.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('Daily Breakdown (First 15 days)', 20, 165);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        let yPos = 175;
+        doc.text('Day', 25, yPos);
+        doc.text('SMS', 60, yPos);
+        doc.text('WhatsApp', 95, yPos);
+        doc.text('Total', 140, yPos);
+        
+        yPos += 8;
+        messageStats.dailyStats.slice(0, 15).forEach((day, index) => {
+          doc.text(day.day, 25, yPos);
+          doc.text(day.sms.toString(), 60, yPos);
+          doc.text(day.whatsapp.toString(), 95, yPos);
+          doc.text((day.sms + day.whatsapp).toString(), 140, yPos);
+          yPos += 6;
+        });
+      }
+      
+      // حفظ الملف
+      doc.save(`message-stats-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('تم تصدير التقرير بنجاح');
+    } catch (error) {
+      toast.error('فشل في تصدير التقرير');
+      console.error(error);
+    }
+    setExportingPDF(false);
   };
 
   // حفظ الإعدادات
@@ -339,14 +521,27 @@ export default function NotificationSettings() {
       {/* إحصائيات الرسائل الشهرية */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            إحصائيات الرسائل الشهرية
-          </CardTitle>
-          <CardDescription>عدد الرسائل المرسلة خلال {messageStats.month || 'الشهر الحالي'}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                إحصائيات الرسائل الشهرية
+              </CardTitle>
+              <CardDescription>عدد الرسائل المرسلة خلال {messageStats.month || 'الشهر الحالي'}</CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportStatsPDF}
+              disabled={exportingPDF}
+            >
+              <Download className="h-4 w-4 ml-2" />
+              {exportingPDF ? 'جاري التصدير...' : 'تصدير PDF'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-background rounded-lg p-4 text-center border">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 text-blue-500" />
               <div className="text-3xl font-bold text-foreground">{messageStats.smsCount}</div>
@@ -358,6 +553,50 @@ export default function NotificationSettings() {
               <div className="text-sm text-muted-foreground">رسائل واتساب</div>
             </div>
           </div>
+          
+          {/* رسم بياني */}
+          {(messageStats.smsCount > 0 || messageStats.whatsappCount > 0) && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Pie Chart */}
+              <div className="bg-background rounded-lg p-4 border">
+                <h4 className="text-sm font-medium mb-2 text-center">توزيع الرسائل</h4>
+                <ResponsiveContainer width="100%" height={150}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'SMS', value: messageStats.smsCount, color: '#3b82f6' },
+                        { name: 'WhatsApp', value: messageStats.whatsappCount, color: '#22c55e' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={60}
+                      dataKey="value"
+                    >
+                      <Cell fill="#3b82f6" />
+                      <Cell fill="#22c55e" />
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Bar Chart */}
+              <div className="bg-background rounded-lg p-4 border">
+                <h4 className="text-sm font-medium mb-2 text-center">آخر 7 أيام</h4>
+                <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={messageStats.dailyStats?.slice(-7) || []}>
+                    <XAxis dataKey="day" fontSize={10} />
+                    <YAxis fontSize={10} />
+                    <Tooltip />
+                    <Bar dataKey="sms" fill="#3b82f6" name="SMS" />
+                    <Bar dataKey="whatsapp" fill="#22c55e" name="WhatsApp" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+          
           <div className="mt-4 text-center">
             <Badge variant="outline" className="text-xs">
               إجمالي: {messageStats.smsCount + messageStats.whatsappCount} رسالة
@@ -665,6 +904,14 @@ export default function NotificationSettings() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setPreviewTemplate(previewTemplate === key ? null : key)}
+                    title="معاينة"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setEditingTemplate(editingTemplate === key ? null : key)}
                   >
                     <Edit3 className="h-4 w-4" />
@@ -692,8 +939,134 @@ export default function NotificationSettings() {
                   {preferences.templates[key]}
                 </div>
               )}
+              
+              {/* معاينة الرسالة مع البيانات التجريبية */}
+              {previewTemplate === key && (
+                <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Eye className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">معاينة الرسالة</span>
+                  </div>
+                  <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
+                    {getPreviewMessage(preferences.templates[key])}
+                  </p>
+                  <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      البيانات التجريبية: {sampleData.clientName} | {sampleData.propertyLocation} | {sampleData.date} | {sampleData.time}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* جدولة الرسائل */}
+      <Card className="border-orange-200 dark:border-orange-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-orange-500" />
+            جدولة الرسائل
+          </CardTitle>
+          <CardDescription>أضف رسائل لإرسالها في وقت محدد</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>رقم الهاتف</Label>
+              <Input
+                value={newScheduledMessage.phone}
+                onChange={(e) => setNewScheduledMessage(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="05XXXXXXXX"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>وقت الإرسال</Label>
+              <Input
+                type="datetime-local"
+                value={newScheduledMessage.scheduledTime}
+                onChange={(e) => setNewScheduledMessage(prev => ({ ...prev, scheduledTime: e.target.value }))}
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>نص الرسالة</Label>
+            <Textarea
+              value={newScheduledMessage.message}
+              onChange={(e) => setNewScheduledMessage(prev => ({ ...prev, message: e.target.value }))}
+              placeholder="اكتب نص الرسالة هنا..."
+              className="min-h-[80px]"
+              dir="rtl"
+            />
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label>نوع الرسالة:</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant={newScheduledMessage.type === 'sms' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setNewScheduledMessage(prev => ({ ...prev, type: 'sms' }))}
+                >
+                  <MessageSquare className="h-4 w-4 ml-1" />
+                  SMS
+                </Button>
+                <Button
+                  variant={newScheduledMessage.type === 'whatsapp' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setNewScheduledMessage(prev => ({ ...prev, type: 'whatsapp' }))}
+                >
+                  <Phone className="h-4 w-4 ml-1" />
+                  WhatsApp
+                </Button>
+              </div>
+            </div>
+            <Button onClick={scheduleMessage} className="mr-auto">
+              <Send className="h-4 w-4 ml-2" />
+              جدولة الرسالة
+            </Button>
+          </div>
+          
+          {/* قائمة الرسائل المجدولة */}
+          {scheduledMessages.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <Label className="text-sm font-medium">الرسائل المجدولة ({scheduledMessages.length})</Label>
+              <div className="max-h-[200px] overflow-y-auto space-y-2">
+                {scheduledMessages.map((msg) => (
+                  <div key={msg.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {msg.type === 'sms' ? (
+                          <MessageSquare className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <Phone className="h-4 w-4 text-green-500" />
+                        )}
+                        <span className="text-sm font-medium">{msg.phone}</span>
+                        <Badge variant={msg.status === 'pending' ? 'outline' : msg.status === 'sent' ? 'default' : 'destructive'} className="text-xs">
+                          {msg.status === 'pending' ? 'قيد الانتظار' : msg.status === 'sent' ? 'تم الإرسال' : 'فشل'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate max-w-[300px]">{msg.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(msg.scheduledTime).toLocaleString('ar-SA')}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteScheduledMessage(msg.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
