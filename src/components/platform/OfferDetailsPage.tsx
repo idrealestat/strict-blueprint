@@ -41,6 +41,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import SimilarOffersSection from './SimilarOffersSection';
+import { mockCustomers, Customer } from '@/data/mockCustomers';
 
 interface Listing {
   id: string;
@@ -94,13 +96,46 @@ const ScheduleVisitModal: React.FC<{
     '05:00 م', '06:00 م', '07:00 م', '08:00 م'
   ];
 
+  // حفظ الموعد في التقويم
+  const saveToCalendar = (appointmentData: any) => {
+    const existingAppointments = JSON.parse(localStorage.getItem('calendar_appointments') || '[]');
+    const newAppointment = {
+      id: `apt_${Date.now()}`,
+      type: 'معاينة عقار',
+      title: `معاينة: ${listing.title}`,
+      date: appointmentData.date,
+      time: appointmentData.time,
+      clientName: appointmentData.name,
+      clientPhone: appointmentData.phone,
+      propertyId: listing.id,
+      propertyTitle: listing.title,
+      propertyLocation: `${listing.city} - ${listing.district}`,
+      notes: appointmentData.notes,
+      status: 'مؤكد',
+      createdAt: new Date().toISOString()
+    };
+    existingAppointments.push(newAppointment);
+    localStorage.setItem('calendar_appointments', JSON.stringify(existingAppointments));
+    return newAppointment;
+  };
+
   const handleSubmit = () => {
     if (!selectedDate || !selectedTime || !name || !phone) {
       toast({ title: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
       return;
     }
+    
+    // حفظ في التقويم
+    const savedAppointment = saveToCalendar({
+      date: selectedDate,
+      time: selectedTime,
+      name,
+      phone,
+      notes
+    });
+    
     toast({
-      title: '✅ تم جدولة موعد المعاينة بنجاح',
+      title: '✅ تم جدولة موعد المعاينة وحفظه في التقويم',
       description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
     });
     onClose();
@@ -246,13 +281,85 @@ const SendQuoteModal: React.FC<{
   const [message, setMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
+  // البحث عن العميل أو إنشاء بطاقة جديدة
+  const findOrCreateCustomer = (customerData: { name: string; phone: string }) => {
+    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+    
+    // البحث برقم الجوال
+    let customer = existingCustomers.find((c: any) => 
+      c.phone === customerData.phone || c.whatsapp === customerData.phone
+    );
+    
+    if (!customer) {
+      // إنشاء بطاقة جديدة للعميل
+      customer = {
+        id: `cust_${Date.now()}`,
+        name: customerData.name,
+        phone: customerData.phone,
+        whatsapp: customerData.phone,
+        status: 'جديد',
+        priority: 'متوسط',
+        propertyType: listing.propertyType as any,
+        budget: `${listing.price.toLocaleString()} ريال`,
+        location: `${listing.city} - ${listing.district}`,
+        notes: '',
+        source: 'موقع',
+        createdAt: new Date().toISOString().split('T')[0],
+        lastContact: new Date().toISOString().split('T')[0],
+        tags: ['عرض سعر'],
+        priceQuotes: []
+      };
+      existingCustomers.push(customer);
+      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
+    }
+    
+    return { customer, existingCustomers, isNew: !existingCustomers.find((c: any) => c.id === customer.id && c.priceQuotes) };
+  };
+
+  // إضافة عرض السعر لبطاقة العميل
+  const addQuoteToCustomer = (customerPhone: string, quoteData: any) => {
+    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+    const customerIndex = existingCustomers.findIndex((c: any) => 
+      c.phone === customerPhone || c.whatsapp === customerPhone
+    );
+    
+    if (customerIndex !== -1) {
+      if (!existingCustomers[customerIndex].priceQuotes) {
+        existingCustomers[customerIndex].priceQuotes = [];
+      }
+      existingCustomers[customerIndex].priceQuotes.push(quoteData);
+      existingCustomers[customerIndex].lastContact = new Date().toISOString().split('T')[0];
+      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
+    }
+  };
+
   const handleSubmit = () => {
     if (!offerPrice || !name || !phone) {
       toast({ title: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
       return;
     }
+    
+    // البحث أو إنشاء العميل
+    const { customer, isNew } = findOrCreateCustomer({ name, phone });
+    
+    // إضافة عرض السعر
+    const quoteData = {
+      id: `quote_${Date.now()}`,
+      propertyId: listing.id,
+      propertyTitle: listing.title,
+      propertyLocation: `${listing.city} - ${listing.district}`,
+      originalPrice: listing.price,
+      offeredPrice: Number(offerPrice),
+      paymentMethod,
+      message,
+      status: 'معلق',
+      createdAt: new Date().toISOString()
+    };
+    
+    addQuoteToCustomer(phone, quoteData);
+    
     toast({
-      title: '✅ تم إرسال عرض السعر بنجاح',
+      title: isNew ? '✅ تم إنشاء بطاقة عميل جديدة وإضافة عرض السعر' : '✅ تم إضافة عرض السعر لبطاقة العميل',
       description: `عرضك: ${Number(offerPrice).toLocaleString('ar-SA')} ريال`
     });
     onClose();
@@ -964,18 +1071,30 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
                 </div>
               )}
 
-              {/* معلومات المالك */}
-              <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] rounded-xl p-6 mb-6 text-white">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 bg-[#D4AF37] rounded-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-[#01411C]" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl">{listing.ownerName || 'المالك'}</h3>
-                    <p className="text-white/80">وسيط عقاري معتمد</p>
+              {/* معلومات الوسيط */}
+              {listing.ownerName && (
+                <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] rounded-xl p-6 mb-6 text-white">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-[#D4AF37] rounded-full flex items-center justify-center">
+                      <User className="w-7 h-7 text-[#01411C]" />
+                    </div>
+                    <h3 className="font-bold text-lg">{listing.ownerName}</h3>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* العروض المشابهة */}
+              {allListings && allListings.length > 1 && (
+                <SimilarOffersSection
+                  currentListing={listing}
+                  allListings={allListings}
+                  onSelectListing={(selectedListing) => {
+                    // سيتم التعامل معها من الأعلى
+                    console.log('Selected similar listing:', selectedListing.id);
+                  }}
+                  brokerPhone={brokerPhone}
+                />
+              )}
             </div>
 
             {/* أزرار التواصل الثابتة */}
