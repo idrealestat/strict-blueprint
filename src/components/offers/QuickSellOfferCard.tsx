@@ -8,6 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
+import { useSingleOfferLiveViewers } from '@/hooks/useLiveViewers';
 
 interface AdStats {
   views?: number;
@@ -59,37 +61,13 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
   onRepublish 
 }) => {
   const [showActions, setShowActions] = useState(false);
-  const [isLiveViewer, setIsLiveViewer] = useState(false);
-  const [liveViewTimer, setLiveViewTimer] = useState<NodeJS.Timeout | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showVisitModal, setShowVisitModal] = useState(false);
   
-  // Eye indicator logic
-  useEffect(() => {
-    const handleLiveView = (e: CustomEvent) => {
-      if (e.detail.adId === ad.id) {
-        setIsLiveViewer(true);
-        
-        // Reset timer
-        if (liveViewTimer) clearTimeout(liveViewTimer);
-        
-        // Set new timer (60s)
-        const timer = setTimeout(() => {
-          setIsLiveViewer(false);
-        }, 60000);
-        
-        setLiveViewTimer(timer);
-      }
-    };
-    
-    window.addEventListener('adViewedLive', handleLiveView as EventListener);
-    return () => {
-      window.removeEventListener('adViewedLive', handleLiveView as EventListener);
-      if (liveViewTimer) clearTimeout(liveViewTimer);
-    };
-  }, [ad.id, liveViewTimer]);
+  // استخدام Hook المشاهدات المباشرة
+  const liveViewers = useSingleOfferLiveViewers(ad.id);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -195,13 +173,13 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
           </div>
         )}
         
-        {/* Eye indicator - top right */}
-        <div className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-          isLiveViewer 
-            ? 'bg-red-500 animate-pulse shadow-lg' 
-            : 'bg-gray-400/70'
-        }`}>
-          <Eye className={`w-5 h-5 text-white`} />
+        {/* مؤشر المشاهدات المباشرة - أعلى اليمين */}
+        <div className="absolute top-3 right-3">
+          <LiveViewerIndicator 
+            liveViewers={liveViewers}
+            totalViews={ad.stats?.views || 0}
+            size="md"
+          />
         </div>
         
         {/* Toggle publish - top left */}
@@ -269,9 +247,9 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
              ad.status === 'sold' ? 'مباع' :
              ad.status === 'rented' ? 'مؤجر' : 'مؤرشف'}
           </Badge>
-          {isLiveViewer && (
+          {liveViewers > 0 && (
             <Badge className="bg-red-100 text-red-800 animate-pulse">
-              🔴 يُشاهد الآن
+              🔴 يُشاهد الآن ({liveViewers})
             </Badge>
           )}
         </div>

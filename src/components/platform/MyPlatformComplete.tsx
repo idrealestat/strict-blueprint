@@ -7,6 +7,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
+import LiveViewerIndicator from "@/components/ui/LiveViewerIndicator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1832,11 +1833,14 @@ export default function MyPlatformComplete({
                                       <span className="w-2 h-2 rounded-full bg-white animate-pulse ml-1" />
                                       {offer.status === 'published' ? 'منشور' : 'مسودة'}
                                     </Badge>
-                                    {offer.liveViewers > 0 && (
-                                      <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs animate-pulse">
-                                        <Eye className="w-3 h-3 ml-1" />{offer.liveViewers}
-                                      </Badge>
-                                    )}
+                                    {/* مؤشر المشاهدات المباشرة */}
+                                    <div className="absolute top-2 right-2">
+                                      <LiveViewerIndicator 
+                                        liveViewers={offer.liveViewers || 0}
+                                        totalViews={offer.views || 0}
+                                        size="sm"
+                                      />
+                                    </div>
                                   </div>
                                   <CardContent className="p-3">
                                     <h5 className="font-bold text-[#01411C] line-clamp-1">{offer.title}</h5>
@@ -1933,14 +1937,11 @@ export default function MyPlatformComplete({
 
                                   {/* الصف الثاني: الأزرار (في الأسفل منفصلة) */}
                                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-emerald-200">
-                                    {/* علامة المشاهدة الحمراء */}
-                                    {district.liveViewers > 0 && (
-                                      <Badge className="bg-red-500 text-white text-xs animate-pulse flex items-center gap-1">
-                                        <Eye className="w-3 h-3 text-red-200" />
-                                        <span>{district.liveViewers} يشاهدون</span>
-                                      </Badge>
-                                    )}
-                                    {district.liveViewers === 0 && <div />}
+                                    {/* مؤشر المشاهدات المباشرة للحي */}
+                                    <LiveViewerIndicator 
+                                      liveViewers={district.liveViewers || 0}
+                                      size="sm"
+                                    />
 
                                     {/* أزرار الإجراءات */}
                                     <div className="flex items-center gap-1 flex-wrap">
@@ -2055,13 +2056,13 @@ export default function MyPlatformComplete({
                                             {offer.isHidden && (
                                               <Badge className="absolute bottom-2 left-2 bg-gray-500 text-white text-xs">مخفي</Badge>
                                             )}
-                                            {/* عين المشاهدة الحمراء */}
-                                            {offer.liveViewers > 0 && (
-                                              <Badge className="absolute bottom-2 right-2 bg-red-500 text-white text-xs animate-pulse flex items-center gap-1">
-                                                <Eye className="w-3 h-3 text-red-200" />
-                                                <span>{offer.liveViewers}</span>
-                                              </Badge>
-                                            )}
+                                            {/* مؤشر المشاهدات المباشرة */}
+                                            <div className="absolute bottom-2 right-2">
+                                              <LiveViewerIndicator 
+                                                liveViewers={offer.liveViewers || 0}
+                                                size="sm"
+                                              />
+                                            </div>
                                           </div>
                                           
                                           {/* محتوى الكارت */}
