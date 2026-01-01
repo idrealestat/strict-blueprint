@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronDown, 
@@ -12,11 +12,14 @@ import {
   Zap,
   Award,
   Target,
-  X
+  X,
+  BellRing
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { toast } from "sonner";
 
 interface SmartAlert {
   id: string;
@@ -46,6 +49,47 @@ export default function SmartAlertsPanel({ offers, onAlertClick }: SmartAlertsPa
   const [isExpanded, setIsExpanded] = useState(false);
   const [alerts, setAlerts] = useState<SmartAlert[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const previousAlertsRef = useRef<string[]>([]);
+  
+  const { 
+    isSupported, 
+    permission, 
+    requestPermission, 
+    sendLocalNotification 
+  } = usePushNotifications();
+
+  // Check if push notifications are enabled
+  useEffect(() => {
+    setPushEnabled(permission === 'granted');
+  }, [permission]);
+
+  // Send push notification for new alerts
+  const sendAlertPushNotification = async (alert: SmartAlert) => {
+    if (!pushEnabled) return;
+    
+    const iconMap = {
+      success: '🏆',
+      warning: '⚠️',
+      trending: '📈',
+      info: 'ℹ️'
+    };
+    
+    await sendLocalNotification(
+      `${iconMap[alert.type]} ${alert.title}`,
+      alert.description,
+      { type: 'smart_alert', alertId: alert.id, offerId: alert.offerId }
+    );
+  };
+
+  // Enable push notifications
+  const handleEnablePush = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      setPushEnabled(true);
+      toast.success('تم تفعيل إشعارات Push للتنبيهات الذكية');
+    }
+  };
 
   // Generate smart alerts based on offer performance
   useEffect(() => {
@@ -138,14 +182,34 @@ export default function SmartAlertsPanel({ offers, onAlertClick }: SmartAlertsPa
         });
       }
 
-      setAlerts(newAlerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
-      setUnreadCount(newAlerts.filter(a => !a.isRead).length);
+      const sortedAlerts = newAlerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      
+      // Check for new unread alerts and send push notifications
+      const newUnreadAlerts = sortedAlerts.filter(alert => 
+        !alert.isRead && !previousAlertsRef.current.includes(alert.id)
+      );
+      
+      if (newUnreadAlerts.length > 0 && pushEnabled) {
+        // Send push for the most important new alert
+        const priorityOrder = ['success', 'warning', 'trending', 'info'];
+        const prioritizedAlert = newUnreadAlerts.sort((a, b) => 
+          priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type)
+        )[0];
+        
+        sendAlertPushNotification(prioritizedAlert);
+      }
+      
+      // Update previous alerts reference
+      previousAlertsRef.current = sortedAlerts.map(a => a.id);
+      
+      setAlerts(sortedAlerts);
+      setUnreadCount(sortedAlerts.filter(a => !a.isRead).length);
     };
 
     if (offers.length > 0) {
       generateAlerts();
     }
-  }, [offers]);
+  }, [offers, pushEnabled, sendLocalNotification]);
 
   const markAsRead = (alertId: string) => {
     setAlerts(prev => prev.map(a => 
@@ -221,6 +285,25 @@ export default function SmartAlertsPanel({ offers, onAlertClick }: SmartAlertsPa
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                {/* Push Notification Toggle */}
+                {isSupported && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!pushEnabled) {
+                        handleEnablePush();
+                      } else {
+                        toast.info('إشعارات Push مفعلة بالفعل');
+                      }
+                    }}
+                    className={`p-2 rounded-full ${pushEnabled ? 'text-green-600 bg-green-100' : 'text-muted-foreground hover:text-purple-600'}`}
+                    title={pushEnabled ? 'إشعارات Push مفعلة' : 'تفعيل إشعارات Push'}
+                  >
+                    <BellRing className="w-5 h-5" />
+                  </Button>
+                )}
                 {/* Alert Type Badges */}
                 <div className="hidden sm:flex items-center gap-2">
                   {alerts.filter(a => a.type === 'success').length > 0 && (
