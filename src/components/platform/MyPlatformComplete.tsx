@@ -61,10 +61,16 @@ import {
   FileDown,
   PlusCircle,
   User,
+  Bell,
+  Settings,
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
 import MyPublicPlatformContent from "./MyPublicPlatformContent";
 import OfferEditPage from "./OfferEditPage";
+import OffersStatsCards from "@/components/offers/OffersStatsCards";
+import OffersViewsChart from "@/components/offers/OffersViewsChart";
+import ViewNotificationSettings from "@/components/offers/ViewNotificationSettings";
+import { useOfferViewNotifications } from "@/hooks/useOfferViewNotifications";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -478,6 +484,10 @@ export default function MyPlatformComplete({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  
+  // Hook إشعارات المشاهدات
+  const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
   
   // Hierarchical State (مدينة ← حي ← عروض)
   const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(() => {
@@ -1569,6 +1579,28 @@ export default function MyPlatformComplete({
 
           {/* Tab: العروض (الهرمي) */}
           <TabsContent value="offers" className="space-y-6">
+            {/* إحصائيات المشاهدات - 4 مربعات ملونة */}
+            <OffersStatsCards
+              currentViews={viewStats.current}
+              monthlyViews={viewStats.thisMonth}
+              yearlyViews={viewStats.thisYear}
+              totalInteractions={viewStats.totalInteractions}
+            />
+
+            {/* الرسوم البيانية */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">
+                <OffersViewsChart data={viewStats.history} />
+              </div>
+              <div className="space-y-4">
+                <ViewNotificationSettings
+                  notificationsEnabled={notificationsEnabled}
+                  soundEnabled={soundEnabled}
+                  onSettingsChange={saveSettings}
+                />
+              </div>
+            </div>
+
             {/* Search & Filters */}
             <Card className="border-2 border-gray-200">
               <CardContent className="p-4 space-y-4">

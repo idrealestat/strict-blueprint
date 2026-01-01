@@ -335,7 +335,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     };
 
     // تسجيل المشاهدة عند فتح التفاصيل
-    const handleViewDetailsWithTracking = () => {
+    const handleViewDetailsWithTracking = async () => {
       // زيادة عدد المشاهدات في localStorage
       try {
         const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
@@ -343,8 +343,57 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         if (adIndex !== -1) {
           publishedAds[adIndex].views = (publishedAds[adIndex].views || 0) + 1;
           localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+          
+          // جمع معلومات الزائر
+          const ua = navigator.userAgent;
+          let browser = 'غير معروف';
+          if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
+          else if (ua.includes('Firefox')) browser = 'Firefox';
+          else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+          else if (ua.includes('Edg')) browser = 'Edge';
+          
+          let os = 'غير معروف';
+          if (ua.includes('Windows')) os = 'Windows';
+          else if (ua.includes('Mac')) os = 'macOS';
+          else if (ua.includes('Android')) os = 'Android';
+          else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+          
+          let device = 'كمبيوتر';
+          if (/iPhone|iPad|iPod/.test(ua)) device = 'iPhone/iPad';
+          else if (/Android/.test(ua)) device = /Mobile/.test(ua) ? 'هاتف أندرويد' : 'تابلت';
+          
+          // محاولة الحصول على الموقع
+          let locationInfo: { city?: string; country?: string; ip?: string } = {};
+          try {
+            const response = await fetch('https://ipapi.co/json/');
+            if (response.ok) {
+              const data = await response.json();
+              locationInfo = { ip: data.ip, city: data.city, country: data.country_name };
+            }
+          } catch (e) { /* تجاهل */ }
+          
+          const viewerInfo = {
+            ...locationInfo,
+            device,
+            browser,
+            os,
+            screenSize: `${window.screen.width}x${window.screen.height}`,
+            timestamp: new Date().toISOString(),
+            offerId: listing.id,
+            offerTitle: listing.title,
+          };
+          
           // إطلاق حدث لتحديث الإحصائيات في الصفحات الأخرى
           window.dispatchEvent(new CustomEvent('offerViewed', { detail: { offerId: listing.id } }));
+          
+          // إطلاق حدث مفصل للإشعارات
+          window.dispatchEvent(new CustomEvent('offerViewedWithDetails', { 
+            detail: { 
+              offerId: listing.id, 
+              offerTitle: listing.title,
+              viewerInfo 
+            } 
+          }));
         }
       } catch (error) {
         console.error('Error tracking view:', error);
