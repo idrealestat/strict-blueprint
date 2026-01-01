@@ -4,7 +4,6 @@ import MainServices from "@/components/MainServices";
 import QuickCalculator from "@/components/QuickCalculator";
 import CalendarTabs from "@/components/CalendarTabs";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
-import BusinessCard from "@/components/BusinessCard";
 
 const Dashboard = () => {
   return (
@@ -12,9 +11,6 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* 1. شريط الأخبار العاجلة - 8 أخبار */}
         <NewsBar />
-
-        {/* 2. بطاقة الأعمال */}
-        <BusinessCard />
 
         {/* 3. الواجهة الرئيسية - 8 خدمات */}
         <div>
