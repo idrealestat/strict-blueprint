@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Bell, 
   Volume2, 
@@ -35,12 +36,14 @@ import {
   Calendar,
   Send,
   Download,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import jsPDF from 'jspdf';
+import { MessagesLog } from './MessagesLog';
 
 interface NotificationPreferences {
   // إعدادات الصوت
@@ -682,10 +685,27 @@ export default function NotificationSettings() {
           <h1 className="text-2xl font-bold text-foreground">إعدادات الإشعارات</h1>
           <p className="text-muted-foreground">تحكم في طريقة استلام الإشعارات والرسائل</p>
         </div>
-        <Button onClick={savePreferences} disabled={isSaving}>
-          {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-        </Button>
       </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="settings" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings className="w-4 h-4" />
+            الإعدادات
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2">
+            <History className="w-4 h-4" />
+            سجل الرسائل
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings" className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={savePreferences} disabled={isSaving}>
+              {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+            </Button>
+          </div>
 
       {/* إحصائيات الرسائل الشهرية */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
@@ -1344,6 +1364,12 @@ export default function NotificationSettings() {
           {isSaving ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات'}
         </Button>
       </div>
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <MessagesLog />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
