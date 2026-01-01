@@ -94,9 +94,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       if (savedBusinessCard) {
         try {
           const data = JSON.parse(savedBusinessCard);
-          // تحميل الصور من البيانات المحفوظة
+          // تحميل صورة البروفايل فقط (بدون الشعار)
           setProfileImage(data.profileImage || null);
-          setLogoImage(data.logoImage || null);
+          setLogoImage(null); // لا نعرض الشعار في منصتي
           setCoverImage(data.coverImage || null);
           // تحميل بيانات البطاقة
           setCardData({
@@ -116,6 +116,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     };
     
     const setDefaultCardData = () => {
+      setProfileImage(null);
+      setLogoImage(null);
+      setCoverImage(null);
       setCardData({
         name: currentUser?.name || 'مستخدم تجريبي',
         title: currentUser?.title || 'وسيط عقاري معتمد',
@@ -133,9 +136,12 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       loadCardData();
     };
     
+    // الاستماع لحدث تحديث بطاقة الأعمال
+    window.addEventListener('businessCardUpdated', handleUpdate);
     window.addEventListener('publishedAdSaved', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
+      window.removeEventListener('businessCardUpdated', handleUpdate);
       window.removeEventListener('publishedAdSaved', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
@@ -344,22 +350,16 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
               <img 
                 src={profileImage} 
                 alt="Profile"
-                className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-3 rounded-full border-4 border-[#D4AF37] shadow-2xl object-cover"
+                className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-3 rounded-full border-4 border-[#D4AF37] shadow-2xl object-cover transition-all duration-500 ease-out"
               />
             ) : (
-              <div className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-3 rounded-full border-4 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#F4D03F] flex items-center justify-center shadow-2xl">
+              <div className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-3 rounded-full border-4 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#F4D03F] flex items-center justify-center shadow-2xl transition-all duration-500 ease-out">
                 <span className="text-3xl md:text-4xl font-bold text-[#01411C]">
                   {cardData.name?.substring(0, 2) || 'وس'}
                 </span>
               </div>
             )}
-            {logoImage && (
-              <img 
-                src={logoImage}
-                alt="Logo"
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full border-4 border-white shadow-lg object-cover absolute bottom-0 right-2"
-              />
-            )}
+            {/* لا نعرض الشعار في منصتي - فقط صورة البروفايل */}
           </div>
           
           <h1 className="text-xl md:text-2xl font-bold text-white mb-1">{cardData.name}</h1>
