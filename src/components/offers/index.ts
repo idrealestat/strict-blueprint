@@ -16,3 +16,4 @@ export { default as ViewNotificationSettings } from './ViewNotificationSettings'
 export { default as CollapsibleStatsSection } from './CollapsibleStatsSection';
 export { default as CollapsibleNotificationSettings } from './CollapsibleNotificationSettings';
 export { default as SmartAlertsPanel } from './SmartAlertsPanel';
+export { default as CollapsiblePerformanceComparison } from './CollapsiblePerformanceComparison';
