@@ -67,9 +67,11 @@ import {
 import PropertyPublishForm from "./PropertyPublishForm";
 import MyPublicPlatformContent from "./MyPublicPlatformContent";
 import OfferEditPage from "./OfferEditPage";
-import OffersStatsCards from "@/components/offers/OffersStatsCards";
-import OffersViewsChart from "@/components/offers/OffersViewsChart";
-import ViewNotificationSettings from "@/components/offers/ViewNotificationSettings";
+import { 
+  CollapsibleStatsSection, 
+  CollapsibleNotificationSettings, 
+  SmartAlertsPanel 
+} from "@/components/offers";
 import { useOfferViewNotifications } from "@/hooks/useOfferViewNotifications";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
@@ -1601,27 +1603,39 @@ export default function MyPlatformComplete({
           </TabsContent>
 
           {/* Tab: العروض (الهرمي) */}
-          <TabsContent value="offers" className="space-y-6">
-            {/* إحصائيات المشاهدات - 4 مربعات ملونة */}
-            <OffersStatsCards
-              currentViews={viewStats.current}
-              monthlyViews={viewStats.thisMonth}
-              yearlyViews={viewStats.thisYear}
-              totalInteractions={viewStats.totalInteractions}
-            />
+          <TabsContent value="offers" className="space-y-4">
+            {/* المستطيلات القابلة للطي */}
+            <div className="space-y-3">
+              {/* 1. إحصائيات المشاهدات - مستطيل قابل للطي */}
+              <CollapsibleStatsSection
+                currentViews={viewStats.current}
+                monthlyViews={viewStats.thisMonth}
+                yearlyViews={viewStats.thisYear}
+                totalInteractions={viewStats.totalInteractions}
+                history={viewStats.history}
+              />
 
-            {/* الرسوم البيانية */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2">
-                <OffersViewsChart data={viewStats.history} />
-              </div>
-              <div className="space-y-4">
-                <ViewNotificationSettings
-                  notificationsEnabled={notificationsEnabled}
-                  soundEnabled={soundEnabled}
-                  onSettingsChange={saveSettings}
-                />
-              </div>
+              {/* 2. إعدادات الإشعارات - مستطيل قابل للطي */}
+              <CollapsibleNotificationSettings
+                notificationsEnabled={notificationsEnabled}
+                soundEnabled={soundEnabled}
+                onSettingsChange={saveSettings}
+              />
+
+              {/* 3. التنبيهات الذكية - مستطيل قابل للطي */}
+              <SmartAlertsPanel
+                offers={getAllOffersFlat().map(o => ({
+                  id: o.id,
+                  title: o.title,
+                  views: o.views,
+                  requests: o.requests || 0,
+                  city: cityHierarchy.find(c => c.districts.some(d => d.offers.some(of => of.id === o.id)) || c.directOffers.some(of => of.id === o.id))?.cityName,
+                }))}
+                onAlertClick={(offerId) => {
+                  // يمكن التوسع لفتح العرض المحدد
+                  toast.info(`تم النقر على العرض: ${offerId}`);
+                }}
+              />
             </div>
 
             {/* Search & Filters */}
