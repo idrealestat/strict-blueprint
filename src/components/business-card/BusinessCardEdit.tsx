@@ -168,7 +168,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
     }
   }, []);
 
-  // Handle save
+  // Handle save - حفظ مزدوج للربط مع منصتي
   const handleSave = () => {
     try {
       const dataToSave = JSON.stringify(formData);
@@ -177,7 +177,21 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
         toast.error("حجم البيانات كبير جداً! حاول استخدام صور أصغر");
         return;
       }
+      // حفظ بالمفتاح الأساسي
       localStorage.setItem(STORAGE_KEY, dataToSave);
+      
+      // حفظ نسخة للربط مع منصتي - صورة البروفايل فقط
+      const platformData = {
+        profileImage: formData.profileImage, // صورة البروفايل فقط للمنصة
+        coverImage: formData.coverImage,
+        name: formData.userName,
+        title: formData.companyName || 'وسيط عقاري معتمد'
+      };
+      localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
+      
+      // إرسال حدث لتحديث المنصة فوراً
+      window.dispatchEvent(new CustomEvent('businessCardUpdated'));
+      
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
       toast.success("تم حفظ التغييرات بنجاح!");

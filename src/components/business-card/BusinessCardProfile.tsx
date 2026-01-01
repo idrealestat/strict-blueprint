@@ -358,31 +358,59 @@ END:VCARD`;
           </Button>
         </div>
 
-        {/* Profile Image - Bigger size */}
+        {/* Profile Image - Bigger size with improved touch swap */}
         <div className="relative z-10 flex justify-center pt-6">
           <div 
-            className="relative cursor-pointer group"
-            onClick={() => setShowSwappedImage(!showSwappedImage)}
+            className="relative cursor-pointer group select-none"
+            onClick={() => {
+              // تبديل الصور عند اللمس/النقر
+              if (formData.profileImage && formData.logoImage) {
+                setShowSwappedImage(!showSwappedImage);
+              }
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              if (formData.profileImage && formData.logoImage) {
+                setShowSwappedImage(!showSwappedImage);
+              }
+            }}
           >
-            {/* Main Profile Image - Increased size */}
-            <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-white/20 to-white/10">
-              {formData.profileImage ? (
-                <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+            {/* Main Profile Image - Increased size with smooth transitions */}
+            <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden transition-all duration-300 ease-out transform hover:scale-105 active:scale-95 bg-gradient-to-br from-white/20 to-white/10">
+              {(showSwappedImage ? formData.logoImage : formData.profileImage) ? (
+                <img 
+                  src={showSwappedImage ? formData.logoImage : formData.profileImage} 
+                  alt={showSwappedImage ? "Logo" : "Profile"} 
+                  className="w-full h-full object-cover transition-opacity duration-300" 
+                />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold bg-[#D4AF37]">
+                <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold bg-[#D4AF37] transition-all duration-300">
                   {showSwappedImage ? "🏢" : formData.userName.charAt(0)}
                 </div>
               )}
             </div>
             
-            {/* Small Logo Badge */}
-            <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg bg-[#D4AF37] flex items-center justify-center text-white text-sm overflow-hidden">
-              {formData.logoImage ? (
-                <img src={formData.logoImage} alt="Logo" className="w-full h-full object-cover" />
+            {/* Small Logo/Profile Badge - Shows opposite of main */}
+            <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg bg-[#D4AF37] flex items-center justify-center text-white text-sm overflow-hidden transition-all duration-300 ease-out transform hover:scale-110 active:scale-95">
+              {(showSwappedImage ? formData.profileImage : formData.logoImage) ? (
+                <img 
+                  src={showSwappedImage ? formData.profileImage : formData.logoImage} 
+                  alt={showSwappedImage ? "Profile" : "Logo"} 
+                  className="w-full h-full object-cover transition-opacity duration-300" 
+                />
               ) : (
-                showSwappedImage ? formData.userName.charAt(0) : "🏢"
+                <span className="transition-all duration-300">
+                  {showSwappedImage ? formData.userName.charAt(0) : "🏢"}
+                </span>
               )}
             </div>
+            
+            {/* Swap indicator - only shows when both images exist */}
+            {formData.profileImage && formData.logoImage && (
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-white/90 text-[#01411C] text-xs px-2 py-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                اضغط للتبديل
+              </div>
+            )}
           </div>
         </div>
 
