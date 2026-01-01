@@ -30,6 +30,7 @@ import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
 import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
 import PublicPlatformPage from "./pages/PublicPlatformPage";
+import NotificationSettings from "./components/settings/NotificationSettings";
 
 const queryClient = new QueryClient();
 
@@ -181,6 +182,8 @@ const App = () => {
         return <RentedPropertiesReport />;
       case "map-system":
         return <MapSystemDashboard />;
+      case "notification-settings":
+        return <NotificationSettings />;
       case "sales":
       case "advertising":
         return <AdPublishingSections onBack={handleBack} />;

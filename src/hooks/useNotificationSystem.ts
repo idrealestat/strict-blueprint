@@ -275,6 +275,18 @@ export function useNotificationSystem() {
 
   // Check for upcoming appointments
   const checkUpcomingAppointments = useCallback(() => {
+    // التحقق من إعدادات الإشعارات
+    const prefsStr = localStorage.getItem('notification_preferences');
+    let prefs = { appointmentNotifications: true, smsForAppointments: true, appointmentReminderMinutes: 30 };
+    if (prefsStr) {
+      try {
+        const saved = JSON.parse(prefsStr);
+        prefs = { ...prefs, ...saved };
+      } catch (e) {}
+    }
+    
+    if (!prefs.appointmentNotifications) return;
+    
     // Get appointments from localStorage
     const storedAppointments = localStorage.getItem('appointments');
     const viewingAppointments = localStorage.getItem('calendar_appointments');
@@ -295,7 +307,7 @@ export function useNotificationSystem() {
           customerName: apt.clientName,
           customerPhone: apt.clientPhone,
           reminder: true,
-          reminderTime: 30,
+          reminderTime: apt.reminderTime || prefs.appointmentReminderMinutes,
         }));
         allAppointments = [...allAppointments, ...viewings];
       } catch (e) {}
@@ -333,7 +345,7 @@ export function useNotificationSystem() {
         
         const minutesUntilApt = (aptHour * 60 + aptMinute) - (currentHour * 60 + currentMinute);
         const aptKey = `apt_${apt.id}_${aptDate.toDateString()}`;
-        const reminderTime = apt.reminderTime || 30;
+        const reminderTime = apt.reminderTime || prefs.appointmentReminderMinutes || 30;
 
         // Notify at reminder time (default 30 min)
         if (minutesUntilApt <= reminderTime && minutesUntilApt > 0 && !notifiedAppointmentsRef.current.has(`${aptKey}_upcoming`)) {
@@ -350,8 +362,10 @@ export function useNotificationSystem() {
             relatedId: apt.id,
           });
           
-          // إرسال SMS
-          sendAppointmentSMS(apt, minutesUntilApt);
+          // إرسال SMS إذا مفعّل
+          if (prefs.smsForAppointments) {
+            sendAppointmentSMS(apt, minutesUntilApt);
+          }
         }
 
         // Notify when appointment is now
@@ -369,7 +383,9 @@ export function useNotificationSystem() {
           });
           
           // إرسال SMS عند حلول الموعد
-          sendAppointmentSMS(apt, 0);
+          if (prefs.smsForAppointments) {
+            sendAppointmentSMS(apt, 0);
+          }
         }
       });
     } catch (error) {

@@ -1,7 +1,7 @@
 import { 
   X, Home, UserCheck, BookOpen, Crown, Briefcase, Archive, 
   FileText, Receipt, Plus, BarChart3, Info, Headphones, Settings,
-  Users, Building2
+  Users, Building2, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ const RIGHT_SIDEBAR_ITEMS = [
   { id: 'wallet', icon: Receipt, label: 'المحفظة', path: '/wallet', color: '#f59e0b', count: '8,450' },
   { id: 'achievements', icon: Crown, label: 'الإنجازات', path: '/achievements', color: '#a855f7', count: 15 },
   { id: 'notifications', icon: Info, label: 'الإشعارات', path: '/notifications', color: '#ef4444', count: 23, badge: 'جديد' },
+  { id: 'notification-settings', icon: Bell, label: 'إعدادات الإشعارات', action: 'notification-settings', color: '#f97316' },
   { id: 'favorites', icon: UserCheck, label: 'المفضلة', path: '/favorites', color: '#eab308', count: 34 },
   { id: 'analytics', icon: BarChart3, label: 'الإحصائيات', path: '/analytics', color: '#6366f1', count: '12K' },
   { id: 'appointments', icon: BookOpen, label: 'المواعيد', path: '/appointments', color: '#ec4899', count: 8 },
@@ -47,6 +48,13 @@ const RightSlider = ({ isOpen, onClose }: RightSliderProps) => {
 
   const handleNavigate = (path: string) => {
     navigate(path);
+    onClose();
+  };
+
+  const handleAction = (action: string) => {
+    window.dispatchEvent(new CustomEvent('navigateFromAssistant', { 
+      detail: { page: action } 
+    }));
     onClose();
   };
 
@@ -109,7 +117,7 @@ const RightSlider = ({ isOpen, onClose }: RightSliderProps) => {
               {RIGHT_SIDEBAR_ITEMS.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => handleNavigate(item.path)}
+                  onClick={() => item.action ? handleAction(item.action) : handleNavigate(item.path)}
                   className="w-full text-right p-3 rounded-lg hover:bg-muted transition-colors group flex items-center gap-3"
                 >
                   <div 
