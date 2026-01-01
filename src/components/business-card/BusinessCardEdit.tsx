@@ -168,14 +168,21 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
   // Handle save
   const handleSave = () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      const dataToSave = JSON.stringify(formData);
+      // Check if data size is too large (localStorage limit is ~5MB)
+      if (dataToSave.length > 4 * 1024 * 1024) {
+        toast.error("حجم البيانات كبير جداً! حاول استخدام صور أصغر");
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, dataToSave);
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
       toast.success("تم حفظ التغييرات بنجاح!");
     } catch (error) {
+      console.error('Save error:', error);
       setShowError(true);
-      setErrorMessage("حدث خطأ في الحفظ");
-      toast.error("فشل الحفظ!");
+      setErrorMessage("حدث خطأ في الحفظ - حاول تصغير حجم الصور");
+      toast.error("فشل الحفظ! حاول استخدام صور أصغر");
     }
   };
 
@@ -261,17 +268,57 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
     }));
   };
 
-  // Handle image upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'coverImage' | 'logoImage') => {
+  // Compress image function
+  const compressImage = (file: File, maxWidth: number = 400, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+            resolve(compressedBase64);
+          } else {
+            reject(new Error('Could not get canvas context'));
+          }
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle image upload with compression
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'coverImage' | 'logoImage') => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setFormData(prev => ({ ...prev, [field]: base64 }));
+      try {
+        // Different max sizes for different image types
+        const maxWidth = field === 'coverImage' ? 800 : 300;
+        const compressedBase64 = await compressImage(file, maxWidth, 0.7);
+        setFormData(prev => ({ ...prev, [field]: compressedBase64 }));
         toast.success("تم رفع الصورة بنجاح!");
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        toast.error("حدث خطأ في رفع الصورة");
+      }
     }
   };
 
