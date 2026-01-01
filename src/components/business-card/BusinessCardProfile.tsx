@@ -96,14 +96,19 @@ interface BusinessCardData {
 }
 
 const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEditClick, user }) => {
-  const [showSwappedImage, setShowSwappedImage] = useState(false);
+  const STORAGE_KEY = `business_card_${user.id}`;
+  const SWAP_KEY = `business_card_swap_${user.id}`;
+  
+  // تحميل حالة التبديل من localStorage
+  const [showSwappedImage, setShowSwappedImage] = useState(() => {
+    const saved = localStorage.getItem(SWAP_KEY);
+    return saved === 'true';
+  });
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const STORAGE_KEY = `business_card_${user.id}`;
 
   // Default form data
   const defaultFormData: BusinessCardData = {
@@ -363,15 +368,22 @@ END:VCARD`;
           <div 
             className="relative cursor-pointer group select-none"
             onClick={() => {
-              // تبديل الصور عند اللمس/النقر
+              // تبديل الصور عند اللمس/النقر وحفظ الحالة
               if (formData.profileImage && formData.logoImage) {
-                setShowSwappedImage(!showSwappedImage);
+                const newState = !showSwappedImage;
+                setShowSwappedImage(newState);
+                localStorage.setItem(SWAP_KEY, String(newState));
+                // إرسال حدث لتحديث منصتي
+                window.dispatchEvent(new CustomEvent('businessCardSwapped'));
               }
             }}
             onTouchEnd={(e) => {
               e.preventDefault();
               if (formData.profileImage && formData.logoImage) {
-                setShowSwappedImage(!showSwappedImage);
+                const newState = !showSwappedImage;
+                setShowSwappedImage(newState);
+                localStorage.setItem(SWAP_KEY, String(newState));
+                window.dispatchEvent(new CustomEvent('businessCardSwapped'));
               }
             }}
           >

@@ -4,10 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare } from 'lucide-react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
+import { toast } from 'sonner';
 
 interface Listing {
   id: string;
@@ -93,9 +94,11 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
   const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [isSwapped, setIsSwapped] = useState(false);
   
   // مفتاح التخزين - نفس المفتاح المستخدم في بطاقة الأعمال
   const STORAGE_KEY = `business_card_${userId}`;
+  const SWAP_KEY = `business_card_swap_${userId}`;
   
   useEffect(() => {
     const loadData = () => {
@@ -130,6 +133,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       } else {
         setBusinessCardData(null);
       }
+      
+      // تحميل حالة التبديل
+      const swapState = localStorage.getItem(SWAP_KEY);
+      setIsSwapped(swapState === 'true');
     };
     
     loadData();
@@ -140,16 +147,23 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       loadCardData();
     };
     
+    const handleSwap = () => {
+      const swapState = localStorage.getItem(SWAP_KEY);
+      setIsSwapped(swapState === 'true');
+    };
+    
     // الاستماع لحدث تحديث بطاقة الأعمال
     window.addEventListener('businessCardUpdated', handleUpdate);
+    window.addEventListener('businessCardSwapped', handleSwap);
     window.addEventListener('publishedAdSaved', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('businessCardUpdated', handleUpdate);
+      window.removeEventListener('businessCardSwapped', handleSwap);
       window.removeEventListener('publishedAdSaved', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [currentUser, STORAGE_KEY]);
+  }, [currentUser, STORAGE_KEY, SWAP_KEY]);
 
   // حساب مستوى الشارة
   const getBadgeLevel = () => {
@@ -354,6 +368,30 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     );
   };
 
+  // مشاركة رابط المنصة
+  const sharePlatformLink = async () => {
+    const platformLink = `${window.location.origin}/platform/${userId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `منصة ${businessCardData?.userName || currentUser?.name || 'الوسيط'}`,
+          text: 'تفضل بزيارة منصتي العقارية',
+          url: platformLink
+        });
+      } catch (error) {
+        navigator.clipboard.writeText(platformLink);
+        toast.success('تم نسخ رابط المنصة!');
+      }
+    } else {
+      navigator.clipboard.writeText(platformLink);
+      toast.success('تم نسخ رابط المنصة!');
+    }
+  };
+
+  // تحديد الصورة الكبيرة والصغيرة بناءً على حالة التبديل
+  const mainImage = isSwapped ? businessCardData?.logoImage : businessCardData?.profileImage;
+  const smallImage = isSwapped ? businessCardData?.profileImage : businessCardData?.logoImage;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] to-white" dir="rtl">
       {/* Header - مطابق تماماً لبطاقة الأعمال */}
@@ -374,17 +412,29 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
           </div>
         )}
 
+        {/* زر مشاركة الرابط - أعلى اليمين */}
+        <div className="absolute top-4 left-4 z-20">
+          <Button
+            onClick={sharePlatformLink}
+            variant="ghost"
+            className="text-white hover:bg-white/20 flex items-center gap-2"
+          >
+            <Share2 className="w-5 h-5" />
+            مشاركة
+          </Button>
+        </div>
+
         <div className="max-w-7xl mx-auto text-center relative z-10">
           {/* Profile Image - نفس الحجم والتنسيق في بطاقة الأعمال */}
           <div className="flex justify-center pt-6">
             <div className="relative">
-              {/* Main Profile Image */}
+              {/* Main Image - الصورة الكبيرة حسب حالة التبديل */}
               <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden bg-gradient-to-br from-white/20 to-white/10 transition-all duration-300">
-                {businessCardData?.profileImage ? (
+                {mainImage ? (
                   <img 
-                    src={businessCardData.profileImage} 
-                    alt="Profile"
-                    className="w-full h-full object-cover"
+                    src={mainImage} 
+                    alt="Main"
+                    className="w-full h-full object-cover transition-opacity duration-300"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold bg-[#D4AF37]">
@@ -393,13 +443,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
                 )}
               </div>
               
-              {/* Small Logo Badge - فقط إذا كان موجوداً */}
-              {businessCardData?.logoImage && (
-                <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg overflow-hidden">
+              {/* Small Badge - الصورة الصغيرة حسب حالة التبديل */}
+              {smallImage && (
+                <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg overflow-hidden transition-all duration-300">
                   <img 
-                    src={businessCardData.logoImage} 
-                    alt="Logo" 
-                    className="w-full h-full object-cover" 
+                    src={smallImage} 
+                    alt="Secondary" 
+                    className="w-full h-full object-cover transition-opacity duration-300" 
                   />
                 </div>
               )}
