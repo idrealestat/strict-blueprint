@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-smart-prices]
 verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = false
