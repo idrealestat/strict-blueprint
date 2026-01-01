@@ -9,7 +9,6 @@ import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
-import BusinessCard from "../BusinessCard";
 
 
 import { Button } from "@/components/ui/button";
@@ -455,8 +454,6 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#01411C]">موعد</span>
-        {/* بطاقة الأعمال المتوهجة - في نهاية الصفحة */}
-        <BusinessCard />
         
               </div>
             </div>
