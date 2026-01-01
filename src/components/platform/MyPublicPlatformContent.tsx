@@ -368,11 +368,11 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     );
   };
 
-  // إنشاء رابط المنصة الحقيقي
+  // إنشاء رابط المنصة الحقيقي - دائماً يستخدم default
   const getPlatformUrl = () => {
     // يمكن استبدال هذا بالدومين المخصص لاحقاً
     const baseUrl = window.location.origin;
-    return `${baseUrl}/platform/${userId}`;
+    return `${baseUrl}/platform/default`;
   };
 
   // مشاركة رابط المنصة
