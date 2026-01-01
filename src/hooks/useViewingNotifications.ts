@@ -1,9 +1,11 @@
 /**
  * useViewingNotifications.ts
- * نظام إشعارات مواعيد المعاينة قبل ساعة مع نغمة خاصة
+ * نظام إشعارات مواعيد المعاينة قبل ساعة مع نغمة خاصة وإرسال SMS حقيقي
  */
 
 import { useCallback, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface ViewingAppointment {
   id: string;
@@ -100,6 +102,53 @@ export function useViewingNotifications() {
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const notifiedViewingsRef = useRef<Set<string>>(new Set());
 
+  // إرسال SMS حقيقي عبر Twilio
+  const sendSMS = useCallback(async (phone: string, message: string, appointmentId?: string): Promise<boolean> => {
+    try {
+      console.log('Sending SMS to:', phone);
+      
+      const { data, error } = await supabase.functions.invoke('send-sms', {
+        body: { 
+          to: phone, 
+          message,
+          appointmentId 
+        }
+      });
+
+      if (error) {
+        console.error('SMS sending error:', error);
+        toast.error('فشل في إرسال رسالة SMS', {
+          description: error.message || 'حدث خطأ أثناء إرسال الرسالة'
+        });
+        return false;
+      }
+
+      if (data?.success) {
+        console.log('SMS sent successfully:', data.messageId);
+        toast.success('تم إرسال رسالة SMS بنجاح', {
+          description: `تم الإرسال إلى ${phone}`
+        });
+        return true;
+      }
+
+      if (data?.error) {
+        console.error('SMS error:', data.error);
+        toast.error('فشل في إرسال SMS', {
+          description: data.error
+        });
+        return false;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error calling send-sms function:', error);
+      toast.error('فشل في إرسال SMS', {
+        description: 'يرجى التحقق من إعدادات الخدمة'
+      });
+      return false;
+    }
+  }, []);
+
   // إنشاء رابط تأكيد المعاينة
   const createConfirmationLink = useCallback((appointment: ViewingAppointment, brokerId: string = '1') => {
     const baseUrl = window.location.origin;
@@ -121,8 +170,11 @@ export function useViewingNotifications() {
     window.open(whatsappUrl, '_blank');
   }, []);
 
-  // إرسال رابط التأكيد للعميل
-  const sendConfirmationToClient = useCallback((appointment: ViewingAppointment, type: 'confirmation' | 'apology' = 'confirmation') => {
+  // إرسال رسالة SMS ثم فتح الواتساب
+  const sendMessageWithSMSFirst = useCallback(async (
+    appointment: ViewingAppointment, 
+    type: 'confirmation' | 'apology' = 'confirmation'
+  ) => {
     const link = createConfirmationLink(appointment);
     
     let message = '';
@@ -149,9 +201,47 @@ ${link}
 نعتذر مجدداً عن أي إزعاج.`;
     }
 
-    openWhatsApp(appointment.customerPhone, message);
+    // إرسال SMS أولاً
+    toast.loading('جاري إرسال رسالة SMS...', { id: 'sms-sending' });
+    const smsResult = await sendSMS(appointment.customerPhone, message, appointment.id);
+    toast.dismiss('sms-sending');
+    
+    // ثم فتح الواتساب
+    if (smsResult) {
+      toast.info('يتم فتح الواتساب...', { duration: 2000 });
+    }
+    
+    // فتح الواتساب بعد ثانية لإتاحة وقت لقراءة الإشعار
+    setTimeout(() => {
+      openWhatsApp(appointment.customerPhone, message);
+    }, 1000);
+
     return link;
-  }, [createConfirmationLink, openWhatsApp]);
+  }, [createConfirmationLink, sendSMS, openWhatsApp]);
+
+  // إرسال رابط التأكيد للعميل (للتوافق مع الكود السابق)
+  const sendConfirmationToClient = useCallback((appointment: ViewingAppointment, type: 'confirmation' | 'apology' = 'confirmation') => {
+    // استخدام الدالة الجديدة التي ترسل SMS أولاً
+    sendMessageWithSMSFirst(appointment, type);
+    return createConfirmationLink(appointment);
+  }, [sendMessageWithSMSFirst, createConfirmationLink]);
+
+  // إرسال SMS فقط بدون واتساب
+  const sendSMSOnly = useCallback(async (appointment: ViewingAppointment, type: 'confirmation' | 'apology' | 'custom' = 'confirmation', customMessage?: string) => {
+    const link = createConfirmationLink(appointment);
+    
+    let message = customMessage || '';
+    
+    if (!customMessage) {
+      if (type === 'confirmation') {
+        message = `السلام عليكم ${appointment.customerName}، لديك موعد معاينة عقار: ${new Date(appointment.date).toLocaleDateString('ar-SA')} الساعة ${appointment.time}. للتأكيد: ${link}`;
+      } else if (type === 'apology') {
+        message = `السلام عليكم ${appointment.customerName}، نعتذر عن موعد المعاينة. يرجى تحديد موعد آخر: ${link}`;
+      }
+    }
+
+    return await sendSMS(appointment.customerPhone, message, appointment.id);
+  }, [createConfirmationLink, sendSMS]);
 
   // التحقق من مواعيد المعاينة القادمة
   const checkViewingAppointments = useCallback(() => {
@@ -220,18 +310,18 @@ ${link}
             detail: notification 
           }));
           
-          // إرسال رابط التأكيد للعميل عبر الواتساب
-          sendConfirmationToClient(apt, 'confirmation');
+          // إرسال SMS أولاً ثم الواتساب
+          sendMessageWithSMSFirst(apt, 'confirmation');
         }
       });
     } catch (error) {
       console.error('Error checking viewing appointments:', error);
     }
-  }, [sendConfirmationToClient]);
+  }, [sendMessageWithSMSFirst]);
 
   // قبول الحضور
   const acceptViewing = useCallback((appointment: ViewingAppointment) => {
-    sendConfirmationToClient(appointment, 'confirmation');
+    sendMessageWithSMSFirst(appointment, 'confirmation');
     
     // تحديث حالة الموعد
     const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
@@ -243,11 +333,11 @@ ${link}
     localStorage.setItem('appointments', JSON.stringify(updated));
 
     return true;
-  }, [sendConfirmationToClient]);
+  }, [sendMessageWithSMSFirst]);
 
   // رفض الحضور وإرسال اعتذار
   const rejectViewing = useCallback((appointment: ViewingAppointment) => {
-    sendConfirmationToClient(appointment, 'apology');
+    sendMessageWithSMSFirst(appointment, 'apology');
     
     // تحديث حالة الموعد
     const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
@@ -259,7 +349,7 @@ ${link}
     localStorage.setItem('appointments', JSON.stringify(updated));
 
     return true;
-  }, [sendConfirmationToClient]);
+  }, [sendMessageWithSMSFirst]);
 
   // الاتصال بالعميل
   const callClient = useCallback((phone: string) => {
@@ -283,6 +373,9 @@ ${link}
   return {
     checkViewingAppointments,
     sendConfirmationToClient,
+    sendMessageWithSMSFirst,
+    sendSMSOnly,
+    sendSMS,
     acceptViewing,
     rejectViewing,
     callClient,
