@@ -2280,7 +2280,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                     <p className="text-sm mt-1">ستظهر هنا عروض الأسعار التي يقدمها العميل على العقارات</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {priceQuotes.map((quote: any) => (
                       <div key={quote.id} className="p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors">
                         <div className="flex items-center justify-between mb-2">
@@ -2318,6 +2318,140 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             </div>
                           )}
                         </div>
+                        
+                        {/* أزرار قبول/رفض عرض السعر */}
+                        {(!quote.status || quote.status === 'معلق') && (
+                          <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={async () => {
+                                // تحديث حالة العرض
+                                const allCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+                                const custIdx = allCustomers.findIndex((c: any) => c.phone === customer.phone || c.id === customer.id);
+                                if (custIdx !== -1 && allCustomers[custIdx].priceQuotes) {
+                                  const quoteIdx = allCustomers[custIdx].priceQuotes.findIndex((q: any) => q.id === quote.id);
+                                  if (quoteIdx !== -1) {
+                                    allCustomers[custIdx].priceQuotes[quoteIdx].status = 'مقبول';
+                                    localStorage.setItem('crm_customers', JSON.stringify(allCustomers));
+                                    setPriceQuotes([...allCustomers[custIdx].priceQuotes]);
+                                  }
+                                }
+                                
+                                // إرسال SMS للعميل
+                                const smsMessage = `مرحباً ${customer.name}، تم قبول عرضك على العقار "${quote.propertyTitle}" بسعر ${quote.offeredPrice?.toLocaleString()} ريال. سيتم التواصل معك قريباً لإتمام الإجراءات. - وساطة`;
+                                
+                                try {
+                                  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                                    },
+                                    body: JSON.stringify({
+                                      to: customer.phone,
+                                      message: smsMessage,
+                                      messageType: 'price_quote_accepted',
+                                    }),
+                                  });
+                                  
+                                  if (response.ok) {
+                                    toast.success('تم قبول العرض وإرسال SMS للعميل');
+                                  } else {
+                                    toast.success('تم قبول العرض');
+                                    // فتح واتساب كخيار بديل
+                                    const whatsappUrl = `https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(smsMessage)}`;
+                                    window.open(whatsappUrl, '_blank');
+                                  }
+                                } catch (e) {
+                                  toast.success('تم قبول العرض');
+                                  const whatsappUrl = `https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(smsMessage)}`;
+                                  window.open(whatsappUrl, '_blank');
+                                }
+                              }}
+                            >
+                              <CheckCircle className="w-4 h-4 ml-1" />
+                              قبول العرض
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={async () => {
+                                // تحديث حالة العرض
+                                const allCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+                                const custIdx = allCustomers.findIndex((c: any) => c.phone === customer.phone || c.id === customer.id);
+                                if (custIdx !== -1 && allCustomers[custIdx].priceQuotes) {
+                                  const quoteIdx = allCustomers[custIdx].priceQuotes.findIndex((q: any) => q.id === quote.id);
+                                  if (quoteIdx !== -1) {
+                                    allCustomers[custIdx].priceQuotes[quoteIdx].status = 'مرفوض';
+                                    localStorage.setItem('crm_customers', JSON.stringify(allCustomers));
+                                    setPriceQuotes([...allCustomers[custIdx].priceQuotes]);
+                                  }
+                                }
+                                
+                                // رسالة الرفض مع السعر المقبول
+                                const acceptablePrice = quote.originalPrice || quote.offeredPrice * 1.1;
+                                const smsMessage = `مرحباً ${customer.name}، نأسف لإبلاغك أن عرضك على العقار "${quote.propertyTitle}" بسعر ${quote.offeredPrice?.toLocaleString()} ريال لم يُقبل. السعر المقبول يبدأ من ${acceptablePrice?.toLocaleString()} ريال. للمزيد من المعلومات تواصل معنا. - وساطة`;
+                                
+                                try {
+                                  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                                    },
+                                    body: JSON.stringify({
+                                      to: customer.phone,
+                                      message: smsMessage,
+                                      messageType: 'price_quote_rejected',
+                                    }),
+                                  });
+                                  
+                                  if (response.ok) {
+                                    toast.error('تم رفض العرض وإرسال SMS للعميل');
+                                  } else {
+                                    toast.error('تم رفض العرض');
+                                    const whatsappUrl = `https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(smsMessage)}`;
+                                    window.open(whatsappUrl, '_blank');
+                                  }
+                                } catch (e) {
+                                  toast.error('تم رفض العرض');
+                                  const whatsappUrl = `https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(smsMessage)}`;
+                                  window.open(whatsappUrl, '_blank');
+                                }
+                              }}
+                            >
+                              <X className="w-4 h-4 ml-1" />
+                              رفض العرض
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-green-500 text-green-600 hover:bg-green-50"
+                              onClick={() => {
+                                const message = `مرحباً ${customer.name}، بخصوص عرضك على العقار "${quote.propertyTitle}" بسعر ${quote.offeredPrice?.toLocaleString()} ريال، نود مناقشة التفاصيل معك.`;
+                                const whatsappUrl = `https://wa.me/${customer.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+                                window.open(whatsappUrl, '_blank');
+                              }}
+                            >
+                              <MessageSquare className="w-4 h-4 ml-1" />
+                              واتساب
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                window.location.href = `tel:${customer.phone}`;
+                              }}
+                            >
+                              <Phone className="w-4 h-4 ml-1" />
+                              اتصال
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
