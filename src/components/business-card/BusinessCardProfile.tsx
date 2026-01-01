@@ -154,20 +154,40 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
 
-  // Load data from localStorage
+  // Load data from localStorage - runs on mount and when returning from edit
   useEffect(() => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setFormData({ ...defaultFormData, ...parsed });
-        setShowWelcomeMessage(true);
-        setTimeout(() => setShowWelcomeMessage(false), 3000);
-      } catch (error) {
-        console.error("Error loading saved data:", error);
+    const loadData = () => {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          // Merge with defaults to ensure all fields exist
+          setFormData(prev => ({
+            ...defaultFormData,
+            ...parsed,
+            // Ensure images are properly loaded
+            profileImage: parsed.profileImage || "",
+            coverImage: parsed.coverImage || "",
+            logoImage: parsed.logoImage || ""
+          }));
+        } catch (error) {
+          console.error("Error loading saved data:", error);
+        }
       }
-    }
-  }, []);
+    };
+    
+    loadData();
+    
+    // Listen for storage changes (when edit page saves)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        loadData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [STORAGE_KEY]);
 
   // Get badge level based on deals and experience
   const getBadgeLevel = () => {
