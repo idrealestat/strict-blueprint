@@ -1149,6 +1149,47 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
                 </div>
               </div>
 
+              {/* أزرار التواصل */}
+              <div className="bg-white rounded-xl p-4 mb-6 border-2 border-gray-200 shadow-lg">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <Button
+                    onClick={handleCall}
+                    className="bg-[#01411C] hover:bg-[#065f41] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <Phone className="w-5 h-5" />
+                    <span>اتصال</span>
+                  </Button>
+                  <Button
+                    onClick={handleWhatsApp}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    <span>واتساب</span>
+                  </Button>
+                  <Button
+                    onClick={() => setShowScheduleModal(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <CalendarDays className="w-5 h-5" />
+                    <span>جدولة معاينة</span>
+                  </Button>
+                  <Button
+                    onClick={() => setShowQuoteModal(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    <span>عرض سعر</span>
+                  </Button>
+                  <Button
+                    onClick={() => setShowDepositModal(true)}
+                    className="bg-[#D4AF37] hover:bg-[#C4A030] text-[#01411C] font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    <span>دفع عربون</span>
+                  </Button>
+                </div>
+              </div>
+
               {/* خيارات الدفع (للإيجار) */}
               {listing.paymentPrices && (listing.paymentPrices.onePayment || listing.paymentPrices.twoPayments || listing.paymentPrices.fourPayments || listing.paymentPrices.monthly) && (
                 <div className="bg-purple-50 rounded-xl p-6 mb-6 border-2 border-purple-200">
@@ -1360,46 +1401,6 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
               )}
             </div>
 
-            {/* أزرار التواصل الثابتة */}
-            <div className="bg-white border-t-2 border-gray-200 p-4 shadow-lg flex-shrink-0">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <Button
-                  onClick={handleCall}
-                  className="bg-[#01411C] hover:bg-[#065f41] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Phone className="w-5 h-5" />
-                  <span>اتصال</span>
-                </Button>
-                <Button
-                  onClick={handleWhatsApp}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                  <span>واتساب</span>
-                </Button>
-                <Button
-                  onClick={() => setShowScheduleModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <CalendarDays className="w-5 h-5" />
-                  <span>جدولة معاينة</span>
-                </Button>
-                <Button
-                  onClick={() => setShowQuoteModal(true)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Send className="w-5 h-5" />
-                  <span>عرض سعر</span>
-                </Button>
-                <Button
-                  onClick={() => setShowDepositModal(true)}
-                  className="bg-[#D4AF37] hover:bg-[#C4A030] text-[#01411C] font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-5 h-5" />
-                  <span>دفع عربون</span>
-                </Button>
-              </div>
-            </div>
           </motion.div>
         </motion.div>
       </AnimatePresence>
