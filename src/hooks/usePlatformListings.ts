@@ -510,3 +510,91 @@ export function usePublicPlatformListings(slug?: string) {
 
   return { listings, loading, error };
 }
+
+// دالة مساعدة لمزامنة عرض واحد إلى قاعدة البيانات (تلقائياً عند النشر)
+export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
+  try {
+    // الحصول على الـ slug من localStorage
+    const slug = localStorage.getItem('public_platform_slug') || '1';
+    
+    if (!slug) {
+      console.warn('No platform slug found, skipping database sync');
+      return false;
+    }
+
+    // استخراج البيانات من العرض
+    const city = ad.locationDetails?.city || ad.city || 'غير محدد';
+    const district = ad.locationDetails?.district || ad.district || 'غير محدد';
+    
+    const listingData = {
+      slug,
+      title: ad.title || 'عرض بدون عنوان',
+      description: ad.aiDescription || ad.description,
+      price: Number(ad.price) || 0,
+      property_type: ad.propertyType || 'شقة',
+      area: ad.area ? Number(ad.area) : null,
+      bedrooms: ad.bedrooms ? Number(ad.bedrooms) : null,
+      bathrooms: ad.bathrooms ? Number(ad.bathrooms) : null,
+      image: ad.images?.[0] || ad.image,
+      images: ad.images || [],
+      city,
+      district,
+      street: ad.locationDetails?.street || ad.street,
+      owner_name: ad.ownerName,
+      owner_phone: ad.ownerPhone,
+      views: 0,
+      age: ad.propertyAge ? Number(ad.propertyAge) : null,
+      direction: ad.facade || ad.direction,
+      features: ad.features || [],
+      video_url: ad.videos?.[0] || ad.videoUrl,
+      tour_3d_url: ad.tour3DUrl,
+      living_rooms: ad.livingRooms,
+      councils: ad.councils,
+      floors: ad.floors,
+      floor_number: ad.floorNumber,
+      corner_type: ad.cornerType,
+      street_width: ad.streetWidth,
+      furnishing: ad.furnishing,
+      entrances: ad.entrances,
+      balconies: ad.balconies,
+      ac_units: ad.acUnits,
+      warehouses: ad.warehouses,
+      has_laundry_room: ad.hasLaundryRoom || false,
+      curtains: ad.curtains,
+      has_extra_kitchen: ad.hasExtraKitchen || false,
+      extra_kitchen_appliances: ad.extraKitchenAppliances,
+      category: ad.category,
+      purpose: ad.purpose,
+      smart_path: ad.platformPath || ad.smartPath,
+      warranties: ad.warranties || [],
+      payment_option: ad.paymentOption,
+      payment_prices: ad.paymentPrices || {},
+      hashtags: ad.hashtags || [],
+      custom_hashtags: ad.customHashtags || [],
+      deed_number: ad.deedNumber,
+      deed_date: ad.deedDate,
+      ad_license: ad.adLicense,
+      broker_phone: ad.brokerPhone,
+      lat: ad.locationDetails?.latitude || ad.lat,
+      lng: ad.locationDetails?.longitude || ad.lng,
+      status: 'published',
+      is_pinned: false,
+      is_hidden: false,
+    };
+
+    const { error } = await supabase
+      .from('platform_listings')
+      .insert(listingData);
+
+    if (error) {
+      console.error('Error syncing listing to database:', error);
+      return false;
+    }
+
+    console.log('Listing synced to database successfully');
+    return true;
+  } catch (err) {
+    console.error('Error in syncSingleListingToDatabase:', err);
+    return false;
+  }
+}

@@ -216,9 +216,12 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات
     if (typeof businessCardOverride !== 'undefined') {
-      setBusinessCardData(businessCardOverride);
-      setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
-      // إذا لا توجد بيانات من قاعدة البيانات، نحمل من localStorage
+      // إذا كانت البيانات موجودة (وليست null)، نستخدمها
+      if (businessCardOverride !== null) {
+        setBusinessCardData(businessCardOverride);
+        setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
+      }
+      // إذا لا توجد بيانات من قاعدة البيانات للعروض، نحمل من localStorage
       if (!dbListings || dbListings.length === 0) {
         loadData();
       }
