@@ -1461,6 +1461,7 @@ export default function MyPlatformComplete({
                 badge: 'ماسي',
                 totalDeals: 156
               }}
+              userId={user?.id || 'default'}
             />
           </TabsContent>
 

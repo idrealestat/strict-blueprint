@@ -54,18 +54,48 @@ interface UserData {
   totalDeals?: number;
 }
 
-interface MyPublicPlatformContentProps {
-  currentUser?: UserData;
+interface BusinessCardData {
+  userName: string;
+  companyName: string;
+  falLicense: string;
+  falExpiry: string;
+  commercialRegistration: string;
+  commercialExpiryDate: string;
+  primaryPhone: string;
+  email: string;
+  domain: string;
+  googleMapsLocation: string;
+  location: string;
+  officialPlatform: string;
+  bio: string;
+  achievements: {
+    totalDeals: number;
+    totalProperties: number;
+    totalClients: number;
+    yearsOfExperience: number;
+    awards: string[];
+    certifications: string[];
+    topPerformer: boolean;
+    verified: boolean;
+  };
+  profileImage: string;
+  coverImage: string;
+  logoImage: string;
 }
 
-const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ currentUser }) => {
+interface MyPublicPlatformContentProps {
+  currentUser?: UserData;
+  userId?: string;
+}
+
+const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ currentUser, userId = 'default' }) => {
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [logoImage, setLogoImage] = useState<string | null>(null);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [cardData, setCardData] = useState<UserData>({});
+  const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  
+  // مفتاح التخزين - نفس المفتاح المستخدم في بطاقة الأعمال
+  const STORAGE_KEY = `business_card_${userId}`;
   
   useEffect(() => {
     const loadData = () => {
@@ -78,54 +108,28 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
           setHierarchyData(hierarchy);
         } catch (error) {
           console.error('خطأ في تحميل البيانات:', error);
-          // استخدام بيانات تجريبية
           setHierarchyData(getMockHierarchy());
         }
       } else {
-        // بيانات تجريبية
         setHierarchyData(getMockHierarchy());
       }
     };
     
     const loadCardData = () => {
-      // استخدام نفس مفتاح بطاقة الأعمال للربط الحقيقي
-      const savedBusinessCard = localStorage.getItem('wasata_business_card_data');
+      // تحميل بيانات بطاقة الأعمال بالكامل من نفس المفتاح
+      const savedBusinessCard = localStorage.getItem(STORAGE_KEY);
       
       if (savedBusinessCard) {
         try {
           const data = JSON.parse(savedBusinessCard);
-          // تحميل صورة البروفايل فقط (بدون الشعار)
-          setProfileImage(data.profileImage || null);
-          setLogoImage(null); // لا نعرض الشعار في منصتي
-          setCoverImage(data.coverImage || null);
-          // تحميل بيانات البطاقة
-          setCardData({
-            name: data.name || currentUser?.name || 'مستخدم تجريبي',
-            title: data.title || currentUser?.title || 'وسيط عقاري معتمد',
-            rating: currentUser?.rating || 5.0,
-            badge: currentUser?.badge || 'ماسي',
-            totalDeals: currentUser?.totalDeals || 156
-          });
+          setBusinessCardData(data);
         } catch (error) {
           console.error('خطأ في تحميل بيانات البطاقة:', error);
-          setDefaultCardData();
+          setBusinessCardData(null);
         }
       } else {
-        setDefaultCardData();
+        setBusinessCardData(null);
       }
-    };
-    
-    const setDefaultCardData = () => {
-      setProfileImage(null);
-      setLogoImage(null);
-      setCoverImage(null);
-      setCardData({
-        name: currentUser?.name || 'مستخدم تجريبي',
-        title: currentUser?.title || 'وسيط عقاري معتمد',
-        rating: currentUser?.rating || 5.0,
-        badge: currentUser?.badge || 'ماسي',
-        totalDeals: currentUser?.totalDeals || 156
-      });
     };
     
     loadData();
@@ -145,7 +149,24 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
       window.removeEventListener('publishedAdSaved', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [currentUser]);
+  }, [currentUser, STORAGE_KEY]);
+
+  // حساب مستوى الشارة
+  const getBadgeLevel = () => {
+    if (!businessCardData) return { name: "ماسي", icon: "💎", color: "from-purple-500 to-purple-700" };
+    
+    const deals = businessCardData.achievements?.totalDeals || 0;
+    const years = businessCardData.achievements?.yearsOfExperience || 0;
+    
+    if (deals >= 100 && years >= 10) return { name: "ماسي", icon: "👑", color: "from-purple-500 to-purple-700" };
+    if (deals >= 50 && years >= 5) return { name: "بلاتيني", icon: "🏆", color: "from-gray-400 to-gray-600" };
+    if (deals >= 30 && years >= 3) return { name: "ذهبي", icon: "🥇", color: "from-yellow-400 to-yellow-600" };
+    if (deals >= 15 && years >= 2) return { name: "فضي", icon: "🥈", color: "from-gray-300 to-gray-500" };
+    if (deals >= 5 && years >= 1) return { name: "برونزي", icon: "🥉", color: "from-orange-400 to-orange-600" };
+    return { name: "مبتدئ", icon: "⚡", color: "from-blue-400 to-blue-600" };
+  };
+
+  const badge = getBadgeLevel();
   
   const getMockHierarchy = (): CityGroup[] => {
     return [
@@ -244,7 +265,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     "جديد": { color: "from-blue-400 to-blue-600", icon: "🆕" }
   };
   
-  const currentBadge = badgeConfig[cardData.badge || "جديد"] || badgeConfig["جديد"];
+  const currentBadge = badgeConfig[badge.name] || badge;
 
   // بطاقة الإعلان
   const ListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
@@ -335,74 +356,157 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] to-white" dir="rtl">
-      {/* Header - بطاقة الوسيط - مرتبط ببطاقة الأعمال */}
+      {/* Header - مطابق تماماً لبطاقة الأعمال */}
       <div 
-        className="relative bg-gradient-to-r from-[#01411C] to-[#065f41] text-white pt-8 pb-6 px-6 shadow-2xl border-b-4 border-[#D4AF37] bg-cover bg-center transition-all duration-500"
-        style={coverImage ? {
-          backgroundImage: `url(${coverImage})`,
+        className="relative bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-6 shadow-2xl border-b-4 border-[#D4AF37] bg-cover bg-center transition-all duration-500"
+        style={businessCardData?.coverImage ? {
+          backgroundImage: `url(${businessCardData.coverImage})`,
           backgroundBlendMode: 'overlay',
           backgroundColor: 'rgba(1, 65, 28, 0.85)'
         } : undefined}
       >
-        <div className="max-w-7xl mx-auto text-center relative">
-          <div className="relative inline-block">
-            {profileImage ? (
-              <img 
-                src={profileImage} 
-                alt="Profile"
-                className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-3 rounded-full border-4 border-[#D4AF37] shadow-2xl object-cover transition-all duration-500 ease-out"
-              />
-            ) : (
-              <div className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-3 rounded-full border-4 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#F4D03F] flex items-center justify-center shadow-2xl transition-all duration-500 ease-out">
-                <span className="text-3xl md:text-4xl font-bold text-[#01411C]">
-                  {cardData.name?.substring(0, 2) || 'وس'}
-                </span>
-              </div>
-            )}
-            {/* لا نعرض الشعار في منصتي - فقط صورة البروفايل */}
+        {/* Pattern overlay - only when no cover image */}
+        {!businessCardData?.coverImage && (
+          <div className="absolute inset-0 opacity-10">
+            <div className="w-full h-full" style={{
+              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+            }} />
           </div>
-          
-          <h1 className="text-xl md:text-2xl font-bold text-white mb-1">{cardData.name}</h1>
-          <p className="text-white/90 text-sm md:text-base mb-3">{cardData.title}</p>
-          
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className="text-white font-bold text-lg">{cardData.rating}</span>
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`w-4 h-4 md:w-5 md:h-5 ${
-                    star <= Math.floor(cardData.rating || 5)
-                      ? "text-[#D4AF37] fill-current"
-                      : "text-white/30"
-                  }`}
-                />
-              ))}
+        )}
+
+        <div className="max-w-7xl mx-auto text-center relative z-10">
+          {/* Profile Image - نفس الحجم والتنسيق في بطاقة الأعمال */}
+          <div className="flex justify-center pt-6">
+            <div className="relative">
+              {/* Main Profile Image */}
+              <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden bg-gradient-to-br from-white/20 to-white/10 transition-all duration-300">
+                {businessCardData?.profileImage ? (
+                  <img 
+                    src={businessCardData.profileImage} 
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold bg-[#D4AF37]">
+                    {businessCardData?.userName?.charAt(0) || currentUser?.name?.charAt(0) || 'و'}
+                  </div>
+                )}
+              </div>
+              
+              {/* Small Logo Badge - فقط إذا كان موجوداً */}
+              {businessCardData?.logoImage && (
+                <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg overflow-hidden">
+                  <img 
+                    src={businessCardData.logoImage} 
+                    alt="Logo" 
+                    className="w-full h-full object-cover" 
+                  />
+                </div>
+              )}
             </div>
           </div>
-          
-          <div className={`inline-block px-4 py-1.5 bg-gradient-to-r ${currentBadge.color} text-white text-sm rounded-full font-bold shadow-lg mb-4`}>
-            {currentBadge.icon} {cardData.badge}
-          </div>
 
-          {/* أزرار التواصل */}
-          <div className="flex items-center justify-center gap-3 mt-4">
-            <Button 
-              size="sm" 
-              className="bg-green-500 hover:bg-green-600 text-white"
-              onClick={() => window.open('https://wa.me/966501234567', '_blank')}
-            >
-              <MessageSquare className="w-4 h-4 ml-2" />
-              واتساب
-            </Button>
-            <Button 
-              size="sm" 
-              className="bg-[#D4AF37] hover:bg-[#c9a030] text-[#01411C]"
-              onClick={() => window.open('tel:+966501234567', '_blank')}
-            >
-              <Phone className="w-4 h-4 ml-2" />
-              اتصال
-            </Button>
+          {/* Profile Info - نفس التنسيق في بطاقة الأعمال */}
+          <div className="pt-4 pb-8 px-4 text-center">
+            {/* Name and Badge */}
+            <h1 className="text-2xl font-bold text-white">{businessCardData?.userName || currentUser?.name || 'مستخدم تجريبي'}</h1>
+            <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
+              <span 
+                className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm"
+                title={`${badge.name} - ${businessCardData?.achievements?.totalDeals || 0} صفقة - ${businessCardData?.achievements?.yearsOfExperience || 0} سنوات خبرة`}
+              >
+                {badge.icon} {badge.name}
+              </span>
+              {businessCardData?.achievements?.verified && (
+                <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
+                  ✅ موثق
+                </span>
+              )}
+              {businessCardData?.achievements?.topPerformer && (
+                <span className="px-2 py-1 rounded-full text-xs bg-[#D4AF37] text-white">
+                  ⭐ أفضل أداء
+                </span>
+              )}
+            </div>
+
+            {/* Company */}
+            {businessCardData?.companyName && (
+              <p className="mt-2 text-white/90 flex items-center justify-center gap-1">
+                <Building2 className="w-4 h-4" />
+                {businessCardData.companyName}
+              </p>
+            )}
+
+            {/* Licenses */}
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              {businessCardData?.falLicense && (
+                <span className="px-3 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
+                  📜 رخصة فال: {businessCardData.falLicense}
+                </span>
+              )}
+              {businessCardData?.commercialRegistration && (
+                <span className="px-3 py-1 rounded-full text-xs bg-white/20 text-white backdrop-blur-sm">
+                  📋 السجل: {businessCardData.commercialRegistration}
+                </span>
+              )}
+            </div>
+
+            {/* Contact Info */}
+            <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/90">
+              {businessCardData?.primaryPhone && (
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  <Phone className="w-4 h-4 text-[#D4AF37]" />
+                  {businessCardData.primaryPhone}
+                </span>
+              )}
+              {businessCardData?.email && (
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  <Star className="w-4 h-4 text-[#D4AF37]" />
+                  {businessCardData.email}
+                </span>
+              )}
+              {businessCardData?.location && (
+                <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  <MapPin className="w-4 h-4 text-[#D4AF37]" />
+                  {businessCardData.location}
+                </span>
+              )}
+            </div>
+
+            {/* Website/Domain */}
+            {businessCardData?.domain && (
+              <div className="mt-3">
+                <a 
+                  href={businessCardData.domain} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 bg-[#D4AF37] text-[#01411C] px-4 py-1.5 rounded-full text-sm font-medium hover:bg-[#f1c40f] transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  زيارة الموقع
+                </a>
+              </div>
+            )}
+
+            {/* أزرار التواصل */}
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <Button 
+                size="sm" 
+                className="bg-green-500 hover:bg-green-600 text-white"
+                onClick={() => window.open(`https://wa.me/${businessCardData?.primaryPhone?.replace(/\D/g, '') || '966501234567'}`, '_blank')}
+              >
+                <MessageSquare className="w-4 h-4 ml-2" />
+                واتساب
+              </Button>
+              <Button 
+                size="sm" 
+                className="bg-[#D4AF37] hover:bg-[#c9a030] text-[#01411C]"
+                onClick={() => window.open(`tel:${businessCardData?.primaryPhone || '+966501234567'}`, '_blank')}
+              >
+                <Phone className="w-4 h-4 ml-2" />
+                اتصال
+              </Button>
+            </div>
           </div>
         </div>
       </div>
