@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,12 +22,20 @@ interface SMSRequest {
   to: string;
   message: string;
   appointmentId?: string;
+  messageType?: string;
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Initialize Supabase client for logging
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? '';
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? '';
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  let logId: string | null = null;
 
   try {
     // Validate content type
@@ -58,8 +67,9 @@ serve(async (req) => {
 
     const body = rawBody as Record<string, unknown>;
     const to = sanitizePhone(body.to);
-    const message = sanitizeString(body.message, 1000);
-    const appointmentId = sanitizeString(body.appointmentId, 50);
+    const message = sanitizeString(body.message, 1600); // SMS limit is 1600 chars for concatenated
+    const appointmentId = sanitizeString(body.appointmentId, 100);
+    const messageType = sanitizeString(body.messageType, 50) || 'appointment_reminder';
 
     if (!to) {
       return new Response(JSON.stringify({ error: "رقم الهاتف مطلوب" }), {
@@ -75,22 +85,6 @@ serve(async (req) => {
       });
     }
 
-    // Get Twilio credentials
-    const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
-
-    if (!accountSid || !authToken || !twilioPhone) {
-      console.error("Twilio credentials not configured");
-      return new Response(JSON.stringify({ 
-        error: "خدمة SMS غير متاحة حالياً",
-        details: "يرجى التأكد من إعداد مفاتيح Twilio" 
-      }), {
-        status: 503,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Format phone number for Saudi Arabia
     let formattedPhone = to;
     if (formattedPhone.startsWith('0')) {
@@ -101,6 +95,54 @@ serve(async (req) => {
       } else {
         formattedPhone = '+966' + formattedPhone;
       }
+    }
+
+    // Log the SMS attempt to database
+    const { data: logData, error: logError } = await supabase
+      .from('sms_logs')
+      .insert({
+        recipient_phone: formattedPhone,
+        message_content: message,
+        message_type: messageType,
+        appointment_id: appointmentId || null,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (logData) {
+      logId = logData.id;
+      console.log('SMS log created:', logId);
+    } else if (logError) {
+      console.error('Failed to create SMS log:', logError);
+    }
+
+    // Get Twilio credentials
+    const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+    if (!accountSid || !authToken || !twilioPhone) {
+      console.error("Twilio credentials not configured");
+      
+      // Update log with error
+      if (logId) {
+        await supabase
+          .from('sms_logs')
+          .update({ 
+            status: 'failed', 
+            error_message: 'Twilio credentials not configured' 
+          })
+          .eq('id', logId);
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: "خدمة SMS غير متاحة حالياً",
+        details: "يرجى التأكد من إعداد مفاتيح Twilio" 
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`Sending SMS to: ${formattedPhone}`);
@@ -128,6 +170,17 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error('Twilio error:', result);
+      
+      // Update log with error
+      if (logId) {
+        await supabase
+          .from('sms_logs')
+          .update({ 
+            status: 'failed', 
+            error_message: result.message || `Twilio error: ${result.code}` 
+          })
+          .eq('id', logId);
+      }
       
       // Handle specific Twilio errors
       if (result.code === 21211) {
@@ -162,18 +215,43 @@ serve(async (req) => {
 
     console.log('SMS sent successfully:', result.sid);
 
+    // Update log with success
+    if (logId) {
+      await supabase
+        .from('sms_logs')
+        .update({ 
+          status: 'sent', 
+          twilio_message_sid: result.sid,
+          sent_at: new Date().toISOString()
+        })
+        .eq('id', logId);
+    }
+
     return new Response(JSON.stringify({ 
       success: true,
       messageId: result.sid,
       status: result.status,
       to: formattedPhone,
       appointmentId: appointmentId || null,
+      logId: logId,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
     console.error("Error sending SMS:", error);
+    
+    // Update log with error if we have a log ID
+    if (logId) {
+      await supabase
+        .from('sms_logs')
+        .update({ 
+          status: 'failed', 
+          error_message: error instanceof Error ? error.message : 'Unknown error'
+        })
+        .eq('id', logId);
+    }
+    
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : "حدث خطأ غير متوقع" 
     }), {
