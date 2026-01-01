@@ -1,15 +1,14 @@
 /**
  * NotificationsSidebar.tsx
- * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد + التنبيهات الذكية للعروض
+ * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد
  */
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
-  ChevronRight, Settings, Home, Phone, ExternalLink,
-  TrendingUp, TrendingDown, Award, AlertTriangle, Eye, Zap, Target
+  ChevronRight, Settings, Home, Phone, ExternalLink
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -26,31 +25,17 @@ interface NotificationsSidebarProps {
   onNavigate?: (page: string, params?: any) => void;
 }
 
-// Smart Alert Interface
-interface SmartAlert {
-  id: string;
-  type: 'success' | 'warning' | 'info' | 'trending';
-  title: string;
-  description: string;
-  timestamp: Date;
-  offerId?: string;
-  offerTitle?: string;
-  value?: number;
-  isRead: boolean;
-}
-
 export default function NotificationsSidebar({
   isOpen,
   onClose,
   onNavigate,
 }: NotificationsSidebarProps) {
   const navigate = useNavigate();
+  // All hooks must be called at the top level, unconditionally, in the same order
   const [activeTab, setActiveTab] = useState("all");
   const [showSettings, setShowSettings] = useState(false);
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
   const [selectedViewingAppointment, setSelectedViewingAppointment] = useState<ViewingAppointment | null>(null);
-  const [smartAlerts, setSmartAlerts] = useState<SmartAlert[]>([]);
-  const [smartAlertsRead, setSmartAlertsRead] = useState<Set<string>>(new Set());
 
   // Navigate to notification settings
   const goToNotificationSettings = () => {
@@ -70,142 +55,8 @@ export default function NotificationsSidebar({
     testSound,
   } = useNotificationSystem();
 
-  // Initialize viewing notifications hook
+  // Initialize viewing notifications hook - must be called unconditionally
   const viewingNotifications = useViewingNotifications();
-
-  // Generate Smart Alerts from offers data
-  useEffect(() => {
-    const generateSmartAlerts = () => {
-      try {
-        const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-        if (!Array.isArray(publishedAds) || publishedAds.length === 0) return;
-
-        const offers = publishedAds.map((ad: any) => ({
-          id: ad.id,
-          title: ad.title || `${ad.propertyType} في ${ad.locationDetails?.district || ad.locationDetails?.city || 'موقع غير محدد'}`,
-          views: ad.views || 0,
-          requests: ad.requests || 0,
-          city: ad.locationDetails?.city || 'غير محدد',
-        }));
-
-        const newAlerts: SmartAlert[] = [];
-        const now = new Date();
-
-        // Sort offers by views
-        const sortedByViews = [...offers].sort((a, b) => b.views - a.views);
-        const sortedByRequests = [...offers].sort((a, b) => b.requests - a.requests);
-
-        // Top performer alert
-        if (sortedByViews.length > 0 && sortedByViews[0].views > 100) {
-          newAlerts.push({
-            id: 'top-performer',
-            type: 'success',
-            title: 'عرض متميز!',
-            description: `"${sortedByViews[0].title}" يتصدر قائمة المشاهدات بـ ${sortedByViews[0].views.toLocaleString()} مشاهدة`,
-            timestamp: new Date(now.getTime() - 30 * 60000),
-            offerId: sortedByViews[0].id,
-            offerTitle: sortedByViews[0].title,
-            value: sortedByViews[0].views,
-            isRead: smartAlertsRead.has('top-performer'),
-          });
-        }
-
-        // Most requested alert
-        if (sortedByRequests.length > 0 && sortedByRequests[0].requests > 10) {
-          newAlerts.push({
-            id: 'most-requested',
-            type: 'trending',
-            title: 'طلب مرتفع',
-            description: `"${sortedByRequests[0].title}" يحظى باهتمام كبير - ${sortedByRequests[0].requests} طلب`,
-            timestamp: new Date(now.getTime() - 60 * 60000),
-            offerId: sortedByRequests[0].id,
-            offerTitle: sortedByRequests[0].title,
-            value: sortedByRequests[0].requests,
-            isRead: smartAlertsRead.has('most-requested'),
-          });
-        }
-
-        // Low performing offers warning
-        const lowPerformers = offers.filter((o: any) => o.views < 50 && o.views > 0);
-        if (lowPerformers.length > 0) {
-          newAlerts.push({
-            id: 'low-performers',
-            type: 'warning',
-            title: 'عروض تحتاج اهتمام',
-            description: `${lowPerformers.length} عروض بمشاهدات منخفضة - قد تحتاج لتحسين العرض أو الصور`,
-            timestamp: new Date(now.getTime() - 2 * 60 * 60000),
-            isRead: smartAlertsRead.has('low-performers'),
-          });
-        }
-
-        // High conversion rate alert
-        const highConversion = offers.filter((o: any) => o.views > 0 && (o.requests / o.views) > 0.1);
-        if (highConversion.length > 0) {
-          newAlerts.push({
-            id: 'high-conversion',
-            type: 'success',
-            title: 'معدل تحويل ممتاز',
-            description: `${highConversion.length} عروض بمعدل تحويل أعلى من 10%`,
-            timestamp: new Date(now.getTime() - 3 * 60 * 60000),
-            isRead: smartAlertsRead.has('high-conversion'),
-          });
-        }
-
-        // Daily summary
-        const totalViews = offers.reduce((sum: number, o: any) => sum + o.views, 0);
-        const totalRequests = offers.reduce((sum: number, o: any) => sum + o.requests, 0);
-        if (totalViews > 0 || totalRequests > 0) {
-          newAlerts.push({
-            id: 'daily-summary',
-            type: 'info',
-            title: 'ملخص اليوم',
-            description: `إجمالي المشاهدات: ${totalViews.toLocaleString()} | إجمالي الطلبات: ${totalRequests.toLocaleString()}`,
-            timestamp: new Date(now.getTime() - 4 * 60 * 60000),
-            isRead: smartAlertsRead.has('daily-summary'),
-          });
-        }
-
-        // Zero views alert
-        const zeroViews = offers.filter((o: any) => o.views === 0);
-        if (zeroViews.length > 0) {
-          newAlerts.push({
-            id: 'zero-views',
-            type: 'warning',
-            title: 'عروض بدون مشاهدات',
-            description: `${zeroViews.length} عروض لم تحظ بأي مشاهدة - تأكد من نشرها بشكل صحيح`,
-            timestamp: new Date(now.getTime() - 5 * 60 * 60000),
-            isRead: smartAlertsRead.has('zero-views'),
-          });
-        }
-
-        setSmartAlerts(newAlerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
-      } catch (error) {
-        console.error('Error generating smart alerts:', error);
-      }
-    };
-
-    generateSmartAlerts();
-    
-    // Listen for offer updates
-    const handleUpdate = () => generateSmartAlerts();
-    window.addEventListener('offerViewed', handleUpdate);
-    window.addEventListener('publishedAdSaved', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
-    
-    return () => {
-      window.removeEventListener('offerViewed', handleUpdate);
-      window.removeEventListener('publishedAdSaved', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
-    };
-  }, [smartAlertsRead]);
-
-  const markSmartAlertAsRead = (alertId: string) => {
-    setSmartAlertsRead(prev => new Set([...prev, alertId]));
-  };
-
-  const unreadSmartAlertsCount = useMemo(() => {
-    return smartAlerts.filter(a => !a.isRead).length;
-  }, [smartAlerts]);
 
   // Listen for viewing reminder events
   useEffect(() => {
@@ -223,14 +74,12 @@ export default function NotificationsSidebar({
       window.removeEventListener('viewingReminder', handleViewingReminder as EventListener);
     };
   }, []);
-
   // Filter notifications by tab
   const filteredNotifications = notifications.filter(n => {
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !n.read;
     if (activeTab === "tasks") return n.category === "task";
     if (activeTab === "appointments") return n.category === "appointment";
-    if (activeTab === "offers") return false; // Handled separately with smart alerts
     return true;
   });
 
@@ -422,7 +271,7 @@ export default function NotificationsSidebar({
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-5 bg-white/10 w-full">
+                <TabsList className="grid grid-cols-4 bg-white/10 w-full">
                   <TabsTrigger 
                     value="all" 
                     className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
@@ -434,17 +283,6 @@ export default function NotificationsSidebar({
                     className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
                   >
                     غير مقروءة
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="offers"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
-                  >
-                    العروض
-                    {unreadSmartAlertsCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        {unreadSmartAlertsCount}
-                      </span>
-                    )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="tasks"
@@ -464,72 +302,7 @@ export default function NotificationsSidebar({
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {/* Smart Alerts (for offers tab) */}
-              {activeTab === "offers" ? (
-                smartAlerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                    <Zap className="w-16 h-16 mb-4 opacity-30" />
-                    <p className="text-lg font-medium">لا توجد تنبيهات ذكية</p>
-                    <p className="text-sm">ستظهر التنبيهات عند وجود عروض منشورة</p>
-                  </div>
-                ) : (
-                  smartAlerts.map((alert) => {
-                    const getAlertIcon = () => {
-                      switch (alert.type) {
-                        case 'success': return <Award className="w-5 h-5 text-green-600" />;
-                        case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-600" />;
-                        case 'trending': return <TrendingUp className="w-5 h-5 text-blue-600" />;
-                        case 'info': return <Eye className="w-5 h-5 text-gray-600" />;
-                      }
-                    };
-                    const getAlertStyle = () => {
-                      switch (alert.type) {
-                        case 'success': return 'border-green-200 bg-green-50';
-                        case 'warning': return 'border-amber-200 bg-amber-50';
-                        case 'trending': return 'border-blue-200 bg-blue-50';
-                        case 'info': return 'border-gray-200 bg-gray-50';
-                      }
-                    };
-                    
-                    return (
-                      <motion.div
-                        key={alert.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
-                          alert.isRead ? "opacity-70" : ""
-                        } ${getAlertStyle()}`}
-                        onClick={() => markSmartAlertAsRead(alert.id)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getAlertStyle()}`}>
-                            {getAlertIcon()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h4 className="font-bold text-sm text-[#01411C]">{alert.title}</h4>
-                              {!alert.isRead && (
-                                <Badge className="bg-[#D4AF37] text-[#01411C] text-xs px-1.5 py-0.5">جديد</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600 mb-2">{alert.description}</p>
-                            <div className="flex items-center gap-1 text-xs text-gray-400">
-                              <Clock className="w-3 h-3" />
-                              <span>{formatTime(alert.timestamp)}</span>
-                            </div>
-                            {alert.offerTitle && (
-                              <Badge variant="outline" className="mt-2 text-xs">
-                                <Target className="w-3 h-3 ml-1" />
-                                {alert.offerTitle}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                )
-              ) : filteredNotifications.length === 0 ? (
+              {filteredNotifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                   <Bell className="w-16 h-16 mb-4 opacity-30" />
                   <p className="text-lg font-medium">لا توجد إشعارات</p>
