@@ -275,8 +275,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     const cityGroups: { [key: string]: any } = {};
     
     ads.forEach((ad: any) => {
-      const city = ad.city || ad.location?.city || 'غير محدد';
-      const district = ad.district || ad.location?.district || 'غير محدد';
+      // استخراج المدينة والحي من locationDetails أو مباشرة
+      const city = ad.locationDetails?.city || ad.city || ad.location?.city || 'غير محدد';
+      let district = ad.locationDetails?.district || ad.district || ad.location?.district || 'غير محدد';
+      // إضافة "حي" إذا لم تكن موجودة
+      if (district && district !== 'غير محدد' && !district.startsWith('حي ')) {
+        district = `حي ${district}`;
+      }
       
       if (!cityGroups[city]) {
         cityGroups[city] = {
@@ -295,19 +300,30 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         };
       }
       
+      // استخراج عنوان مناسب للعرض
+      const title = ad.title || `${ad.purpose === 'للإيجار' || ad.purpose === 'rent' ? 'للإيجار' : 'للبيع'} - ${ad.propertyType || 'عقار'}${ad.area ? ` - ${ad.area}م²` : ''}`;
+      
       cityGroups[city].districts[district].listings.push({
         id: ad.id,
-        title: ad.title,
-        description: ad.description,
-        price: ad.price || 0,
-        propertyType: ad.propertyType,
-        area: ad.area,
-        bedrooms: ad.bedrooms,
-        bathrooms: ad.bathrooms,
+        title: title,
+        description: ad.description || ad.notes || '',
+        price: parseInt(ad.price) || 0,
+        propertyType: ad.propertyType || 'عقار',
+        area: parseInt(ad.area) || undefined,
+        bedrooms: parseInt(ad.bedrooms) || undefined,
+        bathrooms: parseInt(ad.bathrooms) || undefined,
         image: ad.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400',
         imageCount: ad.images?.length || 1,
+        images: ad.images || [],
         city: city,
-        district: district
+        district: district,
+        ownerName: ad.ownerName,
+        ownerPhone: ad.ownerPhone,
+        views: ad.views || 0,
+        street: ad.locationDetails?.street || ad.street,
+        age: ad.propertyAge || ad.age,
+        direction: ad.direction,
+        features: ad.features || [],
       });
     });
     

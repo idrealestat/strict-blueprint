@@ -69,8 +69,7 @@ import MyPublicPlatformContent from "./MyPublicPlatformContent";
 import OfferEditPage from "./OfferEditPage";
 import { 
   CollapsibleStatsSection, 
-  CollapsibleNotificationSettings, 
-  SmartAlertsPanel 
+  CollapsibleNotificationSettings
 } from "@/components/offers";
 import { useOfferViewNotifications } from "@/hooks/useOfferViewNotifications";
 import { toast } from "sonner";
@@ -1620,21 +1619,6 @@ export default function MyPlatformComplete({
                 notificationsEnabled={notificationsEnabled}
                 soundEnabled={soundEnabled}
                 onSettingsChange={saveSettings}
-              />
-
-              {/* 3. التنبيهات الذكية - مستطيل قابل للطي */}
-              <SmartAlertsPanel
-                offers={getAllOffersFlat().map(o => ({
-                  id: o.id,
-                  title: o.title,
-                  views: o.views,
-                  requests: o.requests || 0,
-                  city: cityHierarchy.find(c => c.districts.some(d => d.offers.some(of => of.id === o.id)) || c.directOffers.some(of => of.id === o.id))?.cityName,
-                }))}
-                onAlertClick={(offerId) => {
-                  // يمكن التوسع لفتح العرض المحدد
-                  toast.info(`تم النقر على العرض: ${offerId}`);
-                }}
               />
             </div>
 
