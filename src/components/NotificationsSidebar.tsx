@@ -8,8 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
-  ChevronRight, Settings, Home, Phone
+  ChevronRight, Settings, Home, Phone, ExternalLink
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -29,11 +30,18 @@ export default function NotificationsSidebar({
   onClose,
   onNavigate,
 }: NotificationsSidebarProps) {
+  const navigate = useNavigate();
   // All hooks must be called at the top level, unconditionally, in the same order
   const [activeTab, setActiveTab] = useState("all");
   const [showSettings, setShowSettings] = useState(false);
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
   const [selectedViewingAppointment, setSelectedViewingAppointment] = useState<ViewingAppointment | null>(null);
+
+  // Navigate to notification settings
+  const goToNotificationSettings = () => {
+    navigate('/notification-settings');
+    onClose();
+  };
 
   const {
     notifications,
@@ -202,6 +210,13 @@ export default function NotificationsSidebar({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={goToNotificationSettings}
+                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                    title="إعدادات الإشعارات"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                  </button>
                   <button
                     onClick={() => setShowSettings(!showSettings)}
                     className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"

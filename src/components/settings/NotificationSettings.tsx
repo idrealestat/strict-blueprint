@@ -25,8 +25,13 @@ import {
   Smartphone,
   Check,
   X,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  BarChart3,
+  Edit3,
+  RotateCcw
 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 interface NotificationPreferences {
@@ -62,7 +67,30 @@ interface NotificationPreferences {
   quietHoursEnabled: boolean;
   quietHoursStart: string;
   quietHoursEnd: string;
+  
+  // قوالب الرسائل
+  templates: MessageTemplates;
 }
+
+interface MessageTemplates {
+  appointmentReminder: string;
+  priceQuoteAccepted: string;
+  priceQuoteRejected: string;
+  viewingConfirmation: string;
+}
+
+interface MessageStats {
+  smsCount: number;
+  whatsappCount: number;
+  month: string;
+}
+
+const defaultTemplates: MessageTemplates = {
+  appointmentReminder: 'مرحباً {clientName}، نذكرك بموعد معاينة العقار في {propertyLocation} يوم {date} الساعة {time}. نتطلع لرؤيتك!',
+  priceQuoteAccepted: 'مرحباً {clientName}، تم قبول عرض السعر الخاص بك بمبلغ {amount} ريال للعقار في {propertyLocation}. سيتم التواصل معك قريباً لإتمام الإجراءات.',
+  priceQuoteRejected: 'مرحباً {clientName}، نأسف لإبلاغك بأن عرض السعر المقدم ({amount} ريال) لم يتم قبوله. الحد الأدنى المقبول هو {minPrice} ريال. يسعدنا استقبال عرض جديد منك.',
+  viewingConfirmation: 'تم تأكيد موعد معاينة العقار في {propertyLocation} يوم {date} الساعة {time}. العميل: {clientName} - {clientPhone}',
+};
 
 const defaultPreferences: NotificationPreferences = {
   soundEnabled: true,
@@ -84,6 +112,7 @@ const defaultPreferences: NotificationPreferences = {
   quietHoursEnabled: false,
   quietHoursStart: '22:00',
   quietHoursEnd: '08:00',
+  templates: defaultTemplates,
 };
 
 export default function NotificationSettings() {
@@ -91,19 +120,58 @@ export default function NotificationSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [testingSMS, setTestingSMS] = useState(false);
   const [testPhone, setTestPhone] = useState('');
-
-  // تحميل الإعدادات المحفوظة
+  const [messageStats, setMessageStats] = useState<MessageStats>({ smsCount: 0, whatsappCount: 0, month: '' });
+  const [editingTemplate, setEditingTemplate] = useState<keyof MessageTemplates | null>(null);
+  // تحميل الإعدادات المحفوظة والإحصائيات
   useEffect(() => {
     const saved = localStorage.getItem('notification_preferences');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setPreferences({ ...defaultPreferences, ...parsed });
+        setPreferences({ ...defaultPreferences, ...parsed, templates: { ...defaultTemplates, ...parsed.templates } });
       } catch (e) {
         console.error('Error loading preferences:', e);
       }
     }
+    
+    // تحميل إحصائيات الرسائل
+    loadMessageStats();
   }, []);
+
+  const loadMessageStats = () => {
+    const currentMonth = new Date().toLocaleString('ar-SA', { month: 'long', year: 'numeric' });
+    const smsLogs = localStorage.getItem('sms_logs');
+    const whatsappLogs = localStorage.getItem('whatsapp_logs');
+    
+    let smsCount = 0;
+    let whatsappCount = 0;
+    
+    if (smsLogs) {
+      try {
+        const logs = JSON.parse(smsLogs);
+        const thisMonth = new Date().getMonth();
+        const thisYear = new Date().getFullYear();
+        smsCount = logs.filter((log: any) => {
+          const logDate = new Date(log.timestamp);
+          return logDate.getMonth() === thisMonth && logDate.getFullYear() === thisYear;
+        }).length;
+      } catch (e) {}
+    }
+    
+    if (whatsappLogs) {
+      try {
+        const logs = JSON.parse(whatsappLogs);
+        const thisMonth = new Date().getMonth();
+        const thisYear = new Date().getFullYear();
+        whatsappCount = logs.filter((log: any) => {
+          const logDate = new Date(log.timestamp);
+          return logDate.getMonth() === thisMonth && logDate.getFullYear() === thisYear;
+        }).length;
+      } catch (e) {}
+    }
+    
+    setMessageStats({ smsCount, whatsappCount, month: currentMonth });
+  };
 
   // حفظ الإعدادات
   const savePreferences = () => {
@@ -222,6 +290,39 @@ export default function NotificationSettings() {
     });
   };
 
+  // تحديث قالب رسالة
+  const updateTemplate = (key: keyof MessageTemplates, value: string) => {
+    setPreferences(prev => ({
+      ...prev,
+      templates: { ...prev.templates, [key]: value }
+    }));
+  };
+
+  // إعادة تعيين قالب للافتراضي
+  const resetTemplate = (key: keyof MessageTemplates) => {
+    updateTemplate(key, defaultTemplates[key]);
+    toast.success('تم إعادة تعيين القالب للنص الافتراضي');
+  };
+
+  const templateLabels: Record<keyof MessageTemplates, { title: string; description: string }> = {
+    appointmentReminder: {
+      title: 'تذكير الموعد',
+      description: 'يُرسل قبل موعد المعاينة'
+    },
+    priceQuoteAccepted: {
+      title: 'قبول عرض السعر',
+      description: 'يُرسل عند قبول عرض سعر من العميل'
+    },
+    priceQuoteRejected: {
+      title: 'رفض عرض السعر',
+      description: 'يُرسل عند رفض عرض سعر مع ذكر الحد الأدنى'
+    },
+    viewingConfirmation: {
+      title: 'تأكيد المعاينة',
+      description: 'يُرسل لتأكيد موعد المعاينة'
+    }
+  };
+
   return (
     <div className="space-y-6 p-4 max-w-4xl mx-auto" dir="rtl">
       {/* Header */}
@@ -234,6 +335,36 @@ export default function NotificationSettings() {
           {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
         </Button>
       </div>
+
+      {/* إحصائيات الرسائل الشهرية */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            إحصائيات الرسائل الشهرية
+          </CardTitle>
+          <CardDescription>عدد الرسائل المرسلة خلال {messageStats.month || 'الشهر الحالي'}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-background rounded-lg p-4 text-center border">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+              <div className="text-3xl font-bold text-foreground">{messageStats.smsCount}</div>
+              <div className="text-sm text-muted-foreground">رسائل SMS</div>
+            </div>
+            <div className="bg-background rounded-lg p-4 text-center border">
+              <Phone className="h-8 w-8 mx-auto mb-2 text-green-500" />
+              <div className="text-3xl font-bold text-foreground">{messageStats.whatsappCount}</div>
+              <div className="text-sm text-muted-foreground">رسائل واتساب</div>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <Badge variant="outline" className="text-xs">
+              إجمالي: {messageStats.smsCount + messageStats.whatsappCount} رسالة
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* إعدادات الصوت */}
       <Card>
@@ -510,6 +641,59 @@ export default function NotificationSettings() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* قوالب الرسائل */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            قوالب الرسائل
+          </CardTitle>
+          <CardDescription>خصص نصوص الرسائل المرسلة للعملاء. استخدم المتغيرات: {'{clientName}'}, {'{propertyLocation}'}, {'{date}'}, {'{time}'}, {'{amount}'}, {'{minPrice}'}, {'{clientPhone}'}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(Object.keys(templateLabels) as Array<keyof MessageTemplates>).map((key) => (
+            <div key={key} className="space-y-2 p-3 border rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="font-medium">{templateLabels[key].title}</Label>
+                  <p className="text-xs text-muted-foreground">{templateLabels[key].description}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingTemplate(editingTemplate === key ? null : key)}
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => resetTemplate(key)}
+                    title="إعادة تعيين للافتراضي"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {editingTemplate === key ? (
+                <Textarea
+                  value={preferences.templates[key]}
+                  onChange={(e) => updateTemplate(key, e.target.value)}
+                  className="min-h-[100px] text-sm"
+                  dir="rtl"
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                  {preferences.templates[key]}
+                </div>
+              )}
+            </div>
+          ))}
         </CardContent>
       </Card>
 
