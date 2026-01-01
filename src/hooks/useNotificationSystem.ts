@@ -390,7 +390,7 @@ export function useNotificationSystem() {
     soundManager.playNotificationSound('default');
   }, []);
 
-  // Initialize
+  // Initialize - load preferences and notifications only once
   useEffect(() => {
     // Load sound preference
     const savedPref = localStorage.getItem('notificationSoundEnabled');
@@ -413,15 +413,26 @@ export function useNotificationSystem() {
         console.error('Error loading notifications:', e);
       }
     }
+  }, []);
 
-    // Start checking for tasks and appointments
-    checkOverdueTasks();
-    checkUpcomingAppointments();
+  // Separate effect for interval - use refs to avoid recreating interval
+  const checkOverdueTasksRef = useRef(checkOverdueTasks);
+  const checkUpcomingAppointmentsRef = useRef(checkUpcomingAppointments);
+  
+  useEffect(() => {
+    checkOverdueTasksRef.current = checkOverdueTasks;
+    checkUpcomingAppointmentsRef.current = checkUpcomingAppointments;
+  });
+
+  useEffect(() => {
+    // Initial check
+    checkOverdueTasksRef.current();
+    checkUpcomingAppointmentsRef.current();
 
     // Check every minute
     checkIntervalRef.current = setInterval(() => {
-      checkOverdueTasks();
-      checkUpcomingAppointments();
+      checkOverdueTasksRef.current();
+      checkUpcomingAppointmentsRef.current();
     }, 60000);
 
     return () => {
@@ -429,7 +440,7 @@ export function useNotificationSystem() {
         clearInterval(checkIntervalRef.current);
       }
     };
-  }, [checkOverdueTasks, checkUpcomingAppointments]);
+  }, []);
 
   // Save notifications to localStorage
   useEffect(() => {
