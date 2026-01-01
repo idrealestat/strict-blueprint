@@ -70,14 +70,15 @@ import OfferEditPage from "./OfferEditPage";
 import { 
   CollapsibleStatsSection, 
   CollapsibleNotificationSettings, 
-  SmartAlertsPanel 
+  SmartAlertsPanel,
+  CollapsiblePerformanceComparison
 } from "@/components/offers";
 import { useOfferViewNotifications } from "@/hooks/useOfferViewNotifications";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
-import { OffersStatsPDFReport, OffersPerformanceComparison } from "@/components/analytics";
+import { OffersStatsPDFReport } from "@/components/analytics";
 
 // ===================== Types =====================
 
@@ -1684,8 +1685,8 @@ export default function MyPlatformComplete({
               </CardContent>
             </Card>
 
-            {/* مقارنة أداء العروض */}
-            <OffersPerformanceComparison
+            {/* 4. مقارنة أداء العروض - مستطيل قابل للطي */}
+            <CollapsiblePerformanceComparison
               offers={getAllOffersFlat().map(o => ({
                 id: o.id,
                 title: o.title,
