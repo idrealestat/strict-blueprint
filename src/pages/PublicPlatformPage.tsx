@@ -12,12 +12,15 @@ import MyPublicPlatformContent from '@/components/platform/MyPublicPlatformConte
 const PublicPlatformPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   
-  // بيانات المستخدم من localStorage أو API
+  // بيانات المستخدم من localStorage
   const [userData, setUserData] = React.useState<any>(null);
   
+  // استخدام 'default' دائماً لأن البيانات مخزنة تحت هذا المفتاح
+  const actualUserId = 'default';
+  
   React.useEffect(() => {
-    // تحميل بيانات البطاقة من localStorage
-    const storageKey = `business_card_${userId || 'default'}`;
+    // تحميل بيانات البطاقة من localStorage - دائماً من default
+    const storageKey = `business_card_${actualUserId}`;
     const savedData = localStorage.getItem(storageKey);
     
     if (savedData) {
@@ -56,7 +59,7 @@ const PublicPlatformPage: React.FC = () => {
       
       <MyPublicPlatformContent 
         currentUser={userData}
-        userId={userId || 'default'}
+        userId={actualUserId}
       />
     </>
   );
