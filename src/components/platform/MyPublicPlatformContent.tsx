@@ -88,32 +88,41 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     };
     
     const loadCardData = () => {
-      const savedProfile = localStorage.getItem('businessCard_profileImage');
-      const savedLogo = localStorage.getItem('businessCard_logoImage');
-      const savedCover = localStorage.getItem('businessCard_coverImage');
-      const savedData = localStorage.getItem('businessCard_data');
+      // استخدام نفس مفتاح بطاقة الأعمال للربط الحقيقي
+      const savedBusinessCard = localStorage.getItem('wasata_business_card_data');
       
-      if (savedProfile) setProfileImage(savedProfile);
-      if (savedLogo) setLogoImage(savedLogo);
-      if (savedCover) setCoverImage(savedCover);
-      if (savedData) {
-        const data = JSON.parse(savedData);
-        setCardData({
-          name: data.name || currentUser?.name || 'مستخدم تجريبي',
-          title: data.title || currentUser?.title || 'وسيط عقاري معتمد',
-          rating: currentUser?.rating || 5.0,
-          badge: currentUser?.badge || 'ماسي',
-          totalDeals: currentUser?.totalDeals || 156
-        });
+      if (savedBusinessCard) {
+        try {
+          const data = JSON.parse(savedBusinessCard);
+          // تحميل الصور من البيانات المحفوظة
+          setProfileImage(data.profileImage || null);
+          setLogoImage(data.logoImage || null);
+          setCoverImage(data.coverImage || null);
+          // تحميل بيانات البطاقة
+          setCardData({
+            name: data.name || currentUser?.name || 'مستخدم تجريبي',
+            title: data.title || currentUser?.title || 'وسيط عقاري معتمد',
+            rating: currentUser?.rating || 5.0,
+            badge: currentUser?.badge || 'ماسي',
+            totalDeals: currentUser?.totalDeals || 156
+          });
+        } catch (error) {
+          console.error('خطأ في تحميل بيانات البطاقة:', error);
+          setDefaultCardData();
+        }
       } else {
-        setCardData({
-          name: currentUser?.name || 'مستخدم تجريبي',
-          title: currentUser?.title || 'وسيط عقاري معتمد',
-          rating: currentUser?.rating || 5.0,
-          badge: currentUser?.badge || 'ماسي',
-          totalDeals: currentUser?.totalDeals || 156
-        });
+        setDefaultCardData();
       }
+    };
+    
+    const setDefaultCardData = () => {
+      setCardData({
+        name: currentUser?.name || 'مستخدم تجريبي',
+        title: currentUser?.title || 'وسيط عقاري معتمد',
+        rating: currentUser?.rating || 5.0,
+        badge: currentUser?.badge || 'ماسي',
+        totalDeals: currentUser?.totalDeals || 156
+      });
     };
     
     loadData();
@@ -320,14 +329,14 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] to-white" dir="rtl">
-      {/* Header - بطاقة الوسيط */}
+      {/* Header - بطاقة الوسيط - مرتبط ببطاقة الأعمال */}
       <div 
-        className="pt-8 pb-6 px-6 relative"
-        style={{
-          background: coverImage 
-            ? `linear-gradient(rgba(1, 65, 28, 0.85), rgba(6, 95, 65, 0.85)), url(${coverImage}) center/cover`
-            : 'linear-gradient(to bottom right, #01411C, #065f41)'
-        }}
+        className="relative bg-gradient-to-r from-[#01411C] to-[#065f41] text-white pt-8 pb-6 px-6 shadow-2xl border-b-4 border-[#D4AF37] bg-cover bg-center transition-all duration-500"
+        style={coverImage ? {
+          backgroundImage: `url(${coverImage})`,
+          backgroundBlendMode: 'overlay',
+          backgroundColor: 'rgba(1, 65, 28, 0.85)'
+        } : undefined}
       >
         <div className="max-w-7xl mx-auto text-center relative">
           <div className="relative inline-block">
