@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp } from 'lucide-react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
@@ -13,6 +13,7 @@ import PlatformSearchFilter from './PlatformSearchFilter';
 import PlatformStats from './PlatformStats';
 import { toast } from 'sonner';
 import { readPlatformComplete, readVisibilityState, syncPlatformCompleteFromPublishedAds } from '@/utils/platformStorage';
+import { usePublicPlatformListings, usePlatformListings } from '@/hooks/usePlatformListings';
 
 interface Listing {
   id: string;
@@ -144,6 +145,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isSwapped, setIsSwapped] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     city: '',
@@ -158,6 +160,11 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const STORAGE_KEY = `business_card_${userId}`;
   const SWAP_KEY = `business_card_swap_${userId}`;
 
+  // استخدام hook قاعدة البيانات للصفحة العامة
+  const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
+  const { listings: dbListings, loading: dbLoading } = usePublicPlatformListings(currentSlug);
+  const { syncFromLocalStorage } = usePlatformListings(currentSlug);
+
   // استخراج جميع العروض المسطحة من التسلسل الهرمي
   const flattenListings = (hierarchy: CityGroup[]): Listing[] => {
     const listings: Listing[] = [];
@@ -170,6 +177,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   };
   
   useEffect(() => {
+    // إذا كانت هناك بيانات من قاعدة البيانات (للصفحة العامة)
+    if (dbListings && dbListings.length > 0) {
+      const adsFromDb = dbListings.map((listing: any) => ({
+        ...listing,
+        image: listing.image || (listing.images && listing.images[0]),
+        imageCount: listing.images?.length || 1,
+      }));
+      const hierarchy = buildHierarchy(adsFromDb);
+      setHierarchyData(hierarchy);
+      setAllListings(flattenListings(hierarchy));
+      return;
+    }
+
     const loadData = () => {
       // ✅ توحيد مصدر البيانات:
       // - المنصة العامة كانت تعتمد على wasata_platform_complete فقط
@@ -198,7 +218,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     if (typeof businessCardOverride !== 'undefined') {
       setBusinessCardData(businessCardOverride);
       setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
-      loadData();
+      // إذا لا توجد بيانات من قاعدة البيانات، نحمل من localStorage
+      if (!dbListings || dbListings.length === 0) {
+        loadData();
+      }
       return;
     }
 
@@ -247,7 +270,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       window.removeEventListener('publishedAdSaved', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [currentUser, STORAGE_KEY, SWAP_KEY, businessCardOverride]);
+  }, [currentUser, STORAGE_KEY, SWAP_KEY, businessCardOverride, dbListings]);
+
+  // دالة مزامنة العروض إلى قاعدة البيانات
+  const handleSyncToDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      await syncFromLocalStorage(currentSlug);
+    } catch (error) {
+      console.error('Sync error:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // حساب مستوى الشارة
   const getBadgeLevel = () => {
@@ -709,8 +744,20 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           </div>
         )}
 
-        {/* زر مشاركة الرابط - أعلى اليمين */}
-        <div className="absolute top-4 left-4 z-20">
+        {/* أزرار أعلى اليمين */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+          {/* زر المزامنة - يظهر فقط للمالك (ليس في الصفحة العامة) */}
+          {typeof businessCardOverride === 'undefined' && (
+            <Button
+              onClick={handleSyncToDatabase}
+              variant="ghost"
+              className="text-white hover:bg-white/20 flex items-center gap-2"
+              disabled={isSyncing}
+            >
+              <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'جاري المزامنة...' : 'مزامنة'}
+            </Button>
+          )}
           <Button
             onClick={sharePlatformLink}
             variant="ghost"
