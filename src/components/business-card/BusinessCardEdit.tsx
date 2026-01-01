@@ -88,6 +88,9 @@ interface BusinessCardData {
   socialMedia: SocialMedia;
   workingHours: Record<string, WorkingHour>;
   achievements: Achievements;
+  profileImage: string;
+  coverImage: string;
+  logoImage: string;
 }
 
 const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => {
@@ -141,7 +144,10 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
       certifications: [],
       topPerformer: false,
       verified: false
-    }
+    },
+    profileImage: "",
+    coverImage: "",
+    logoImage: ""
   };
 
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
@@ -255,6 +261,20 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
     }));
   };
 
+  // Handle image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'profileImage' | 'coverImage' | 'logoImage') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setFormData(prev => ({ ...prev, [field]: base64 }));
+        toast.success("تم رفع الصورة بنجاح!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const daysArabic: Record<string, string> = {
     sunday: "الأحد",
     monday: "الإثنين",
@@ -314,25 +334,61 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
         <div className="flex justify-center gap-6">
           {/* Cover Image */}
           <div className="text-center">
-            <div className="w-24 h-16 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-[#01411C] cursor-pointer hover:bg-gray-100">
-              <Camera className="w-6 h-6 text-[#01411C]" />
-            </div>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleImageUpload(e, 'coverImage')}
+              />
+              <div className="w-24 h-16 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-[#01411C] hover:bg-gray-100 overflow-hidden">
+                {formData.coverImage ? (
+                  <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-6 h-6 text-[#01411C]" />
+                )}
+              </div>
+            </label>
             <span className="text-xs text-gray-600 mt-1 block">صورة الغلاف</span>
           </div>
 
           {/* Profile Image */}
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center border-2 border-dashed border-[#01411C] cursor-pointer hover:bg-gray-100">
-              <User className="w-6 h-6 text-[#01411C]" />
-            </div>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleImageUpload(e, 'profileImage')}
+              />
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center border-2 border-dashed border-[#01411C] hover:bg-gray-100 overflow-hidden">
+                {formData.profileImage ? (
+                  <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-6 h-6 text-[#01411C]" />
+                )}
+              </div>
+            </label>
             <span className="text-xs text-gray-600 mt-1 block">الصورة الشخصية</span>
           </div>
 
           {/* Logo */}
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-[#01411C] cursor-pointer hover:bg-gray-100">
-              <Building className="w-6 h-6 text-[#01411C]" />
-            </div>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleImageUpload(e, 'logoImage')}
+              />
+              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-[#01411C] hover:bg-gray-100 overflow-hidden">
+                {formData.logoImage ? (
+                  <img src={formData.logoImage} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Building className="w-6 h-6 text-[#01411C]" />
+                )}
+              </div>
+            </label>
             <span className="text-xs text-gray-600 mt-1 block">شعار الشركة</span>
           </div>
         </div>
