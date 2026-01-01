@@ -147,7 +147,49 @@ interface CalendarAppointmentsProps {
 }
 
 export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppointmentsProps) {
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  // تحميل المواعيد من localStorage (بما في ذلك مواعيد المعاينة من صفحة العروض)
+  const loadAppointmentsFromStorage = (): Appointment[] => {
+    try {
+      // المواعيد الأساسية
+      const savedAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+      
+      // مواعيد المعاينة من صفحة العروض
+      const viewingAppointments = JSON.parse(localStorage.getItem('calendar_appointments') || '[]');
+      
+      // تحويل مواعيد المعاينة للشكل المطلوب
+      const convertedViewings: Appointment[] = viewingAppointments.map((apt: any) => ({
+        id: apt.id,
+        title: apt.title || `معاينة: ${apt.propertyTitle}`,
+        customerName: apt.clientName,
+        customerPhone: apt.clientPhone,
+        date: new Date(apt.date),
+        time: apt.time?.replace(' ص', '').replace(' م', '') || '10:00',
+        duration: 60,
+        type: 'viewing' as const,
+        status: apt.status === 'مؤكد' ? 'confirmed' as const : 'scheduled' as const,
+        location: apt.propertyLocation,
+        propertyTitle: apt.propertyTitle,
+        notes: apt.notes,
+        reminder: true,
+        reminderTime: 30,
+      }));
+      
+      // دمج جميع المواعيد مع إزالة التكرار بناءً على المعرف
+      const allAppointments = [...mockAppointments, ...savedAppointments, ...convertedViewings];
+      const uniqueAppointments = allAppointments.reduce((acc: Appointment[], current) => {
+        const exists = acc.find(apt => apt.id === current.id);
+        if (!exists) acc.push(current);
+        return acc;
+      }, []);
+      
+      return uniqueAppointments;
+    } catch (e) {
+      console.error('Error loading appointments:', e);
+      return mockAppointments;
+    }
+  };
+
+  const [appointments, setAppointments] = useState<Appointment[]>(loadAppointmentsFromStorage);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

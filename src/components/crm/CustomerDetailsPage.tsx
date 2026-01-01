@@ -280,6 +280,37 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [newReminder, setNewReminder] = useState({ title: '', description: '', date: '', priority: 'medium' });
   const [isSaving, setIsSaving] = useState(false);
   
+  // عروض الأسعار للعميل من صفحة العروض
+  const [priceQuotes, setPriceQuotes] = useState<any[]>([]);
+  
+  // تحميل عروض الأسعار للعميل
+  useEffect(() => {
+    const loadPriceQuotes = () => {
+      try {
+        const allCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+        const foundCustomer = allCustomers.find((c: any) => 
+          c.phone === customer.phone || c.whatsapp === customer.phone || c.id === customer.id
+        );
+        if (foundCustomer && foundCustomer.priceQuotes) {
+          setPriceQuotes(foundCustomer.priceQuotes);
+        }
+      } catch (e) {
+        console.error('Error loading price quotes:', e);
+        setPriceQuotes([]);
+      }
+    };
+    
+    loadPriceQuotes();
+    
+    // Listen for updates
+    const handleStorageChange = () => loadPriceQuotes();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [customer.id, customer.phone]);
+  
   // العقارات المنشورة للعميل
   const [publishedAds, setPublishedAds] = useState<any[]>([]);
   
@@ -335,6 +366,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     { id: 'overview', name: '📊 نظرة شاملة', removable: false },
     { id: 'personal_info', name: '👤 المعلومات', removable: false },
     { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
+    { id: 'price_quotes', name: '💵 عروض الأسعار', removable: false },
     { id: 'transactions', name: '💰 المعاملات', removable: true },
     { id: 'activity', name: '💬 التفاعلات', removable: false },
     { id: 'reminders', name: '⏰ التذكيرات', removable: true },
@@ -2227,6 +2259,71 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Price Quotes Tab - تبويب عروض الأسعار */}
+          <TabsContent value="price_quotes">
+            <Card className="border-2 border-gray-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  💵 عروض الأسعار المقدمة
+                  {priceQuotes.length > 0 && (
+                    <Badge className="bg-[#D4AF37] text-[#01411C]">{priceQuotes.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {priceQuotes.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لا توجد عروض أسعار مقدمة من هذا العميل</p>
+                    <p className="text-sm mt-1">ستظهر هنا عروض الأسعار التي يقدمها العميل على العقارات</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {priceQuotes.map((quote: any) => (
+                      <div key={quote.id} className="p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-bold text-[#01411C]">{quote.propertyTitle}</h4>
+                          <Badge className={
+                            quote.status === 'مقبول' ? 'bg-green-100 text-green-800' : 
+                            quote.status === 'مرفوض' ? 'bg-red-100 text-red-800' : 
+                            'bg-amber-100 text-amber-800'
+                          }>
+                            {quote.status || 'معلق'}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{quote.propertyLocation}</span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">السعر الأصلي:</span>
+                              <span className="font-bold">{quote.originalPrice?.toLocaleString()} ريال</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">العرض:</span>
+                              <span className="font-bold text-[#D4AF37]">{quote.offeredPrice?.toLocaleString()} ريال</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 text-xs">
+                            <span>طريقة الدفع: {quote.paymentMethod === 'cash' ? 'نقداً' : quote.paymentMethod === 'finance' ? 'تمويل' : 'تقسيط'}</span>
+                            <span>| {new Date(quote.createdAt).toLocaleDateString('ar-SA')}</span>
+                          </div>
+                          {quote.message && (
+                            <div className="mt-2 p-2 bg-gray-100 rounded-lg text-xs">
+                              <strong>رسالة العميل:</strong> {quote.message}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Offers Tab - تبويب العروض */}
