@@ -350,8 +350,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     const cityGroups: { [key: string]: any } = {};
     
     ads.forEach((ad: any) => {
-      const city = ad.city || ad.location?.city || 'غير محدد';
-      const district = ad.district || ad.location?.district || 'غير محدد';
+      const city = ad.city || ad.locationDetails?.city || ad.location?.city || 'غير محدد';
+      const district = ad.district || ad.locationDetails?.district || ad.location?.district || 'غير محدد';
       
       if (!cityGroups[city]) {
         cityGroups[city] = {
@@ -539,21 +539,47 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       >
         <div className="relative h-48">
           <img 
-            src={listing.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400'} 
+            src={listing.image || listing.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400'} 
             alt={listing.title || 'عقار'}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          {/* عداد الصور */}
           {listing.imageCount > 1 && (
             <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1">
               📷 {listing.imageCount}
             </div>
           )}
+          {/* أزرار الفيديو و 3D */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">
+              {listing.propertyType}
+            </Badge>
+            {listing.videoUrl && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(listing.videoUrl, '_blank');
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1 transition-colors"
+              >
+                🎬 فيديو
+              </button>
+            )}
+            {listing.tour3DUrl && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(listing.tour3DUrl, '_blank');
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1 transition-colors"
+              >
+                🏠 جولة 3D
+              </button>
+            )}
+          </div>
           <div className="absolute bottom-2 left-2 bg-[#01411C] text-white px-3 py-1 rounded-lg font-bold text-sm">
             {formatPrice(listing.price)}
           </div>
-          <Badge className="absolute top-2 left-2 bg-[#D4AF37] text-[#01411C] text-xs">
-            {listing.propertyType}
-          </Badge>
         </div>
         <div className="p-4">
           <h3 className="font-bold text-gray-900 mb-2 line-clamp-1 text-base">{listing.title || 'بدون عنوان'}</h3>
