@@ -368,9 +368,16 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
     );
   };
 
+  // إنشاء رابط المنصة الحقيقي
+  const getPlatformUrl = () => {
+    // يمكن استبدال هذا بالدومين المخصص لاحقاً
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/platform/${userId}`;
+  };
+
   // مشاركة رابط المنصة
   const sharePlatformLink = async () => {
-    const platformLink = `${window.location.origin}/platform/${userId}`;
+    const platformLink = getPlatformUrl();
     if (navigator.share) {
       try {
         await navigator.share({
@@ -380,17 +387,16 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
         });
       } catch (error) {
         navigator.clipboard.writeText(platformLink);
-        toast.success('تم نسخ رابط المنصة!');
+        toast.success(`تم نسخ الرابط: ${platformLink}`);
       }
     } else {
       navigator.clipboard.writeText(platformLink);
-      toast.success('تم نسخ رابط المنصة!');
+      toast.success(`تم نسخ الرابط: ${platformLink}`);
     }
   };
 
-  // تحديد الصورة الكبيرة والصغيرة بناءً على حالة التبديل
+  // تحديد الصورة الكبيرة فقط بناءً على حالة التبديل (لا نعرض الصورة الصغيرة في منصتي)
   const mainImage = isSwapped ? businessCardData?.logoImage : businessCardData?.profileImage;
-  const smallImage = isSwapped ? businessCardData?.profileImage : businessCardData?.logoImage;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] to-white" dir="rtl">
@@ -442,17 +448,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({ curre
                   </div>
                 )}
               </div>
-              
-              {/* Small Badge - الصورة الصغيرة حسب حالة التبديل */}
-              {smallImage && (
-                <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg overflow-hidden transition-all duration-300">
-                  <img 
-                    src={smallImage} 
-                    alt="Secondary" 
-                    className="w-full h-full object-cover transition-opacity duration-300" 
-                  />
-                </div>
-              )}
+              {/* لا يتم عرض الصورة الصغيرة في منصتي - فقط الصورة الكبيرة */}
             </div>
           </div>
 
