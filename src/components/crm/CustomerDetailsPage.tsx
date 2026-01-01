@@ -74,6 +74,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import PropertyDetailsDialog from "./PropertyDetailsDialog";
+import PDFPreviewDialog from "./PDFPreviewDialog";
 import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 
 interface Customer {
@@ -356,6 +357,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<any>(null);
   const [showPropertyDetailsDialog, setShowPropertyDetailsDialog] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null);
+  const [selectedPropertyForPDF, setSelectedPropertyForPDF] = useState<any>(null);
+  const [showPDFPreviewDialog, setShowPDFPreviewDialog] = useState(false);
   
   // التبويبات القابلة للتخصيص
   const [customTabs, setCustomTabs] = useState(() => {
@@ -1097,27 +1100,12 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               variant="outline"
                               className="border-[#D4AF37] text-[#01411C]"
-                              disabled={isGeneratingPDF === ad.id}
-                              onClick={async () => {
-                                setIsGeneratingPDF(ad.id);
-                                toast.info('جاري إنشاء ملف PDF...');
-                                
-                                try {
-                                  await generatePropertyPDF(ad, true);
-                                  toast.success('تم تحميل ملف PDF بنجاح');
-                                } catch (error) {
-                                  console.error('Error generating PDF:', error);
-                                  toast.error('حدث خطأ أثناء إنشاء ملف PDF');
-                                } finally {
-                                  setIsGeneratingPDF(null);
-                                }
+                              onClick={() => {
+                                setSelectedPropertyForPDF(ad);
+                                setShowPDFPreviewDialog(true);
                               }}
                             >
-                              {isGeneratingPDF === ad.id ? (
-                                <Loader2 className="w-4 h-4 ml-1 animate-spin" />
-                              ) : (
-                                <Download className="w-4 h-4 ml-1" />
-                              )}
+                              <Download className="w-4 h-4 ml-1" />
                               تحميل PDF
                             </Button>
                             
@@ -2822,6 +2810,16 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           setSelectedPropertyForDetails(null);
         }}
         property={selectedPropertyForDetails}
+      />
+
+      {/* مكون معاينة وتصدير PDF */}
+      <PDFPreviewDialog
+        isOpen={showPDFPreviewDialog}
+        onClose={() => {
+          setShowPDFPreviewDialog(false);
+          setSelectedPropertyForPDF(null);
+        }}
+        property={selectedPropertyForPDF}
       />
     </div>
   );

@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.process-scheduled-messages]
 verify_jwt = false
+
+[functions.send-property-email]
+verify_jwt = false
+
+[functions.publish-business-card]
+verify_jwt = false
