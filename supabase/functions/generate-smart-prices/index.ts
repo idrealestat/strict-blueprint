@@ -5,6 +5,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation helper functions
+function sanitizeString(input: unknown, maxLength: number = 100): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>"`]/g, '')
+    .substring(0, maxLength)
+    .trim();
+}
+
+function sanitizeNumericString(input: unknown, maxLength: number = 20): string {
+  if (typeof input !== 'string') return '';
+  // Only allow digits, dots, and commas for numeric values
+  return input
+    .replace(/[^0-9.,]/g, '')
+    .substring(0, maxLength);
+}
+
 interface PriceRequest {
   propertyType: string;
   category: string;
@@ -15,7 +32,24 @@ interface PriceRequest {
   bedrooms: string;
   propertyAge: string;
   furnishing: string;
-  userPrice?: string; // السعر المدخل من المالك
+  userPrice?: string;
+}
+
+function validateAndSanitizePriceRequest(raw: unknown): PriceRequest {
+  const data = typeof raw === 'object' && raw !== null ? raw as Record<string, unknown> : {};
+  
+  return {
+    propertyType: sanitizeString(data.propertyType, 50),
+    category: sanitizeString(data.category, 50),
+    purpose: sanitizeString(data.purpose, 50),
+    area: sanitizeNumericString(data.area, 20),
+    city: sanitizeString(data.city, 100),
+    district: sanitizeString(data.district, 100),
+    bedrooms: sanitizeNumericString(data.bedrooms, 10),
+    propertyAge: sanitizeNumericString(data.propertyAge, 10),
+    furnishing: sanitizeString(data.furnishing, 50),
+    userPrice: data.userPrice ? sanitizeNumericString(data.userPrice, 20) : undefined,
+  };
 }
 
 // أسعار تقريبية للمتر المربع حسب المدينة (بيع)
@@ -96,15 +130,58 @@ serve(async (req) => {
   }
 
   try {
-    const { propertyData }: { propertyData: PriceRequest } = await req.json();
+    // Validate content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (typeof rawBody !== 'object' || rawBody === null || !('propertyData' in rawBody)) {
+      return new Response(JSON.stringify({ error: "Missing propertyData field" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const propertyData = validateAndSanitizePriceRequest((rawBody as Record<string, unknown>).propertyData);
     
     const area = parseFloat(propertyData.area) || 100;
+    // Validate area is within reasonable bounds
+    if (area <= 0 || area > 1000000) {
+      return new Response(JSON.stringify({ error: "Invalid area value" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const purpose = propertyData.purpose;
     const city = propertyData.city || "الرياض";
     const propertyType = propertyData.propertyType || "شقة";
     const furnishing = propertyData.furnishing || "غير مؤثث";
-    const propertyAge = parseInt(propertyData.propertyAge) || 0;
+    const propertyAge = Math.min(Math.max(parseInt(propertyData.propertyAge) || 0, 0), 100); // Cap at 100 years
     const userPrice = propertyData.userPrice ? parseFloat(propertyData.userPrice.replace(/,/g, '')) : null;
+    
+    // Validate user price if provided
+    if (userPrice !== null && (userPrice <= 0 || userPrice > 1000000000)) {
+      return new Response(JSON.stringify({ error: "Invalid user price value" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // الحصول على السعر الأساسي
     let basePrice = purpose === "للإيجار" 
@@ -216,7 +293,7 @@ serve(async (req) => {
       };
     }
 
-    console.log('Price evaluation:', priceEvaluation);
+    console.log('Price calculation completed successfully');
 
     return new Response(JSON.stringify({ 
       prices,
