@@ -634,6 +634,72 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               {showPreview ? <EyeOff className="w-4 h-4 ml-1" /> : <Eye className="w-4 h-4 ml-1" />}
               {showPreview ? 'إخفاء' : 'معاينة'}
             </Button>
+            
+            {/* زر نشر/إيقاف النشر */}
+            {isPublished !== null && (
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  try {
+                    const { data: { user: authUser } } = await supabase.auth.getUser();
+                    if (!authUser) {
+                      toast.error('يجب تسجيل الدخول أولاً');
+                      return;
+                    }
+                    
+                    const newPublishedState = !isPublished;
+                    
+                    // التحقق من وجود slug قبل النشر
+                    if (newPublishedState && !currentSlug) {
+                      toast.error('يجب حفظ الصفحة أولاً مع اختيار رابط متاح');
+                      return;
+                    }
+                    
+                    const { error } = await supabase
+                      .from('business_cards')
+                      .update({ 
+                        published: newPublishedState,
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq('user_id', authUser.id);
+                    
+                    if (error) {
+                      console.error('Error toggling publish:', error);
+                      toast.error('حدث خطأ في تغيير حالة النشر');
+                      return;
+                    }
+                    
+                    setIsPublished(newPublishedState);
+                    
+                    if (newPublishedState) {
+                      toast.success(`تم نشر صفحتك ✨ رابطك: wasataai.com/${currentSlug}`);
+                    } else {
+                      toast.success('تم إيقاف نشر صفحتك');
+                    }
+                  } catch (err) {
+                    console.error('Toggle publish error:', err);
+                    toast.error('حدث خطأ غير متوقع');
+                  }
+                }}
+                className={isPublished 
+                  ? "bg-red-500/20 text-red-200 hover:bg-red-500/40 border border-red-400/50" 
+                  : "bg-green-500/20 text-green-200 hover:bg-green-500/40 border border-green-400/50"
+                }
+              >
+                {isPublished ? (
+                  <>
+                    <EyeOff className="w-4 h-4 ml-1" />
+                    إيقاف النشر
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-4 h-4 ml-1" />
+                    نشر
+                  </>
+                )}
+              </Button>
+            )}
+            
             <Button
               onClick={handleSave}
               className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
