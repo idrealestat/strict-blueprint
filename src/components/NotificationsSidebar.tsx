@@ -1,6 +1,6 @@
 /**
  * NotificationsSidebar.tsx
- * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد
+ * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد وإشعارات النطاقات
  */
 
 import { useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import {
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
   ChevronRight, Settings, Home, Phone, ExternalLink,
-  Zap, BellOff
+  Zap, BellOff, Globe, Shield
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -19,6 +19,7 @@ import { Switch } from "./ui/switch";
 import { Card, CardContent } from "./ui/card";
 import { useNotificationSystem, SystemNotification } from "@/hooks/useNotificationSystem";
 import { useViewingNotifications, ViewingAppointment } from "@/hooks/useViewingNotifications";
+import { useDomainNotifications, DomainNotification } from "@/hooks/useDomainNotifications";
 import ViewingNotificationModal from "./ViewingNotificationModal";
 import { CollapsibleNotificationSettings, SmartAlertsPanel } from "@/components/offers";
 
@@ -70,8 +71,19 @@ export default function NotificationsSidebar({
     testSound,
   } = useNotificationSystem();
 
+  // Domain notifications hook
+  const {
+    notifications: domainNotifications,
+    unreadCount: domainUnreadCount,
+    markAsRead: markDomainAsRead,
+    markAllAsRead: markAllDomainAsRead,
+  } = useDomainNotifications();
+
   // Initialize viewing notifications hook - must be called unconditionally
   const viewingNotifications = useViewingNotifications();
+
+  // Calculate total unread count
+  const totalUnreadCount = unreadCount + domainUnreadCount;
 
   // Listen for viewing reminder events
   useEffect(() => {
@@ -89,12 +101,14 @@ export default function NotificationsSidebar({
       window.removeEventListener('viewingReminder', handleViewingReminder as EventListener);
     };
   }, []);
+
   // Filter notifications by tab
   const filteredNotifications = notifications.filter(n => {
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !n.read;
     if (activeTab === "tasks") return n.category === "task";
     if (activeTab === "appointments") return n.category === "appointment";
+    if (activeTab === "domains") return false; // Domain notifications are handled separately
     return true;
   });
 
@@ -286,7 +300,7 @@ export default function NotificationsSidebar({
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-4 bg-white/10 w-full">
+                <TabsList className="grid grid-cols-5 bg-white/10 w-full">
                   <TabsTrigger 
                     value="all" 
                     className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
@@ -295,9 +309,14 @@ export default function NotificationsSidebar({
                   </TabsTrigger>
                   <TabsTrigger 
                     value="unread"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
                   >
                     غير مقروءة
+                    {totalUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center">
+                        {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                      </span>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="tasks"
@@ -311,85 +330,168 @@ export default function NotificationsSidebar({
                   >
                     المواعيد
                   </TabsTrigger>
+                  <TabsTrigger 
+                    value="domains"
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
+                  >
+                    النطاقات
+                    {domainUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center">
+                        {domainUnreadCount > 9 ? '9+' : domainUnreadCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {filteredNotifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                  <Bell className="w-16 h-16 mb-4 opacity-30" />
-                  <p className="text-lg font-medium">لا توجد إشعارات</p>
-                  <p className="text-sm">ستظهر الإشعارات الجديدة هنا</p>
-                </div>
-              ) : (
-                filteredNotifications.map((notification) => {
-                  const styles = getTypeStyles(notification);
-                  const Icon = styles.icon;
-                  
-                  return (
-                    <motion.div
-                      key={notification.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -100 }}
-                      layout
-                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
-                        notification.read
-                          ? "bg-gray-50 border-gray-200 opacity-70"
-                          : styles.bg
-                      }`}
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          notification.read ? 'bg-gray-200' : `${styles.bg}`
-                        }`}>
-                          <Icon className={`w-5 h-5 ${notification.read ? 'text-gray-400' : styles.iconColor}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <h4 className={`font-bold text-sm ${notification.read ? 'text-gray-500' : 'text-[#01411C]'}`}>
-                              {notification.title}
-                            </h4>
-                            <div className="flex items-center gap-1">
-                              {!notification.read && (
+              {/* Domain Notifications Tab */}
+              {activeTab === "domains" ? (
+                domainNotifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <Globe className="w-16 h-16 mb-4 opacity-30" />
+                    <p className="text-lg font-medium">لا توجد إشعارات نطاقات</p>
+                    <p className="text-sm">ستظهر إشعارات طلبات النطاقات هنا</p>
+                  </div>
+                ) : (
+                  domainNotifications.map((notification) => {
+                    const getNotificationStyle = (type: string) => {
+                      switch (type) {
+                        case 'approval':
+                          return { bg: 'bg-green-50 border-green-200', icon: CheckCircle, iconColor: 'text-green-500' };
+                        case 'rejection':
+                          return { bg: 'bg-red-50 border-red-200', icon: AlertCircle, iconColor: 'text-red-500' };
+                        case 'revocation':
+                          return { bg: 'bg-orange-50 border-orange-200', icon: Shield, iconColor: 'text-orange-500' };
+                        default:
+                          return { bg: 'bg-blue-50 border-blue-200', icon: Globe, iconColor: 'text-blue-500' };
+                      }
+                    };
+                    
+                    const style = getNotificationStyle(notification.notification_type);
+                    const Icon = style.icon;
+                    
+                    return (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        layout
+                        className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
+                          notification.is_read
+                            ? "bg-gray-50 border-gray-200 opacity-70"
+                            : style.bg
+                        }`}
+                        onClick={() => markDomainAsRead(notification.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            notification.is_read ? 'bg-gray-200' : style.bg
+                          }`}>
+                            <Icon className={`w-5 h-5 ${notification.is_read ? 'text-gray-400' : style.iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className={`font-bold text-sm ${notification.is_read ? 'text-gray-500' : 'text-[#01411C]'}`}>
+                                {notification.title}
+                              </h4>
+                              {!notification.is_read && (
                                 <Badge className="bg-[#D4AF37] text-[#01411C] text-xs px-1.5 py-0.5">
                                   جديد
                                 </Badge>
                               )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteNotification(notification.id);
-                                }}
-                                className="p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
                             </div>
-                          </div>
-                          <p className={`text-sm mb-2 ${notification.read ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center justify-between">
+                            <p className={`text-sm mb-2 ${notification.is_read ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {notification.message}
+                            </p>
                             <div className="flex items-center gap-1 text-xs text-gray-400">
                               <Clock className="w-3 h-3" />
-                              <span>{formatTime(notification.createdAt)}</span>
+                              <span>{formatTime(new Date(notification.created_at))}</span>
                             </div>
-                            {notification.actionType && (
-                              <button className="flex items-center gap-1 text-xs text-[#01411C] hover:underline">
-                                <span>عرض</span>
-                                <ChevronRight className="w-3 h-3" />
-                              </button>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })
+                      </motion.div>
+                    );
+                  })
+                )
+              ) : (
+                /* Regular Notifications */
+                filteredNotifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <Bell className="w-16 h-16 mb-4 opacity-30" />
+                    <p className="text-lg font-medium">لا توجد إشعارات</p>
+                    <p className="text-sm">ستظهر الإشعارات الجديدة هنا</p>
+                  </div>
+                ) : (
+                  filteredNotifications.map((notification) => {
+                    const styles = getTypeStyles(notification);
+                    const Icon = styles.icon;
+                    
+                    return (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -100 }}
+                        layout
+                        className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
+                          notification.read
+                            ? "bg-gray-50 border-gray-200 opacity-70"
+                            : styles.bg
+                        }`}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            notification.read ? 'bg-gray-200' : `${styles.bg}`
+                          }`}>
+                            <Icon className={`w-5 h-5 ${notification.read ? 'text-gray-400' : styles.iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className={`font-bold text-sm ${notification.read ? 'text-gray-500' : 'text-[#01411C]'}`}>
+                                {notification.title}
+                              </h4>
+                              <div className="flex items-center gap-1">
+                                {!notification.read && (
+                                  <Badge className="bg-[#D4AF37] text-[#01411C] text-xs px-1.5 py-0.5">
+                                    جديد
+                                  </Badge>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteNotification(notification.id);
+                                  }}
+                                  className="p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className={`text-sm mb-2 ${notification.read ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {notification.message}
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1 text-xs text-gray-400">
+                                <Clock className="w-3 h-3" />
+                                <span>{formatTime(notification.createdAt)}</span>
+                              </div>
+                              {notification.actionType && (
+                                <button className="flex items-center gap-1 text-xs text-[#01411C] hover:underline">
+                                  <span>عرض</span>
+                                  <ChevronRight className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )
               )}
             </div>
 
@@ -422,23 +524,31 @@ export default function NotificationsSidebar({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={markAllAsRead}
-                  disabled={unreadCount === 0}
+                  onClick={() => {
+                    if (activeTab === 'domains') {
+                      markAllDomainAsRead();
+                    } else {
+                      markAllAsRead();
+                    }
+                  }}
+                  disabled={activeTab === 'domains' ? domainUnreadCount === 0 : unreadCount === 0}
                   className="flex-1 text-xs border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
                 >
                   <Check className="w-3 h-3 ml-1" />
                   قراءة الكل
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={deleteAllNotifications}
-                  disabled={notifications.length === 0}
-                  className="flex-1 text-xs border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-3 h-3 ml-1" />
-                  حذف الكل
-                </Button>
+                {activeTab !== 'domains' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={deleteAllNotifications}
+                    disabled={notifications.length === 0}
+                    className="flex-1 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3 h-3 ml-1" />
+                    حذف الكل
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>

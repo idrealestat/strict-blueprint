@@ -1,5 +1,7 @@
 import { Building2, Menu, Bell, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDomainNotifications } from "@/hooks/useDomainNotifications";
+import { useNotificationSystem } from "@/hooks/useNotificationSystem";
 
 interface MainHeaderProps {
   onRightMenuOpen: () => void;
@@ -8,6 +10,11 @@ interface MainHeaderProps {
 }
 
 const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: MainHeaderProps) => {
+  const { unreadCount: domainUnreadCount } = useDomainNotifications();
+  const { unreadCount: systemUnreadCount } = useNotificationSystem();
+  
+  const totalUnreadCount = domainUnreadCount + systemUnreadCount;
+
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-r from-wasata-green via-wasata-green-dark to-wasata-green backdrop-blur-md border-b-2 border-wasata-gold shadow-lg">
       <div className="container mx-auto px-4 py-2">
@@ -54,8 +61,12 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
               className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white relative h-9 w-9"
             >
               <Bell className="w-5 h-5" />
-              {/* Notification Badge */}
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              {/* Notification Badge - عرض فقط إذا كان هناك إشعارات غير مقروءة */}
+              {totalUnreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1 animate-pulse">
+                  {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                </div>
+              )}
             </Button>
           </div>
         </div>
