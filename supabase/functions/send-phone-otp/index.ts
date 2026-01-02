@@ -43,7 +43,12 @@ const handler = async (req: Request): Promise<Response> => {
     const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
     const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
     const TWILIO_PHONE_NUMBER = Deno.env.get("TWILIO_PHONE_NUMBER");
-    const ALLOW_DEV_OTP = Deno.env.get("ALLOW_DEV_OTP") === "true";
+    const ALLOW_DEV_OTP_RAW = Deno.env.get("ALLOW_DEV_OTP");
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") || Deno.env.get("LOVABLE_ENV") || "production";
+
+    // Dev OTP مسموح فقط في بيئة التطوير
+    const isDevEnvironment = ENVIRONMENT === "development" || ENVIRONMENT === "dev";
+    const ALLOW_DEV_OTP = ALLOW_DEV_OTP_RAW === "true" && isDevEnvironment;
 
     console.log("ENV_CHECK", {
       hasSupabaseUrl: !!supabaseUrl,
@@ -51,7 +56,10 @@ const handler = async (req: Request): Promise<Response> => {
       hasTwilioSid: !!TWILIO_ACCOUNT_SID,
       hasTwilioToken: !!TWILIO_AUTH_TOKEN,
       hasTwilioPhone: !!TWILIO_PHONE_NUMBER,
-      allowDevOtp: ALLOW_DEV_OTP,
+      allowDevOtpRaw: ALLOW_DEV_OTP_RAW,
+      environment: ENVIRONMENT,
+      isDevEnvironment,
+      allowDevOtpFinal: ALLOW_DEV_OTP,
     });
 
     if (!supabaseUrl || !supabaseKey) {
@@ -142,53 +150,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("OTP_SAVED", { phone: formattedPhone, otp: ALLOW_DEV_OTP ? otp : "***" });
 
-    // محاولة إرسال SMS عبر Twilio
-    let smsSent = false;
-    let smsError: string | null = null;
-
-    if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER) {
-      try {
-        const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-        const message = `رمز تفعيل وساطة: ${otp}\nصالح لمدة 10 دقائق`;
-
-        const twilioResponse = await fetch(twilioUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Authorization": `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
-          },
-          body: new URLSearchParams({
-            To: formattedPhone,
-            From: TWILIO_PHONE_NUMBER,
-            Body: message,
-          }),
-        });
-
-        const twilioResult = await twilioResponse.json();
-
-        if (twilioResponse.ok) {
-          smsSent = true;
-          console.log("SMS_SENT", { sid: twilioResult.sid });
-        } else {
-          smsError = twilioResult.message || twilioResult.error_message || "Twilio error";
-          console.error("TWILIO_ERROR", twilioResult);
-        }
-      } catch (err: any) {
-        smsError = err.message;
-        console.error("TWILIO_EXCEPTION", err);
-      }
-    } else {
-      smsError = "Twilio credentials not configured";
-      console.warn("TWILIO_NOT_CONFIGURED");
-    }
-
-    // Dev Fallback: إذا فشل الإرسال وفي وضع التطوير → نرجع الكود مباشرة
-    if (!smsSent && ALLOW_DEV_OTP) {
-      console.log("DEV_FALLBACK_ENABLED", { otp });
+    // ===== وضع التطوير: لا نستدعي Twilio =====
+    if (ALLOW_DEV_OTP) {
+      console.log("DEV_MODE_ACTIVE", { otp, skippingTwilio: true });
       return new Response(
         JSON.stringify({
           success: true,
-          message: "تم حفظ رمز التحقق (وضع التطوير)",
+          message: "تم حفظ رمز التحقق (وضع التطوير - لم يُرسل SMS)",
           devCode: otp,
           devMode: true,
         }),
@@ -196,17 +164,44 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // إذا فشل الإرسال ولا يوجد dev fallback
-    if (!smsSent) {
+    // ===== وضع الإنتاج: استخدم Twilio =====
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+      return new Response(
+        JSON.stringify({ error: "إعدادات Twilio غير مكتملة" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+    const message = `رمز تفعيل وساطة: ${otp}\nصالح لمدة 10 دقائق`;
+
+    const twilioResponse = await fetch(twilioUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
+      },
+      body: new URLSearchParams({
+        To: formattedPhone,
+        From: TWILIO_PHONE_NUMBER,
+        Body: message,
+      }),
+    });
+
+    const twilioResult = await twilioResponse.json();
+
+    if (!twilioResponse.ok) {
+      console.error("TWILIO_ERROR", twilioResult);
       return new Response(
         JSON.stringify({
           error: "خطأ في إرسال الرسالة النصية",
-          details: smsError,
+          details: twilioResult.message || twilioResult.error_message || "Twilio error",
         }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
+    console.log("SMS_SENT", { sid: twilioResult.sid });
     return new Response(
       JSON.stringify({ success: true, message: "تم إرسال رمز التحقق بنجاح" }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
