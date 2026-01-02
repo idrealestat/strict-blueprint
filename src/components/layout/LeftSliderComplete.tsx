@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -15,6 +16,7 @@ import {
   Phone,
   HelpCircle,
   LogOut,
+  LogIn,
   MessageCircle,
   TrendingUp,
   Calendar,
@@ -38,6 +40,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface LeftSliderCompleteProps {
   isOpen: boolean;
@@ -71,6 +75,18 @@ export function LeftSliderComplete({
   mode = "menu",
 }: LeftSliderCompleteProps) {
   const [calcOpen, setCalcOpen] = useState(false);
+  const navigate = useNavigate();
+  const { signOut, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      toast({ title: 'تم تسجيل الخروج', description: 'سنفتقدك! 👋' });
+      onClose();
+      navigate('/app/login');
+    }
+  };
 
   // القائمة الرئيسية للوضع العادي
   const menuItems = [
@@ -577,15 +593,30 @@ export function LeftSliderComplete({
                   <Settings className="w-4 h-4 text-gray-500" />
                   <span className="text-sm text-gray-600">الإعدادات</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={onClose}
-                >
-                  <LogOut className="w-4 h-4 mr-1" />
-                  تسجيل خروج
-                </Button>
+                {isAuthenticated ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-4 h-4 mr-1" />
+                    تسجيل خروج
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    onClick={() => {
+                      onClose();
+                      navigate('/app/login');
+                    }}
+                  >
+                    <LogIn className="w-4 h-4 mr-1" />
+                    تسجيل دخول
+                  </Button>
+                )}
               </div>
             )}
           </div>

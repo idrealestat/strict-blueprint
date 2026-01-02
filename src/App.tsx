@@ -2,12 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
-import MyPlatform from "./components/platform/MyPlatform";
 import MyPlatformComplete from "./components/platform/MyPlatformComplete";
 import MyPlatformSmartPaths from "./components/platform/MyPlatformSmartPaths";
 import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
@@ -42,6 +41,7 @@ import SlugOfferPage from "./pages/SlugOfferPage";
 import SlugRequestPage from "./pages/SlugRequestPage";
 import SlugQuotePage from "./pages/SlugQuotePage";
 import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -67,14 +67,7 @@ interface LinkedCustomer {
 }
 
 const App = () => {
-  const [currentPage, setCurrentPage] = useState(() => {
-    // Check if user should be redirected to edit page after registration
-    if (localStorage.getItem('redirect_to_edit') === 'true') {
-      localStorage.removeItem('redirect_to_edit');
-      return "business-card-edit";
-    }
-    return "dashboard";
-  });
+  const [currentPage, setCurrentPage] = useState("dashboard");
   const [linkedCustomerForTask, setLinkedCustomerForTask] = useState<LinkedCustomer | null>(null);
   const [linkedCustomerForAppointment, setLinkedCustomerForAppointment] = useState<LinkedCustomer | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -286,36 +279,82 @@ const App = () => {
               <Sonner />
               <BrowserRouter>
                 <Routes>
-                  <Route path="/" element={
-                    <>
+                  {/* Root redirects to /app/dashboard */}
+                  <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+                  
+                  {/* Auth routes - /app/login and /app/register */}
+                  <Route path="/app/login" element={<AuthPage />} />
+                  <Route path="/app/register" element={<AuthPage />} />
+                  
+                  {/* Legacy auth routes - redirect to new ones */}
+                  <Route path="/auth" element={<Navigate to="/app/login" replace />} />
+                  <Route path="/login" element={<Navigate to="/app/login" replace />} />
+                  
+                  {/* Protected app routes - all under /app/* */}
+                  <Route path="/app/dashboard" element={
+                    <ProtectedRoute>
                       {renderPage()}
                       <AIFloatingButton />
-                    </>
+                    </ProtectedRoute>
                   } />
-                  <Route path="/auth" element={<AuthPage />} />
-                  <Route path="/login" element={<AuthPage />} />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <>
-                        {renderPage()}
-                        <AIFloatingButton />
-                      </>
-                    }
-                  />
-                  <Route path="/settings" element={<NotificationSettings />} />
-                  <Route path="/admin" element={<DomainAdminPage />} />
-                  <Route path="/customers" element={<CustomersListPage />} />
+                  
+                  <Route path="/app/businesscard/edit" element={
+                    <ProtectedRoute>
+                      <BusinessCardEdit 
+                        onBack={() => window.location.href = '/app/dashboard'} 
+                        user={mockUser} 
+                        isNewUser={isNewUser} 
+                      />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/app/settings" element={
+                    <ProtectedRoute>
+                      <NotificationSettings />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/app/admin" element={
+                    <ProtectedRoute>
+                      <DomainAdminPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/app/customers" element={
+                    <ProtectedRoute>
+                      <CustomersListPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/app/admin/domains" element={
+                    <ProtectedRoute>
+                      <DomainAdminPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/app/domain-requests" element={
+                    <ProtectedRoute>
+                      <DomainRequestsListPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/app/domain-requests/:requestId" element={
+                    <ProtectedRoute>
+                      <DomainRequestDetailsPage />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Public routes - cards */}
                   <Route path="/cards/:slug" element={<PublicCardView />} />
+                  
+                  {/* Public form routes */}
                   <Route path="/public/offer/:brokerId" element={<PublicOfferForm />} />
                   <Route path="/public/request/:brokerId" element={<PublicRequestForm />} />
                   <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
                   <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
                   <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
-                  <Route path="/admin/domains" element={<DomainAdminPage />} />
-                  <Route path="/domain-requests" element={<DomainRequestsListPage />} />
-                  <Route path="/domain-requests/:requestId" element={<DomainRequestDetailsPage />} />
-                  {/* Dynamic slug routes - wasataai.com/{slug} */}
+                  
+                  {/* Dynamic slug routes - wasataai.com/{slug} - MUST BE LAST */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/businesscard" element={<SlugBusinessCardPage />} />
@@ -323,6 +362,8 @@ const App = () => {
                   <Route path="/:slug/offer" element={<SlugOfferPage />} />
                   <Route path="/:slug/request" element={<SlugRequestPage />} />
                   <Route path="/:slug/quote" element={<SlugQuotePage />} />
+                  
+                  {/* 404 */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
