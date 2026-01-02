@@ -302,47 +302,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   const badge = getBadgeLevel();
   
-  const getMockHierarchy = (): CityGroup[] => {
-    return [
-      {
-        id: 'city-jeddah',
-        type: 'city',
-        name: 'جدة',
-        districts: [
-          {
-            id: 'district-jeddah-rawda',
-            name: 'حي الروضة',
-            listings: [
-              { id: 'jed-1', title: 'شقة فاخرة للإيجار', description: 'شقة مؤثثة بالكامل مع إطلالة رائعة', price: 3000, propertyType: 'شقة', bedrooms: 3, bathrooms: 2, area: 180, image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', imageCount: 12, city: 'جدة', district: 'حي الروضة' },
-              { id: 'jed-2', title: 'شقة عائلية مميزة', description: 'شقة واسعة مناسبة للعائلات', price: 4500, propertyType: 'شقة', bedrooms: 4, bathrooms: 3, area: 220, image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', imageCount: 8, city: 'جدة', district: 'حي الروضة' },
-            ]
-          },
-          {
-            id: 'district-jeddah-hamra',
-            name: 'حي الحمراء',
-            listings: [
-              { id: 'jed-4', title: 'فيلا للبيع', description: 'فيلا فاخرة مع حديقة وحمام سباحة', price: 2500000, propertyType: 'فيلا', bedrooms: 6, bathrooms: 5, area: 500, image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400', imageCount: 15, city: 'جدة', district: 'حي الحمراء' },
-            ]
-          }
-        ]
-      },
-      {
-        id: 'city-riyadh',
-        type: 'city',
-        name: 'الرياض',
-        districts: [
-          {
-            id: 'district-riyadh-narjis',
-            name: 'حي النرجس',
-            listings: [
-              { id: 'riy-1', title: 'فيلا فاخرة جديدة', description: 'فيلا حديثة التصميم مع كافة المرافق', price: 3200000, propertyType: 'فيلا', bedrooms: 7, bathrooms: 6, area: 600, image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400', imageCount: 20, city: 'الرياض', district: 'حي النرجس' },
-              { id: 'riy-2', title: 'فيلا مودرن', description: 'تصميم عصري مع تشطيبات فاخرة', price: 2800000, propertyType: 'فيلا', bedrooms: 5, bathrooms: 4, area: 450, image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400', imageCount: 18, city: 'الرياض', district: 'حي النرجس' },
-            ]
-          }
-        ]
-      }
-    ];
-  };
   
   const parseCityDistrictFromSmartPathLocal = (smartPath?: string): { city?: string; district?: string } => {
     if (!smartPath) return {};
