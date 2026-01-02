@@ -42,6 +42,7 @@ import SlugRequestPage from "./pages/SlugRequestPage";
 import SlugQuotePage from "./pages/SlugQuotePage";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import BusinessCardGuard from "./components/auth/BusinessCardGuard";
 
 const queryClient = new QueryClient();
 
@@ -291,13 +292,8 @@ const App = () => {
                   <Route path="/login" element={<Navigate to="/app/login" replace />} />
                   
                   {/* Protected app routes - all under /app/* */}
-                  <Route path="/app/dashboard" element={
-                    <ProtectedRoute>
-                      {renderPage()}
-                      <AIFloatingButton />
-                    </ProtectedRoute>
-                  } />
                   
+                  {/* businesscard/edit - محمي فقط بـ ProtectedRoute (لا يحتاج slug) */}
                   <Route path="/app/businesscard/edit" element={
                     <ProtectedRoute>
                       <BusinessCardEdit 
@@ -308,40 +304,48 @@ const App = () => {
                     </ProtectedRoute>
                   } />
                   
+                  {/* باقي صفحات /app/* - تحتاج BusinessCardGuard (slug مطلوب) */}
+                  <Route path="/app/dashboard" element={
+                    <BusinessCardGuard>
+                      {renderPage()}
+                      <AIFloatingButton />
+                    </BusinessCardGuard>
+                  } />
+                  
                   <Route path="/app/settings" element={
-                    <ProtectedRoute>
+                    <BusinessCardGuard>
                       <NotificationSettings />
-                    </ProtectedRoute>
+                    </BusinessCardGuard>
                   } />
                   
                   <Route path="/app/admin" element={
-                    <ProtectedRoute>
+                    <BusinessCardGuard>
                       <DomainAdminPage />
-                    </ProtectedRoute>
+                    </BusinessCardGuard>
                   } />
                   
                   <Route path="/app/customers" element={
-                    <ProtectedRoute>
+                    <BusinessCardGuard>
                       <CustomersListPage />
-                    </ProtectedRoute>
+                    </BusinessCardGuard>
                   } />
                   
                   <Route path="/app/admin/domains" element={
-                    <ProtectedRoute>
+                    <BusinessCardGuard>
                       <DomainAdminPage />
-                    </ProtectedRoute>
+                    </BusinessCardGuard>
                   } />
                   
                   <Route path="/app/domain-requests" element={
-                    <ProtectedRoute>
+                    <BusinessCardGuard>
                       <DomainRequestsListPage />
-                    </ProtectedRoute>
+                    </BusinessCardGuard>
                   } />
                   
                   <Route path="/app/domain-requests/:requestId" element={
-                    <ProtectedRoute>
+                    <BusinessCardGuard>
                       <DomainRequestDetailsPage />
-                    </ProtectedRoute>
+                    </BusinessCardGuard>
                   } />
                   
                   {/* Public routes - cards */}
