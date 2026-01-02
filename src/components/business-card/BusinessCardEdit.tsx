@@ -290,7 +290,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     }
   }, [isNewUser]);
 
-  // Handle save - حفظ مزدوج للربط مع منصتي + نشر للصفحة العامة
+  // Handle save - حفظ مزدوج للربط مع منصتي + نشر تلقائي للصفحة العامة
   const handleSave = async () => {
     try {
       const dataToSave = JSON.stringify(formData);
@@ -330,7 +330,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       // 1) التحقق من تفرد الـ slug في قاعدة البيانات
       const { data: existingSlug, error: checkError } = await supabase
         .from('business_cards')
-        .select('id, user_id')
+        .select('id, user_id, published')
         .eq('slug', selectedSlug)
         .maybeSingle();
 
@@ -346,19 +346,48 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         return;
       }
 
-      // 2) تحديث سجل business_cards بالـ slug (بدون published حتى يضغط النشر)
+      // التحقق من اكتمال البيانات الأساسية (الاسم + الهاتف)
+      const hasBasicFields = formData.userName?.trim() && formData.primaryPhone?.trim();
+      
+      // التحقق من حالة النشر الحالية للبطاقة الخاصة بالمستخدم
+      const { data: currentCard } = await supabase
+        .from('business_cards')
+        .select('published, slug')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      // تحديد ما إذا كان هذا أول نشر تلقائي
+      // النشر التلقائي يحدث فقط إذا:
+      // 1. البطاقة غير منشورة حالياً (published = false)
+      // 2. يوجد slug متاح
+      // 3. البيانات الأساسية مكتملة (الاسم + الهاتف)
+      const isFirstAutoPublish = currentCard && !currentCard.published && selectedSlug && hasBasicFields;
+
+      // 2) تحديث سجل business_cards بالـ slug
       const cardDataPayload = JSON.parse(JSON.stringify({
         ...formData,
         swapState: localStorage.getItem(`business_card_swap_${user.id}`) === 'true',
       }));
 
+      const updatePayload: {
+        slug: string;
+        data: typeof cardDataPayload;
+        updated_at: string;
+        published?: boolean;
+      } = {
+        slug: selectedSlug,
+        data: cardDataPayload,
+        updated_at: new Date().toISOString()
+      };
+
+      // إضافة published = true فقط في حالة النشر التلقائي الأول
+      if (isFirstAutoPublish) {
+        updatePayload.published = true;
+      }
+
       const { error: updateError } = await supabase
         .from('business_cards')
-        .update({
-          slug: selectedSlug,
-          data: cardDataPayload,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatePayload)
         .eq('user_id', authUser.id);
 
       if (updateError) {
@@ -375,7 +404,19 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
 
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
-      toast.success("تم حفظ التغييرات والرابط بنجاح!");
+
+      // رسالة مختلفة حسب حالة النشر التلقائي
+      if (isFirstAutoPublish) {
+        toast.success(
+          <div className="flex flex-col gap-1">
+            <span className="font-bold">تم حفظ بطاقتك ونشر صفحتك العامة تلقائياً ✨</span>
+            <span className="text-sm opacity-90">رابطك: wasataai.com/{selectedSlug}</span>
+          </div>,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success("تم حفظ التغييرات والرابط بنجاح!");
+      }
     } catch (error) {
       console.error('Save error:', error);
       setShowError(true);
