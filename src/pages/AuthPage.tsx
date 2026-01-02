@@ -310,13 +310,10 @@ export default function AuthPage() {
         }).eq('user_id', userId);
         
         // 2) إنشاء سجل مبدئي في business_cards بدون slug
-        // slug يُختار من قبل المستخدم في /app/businesscard/edit
-        // نستخدم slug مؤقت فريد (userId) لأن العمود NOT NULL مع UNIQUE
-        const tempSlug = `temp-${userId}`;
-        
+        // slug = NULL - سيختاره المستخدم لاحقاً في /app/businesscard/edit
         const { error: bcError } = await supabase.from('business_cards').insert({
           user_id: userId,
-          slug: tempSlug, // مؤقت - سيختاره المستخدم لاحقاً
+          slug: null, // ❌ لا slug تلقائي - يختاره المستخدم
           published: false,
           data: {
             name: fullName,

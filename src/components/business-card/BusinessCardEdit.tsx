@@ -311,8 +311,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       };
       localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
 
-      // نشر بيانات البطاقة للمنصة العامة (ليظهر الهيدر للزوار على أجهزة أخرى)
-      // ملاحظة مهمة: يجب اختيار slug متاح (باللون الأخضر) ولا نستخدم أي قيمة بديلة مثل user.id
+      // التحقق من اختيار slug متاح (باللون الأخضر)
       const selectedSlug = isSlugAvailable && formData.userTitle ? String(formData.userTitle).trim() : '';
       if (!selectedSlug) {
         setShowError(true);
@@ -321,41 +320,62 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         return;
       }
 
-      const slug = selectedSlug;
-      const swapState = localStorage.getItem(`business_card_swap_${user.id}`) === 'true';
-      const publishTokenKey = `business_card_publish_token_${slug}`;
-      const existingToken = localStorage.getItem(publishTokenKey) || undefined;
+      // الحصول على user id
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        toast.error('يجب تسجيل الدخول أولاً');
+        return;
+      }
 
-      const payload = {
+      // 1) التحقق من تفرد الـ slug في قاعدة البيانات
+      const { data: existingSlug, error: checkError } = await supabase
+        .from('business_cards')
+        .select('id, user_id')
+        .eq('slug', selectedSlug)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking slug:', checkError);
+        toast.error('حدث خطأ في التحقق من الرابط');
+        return;
+      }
+
+      // إذا الـ slug موجود ومملوك لمستخدم آخر
+      if (existingSlug && existingSlug.user_id !== authUser.id) {
+        toast.error('هذا الرابط محجوز لمستخدم آخر. اختر رابطاً مختلفاً.');
+        return;
+      }
+
+      // 2) تحديث سجل business_cards بالـ slug (بدون published حتى يضغط النشر)
+      const cardDataPayload = JSON.parse(JSON.stringify({
         ...formData,
-        swapState,
-      };
+        swapState: localStorage.getItem(`business_card_swap_${user.id}`) === 'true',
+      }));
 
-      const { data, error } = await supabase.functions.invoke('publish-business-card', {
-        body: {
-          slug,
-          data: payload,
-          token: existingToken,
-        },
-      });
+      const { error: updateError } = await supabase
+        .from('business_cards')
+        .update({
+          slug: selectedSlug,
+          data: cardDataPayload,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', authUser.id);
 
-      if (error) {
-        throw error;
+      if (updateError) {
+        console.error('Error updating business card:', updateError);
+        toast.error('حدث خطأ في حفظ الرابط');
+        return;
       }
 
-      // حفظ الـ slug المستخدم للرابط العام دائماً عند نجاح النشر
-      // (حتى لو لم يرجع التوكن في نفس الاستجابة)
-      localStorage.setItem('public_platform_slug', slug);
+      // حفظ الـ slug المستخدم للرابط العام
+      localStorage.setItem('public_platform_slug', selectedSlug);
 
-      if (data?.token) {
-        localStorage.setItem(publishTokenKey, data.token);
-      }
       // إرسال حدث لتحديث المنصة فوراً
       window.dispatchEvent(new CustomEvent('businessCardUpdated'));
 
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
-      toast.success("تم حفظ التغييرات بنجاح!");
+      toast.success("تم حفظ التغييرات والرابط بنجاح!");
     } catch (error) {
       console.error('Save error:', error);
       setShowError(true);
