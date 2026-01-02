@@ -284,7 +284,7 @@ export default function AuthPage() {
         return;
       }
       
-      // تحديث ملف المستخدم بالبيانات الإضافية وإنشاء بطاقة أعمال
+      // تحديث ملف المستخدم بالبيانات الإضافية وإنشاء بطاقة أعمال وتعيين الدور
       if (authData?.user) {
         const { supabase } = await import('@/integrations/supabase/client');
         const userId = authData.user.id;
@@ -309,7 +309,19 @@ export default function AuthPage() {
           phone_verified: phoneVerified,
         }).eq('user_id', userId);
         
-        // 2) إنشاء سجل مبدئي في business_cards بدون slug
+        // 2) تعيين الدور بناءً على نوع الحساب
+        // office/company → admin | individual → user | owner يُحدد يدوياً لاحقاً
+        const userRole = data.accountType === 'individual' ? 'user' : 'admin';
+        const { error: roleError } = await supabase.from('user_roles').insert({
+          user_id: userId,
+          role: userRole,
+        });
+        
+        if (roleError && !roleError.message?.includes('duplicate')) {
+          console.error('Error assigning role:', roleError);
+        }
+        
+        // 3) إنشاء سجل مبدئي في business_cards بدون slug
         // slug = NULL - سيختاره المستخدم لاحقاً في /app/businesscard/edit
         const { error: bcError } = await supabase.from('business_cards').insert({
           user_id: userId,

@@ -1,11 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+
+export type AppRole = 'owner' | 'admin' | 'user';
+
+interface AuthState {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  role: AppRole | null;
+  roleLoading: boolean;
+  isAuthenticated: boolean;
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
+
+  // Fetch user role from database
+  const fetchUserRole = useCallback(async (userId: string) => {
+    setRoleLoading(true);
+    try {
+      // Use the security definer function to get role
+      const { data, error } = await supabase
+        .rpc('get_user_role', { _user_id: userId });
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        // Fallback: try direct query
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (!roleError && roleData) {
+          setRole(roleData.role as AppRole);
+        } else {
+          setRole(null);
+        }
+      } else {
+        setRole(data as AppRole);
+      }
+    } catch (err) {
+      console.error('Exception fetching role:', err);
+      setRole(null);
+    } finally {
+      setRoleLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -14,6 +60,15 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Fetch role after auth state change (deferred to avoid deadlock)
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserRole(session.user.id);
+          }, 0);
+        } else {
+          setRole(null);
+        }
       }
     );
 
@@ -22,10 +77,15 @@ export function useAuth() {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Fetch role for existing session
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchUserRole]);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
@@ -53,16 +113,33 @@ export function useAuth() {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    setRole(null);
     return { error };
+  };
+
+  // Helper functions to check roles
+  const isOwner = role === 'owner';
+  const isAdmin = role === 'admin' || role === 'owner';
+  const isUser = role === 'user' || role === 'admin' || role === 'owner';
+
+  const hasRole = (requiredRoles: AppRole[]): boolean => {
+    if (!role) return false;
+    return requiredRoles.includes(role);
   };
 
   return {
     user,
     session,
     loading,
+    role,
+    roleLoading,
     signUp,
     signIn,
     signOut,
-    isAuthenticated: !!session
+    isAuthenticated: !!session,
+    isOwner,
+    isAdmin,
+    isUser,
+    hasRole,
   };
 }
