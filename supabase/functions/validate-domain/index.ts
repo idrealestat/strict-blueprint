@@ -150,16 +150,37 @@ Deno.serve(async (req) => {
       for (const entry of blacklist) {
         // التحقق من تطابق النطاق
         if (entry.domain_root && cleanedTitle === cleanName(entry.domain_root)) {
-          // إذا كان حساب شركة ولديه نفس الموقع
+          // إذا كان حساب شركة ولديه نفس الموقع - قبول تلقائي
           if (accountType === 'company' && websiteUrl) {
             const websiteDomainRoot = extractDomainRoot(websiteUrl);
             if (websiteDomainRoot === cleanName(entry.domain_root)) {
-              console.log('Company matches blacklist domain, allowing:', cleanedTitle);
+              // التحقق من أن النطاق غير مستخدم من شخص آخر
+              const { data: existingCards } = await supabase
+                .from('business_cards')
+                .select('slug, user_id')
+                .eq('slug', userTitle);
+
+              if (existingCards && existingCards.length > 0) {
+                // النطاق مستخدم من شخص آخر - يحتاج طلب
+                console.log('Domain used by another user, requiring approval:', cleanedTitle);
+                return new Response(
+                  JSON.stringify({
+                    allowed: false,
+                    status: 'pending',
+                    reason: 'النطاق مستخدم حالياً من مستخدم آخر. يمكنك إرسال طلب للحصول على الأولوية كمالك النطاق الأصلي.',
+                    matched_company: entry.company_name,
+                    requires_approval: true
+                  } as ValidationResult),
+                  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+              }
+
+              console.log('Company matches blacklist domain, auto-approving:', cleanedTitle);
               return new Response(
                 JSON.stringify({
                   allowed: true,
                   status: 'available',
-                  reason: 'تم التحقق من ملكية النطاق'
+                  reason: 'تم التحقق من ملكية النطاق - قبول تلقائي'
                 } as ValidationResult),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );

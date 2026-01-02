@@ -384,7 +384,13 @@ export default function NotificationsSidebar({
                             ? "bg-gray-50 border-gray-200 opacity-70"
                             : style.bg
                         }`}
-                        onClick={() => markDomainAsRead(notification.id)}
+                        onClick={() => {
+                          markDomainAsRead(notification.id);
+                          if (notification.request_id) {
+                            navigate(`/domain-requests/${notification.request_id}`);
+                            onClose();
+                          }
+                        }}
                       >
                         <div className="flex items-start gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
