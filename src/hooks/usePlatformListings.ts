@@ -383,7 +383,12 @@ export function usePlatformListings(slug?: string) {
   };
 
   // مزامنة من localStorage إلى قاعدة البيانات
-  const syncFromLocalStorage = async (currentSlug: string) => {
+  const syncFromLocalStorage = async (
+    currentSlug: string,
+    options?: { silent?: boolean }
+  ) => {
+    const silent = Boolean(options?.silent);
+
     try {
       // قراءة البيانات من localStorage
       const localData = localStorage.getItem('wasata_platform_complete');
@@ -424,12 +429,45 @@ export function usePlatformListings(slug?: string) {
       const adsToSync = Array.from(byId.values());
 
       if (adsToSync.length === 0) {
-        toast.info('لا توجد عروض للمزامنة');
+        if (!silent) toast.info('لا توجد عروض للمزامنة');
         return;
       }
 
-      // تحويل وإدراج
-      const listingsToInsert = adsToSync.map((ad: any) => {
+      // نقرأ العروض الموجودة مسبقاً لهذا الـ slug حتى نمنع التكرار عند كل مزامنة
+      // (بدون أي افتراضات على شكل الـ id القادم من localStorage)
+      const { data: existingRows, error: existingErr } = await supabase
+        .from('platform_listings')
+        .select('id, title, price, city, district, property_type, smart_path')
+        .eq('slug', currentSlug);
+
+      if (existingErr) throw existingErr;
+
+      const buildKey = (row: {
+        title: any;
+        price: any;
+        city: any;
+        district: any;
+        property_type: any;
+        smart_path: any;
+      }) => {
+        const title = String(row.title ?? '').trim();
+        const price = String(row.price ?? '').trim();
+        const city = String(row.city ?? '').trim();
+        const district = String(row.district ?? '').trim();
+        const propertyType = String(row.property_type ?? '').trim();
+        const smartPath = String(row.smart_path ?? '').trim();
+        return `${title}__${price}__${city}__${district}__${propertyType}__${smartPath}`;
+      };
+
+      const existingByKey = new Map<string, string>();
+      (existingRows || []).forEach((r: any) => {
+        if (!r?.id) return;
+        const key = buildKey(r);
+        if (!existingByKey.has(key)) existingByKey.set(key, r.id);
+      });
+
+      // تحويل وإدراج/تحديث (Upsert) بدون تكرار
+      const listingsToUpsert = adsToSync.map((ad: any) => {
         // استخراج الصور
         const images =
           ad.images ||
@@ -472,7 +510,7 @@ export function usePlatformListings(slug?: string) {
 
         const description = firstNonEmpty(ad.aiDescription, ad.description);
 
-        const base = {
+        const base: any = {
           slug: currentSlug,
           title,
           description: description ? String(description) : null,
@@ -489,7 +527,9 @@ export function usePlatformListings(slug?: string) {
           owner_name: firstNonEmpty(ad.ownerName, null),
           owner_phone: firstNonEmpty(ad.ownerPhone, null),
           views: Number(firstNonEmpty(ad.views, 0)) || 0,
-          age: !isEmptyValue(ad.propertyAge) ? Number(String(ad.propertyAge).replace(/[^\d]/g, '')) : (!isEmptyValue(ad.age) ? Number(ad.age) : null),
+          age: !isEmptyValue(ad.propertyAge)
+            ? Number(String(ad.propertyAge).replace(/[^\d]/g, ''))
+            : (!isEmptyValue(ad.age) ? Number(ad.age) : null),
           direction: firstNonEmpty(ad.facade, ad.direction, null),
           features: firstNonEmpty(ad.features, ad.customFeatures, []) || [],
           video_url: videoUrl,
@@ -528,22 +568,43 @@ export function usePlatformListings(slug?: string) {
           is_hidden: Boolean(firstNonEmpty(ad.isHidden, false)),
         };
 
-        // توحيد الربط عبر نفس ID (بدون تكرار/نسخ ناقصة)
-        return isUuid(ad.id) ? { id: ad.id, ...base } : base;
+        // 1) إذا كان لدينا UUID صالح من المصدر نستخدمه
+        if (isUuid(ad.id)) return { id: ad.id, ...base };
+
+        // 2) غير ذلك: نطابق على مفتاح ثابت (نفس بيانات العرض) لمنع تكرار الإدراج
+        const key = buildKey({
+          title: base.title,
+          price: base.price,
+          city: base.city,
+          district: base.district,
+          property_type: base.property_type,
+          smart_path: base.smart_path,
+        });
+        const existingId = existingByKey.get(key);
+        return existingId ? { id: existingId, ...base } : base;
       });
 
-      const { data, error: insertError } = await supabase
+      const { data, error: upsertError } = await supabase
         .from('platform_listings')
-        .upsert(listingsToInsert, { onConflict: 'id' })
+        .upsert(listingsToUpsert, { onConflict: 'id' })
         .select();
 
-      if (insertError) throw insertError;
+      if (upsertError) throw upsertError;
 
-      setListings((data || []).map(mapDbToListing));
-      toast.success(`تم مزامنة ${listingsToInsert.length} عرض بنجاح`);
+      // Dedup على مستوى الواجهة أيضاً (حتى لو كانت هناك تكرارات قديمة في القاعدة)
+      const seen = new Set<string>();
+      const unique = (data || []).filter((row: any) => {
+        const key = buildKey(row);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setListings(unique.map(mapDbToListing));
+      if (!silent) toast.success(`تمت المزامنة (${unique.length})`);
     } catch (err: any) {
       console.error('Error syncing from localStorage:', err);
-      toast.error('فشل في المزامنة');
+      if (!silent) toast.error('فشل في المزامنة');
       throw err;
     }
   };
@@ -631,7 +692,7 @@ export function usePublicPlatformListings(slug?: string) {
 
     const fetchPublicListings = async () => {
       setLoading(true);
-      
+
       try {
         const { data, error: fetchError } = await supabase
           .from('platform_listings')
@@ -644,7 +705,16 @@ export function usePublicPlatformListings(slug?: string) {
 
         if (fetchError) throw fetchError;
 
-        setListings((data || []).map(mapDbToListing));
+        // إزالة التكرارات على مستوى العرض (للتعامل مع أي بيانات قديمة مكررة)
+        const seen = new Set<string>();
+        const uniqueRows = (data || []).filter((row: any) => {
+          const key = `${String(row.title ?? '').trim()}__${String(row.price ?? '').trim()}__${String(row.city ?? '').trim()}__${String(row.district ?? '').trim()}__${String(row.property_type ?? '').trim()}__${String(row.smart_path ?? '').trim()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        setListings(uniqueRows.map(mapDbToListing));
       } catch (err: any) {
         console.error('Error fetching public listings:', err);
         setError(err.message);
