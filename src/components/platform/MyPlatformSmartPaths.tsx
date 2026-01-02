@@ -36,7 +36,7 @@ import {
   PublishedAd, 
   groupAdsBySmartPath, 
   GroupedAds,
-  initMockAds 
+  clearMockAds 
 } from '@/utils/publishedAds';
 import { useDashboardContext } from '@/context/DashboardContext';
 
@@ -87,7 +87,7 @@ export default function MyPlatformSmartPaths({ user, onBack, showHeader = true }
 
   // تحميل الإعلانات عند التحميل
   useEffect(() => {
-    initMockAds(); // تهيئة البيانات التجريبية إذا لم تكن موجودة
+    clearMockAds(); // مسح البيانات الوهمية
     const ads = getAllPublishedAds();
     setPublishedAds(ads);
     setFilteredAds(ads);

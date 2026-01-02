@@ -279,104 +279,36 @@ export function filterAds(filters: {
   return ads;
 }
 
-// بيانات تجريبية للعرض
-export function initMockAds(): void {
-  const existingAds = getAllPublishedAds();
-  if (existingAds.length > 0) return;
-  
-  const mockAds: PublishedAd[] = [
-    {
-      id: '1',
-      title: 'فيلا فاخرة في حي النرجس',
-      description: 'فيلا فاخرة مع مسبح وحديقة',
-      price: 2500000,
-      priceText: '2,500,000 ريال',
-      purpose: 'بيع',
-      propertyType: 'فيلا',
-      propertyCategory: 'سكني',
-      location: { city: 'الرياض', district: 'حي النرجس' },
-      features: { bedrooms: 5, bathrooms: 4, area: 450 },
-      mediaFiles: [{ id: '1', type: 'image', url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400' }],
-      owner: { id: '1', name: 'محمد أحمد', phone: '0501234567' },
-      status: 'published',
-      views: 150,
-      favorites: 25,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: '2',
-      title: 'شقة مفروشة للإيجار',
-      description: 'شقة مفروشة بالكامل',
-      price: 5000,
-      priceText: '5,000 ريال/شهرياً',
-      purpose: 'إيجار',
-      propertyType: 'شقة',
-      propertyCategory: 'سكني',
-      location: { city: 'جدة', district: 'حي الروضة' },
-      features: { bedrooms: 3, bathrooms: 2, area: 180 },
-      mediaFiles: [{ id: '2', type: 'image', url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400' }],
-      owner: { id: '2', name: 'سارة محمد', phone: '0559876543' },
-      status: 'published',
-      views: 89,
-      favorites: 12,
-      createdAt: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-      id: '3',
-      title: 'أرض تجارية على طريق الملك فهد',
-      description: 'أرض تجارية موقع ممتاز',
-      price: 15000000,
-      priceText: '15,000,000 ريال',
-      purpose: 'بيع',
-      propertyType: 'أرض',
-      propertyCategory: 'تجاري',
-      location: { city: 'الرياض', district: 'طريق الملك فهد' },
-      features: { area: 5000 },
-      mediaFiles: [{ id: '3', type: 'image', url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400' }],
-      owner: { id: '3', name: 'عبدالله خالد', phone: '0541112233' },
-      status: 'published',
-      views: 210,
-      favorites: 45,
-      createdAt: new Date(Date.now() - 172800000).toISOString()
-    },
-    {
-      id: '4',
-      title: 'فيلا للبيع في حي النرجس',
-      description: 'فيلا حديثة',
-      price: 3200000,
-      priceText: '3,200,000 ريال',
-      purpose: 'بيع',
-      propertyType: 'فيلا',
-      propertyCategory: 'سكني',
-      location: { city: 'الرياض', district: 'حي النرجس' },
-      features: { bedrooms: 6, bathrooms: 5, area: 500 },
-      mediaFiles: [{ id: '4', type: 'image', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400' }],
-      owner: { id: '4', name: 'فهد سعود', phone: '0533334444' },
-      status: 'published',
-      views: 120,
-      favorites: 18,
-      createdAt: new Date(Date.now() - 259200000).toISOString()
-    },
-    {
-      id: '5',
-      title: 'شقة للإيجار في حي الروضة',
-      description: 'شقة عائلية',
-      price: 4500,
-      priceText: '4,500 ريال/شهرياً',
-      purpose: 'إيجار',
-      propertyType: 'شقة',
-      propertyCategory: 'سكني',
-      location: { city: 'جدة', district: 'حي الروضة' },
-      features: { bedrooms: 2, bathrooms: 1, area: 120 },
-      mediaFiles: [{ id: '5', type: 'image', url: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400' }],
-      owner: { id: '5', name: 'نورة علي', phone: '0555556666' },
-      status: 'published',
-      views: 65,
-      favorites: 8,
-      createdAt: new Date(Date.now() - 345600000).toISOString()
-    }
+// دالة مسح جميع البيانات الوهمية من localStorage
+export function clearMockAds(): void {
+  // مسح البيانات الوهمية من جميع المفاتيح المحتملة
+  const keysToCheck = [
+    'wasata_published_ads',
+    'published_ads_list',
+    'platform_ads',
   ];
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockAds));
-  console.log('✅ تم تهيئة البيانات التجريبية:', mockAds.length, 'إعلان');
+  // IDs الوهمية المعروفة
+  const mockIds = ['1', '2', '3', '4', '5'];
+  
+  keysToCheck.forEach(key => {
+    try {
+      const data = localStorage.getItem(key);
+      if (data) {
+        const ads = JSON.parse(data);
+        if (Array.isArray(ads)) {
+          // إزالة العروض الوهمية فقط
+          const realAds = ads.filter((ad: any) => !mockIds.includes(ad.id?.toString()));
+          localStorage.setItem(key, JSON.stringify(realAds));
+        }
+      }
+    } catch (error) {
+      console.error(`Error cleaning ${key}:`, error);
+    }
+  });
+  
+  console.log('✅ تم مسح البيانات الوهمية');
 }
+
+// تنفيذ مسح البيانات الوهمية تلقائياً عند تحميل الملف
+clearMockAds();
