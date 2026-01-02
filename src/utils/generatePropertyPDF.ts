@@ -214,55 +214,30 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
       </div>
       ` : ''}
 
-      <!-- معلومات التواصل -->
-      ${includeOwner || property.brokerPhone ? `
+      <!-- معلومات التواصل (الوسيط فقط) -->
+      ${property.brokerPhone ? `
       <div style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📞 معلومات التواصل
         </h3>
         <div style="background: linear-gradient(135deg, #f0f7f2 0%, #e8f5e9 100%); padding: 15px; border-radius: 10px; border: 1px solid #D4AF37;">
           <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            ${includeOwner && property.ownerName ? `
-            <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #01411C; width: 30%;">👤 اسم المالك:</td>
-              <td style="padding: 8px 0; color: #333;">${property.ownerName}</td>
-            </tr>` : ''}
-            ${includeOwner && property.ownerPhone ? `
-            <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">📱 رقم الجوال:</td>
-              <td style="padding: 8px 0; color: #333; direction: ltr; text-align: right;">${property.ownerPhone}</td>
-            </tr>` : ''}
-            ${property.brokerPhone ? `
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #01411C;">🏢 الوسيط العقاري:</td>
               <td style="padding: 8px 0; color: #333; direction: ltr; text-align: right;">${property.brokerPhone}</td>
-            </tr>` : ''}
-            ${property.ownerEmail ? `
-            <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">📧 البريد الإلكتروني:</td>
-              <td style="padding: 8px 0; color: #333;">${property.ownerEmail}</td>
-            </tr>` : ''}
+            </tr>
           </table>
           
           <!-- أزرار التواصل -->
           <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
-            ${property.ownerPhone || property.brokerPhone ? `
             <div style="background: #25D366; color: white; padding: 10px 20px; border-radius: 25px; font-size: 12px; font-weight: bold; text-align: center;">
-              💬 واتساب: ${property.ownerPhone || property.brokerPhone}
+              💬 واتساب: ${property.brokerPhone}
             </div>
             <div style="background: #01411C; color: white; padding: 10px 20px; border-radius: 25px; font-size: 12px; font-weight: bold; text-align: center;">
-              📞 اتصال: ${property.ownerPhone || property.brokerPhone}
+              📞 اتصال: ${property.brokerPhone}
             </div>
-            ` : ''}
           </div>
         </div>
-      </div>
-      ` : ''}
-
-      <!-- رخصة الإعلان -->
-      ${property.adLicense ? `
-      <div style="background: #fff3cd; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px; border: 1px solid #ffc107;">
-        <span style="color: #856404; font-size: 12px; font-weight: bold;">📋 رخصة الإعلان: ${property.adLicense}</span>
       </div>
       ` : ''}
 

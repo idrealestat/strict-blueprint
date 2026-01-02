@@ -1277,35 +1277,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
                 </div>
               )}
 
-              {/* معلومات الصك */}
-              {(listing.deedNumber || listing.adLicense) && (
-                <div className="bg-amber-50 rounded-xl p-6 mb-6 border-2 border-amber-200">
-                  <h3 className="font-bold text-amber-800 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-amber-600" />
-                    معلومات التوثيق
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {listing.deedNumber && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">رقم الصك:</span>
-                        <span className="font-bold text-gray-800">{listing.deedNumber}</span>
-                      </div>
-                    )}
-                    {listing.deedDate && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">تاريخ الصك:</span>
-                        <span className="font-bold text-gray-800">{listing.deedDate}</span>
-                      </div>
-                    )}
-                    {listing.adLicense && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">رقم ترخيص الإعلان:</span>
-                        <span className="font-bold text-gray-800">{listing.adLicense}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* تم إزالة قسم معلومات الصك والمالك */}
 
               {/* الهاشتاقات */}
               {((listing.hashtags && listing.hashtags.length > 0) || (listing.customHashtags && listing.customHashtags.length > 0)) && (
