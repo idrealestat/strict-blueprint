@@ -78,7 +78,6 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
 import { usePlatformListings } from "@/hooks/usePlatformListings";
-import { getPublicPlatformSlug } from "@/utils/publicPlatform";
 
 // ===================== Types =====================
 
@@ -694,11 +693,12 @@ export default function MyPlatformComplete({
     ownerEmail: '',
   });
 
-  // Platform URL (الرابط العام الحقيقي عبر slug)
+  // Platform URL (استعادة الرابط القديم لصفحة المشاركة العامة)
   const platformUrl = useMemo(() => {
-    const slug = getPublicPlatformSlug([currentSlug]);
-    return `https://wasataai.com/${slug}`;
-  }, [currentSlug]);
+    const origin = window.location.origin;
+    const id = user?.id || '1';
+    return `${origin}/platform/${id}`;
+  }, [user?.id]);
 
   // Filtered Offers
   const filteredOffers = useMemo(() => {
@@ -989,13 +989,14 @@ export default function MyPlatformComplete({
     // جلب بيانات العرض الكاملة
     const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
     const ad = publishedAds.find((a: any) => a.id === id);
-    
-    // إنشاء رابط حقيقي للعرض على wasataai.com
-    const slug = localStorage.getItem('public_platform_slug') || 'default';
-    const shareUrl = `https://wasataai.com/${slug}?offer=${id}`;
-    
+
+    // استعادة رابط المشاركة القديم (نفس الدومين الحالي + /platform/{userId})
+    const origin = window.location.origin;
+    const userId = user?.id || '1';
+    const shareUrl = `${origin}/platform/${userId}?offer=${id}`;
+
     let text = `🏠 *${title}*\n\n`;
-    
+
     if (ad) {
       text += `📍 الموقع: ${ad.locationDetails?.city || cityName || ''} - ${ad.locationDetails?.district || districtName || ''}\n`;
       if (ad.area) text += `📐 المساحة: ${ad.area} م²\n`;
@@ -1003,18 +1004,19 @@ export default function MyPlatformComplete({
       if (ad.bedrooms) text += `🛏️ الغرف: ${ad.bedrooms}\n`;
       if (ad.aiDescription) text += `\n📝 ${ad.aiDescription.slice(0, 150)}${ad.aiDescription.length > 150 ? '...' : ''}\n`;
     }
-    
+
     text += `\n🔗 شاهد العرض:\n${shareUrl}`;
-    
+
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     toast.success('تم فتح واتساب للمشاركة');
   };
 
   // مشاركة رابط
   const shareItemLink = async (title: string, id: string) => {
-    const slug = localStorage.getItem('public_platform_slug') || 'default';
-    const shareUrl = `https://wasataai.com/${slug}?offer=${id}`;
-    
+    const origin = window.location.origin;
+    const userId = user?.id || '1';
+    const shareUrl = `${origin}/platform/${userId}?offer=${id}`;
+
     await navigator.clipboard.writeText(shareUrl);
     toast.success('تم نسخ الرابط');
   };
