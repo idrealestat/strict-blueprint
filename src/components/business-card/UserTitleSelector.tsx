@@ -331,7 +331,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
           
           {/* اسم الدومين الأساسي */}
           <span className="text-primary font-bold text-sm whitespace-nowrap">
-            WasataAI.com/
+            WasataAI.com/smart
           </span>
           
           {/* حقل الإدخال */}
@@ -362,10 +362,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         {availability === 'available' && !errorMessage && value && (
           <div className="mt-3 p-2 rounded bg-emerald-100 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
             <p className="text-sm text-emerald-700 dark:text-emerald-300 text-right font-medium">
-              {officialDomainVerified 
-                ? '🔐 تم التحقق من ملكية النطاق الرسمي - قبول تلقائي!'
-                : `✅ النطاق متاح! رابطك سيكون: WasataAI.com/${value}`
-              }
+              {officialDomainVerified ? '🔐 تم التحقق من ملكية النطاق الرسمي - قبول تلقائي!' : '✅ الرابط الثابت جاهز! رابطك سيكون: WasataAI.com/smart'}
             </p>
             {priorityLevel && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400 text-right mt-1">
