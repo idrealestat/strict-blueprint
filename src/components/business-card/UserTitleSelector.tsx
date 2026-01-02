@@ -91,9 +91,20 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
 
       const newPublishedState = !isPublished;
       
+      // عند النشر، نحفظ الـ slug أيضاً
+      const updateData: { published: boolean; updated_at: string; slug?: string } = {
+        published: newPublishedState,
+        updated_at: new Date().toISOString()
+      };
+      
+      // إذا كان سيتم النشر ويوجد value، نضيف الـ slug
+      if (newPublishedState && value) {
+        updateData.slug = value;
+      }
+      
       const { error } = await supabase
         .from('business_cards')
-        .update({ published: newPublishedState, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('user_id', user.id);
 
       if (error) {
@@ -106,7 +117,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       window.dispatchEvent(new CustomEvent('businessCardUpdated'));
       
       if (newPublishedState) {
-        toast.success("تم نشر صفحتك العامة بنجاح ✨");
+        toast.success(`تم نشر صفحتك العامة بنجاح ✨ رابطك: ${baseDomain}/${value}`);
       } else {
         toast.success("تم إيقاف نشر صفحتك العامة");
       }
