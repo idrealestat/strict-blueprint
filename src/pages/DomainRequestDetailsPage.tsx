@@ -367,7 +367,7 @@ const DomainRequestDetailsPage: React.FC = () => {
                   
                   <Input
                     value={alternativeTitle}
-                    onChange={(e) => setAlternativeTitle(e.target.value.toLowerCase().replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, ''))}
+                    onChange={(e) => setAlternativeTitle(e.target.value.toLowerCase().replace(/[^a-zA-Z0-9\u0600-\u06FF-]/g, '').replace(/--+/g, '-'))}
                     placeholder="اسمك أو اسم شركتك"
                     className="flex-1"
                     dir="ltr"

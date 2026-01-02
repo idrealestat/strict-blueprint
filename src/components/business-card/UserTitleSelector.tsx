@@ -25,6 +25,9 @@ interface ValidationResult {
   matched_company?: string;
   requires_approval?: boolean;
   price?: number;
+  priority_level?: number;
+  alternative_suggestions?: string[];
+  official_domain_verified?: boolean;
 }
 
 interface DomainSettings {
@@ -48,6 +51,9 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   const [settings, setSettings] = useState<DomainSettings | null>(null);
   const [requestPrice, setRequestPrice] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [priorityLevel, setPriorityLevel] = useState<number | null>(null);
+  const [alternativeSuggestions, setAlternativeSuggestions] = useState<string[]>([]);
+  const [officialDomainVerified, setOfficialDomainVerified] = useState(false);
 
   // جلب الإعدادات
   useEffect(() => {
@@ -105,6 +111,9 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       setErrorMessage("");
       setMatchedCompany("");
       setRequestPrice(null);
+      setPriorityLevel(null);
+      setAlternativeSuggestions([]);
+      setOfficialDomainVerified(false);
       return;
     }
 
@@ -155,9 +164,26 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         setRequestPrice(result.price);
       }
 
+      // تحديث مستوى الأولوية والاقتراحات
+      if (result.priority_level) {
+        setPriorityLevel(result.priority_level);
+      }
+      
+      if (result.alternative_suggestions) {
+        setAlternativeSuggestions(result.alternative_suggestions);
+      }
+      
+      if (result.official_domain_verified) {
+        setOfficialDomainVerified(true);
+      }
+
       // إظهار رسالة توست حسب الحالة
       if (result.status === 'available') {
-        toast.success("النطاق متاح للاستخدام");
+        if (result.official_domain_verified) {
+          toast.success("تم التحقق من ملكية النطاق - قبول تلقائي!");
+        } else {
+          toast.success("النطاق متاح للاستخدام");
+        }
       } else if (result.status === 'pending' && result.requires_approval) {
         toast.info("هذا النطاق يحتاج موافقة الإدارة");
       }
@@ -191,7 +217,11 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
           company_name: companyName || null,
           website_url: websiteUrl || null,
           account_type: accountType,
-          status: 'pending'
+          status: 'pending',
+          priority_level: priorityLevel || 3,
+          owner_type: accountType || 'individual',
+          official_domain_verified: officialDomainVerified,
+          alternative_suggestions: alternativeSuggestions
         });
 
       if (error) {
@@ -326,8 +356,16 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         {availability === 'available' && !errorMessage && value && (
           <div className="mt-3 p-2 rounded bg-emerald-100 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
             <p className="text-sm text-emerald-700 dark:text-emerald-300 text-right font-medium">
-              ✅ النطاق متاح! رابطك سيكون: WasataAI.com/{value}
+              {officialDomainVerified 
+                ? '🔐 تم التحقق من ملكية النطاق الرسمي - قبول تلقائي!'
+                : `✅ النطاق متاح! رابطك سيكون: WasataAI.com/${value}`
+              }
             </p>
+            {priorityLevel && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 text-right mt-1">
+                مستوى الأولوية: {priorityLevel === 1 ? '🥇 الأعلى (مالك نطاق رسمي)' : priorityLevel === 2 ? '🥈 شركة/مكتب' : '🥉 فرد'}
+              </p>
+            )}
           </div>
         )}
 
@@ -357,6 +395,28 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
               )}
               إرسال طلب للمراجعة
             </Button>
+          </div>
+        )}
+
+        {/* اقتراحات بديلة */}
+        {alternativeSuggestions.length > 0 && (availability === 'unavailable' || availability === 'pending') && (
+          <div className="mt-3 p-3 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-700 dark:text-blue-300 text-right font-medium mb-2">
+              💡 اقتراحات بديلة متاحة:
+            </p>
+            <div className="flex flex-wrap gap-2 justify-end">
+              {alternativeSuggestions.map((suggestion, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300"
+                  onClick={() => onChange(suggestion)}
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
 

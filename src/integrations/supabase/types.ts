@@ -200,20 +200,25 @@ export type Database = {
         Row: {
           account_type: string | null
           admin_notes: string | null
+          alternative_suggestions: string[] | null
           company_name: string | null
           created_at: string
           id: string
           matched_company: string | null
           notified_at: string | null
+          official_domain_verified: boolean | null
           original_owner_claimed: boolean | null
+          owner_type: string | null
           price: number | null
           price_enabled: boolean | null
+          priority_level: number | null
           priority_revoked: boolean | null
           priority_revoked_at: string | null
           rejection_reason: string | null
           requested_title: string
           reviewed_at: string | null
           reviewed_by: string | null
+          source: string | null
           status: string | null
           updated_at: string
           user_id: string
@@ -222,20 +227,25 @@ export type Database = {
         Insert: {
           account_type?: string | null
           admin_notes?: string | null
+          alternative_suggestions?: string[] | null
           company_name?: string | null
           created_at?: string
           id?: string
           matched_company?: string | null
           notified_at?: string | null
+          official_domain_verified?: boolean | null
           original_owner_claimed?: boolean | null
+          owner_type?: string | null
           price?: number | null
           price_enabled?: boolean | null
+          priority_level?: number | null
           priority_revoked?: boolean | null
           priority_revoked_at?: string | null
           rejection_reason?: string | null
           requested_title: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          source?: string | null
           status?: string | null
           updated_at?: string
           user_id: string
@@ -244,20 +254,25 @@ export type Database = {
         Update: {
           account_type?: string | null
           admin_notes?: string | null
+          alternative_suggestions?: string[] | null
           company_name?: string | null
           created_at?: string
           id?: string
           matched_company?: string | null
           notified_at?: string | null
+          official_domain_verified?: boolean | null
           original_owner_claimed?: boolean | null
+          owner_type?: string | null
           price?: number | null
           price_enabled?: boolean | null
+          priority_level?: number | null
           priority_revoked?: boolean | null
           priority_revoked_at?: string | null
           rejection_reason?: string | null
           requested_title?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          source?: string | null
           status?: string | null
           updated_at?: string
           user_id?: string
