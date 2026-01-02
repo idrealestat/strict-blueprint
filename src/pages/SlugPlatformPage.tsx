@@ -10,6 +10,9 @@ import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import MyPublicPlatformContent from '@/components/platform/MyPublicPlatformContent';
 import { Loader2 } from 'lucide-react';
+import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
+import { usePagePresence } from '@/hooks/usePagePresence';
+import { usePageViewTracker } from '@/hooks/usePageViewTracker';
 
 interface BusinessCardData {
   id: string;
@@ -32,6 +35,12 @@ const SlugPlatformPage: React.FC = () => {
   const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // تتبع الزوار المتصلين حالياً
+  const { liveCount } = usePagePresence('platform', slug);
+  
+  // تسجيل المشاهدة للإحصائيات
+  usePageViewTracker('platform', slug);
 
   useEffect(() => {
     const fetchBusinessCard = async () => {
@@ -121,6 +130,9 @@ const SlugPlatformPage: React.FC = () => {
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
       </Helmet>
+
+      {/* عداد الزوار المتصلين */}
+      <LiveViewersBadge count={liveCount} variant="floating" />
 
       <MyPublicPlatformContent
         currentUser={cardData.userName ? { name: cardData.userName } : undefined}
