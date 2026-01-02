@@ -1,9 +1,11 @@
 /**
  * generatePropertyPDF.ts
  * دالة توليد ملف PDF لتفاصيل العقار مع دعم كامل للعربية
+ * باستخدام html2canvas لدعم النصوص العربية بشكل صحيح
  */
 
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface PropertyData {
   id?: string;
@@ -37,288 +39,277 @@ interface PropertyData {
   adLicense?: string;
   publishedAt?: string;
   images?: string[];
+  title?: string;
 }
 
-// دالة لعكس النص العربي للعرض الصحيح
-const reverseArabicText = (text: string): string => {
-  // التحقق مما إذا كان النص يحتوي على أحرف عربية
-  const arabicRegex = /[\u0600-\u06FF]/;
-  if (!arabicRegex.test(text)) {
-    return text;
-  }
-  
-  // عكس النص العربي لعرضه بشكل صحيح في jsPDF
-  return text.split('').reverse().join('');
-};
-
-// دالة لتحويل الأرقام إلى أرقام عربية
+// تحويل الأرقام إلى أرقام عربية
 const toArabicNumerals = (num: string | number): string => {
   const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   return String(num).replace(/[0-9]/g, (d) => arabicNumbers[parseInt(d)]);
 };
 
-// ترجمة المصطلحات للعربية
-const arabicLabels: { [key: string]: string } = {
-  'Property Type': 'نوع العقار',
-  'Category': 'التصنيف',
-  'Purpose': 'الغرض',
-  'Area': 'المساحة',
-  'Price': 'السعر',
-  'City': 'المدينة',
-  'District': 'الحي',
-  'Street': 'الشارع',
-  'Building Number': 'رقم المبنى',
-  'Postal Code': 'الرمز البريدي',
-  'Bedrooms': 'غرف النوم',
-  'Bathrooms': 'دورات المياه',
-  'Living Rooms': 'الصالات',
-  'Floors': 'الأدوار',
-  'Floor Number': 'رقم الطابق',
-  'Street Width': 'عرض الشارع',
-  'Property Age': 'عمر العقار',
-  'Facade': 'الواجهة',
-  'Furnishing': 'التأثيث',
-  'Owner Name': 'اسم المالك',
-  'Phone': 'الهاتف',
-  'sqm': 'م²',
-  'SAR': 'ريال',
-  'm': 'م',
-  'years': 'سنة',
+// تنسيق السعر بالعربية
+const formatArabicPrice = (price: string | number): string => {
+  const numPrice = typeof price === 'string' ? parseInt(price) : price;
+  return toArabicNumerals(numPrice.toLocaleString('ar-SA'));
 };
 
 /**
- * توليد PDF لتفاصيل العقار مع دعم العربية
+ * إنشاء عنصر HTML للطباعة كـ PDF
+ */
+const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDivElement => {
+  const container = document.createElement('div');
+  container.id = 'pdf-content';
+  container.style.cssText = `
+    width: 595px;
+    min-height: 842px;
+    padding: 0;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    direction: rtl;
+    background: white;
+    position: absolute;
+    left: -9999px;
+    top: 0;
+  `;
+
+  const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
+  const typeAr = property.propertyType || 'عقار';
+
+  container.innerHTML = `
+    <!-- رأس الصفحة -->
+    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 25px; text-align: center;">
+      <h1 style="color: #D4AF37; font-size: 28px; margin: 0 0 5px 0; font-weight: bold;">منصة وساطة العقارية</h1>
+      <p style="color: #ffffff; font-size: 14px; margin: 0;">Wasata Real Estate Platform</p>
+    </div>
+
+    <!-- عنوان العرض -->
+    <div style="background: #f8f9fa; padding: 20px; text-align: center; border-bottom: 3px solid #D4AF37;">
+      <h2 style="color: #01411C; font-size: 22px; margin: 0;">
+        عرض ${purposeAr} - ${typeAr} - ${property.area || ''}م²
+      </h2>
+    </div>
+
+    <!-- المعلومات الرئيسية -->
+    <div style="padding: 20px;">
+      
+      <!-- بطاقات المعلومات الأساسية -->
+      <div style="display: flex; justify-content: space-around; margin-bottom: 25px; flex-wrap: wrap;">
+        <div style="text-align: center; padding: 15px; background: #f0f7f2; border-radius: 10px; min-width: 120px; margin: 5px;">
+          <div style="color: #01411C; font-size: 24px; font-weight: bold;">${property.area ? toArabicNumerals(property.area) : '-'}</div>
+          <div style="color: #666; font-size: 12px;">م² المساحة</div>
+        </div>
+        <div style="text-align: center; padding: 15px; background: #f0f7f2; border-radius: 10px; min-width: 120px; margin: 5px;">
+          <div style="color: #01411C; font-size: 24px; font-weight: bold;">${property.bedrooms ? toArabicNumerals(property.bedrooms) : '-'}</div>
+          <div style="color: #666; font-size: 12px;">غرف</div>
+        </div>
+        <div style="text-align: center; padding: 15px; background: #f0f7f2; border-radius: 10px; min-width: 120px; margin: 5px;">
+          <div style="color: #01411C; font-size: 24px; font-weight: bold;">${property.bathrooms ? toArabicNumerals(property.bathrooms) : '-'}</div>
+          <div style="color: #666; font-size: 12px;">حمامات</div>
+        </div>
+      </div>
+
+      <!-- السعر -->
+      <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px;">
+        <div style="color: #D4AF37; font-size: 32px; font-weight: bold;">${property.price ? formatArabicPrice(property.price) : '-'}</div>
+        <div style="color: #fff; font-size: 14px;">ريال سعودي ${property.purpose === 'rent' ? 'سنوياً' : ''}</div>
+      </div>
+
+      <!-- قسم الموقع -->
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #01411C; font-size: 16px; border-bottom: 2px solid #D4AF37; padding-bottom: 8px; margin-bottom: 15px;">
+          📍 الموقع والعنوان
+        </h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">المدينة:</td>
+            <td style="padding: 8px; background: #fff;">${property.locationDetails?.city || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">الحي:</td>
+            <td style="padding: 8px; background: #fff;">${property.locationDetails?.district || '-'}</td>
+          </tr>
+          ${property.locationDetails?.street ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">الشارع:</td>
+            <td style="padding: 8px; background: #fff;">${property.locationDetails.street}</td>
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+
+      <!-- قسم المواصفات -->
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #01411C; font-size: 16px; border-bottom: 2px solid #D4AF37; padding-bottom: 8px; margin-bottom: 15px;">
+          🏠 المواصفات التفصيلية
+        </h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          ${property.bedrooms ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">غرف النوم:</td>
+            <td style="padding: 8px; background: #fff;">${toArabicNumerals(property.bedrooms)} غرف</td>
+          </tr>` : ''}
+          ${property.bathrooms ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">دورات المياه:</td>
+            <td style="padding: 8px; background: #fff;">${toArabicNumerals(property.bathrooms)} حمام</td>
+          </tr>` : ''}
+          ${property.livingRooms ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">الصالات:</td>
+            <td style="padding: 8px; background: #fff;">${toArabicNumerals(property.livingRooms)} صالة</td>
+          </tr>` : ''}
+          ${property.floors ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">عدد الأدوار:</td>
+            <td style="padding: 8px; background: #fff;">${toArabicNumerals(property.floors)} دور</td>
+          </tr>` : ''}
+          ${property.floorNumber ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">رقم الطابق:</td>
+            <td style="padding: 8px; background: #fff;">الطابق ${toArabicNumerals(property.floorNumber)}</td>
+          </tr>` : ''}
+          ${property.streetWidth ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">عرض الشارع:</td>
+            <td style="padding: 8px; background: #fff;">${toArabicNumerals(property.streetWidth)} متر</td>
+          </tr>` : ''}
+          ${property.propertyAge ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">عمر العقار:</td>
+            <td style="padding: 8px; background: #fff;">${toArabicNumerals(property.propertyAge)} سنة</td>
+          </tr>` : ''}
+          ${property.facade ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">الواجهة:</td>
+            <td style="padding: 8px; background: #fff;">${property.facade}</td>
+          </tr>` : ''}
+          ${property.furnishing ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">التأثيث:</td>
+            <td style="padding: 8px; background: #fff;">${property.furnishing}</td>
+          </tr>` : ''}
+        </table>
+      </div>
+
+      <!-- المميزات -->
+      ${property.features && property.features.length > 0 ? `
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #01411C; font-size: 16px; border-bottom: 2px solid #D4AF37; padding-bottom: 8px; margin-bottom: 15px;">
+          ✨ المميزات الإضافية
+        </h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${property.features.map(f => `
+            <span style="background: #f0f7f2; color: #01411C; padding: 6px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #D4AF37;">
+              ✓ ${f}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- الوصف -->
+      ${property.aiDescription ? `
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #01411C; font-size: 16px; border-bottom: 2px solid #D4AF37; padding-bottom: 8px; margin-bottom: 15px;">
+          📝 وصف العقار
+        </h3>
+        <p style="color: #333; line-height: 1.8; text-align: justify; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+          ${property.aiDescription}
+        </p>
+      </div>
+      ` : ''}
+
+      <!-- معلومات التواصل -->
+      ${includeOwner && (property.ownerName || property.ownerPhone) ? `
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #01411C; font-size: 16px; border-bottom: 2px solid #D4AF37; padding-bottom: 8px; margin-bottom: 15px;">
+          📞 معلومات التواصل
+        </h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          ${property.ownerName ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">اسم المالك:</td>
+            <td style="padding: 8px; background: #fff;">${property.ownerName}</td>
+          </tr>` : ''}
+          ${property.ownerPhone ? `
+          <tr>
+            <td style="padding: 8px; background: #f8f9fa; font-weight: bold; color: #01411C;">رقم الجوال:</td>
+            <td style="padding: 8px; background: #fff; direction: ltr; text-align: right;">${property.ownerPhone}</td>
+          </tr>` : ''}
+        </table>
+      </div>
+      ` : ''}
+
+    </div>
+
+    <!-- تذييل الصفحة -->
+    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 15px 25px; position: absolute; bottom: 0; left: 0; right: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; color: #D4AF37; font-size: 11px;">
+        <span>تم إنشاءه بتاريخ: ${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        ${property.brokerPhone ? `<span>الوسيط: ${property.brokerPhone}</span>` : ''}
+        ${property.adLicense ? `<span>رخصة الإعلان: ${property.adLicense}</span>` : ''}
+      </div>
+    </div>
+  `;
+
+  return container;
+};
+
+/**
+ * توليد PDF لتفاصيل العقار مع دعم العربية الكامل
  */
 export async function generatePropertyPDF(property: PropertyData, includeOwner: boolean = true): Promise<void> {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
+  // إنشاء محتوى HTML
+  const container = createPDFContent(property, includeOwner);
+  document.body.appendChild(container);
 
-  // تفعيل RTL
-  doc.setR2L(true);
-
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
-  let yPos = margin;
-
-  // ======== رأس الصفحة ========
-  doc.setFillColor(1, 65, 28); // #01411C
-  doc.rect(0, 0, pageWidth, 45, 'F');
-
-  // عنوان رئيسي
-  doc.setTextColor(212, 175, 55); // #D4AF37
-  doc.setFontSize(26);
-  doc.text('Wasata', pageWidth / 2, 18, { align: 'center' });
-  
-  doc.setFontSize(12);
-  doc.text('Real Estate Platform', pageWidth / 2, 28, { align: 'center' });
-  
-  doc.setFontSize(14);
-  doc.setTextColor(255, 255, 255);
-  doc.text('Property Details Report', pageWidth / 2, 38, { align: 'center' });
-
-  yPos = 55;
-
-  // ======== معلومات العقار الأساسية ========
-  const drawSectionHeader = (title: string, arabicTitle: string) => {
-    doc.setFillColor(245, 245, 245);
-    doc.rect(margin, yPos - 6, pageWidth - 2 * margin, 10, 'F');
-    
-    doc.setTextColor(1, 65, 28);
-    doc.setFontSize(14);
-    doc.text(title, margin + 5, yPos);
-    doc.text(arabicTitle, pageWidth - margin - 5, yPos, { align: 'right' });
-    
-    yPos += 8;
-    doc.setDrawColor(212, 175, 55);
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 8;
-  };
-
-  const drawInfoRow = (label: string, value: string, arabicLabel?: string) => {
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(10);
-    doc.text(label, margin + 5, yPos);
-    
-    if (arabicLabel) {
-      doc.text(arabicLabel, pageWidth - margin - 5, yPos, { align: 'right' });
-    }
-    
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    doc.text(value, pageWidth / 2, yPos, { align: 'center' });
-    
-    yPos += 8;
-  };
-
-  // معلومات العقار الأساسية
-  drawSectionHeader('Property Information', 'معلومات العقار');
-
-  const basicInfo = [
-    { en: 'Property Type', ar: 'نوع العقار', value: property.propertyType || '-' },
-    { en: 'Category', ar: 'التصنيف', value: property.category || '-' },
-    { en: 'Purpose', ar: 'الغرض', value: property.purpose || '-' },
-    { en: 'Area', ar: 'المساحة', value: property.area ? `${property.area} m² / ${toArabicNumerals(property.area)} م²` : '-' },
-    { en: 'Price', ar: 'السعر', value: property.price ? `${parseInt(property.price).toLocaleString()} SAR` : '-' },
-  ];
-
-  basicInfo.forEach(({ en, ar, value }) => {
-    drawInfoRow(en, value, ar);
-  });
-
-  yPos += 5;
-
-  // ======== معلومات الموقع ========
-  drawSectionHeader('Location Details', 'تفاصيل الموقع');
-
-  const locationInfo = [
-    { en: 'City', ar: 'المدينة', value: property.locationDetails?.city || '-' },
-    { en: 'District', ar: 'الحي', value: property.locationDetails?.district || '-' },
-    { en: 'Street', ar: 'الشارع', value: property.locationDetails?.street || '-' },
-  ];
-
-  locationInfo.forEach(({ en, ar, value }) => {
-    drawInfoRow(en, value, ar);
-  });
-
-  yPos += 5;
-
-  // ======== المواصفات التفصيلية ========
-  drawSectionHeader('Specifications', 'المواصفات');
-
-  const specs = [
-    { en: 'Bedrooms', ar: 'غرف النوم', value: property.bedrooms || '-' },
-    { en: 'Bathrooms', ar: 'دورات المياه', value: property.bathrooms || '-' },
-    { en: 'Living Rooms', ar: 'الصالات', value: property.livingRooms || '-' },
-    { en: 'Floors', ar: 'الأدوار', value: property.floors || '-' },
-    { en: 'Floor Number', ar: 'رقم الطابق', value: property.floorNumber || '-' },
-    { en: 'Street Width', ar: 'عرض الشارع', value: property.streetWidth ? `${property.streetWidth} m` : '-' },
-    { en: 'Property Age', ar: 'عمر العقار', value: property.propertyAge ? `${property.propertyAge} years` : '-' },
-    { en: 'Facade', ar: 'الواجهة', value: property.facade || '-' },
-    { en: 'Furnishing', ar: 'التأثيث', value: property.furnishing || '-' },
-  ].filter(item => item.value !== '-');
-
-  specs.forEach(({ en, ar, value }) => {
-    if (yPos > pageHeight - 40) {
-      doc.addPage();
-      yPos = margin;
-    }
-    drawInfoRow(en, value, ar);
-  });
-
-  // ======== معلومات المالك ========
-  if (includeOwner && (property.ownerName || property.ownerPhone)) {
-    yPos += 5;
-    
-    if (yPos > pageHeight - 60) {
-      doc.addPage();
-      yPos = margin;
-    }
-    
-    drawSectionHeader('Owner Information', 'معلومات المالك');
-
-    if (property.ownerName) {
-      drawInfoRow('Owner Name', property.ownerName, 'اسم المالك');
-    }
-    if (property.ownerPhone) {
-      drawInfoRow('Phone', property.ownerPhone, 'الهاتف');
-    }
-  }
-
-  // ======== المميزات ========
-  if (property.features && property.features.length > 0) {
-    yPos += 5;
-    
-    if (yPos > pageHeight - 50) {
-      doc.addPage();
-      yPos = margin;
-    }
-
-    drawSectionHeader('Features', 'المميزات');
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-
-    const featuresPerRow = 3;
-    const featureWidth = (pageWidth - 2 * margin) / featuresPerRow;
-    
-    property.features.forEach((feature, idx) => {
-      const col = idx % featuresPerRow;
-      const row = Math.floor(idx / featuresPerRow);
-      
-      if (col === 0 && row > 0) {
-        yPos += 7;
-      }
-      
-      if (yPos > pageHeight - 25) {
-        doc.addPage();
-        yPos = margin;
-      }
-
-      const xPos = margin + (col * featureWidth) + featureWidth / 2;
-      doc.text(`• ${feature}`, xPos, yPos + (row === 0 ? 0 : 0), { align: 'center' });
+  try {
+    // تحويل HTML إلى Canvas
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
     });
 
-    yPos += 15;
-  }
-
-  // ======== الوصف ========
-  if (property.aiDescription) {
-    if (yPos > pageHeight - 60) {
-      doc.addPage();
-      yPos = margin;
-    }
-
-    drawSectionHeader('Description', 'الوصف');
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-
-    const maxWidth = pageWidth - 2 * margin;
-    const lines = doc.splitTextToSize(property.aiDescription, maxWidth);
-    
-    lines.forEach((line: string) => {
-      if (yPos > pageHeight - 25) {
-        doc.addPage();
-        yPos = margin;
-      }
-      doc.text(line, pageWidth / 2, yPos, { align: 'center' });
-      yPos += 6;
+    // إنشاء PDF من Canvas
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
     });
-  }
 
-  // ======== تذييل الصفحة ========
-  const addFooter = (pageNum: number) => {
-    doc.setFillColor(1, 65, 28);
-    doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+    const imgWidth = 210; // A4 width in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    doc.setTextColor(212, 175, 55);
-    doc.setFontSize(9);
-    
-    const date = new Date().toLocaleDateString('en-SA');
-    doc.text(`Generated: ${date}`, margin, pageHeight - 8);
-    
-    if (property.brokerPhone) {
-      doc.text(`Broker: ${property.brokerPhone}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+
+    // إضافة صفحات إضافية إذا لزم الأمر
+    const pageHeight = 297; // A4 height in mm
+    if (imgHeight > pageHeight) {
+      let remainingHeight = imgHeight - pageHeight;
+      let position = -pageHeight;
+      
+      while (remainingHeight > 0) {
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        remainingHeight -= pageHeight;
+        position -= pageHeight;
+      }
     }
+
+    // اسم الملف بالعربية
+    const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
+    const typeAr = property.propertyType || 'عقار';
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `عرض_${purposeAr}_-_${typeAr}_-_${property.area || ''}م_${date}.pdf`;
     
-    if (property.adLicense) {
-      doc.text(`License: ${property.adLicense}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
-    }
-  };
-
-  // إضافة التذييل لجميع الصفحات
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    addFooter(i);
+    pdf.save(fileName);
+  } finally {
+    // تنظيف العنصر المؤقت
+    document.body.removeChild(container);
   }
-
-  // تحميل الملف
-  const fileName = `property_${property.id?.slice(0, 8) || 'report'}_${new Date().getTime()}.pdf`;
-  doc.save(fileName);
 }
