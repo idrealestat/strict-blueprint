@@ -135,6 +135,14 @@ export default function OtpVerification({
     );
   }
 
+  if (!userId) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        أكمل إنشاء الحساب أولاً ثم أعد محاولة إرسال رمز التفعيل.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {!showOtpInput ? (

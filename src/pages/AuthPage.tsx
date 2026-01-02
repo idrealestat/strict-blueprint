@@ -782,7 +782,7 @@ export default function AuthPage() {
           <OtpVerification
             type="email"
             value={data.email}
-            userId={createdUserId || 'temp'}
+            userId={createdUserId ?? ''}
             isVerified={emailVerified}
             onVerified={() => setEmailVerified(true)}
           />
@@ -797,7 +797,7 @@ export default function AuthPage() {
           <OtpVerification
             type="phone"
             value={data.phone}
-            userId={createdUserId || 'temp'}
+            userId={createdUserId ?? ''}
             isVerified={phoneVerified}
             onVerified={() => setPhoneVerified(true)}
           />
