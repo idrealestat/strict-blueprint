@@ -869,7 +869,7 @@ export function usePublicPlatformListings(slug?: string) {
 export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
   try {
     // الحصول على الـ slug من localStorage
-    const slug = localStorage.getItem('public_platform_slug') || '1';
+    const slug = localStorage.getItem('public_platform_slug') || 'default';
 
     if (!slug) {
       console.warn('No platform slug found, skipping database sync');
