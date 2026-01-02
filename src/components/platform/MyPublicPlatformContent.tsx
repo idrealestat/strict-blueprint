@@ -382,7 +382,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       cityGroups[city].districts[district].listings.push({
         ...ad, // نقل جميع الحقول الأصلية
         id: ad.id,
-        title: ad.title,
+        title: ad.title || `${ad.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${ad.propertyType || ''} - ${ad.area || ''}م`,
         description: ad.description || ad.aiDescription, // الوصف من النموذج
         price: ad.price || 0,
         propertyType: ad.propertyType,
