@@ -59,6 +59,9 @@ interface DomainRequest {
   price_enabled: boolean;
   price: number | null;
   priority_revoked: boolean;
+  priority_level: number | null;
+  official_domain_verified: boolean | null;
+  owner_type: string | null;
 }
 
 interface BlacklistEntry {
@@ -528,7 +531,7 @@ const DomainAdminPage: React.FC = () => {
 
       {/* التبويبات */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="requests" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             طلبات النطاقات
@@ -537,6 +540,10 @@ const DomainAdminPage: React.FC = () => {
                 {pendingCount}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="priority" className="flex items-center gap-2">
+            <Crown className="w-4 h-4" />
+            إدارة الأولويات
           </TabsTrigger>
           <TabsTrigger value="blacklist" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -754,6 +761,242 @@ const DomainAdminPage: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* إدارة الأولويات */}
+        <TabsContent value="priority">
+          <div className="space-y-6">
+            {/* شرح مستويات الأولوية */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  نظام مستويات الأولوية
+                </CardTitle>
+                <CardDescription>ترتيب الأولوية في تخصيص النطاقات</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className="bg-amber-500 text-white">🥇 الأولوية 1</Badge>
+                    </div>
+                    <h4 className="font-semibold text-amber-800">مالك النطاق الرسمي</h4>
+                    <p className="text-sm text-amber-700 mt-1">
+                      من يملك نطاق رسمي مطابق أو قريب ومُتحقق منه
+                    </p>
+                    <ul className="text-xs text-amber-600 mt-2 space-y-1">
+                      <li>• قبول تلقائي عند التحقق</li>
+                      <li>• حق السحب من أي مستخدم آخر</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className="bg-blue-500 text-white">🥈 الأولوية 2</Badge>
+                    </div>
+                    <h4 className="font-semibold text-blue-800">شركة / مكتب عقاري</h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      مكتب أو شركة عقارية موثقة تجارياً
+                    </p>
+                    <ul className="text-xs text-blue-600 mt-2 space-y-1">
+                      <li>• يحتاج موافقة المشرف</li>
+                      <li>• أولوية على الأفراد</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-gray-50 border-gray-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary">🥉 الأولوية 3</Badge>
+                    </div>
+                    <h4 className="font-semibold text-gray-800">حساب فردي</h4>
+                    <p className="text-sm text-gray-700 mt-1">
+                      أفراد (اسم شخصي)
+                    </p>
+                    <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                      <li>• أقل أولوية</li>
+                      <li>• لا يُمنح إلا بدون تعارض</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* طلبات الموافقة السريعة - مالكي النطاقات الرسمية */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-emerald-500" />
+                  الموافقة السريعة - مالكي النطاقات الرسمية
+                </CardTitle>
+                <CardDescription>طلبات من مستخدمين تم التحقق من ملكيتهم للنطاق الرسمي</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const officialOwnerRequests = requests.filter(r => 
+                    r.status === 'pending' && 
+                    r.official_domain_verified === true &&
+                    r.priority_level === 1
+                  );
+                  
+                  if (officialOwnerRequests.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>لا توجد طلبات من مالكي نطاقات رسمية</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-3">
+                      {officialOwnerRequests.map((request) => (
+                        <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg bg-emerald-50 border-emerald-200">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                              <Crown className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold">WasataAI.com/{request.requested_title}</span>
+                                <Badge className="bg-emerald-500 text-white text-xs">نطاق رسمي مُتحقق</Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {request.company_name || 'غير محدد'} • {request.website_url || 'بدون موقع'}
+                              </div>
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={() => approveRequest(request)} 
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            <Check className="w-4 h-4 ml-2" />
+                            موافقة فورية
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* طلبات استرداد النطاقات */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  طلبات استرداد النطاقات
+                </CardTitle>
+                <CardDescription>طلبات من مالكي النطاقات الرسمية لاسترداد نطاقات مستخدمة من آخرين</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const reclaimRequests = requests.filter(r => 
+                    r.status === 'pending' && 
+                    r.official_domain_verified === true &&
+                    r.matched_company
+                  );
+                  
+                  if (reclaimRequests.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Shield className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>لا توجد طلبات استرداد حالياً</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-3">
+                      {reclaimRequests.map((request) => (
+                        <div key={request.id} className="p-4 border rounded-lg bg-orange-50 border-orange-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center">
+                                <Crown className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <span className="font-mono font-bold">WasataAI.com/{request.requested_title}</span>
+                                <div className="text-sm text-orange-700">
+                                  مطالبة من: {request.company_name} ({request.website_url})
+                                </div>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="border-orange-300 text-orange-700">
+                              يتطلب مراجعة
+                            </Badge>
+                          </div>
+                          <Alert className="border-orange-300 bg-orange-100 mb-3">
+                            <AlertTriangle className="h-4 w-4 text-orange-600" />
+                            <AlertDescription className="text-orange-700 text-sm">
+                              هذا النطاق مستخدم حالياً من مستخدم آخر. الموافقة ستؤدي لسحبه منه.
+                            </AlertDescription>
+                          </Alert>
+                          <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => rejectRequest(request)}
+                              className="text-red-600 border-red-300"
+                            >
+                              <X className="w-4 h-4 ml-2" />
+                              رفض المطالبة
+                            </Button>
+                            <Button 
+                              onClick={() => {
+                                // أولاً نوافق على الطلب الجديد
+                                approveRequest(request);
+                                // ثم نسحب من المستخدم السابق (يتم تلقائياً في الخلفية)
+                              }} 
+                              className="bg-orange-600 hover:bg-orange-700"
+                            >
+                              <Crown className="w-4 h-4 ml-2" />
+                              الموافقة والسحب من الآخر
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* إحصائيات الأولويات */}
+            <Card>
+              <CardHeader>
+                <CardTitle>إحصائيات التوزيع حسب الأولوية</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-3xl font-bold text-amber-600">
+                      {requests.filter(r => r.priority_level === 1).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">مالكي نطاقات رسمية</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600">
+                      {requests.filter(r => r.priority_level === 2).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">شركات / مكاتب</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-3xl font-bold text-gray-600">
+                      {requests.filter(r => r.priority_level === 3).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">أفراد</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-3xl font-bold text-emerald-600">
+                      {requests.filter(r => r.status === 'approved').length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">إجمالي الموافقات</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* القائمة السوداء */}
