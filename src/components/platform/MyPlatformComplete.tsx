@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
 import LiveViewerIndicator from "@/components/ui/LiveViewerIndicator";
@@ -693,12 +694,41 @@ export default function MyPlatformComplete({
     ownerEmail: '',
   });
 
-  // Platform URL (استعادة الرابط القديم لصفحة المشاركة العامة)
+  // Public slug (Source of Truth = DB)
+  const [platformSlug, setPlatformSlug] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const run = async () => {
+      if (!user?.id) return;
+
+      const { data, error } = await supabase
+        .from('business_cards')
+        .select('slug')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (!error && data?.slug) {
+        setPlatformSlug(String(data.slug));
+      }
+    };
+
+    run();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  // Platform URL (بدون /platform وبدون userId)
   const platformUrl = useMemo(() => {
     const origin = window.location.origin;
-    const id = user?.id || '1';
-    return `${origin}/platform/${id}`;
-  }, [user?.id]);
+    const safeSlug = (platformSlug || '').trim().toLowerCase();
+    return safeSlug ? `${origin}/${safeSlug}` : origin;
+  }, [platformSlug]);
 
   // Filtered Offers
   const filteredOffers = useMemo(() => {
@@ -990,10 +1020,10 @@ export default function MyPlatformComplete({
     const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
     const ad = publishedAds.find((a: any) => a.id === id);
 
-    // استعادة رابط المشاركة القديم (نفس الدومين الحالي + /platform/{userId})
+    // رابط المشاركة العام (بدون أي prefix)
     const origin = window.location.origin;
-    const userId = user?.id || '1';
-    const shareUrl = `${origin}/platform/${userId}?offer=${id}`;
+    const safeSlug = (platformSlug || '').trim().toLowerCase();
+    const shareUrl = safeSlug ? `${origin}/${safeSlug}/offers?offer=${encodeURIComponent(id)}` : origin;
 
     let text = `🏠 *${title}*\n\n`;
 
@@ -1014,8 +1044,8 @@ export default function MyPlatformComplete({
   // مشاركة رابط
   const shareItemLink = async (title: string, id: string) => {
     const origin = window.location.origin;
-    const userId = user?.id || '1';
-    const shareUrl = `${origin}/platform/${userId}?offer=${id}`;
+    const safeSlug = (platformSlug || '').trim().toLowerCase();
+    const shareUrl = safeSlug ? `${origin}/${safeSlug}/offers?offer=${encodeURIComponent(id)}` : origin;
 
     await navigator.clipboard.writeText(shareUrl);
     toast.success('تم نسخ الرابط');

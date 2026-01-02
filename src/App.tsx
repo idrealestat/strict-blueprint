@@ -29,7 +29,6 @@ import { AIFloatingButton } from "./components/ai-assistant";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
 import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
-import PublicPlatformPage from "./pages/PublicPlatformPage";
 import SlugOffersPage from "./pages/SlugOffersPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
 import AuthPage from "./pages/AuthPage";
@@ -294,6 +293,18 @@ const App = () => {
                     </>
                   } />
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/login" element={<AuthPage />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <>
+                        {renderPage()}
+                        <AIFloatingButton />
+                      </>
+                    }
+                  />
+                  <Route path="/settings" element={<NotificationSettings />} />
+                  <Route path="/admin" element={<DomainAdminPage />} />
                   <Route path="/customers" element={<CustomersListPage />} />
                   <Route path="/cards/:slug" element={<PublicCardView />} />
                   <Route path="/public/offer/:brokerId" element={<PublicOfferForm />} />
@@ -301,7 +312,6 @@ const App = () => {
                   <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
                   <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
                   <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
-                  <Route path="/platform/:userId" element={<PublicPlatformPage />} />
                   <Route path="/admin/domains" element={<DomainAdminPage />} />
                   <Route path="/domain-requests" element={<DomainRequestsListPage />} />
                   <Route path="/domain-requests/:requestId" element={<DomainRequestDetailsPage />} />
