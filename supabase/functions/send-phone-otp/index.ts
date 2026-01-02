@@ -152,14 +152,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ===== وضع التطوير: لا نستدعي Twilio =====
     if (ALLOW_DEV_OTP) {
-      console.log("DEV_MODE_ACTIVE", { otp, skippingTwilio: true });
+      // تسجيل واضح عند تفعيل وضع التطوير
+      console.log("DEV_OTP_MODE_ENABLED");
+      console.log("DEV_MODE_ACTIVE", { otp, skippingTwilio: true, environment: ENVIRONMENT });
+      
+      // أمان إضافي: لا نُرجع devCode إلا في بيئة التطوير فقط
+      const responseData: Record<string, any> = {
+        success: true,
+        message: "تم حفظ رمز التحقق (وضع التطوير - لم يُرسل SMS)",
+        devMode: true,
+      };
+      
+      // devCode يُرجع فقط إذا كانت البيئة development بالفعل
+      if (isDevEnvironment) {
+        responseData.devCode = otp;
+      }
+      
       return new Response(
-        JSON.stringify({
-          success: true,
-          message: "تم حفظ رمز التحقق (وضع التطوير - لم يُرسل SMS)",
-          devCode: otp,
-          devMode: true,
-        }),
+        JSON.stringify(responseData),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

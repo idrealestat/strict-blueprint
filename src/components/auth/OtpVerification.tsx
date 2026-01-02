@@ -44,12 +44,20 @@ export default function OtpVerification({
 
       if (error) throw error;
 
-      // في وضع التطوير: استخدم devCode المُرجع تلقائياً
-      if (data?.devCode) {
+      // في وضع التطوير: ملء OTP تلقائياً (بدون عرض الكود للمستخدم)
+      if (data?.devMode && data?.devCode) {
+        // Auto-fill OTP field silently for dev testing
         setOtp(data.devCode);
+        // إشعار بسيط بدون عرض الكود
         toast({
           title: 'وضع التطوير',
-          description: 'تم ملء رمز التحقق تلقائياً (لم يُرسل فعلياً)',
+          description: 'تم ملء رمز التحقق تلقائياً',
+        });
+      } else if (data?.devMode) {
+        // devMode مفعل لكن devCode غير مُرجع (حماية إضافية)
+        toast({
+          title: 'وضع التطوير',
+          description: 'تم حفظ الرمز بدون إرسال فعلي',
         });
       } else {
         toast({
