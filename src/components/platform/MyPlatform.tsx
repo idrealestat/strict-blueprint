@@ -584,13 +584,38 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
               منصتي
             </h1>
             
-            <Button
-              onClick={() => setIsPublishDialogOpen(true)}
-              className="bg-[#D4AF37] text-[#01411C] hover:bg-[#b8941f] border-2 border-white"
-            >
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة عرض
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => {
+                  // Get slug from localStorage or business card
+                  const businessCard = localStorage.getItem(`business_card_${user?.id}`);
+                  let slug = 'default';
+                  if (businessCard) {
+                    try {
+                      const data = JSON.parse(businessCard);
+                      slug = data.userTitle || data.slug || 'default';
+                    } catch (e) {}
+                  }
+                  const platformUrl = `${window.location.origin}/${slug}`;
+                  navigator.clipboard.writeText(platformUrl);
+                  toast.success('تم نسخ رابط منصتك العامة!', {
+                    description: platformUrl
+                  });
+                }}
+                variant="outline"
+                className="border-2 border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+              >
+                <Share2 className="w-4 h-4 ml-2" />
+                مشاركة منصتي
+              </Button>
+              <Button
+                onClick={() => setIsPublishDialogOpen(true)}
+                className="bg-[#D4AF37] text-[#01411C] hover:bg-[#b8941f] border-2 border-white"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                إضافة عرض
+              </Button>
+            </div>
           </div>
         </div>
       </header>

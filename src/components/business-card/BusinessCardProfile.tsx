@@ -635,6 +635,27 @@ END:VCARD`;
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* My Platform - First Button */}
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#b8941f] text-[#01411C] hover:opacity-90 col-span-2 md:col-span-4"
+                onClick={() => {
+                  // Get slug from localStorage
+                  const savedData = localStorage.getItem(`business_card_${user.id}`);
+                  let slug = 'default';
+                  if (savedData) {
+                    try {
+                      const data = JSON.parse(savedData);
+                      slug = data.userTitle || data.slug || 'default';
+                    } catch (e) {}
+                  }
+                  window.open(`${window.location.origin}/${slug}`, '_blank');
+                }}
+              >
+                <Home className="w-6 h-6" />
+                <span className="text-sm font-bold">منصتي</span>
+              </Button>
+
               {/* Website */}
               <Button
                 variant="outline"
