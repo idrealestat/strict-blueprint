@@ -40,7 +40,20 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("OTP_SAVE_ERROR", {
+        reason: "MISSING_SUPABASE_ENV",
+        hasUrl: !!supabaseUrl,
+        hasServiceRoleKey: !!supabaseKey,
+      });
+      return new Response(
+        JSON.stringify({ error: "إعدادات النظام غير مكتملة (SUPABASE)" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const { email, userId }: SendOtpRequest = await req.json();
 
@@ -50,6 +63,15 @@ const handler = async (req: Request): Promise<Response> => {
     if (!email || !userId) {
       return new Response(
         JSON.stringify({ error: "البريد الإلكتروني ومعرف المستخدم مطلوبان" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // التحقق من صيغة معرف المستخدم (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      return new Response(
+        JSON.stringify({ error: "معرف المستخدم غير صالح" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -77,15 +99,25 @@ const handler = async (req: Request): Promise<Response> => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // صالح لمدة 10 دقائق
 
     // الاتصال بـ Supabase with service role for database operations
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // حذف الرموز القديمة
-    await supabase
+    const { error: deleteError } = await supabase
       .from("verification_codes")
       .delete()
       .eq("user_id", userId)
       .eq("type", "email");
+
+    if (deleteError) {
+      console.error("OTP_SAVE_ERROR", { step: "delete_old", deleteError });
+      return new Response(
+        JSON.stringify({
+          error: "خطأ في حذف رمز تحقق سابق",
+          details: deleteError.message,
+        }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // حفظ رمز التحقق في قاعدة البيانات
     const { error: insertError } = await supabase
@@ -100,9 +132,12 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (insertError) {
-      console.error("Error inserting OTP:", insertError);
+      console.error("OTP_SAVE_ERROR", { step: "insert", insertError });
       return new Response(
-        JSON.stringify({ error: "خطأ في حفظ رمز التحقق" }),
+        JSON.stringify({
+          error: "خطأ في حفظ رمز التحقق",
+          details: insertError.message,
+        }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

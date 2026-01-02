@@ -881,6 +881,7 @@ export type Database = {
           email: string | null
           expires_at: string
           id: string
+          identifier: string | null
           phone: string | null
           type: string
           user_id: string | null
@@ -892,6 +893,7 @@ export type Database = {
           email?: string | null
           expires_at: string
           id?: string
+          identifier?: string | null
           phone?: string | null
           type: string
           user_id?: string | null
@@ -903,6 +905,7 @@ export type Database = {
           email?: string | null
           expires_at?: string
           id?: string
+          identifier?: string | null
           phone?: string | null
           type?: string
           user_id?: string | null
