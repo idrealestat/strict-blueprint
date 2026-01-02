@@ -21,7 +21,9 @@ import {
   EyeOff,
   UploadCloud,
   Info,
+  Map,
 } from "lucide-react";
+import OfficeLocationMap from "./OfficeLocationMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -86,6 +88,18 @@ interface Achievements {
   verified: boolean;
 }
 
+interface AddressDetails {
+  city: string;
+  district: string;
+  street: string;
+  nationalAddress: string;
+  postalCode: string;
+  buildingNumber: string;
+  additionalNumber: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface BusinessCardData {
   userName: string;
   companyName: string;
@@ -110,6 +124,7 @@ interface BusinessCardData {
   officeLat: number | null;
   officeLng: number | null;
   officeAddress: string;
+  officeAddressDetails: AddressDetails | null;
   nationalId: string;
   birthDate: string;
   accountType: string;
@@ -177,6 +192,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     officeLat: null,
     officeLng: null,
     officeAddress: "",
+    officeAddressDetails: null,
     nationalId: "",
     birthDate: "",
     accountType: "individual"
@@ -826,29 +842,30 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             {(formData.accountType === 'office' || formData.accountType === 'company') && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-[#01411C]">📍 موقع المكتب / الشركة</CardTitle>
+                  <CardTitle className="text-sm text-[#01411C] flex items-center gap-2">
+                    <Map className="w-4 h-4" />
+                    📍 موقع المكتب / الشركة على الخريطة
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label>العنوان</Label>
-                    <Input
-                      value={formData.officeAddress}
-                      onChange={(e) => handleInputChange("officeAddress", e.target.value)}
-                      className="mt-1"
-                      placeholder="عنوان المكتب أو الشركة"
-                    />
-                  </div>
-                  {formData.officeLat && formData.officeLng && (
-                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 text-green-700">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="text-sm">تم تحديد الموقع على الخريطة</span>
-                      </div>
-                      <p className="text-xs text-green-600 mt-1">
-                        الإحداثيات: {formData.officeLat?.toFixed(6)}, {formData.officeLng?.toFixed(6)}
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-xs text-gray-500">
+                    اضغط على الخريطة أو استخدم زر "موقعي الحالي" لتحديد موقع المكتب وسيتم تعبئة العنوان الوطني تلقائياً
+                  </p>
+                  <OfficeLocationMap
+                    initialLat={formData.officeLat}
+                    initialLng={formData.officeLng}
+                    initialAddress={formData.officeAddressDetails}
+                    onLocationSelect={(lat, lng, address) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        officeLat: lat,
+                        officeLng: lng,
+                        officeAddress: address.nationalAddress,
+                        officeAddressDetails: address,
+                        location: address.city || prev.location,
+                      }));
+                    }}
+                  />
                 </CardContent>
               </Card>
             )}
