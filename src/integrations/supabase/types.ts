@@ -110,6 +110,129 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_blacklist: {
+        Row: {
+          category: string | null
+          city: string | null
+          company_name: string
+          company_name_en: string | null
+          confidence_level: number | null
+          created_at: string
+          domain: string | null
+          domain_root: string | null
+          id: string
+          is_active: boolean | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          city?: string | null
+          company_name: string
+          company_name_en?: string | null
+          confidence_level?: number | null
+          created_at?: string
+          domain?: string | null
+          domain_root?: string | null
+          id?: string
+          is_active?: boolean | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          city?: string | null
+          company_name?: string
+          company_name_en?: string | null
+          confidence_level?: number | null
+          created_at?: string
+          domain?: string | null
+          domain_root?: string | null
+          id?: string
+          is_active?: boolean | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      domain_requests: {
+        Row: {
+          account_type: string | null
+          admin_notes: string | null
+          company_name: string | null
+          created_at: string
+          id: string
+          matched_company: string | null
+          rejection_reason: string | null
+          requested_title: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          account_type?: string | null
+          admin_notes?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          matched_company?: string | null
+          rejection_reason?: string | null
+          requested_title: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          account_type?: string | null
+          admin_notes?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          matched_company?: string | null
+          rejection_reason?: string | null
+          requested_title?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      forbidden_patterns: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          pattern: string
+          pattern_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          pattern: string
+          pattern_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          pattern?: string
+          pattern_type?: string | null
+        }
+        Relationships: []
+      }
       map_areas: {
         Row: {
           area_code: string | null

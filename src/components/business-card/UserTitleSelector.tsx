@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Globe, Check, X, Loader2, AlertTriangle } from "lucide-react";
+import { Globe, Check, X, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -13,12 +13,13 @@ interface UserTitleSelectorProps {
   accountType: string;
 }
 
-// قائمة الأسماء الأولى الشائعة التي تتطلب موافقة الأدمن
-const COMMON_FIRST_NAMES = [
-  "محمد", "أحمد", "عبدالله", "سعود", "خالد", "فهد", "عمر", "علي", "سلطان", "تركي",
-  "عبدالرحمن", "ناصر", "سالم", "فيصل", "ماجد", "عادل", "يوسف", "حسن", "حسين", "صالح",
-  "نايف", "بندر", "راشد", "مشاري", "منصور", "سعد", "طارق", "وليد", "ياسر", "عمار"
-];
+interface ValidationResult {
+  allowed: boolean;
+  status: 'available' | 'unavailable' | 'pending' | 'error';
+  reason?: string;
+  matched_company?: string;
+  requires_approval?: boolean;
+}
 
 const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   value,
@@ -30,8 +31,9 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [availability, setAvailability] = useState<'available' | 'unavailable' | 'pending' | 'error' | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [matchedCompany, setMatchedCompany] = useState("");
 
-  // التحقق من صيغة اليوزر تايتل
+  // التحقق من صيغة اليوزر تايتل الأساسية (قبل إرسال للخادم)
   const validateFormat = (input: string): { valid: boolean; message: string } => {
     if (!input) {
       return { valid: false, message: "" };
@@ -48,42 +50,19 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       return { valid: false, message: "يجب أن يحتوي على حروف وأرقام فقط" };
     }
 
-    // التحقق من أن الاسم ليس اسم أول فقط (شائع)
-    const inputLower = input.toLowerCase();
-    const isCommonFirstName = COMMON_FIRST_NAMES.some(name => 
-      inputLower === name.toLowerCase() || input === name
-    );
-
-    if (isCommonFirstName) {
-      return { valid: false, message: "لا يمكن استخدام اسم أول شائع بدون موافقة الأدمن. أضف رقماً أو حرفاً إضافياً" };
-    }
-
-    // التحقق من أن الاسم يحتوي على رقم إذا كان اسم بسيط
-    const hasNumber = /\d/.test(input);
-    const isSimpleName = /^[a-zA-Z\u0600-\u06FF]+$/.test(input);
-    
-    if (isSimpleName && !hasNumber && input.length < 6) {
-      return { valid: false, message: "يجب إضافة رقم مع الاسم القصير" };
+    if (input.length < 3) {
+      return { valid: false, message: "يجب أن يكون الاسم 3 أحرف على الأقل" };
     }
 
     return { valid: true, message: "" };
   };
 
-  // استخراج اسم الدومين من الرابط
-  const extractDomainName = (url: string): string => {
-    try {
-      const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '');
-      const domain = cleanUrl.split('/')[0].split('.')[0];
-      return domain.toLowerCase();
-    } catch {
-      return "";
-    }
-  };
-
-  // التحقق من توفر اليوزر تايتل
+  // التحقق من توفر اليوزر تايتل عبر Edge Function
   const checkAvailability = useCallback(async (userTitle: string) => {
     if (!userTitle || userTitle.length < 3) {
       setAvailability(null);
+      setErrorMessage("");
+      setMatchedCompany("");
       return;
     }
 
@@ -91,62 +70,49 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     if (!formatValidation.valid) {
       setAvailability('error');
       setErrorMessage(formatValidation.message);
+      setMatchedCompany("");
       return;
     }
 
     setIsChecking(true);
     setErrorMessage("");
+    setMatchedCompany("");
 
     try {
-      // التحقق من قاعدة البيانات
-      const { data: existingCards, error } = await supabase
-        .from('business_cards')
-        .select('slug')
-        .eq('slug', userTitle.toLowerCase());
+      // استدعاء Edge Function للتحقق الذكي
+      const { data, error } = await supabase.functions.invoke('validate-domain', {
+        body: {
+          userTitle: userTitle,
+          companyName: companyName,
+          websiteUrl: websiteUrl,
+          accountType: accountType
+        }
+      });
 
-      if (error) throw error;
-
-      if (existingCards && existingCards.length > 0) {
-        setAvailability('unavailable');
-        setErrorMessage("هذا النطاق مستخدم بالفعل");
+      if (error) {
+        console.error('Edge function error:', error);
+        setAvailability('error');
+        setErrorMessage("حدث خطأ في التحقق من النطاق");
         return;
       }
 
-      // التحقق من تطابق اسم الشركة مع الدومين
-      const domainName = extractDomainName(websiteUrl);
-      const userTitleLower = userTitle.toLowerCase();
-
-      // إذا كان شركة ولديها موقع إلكتروني
-      if (accountType === 'company' && websiteUrl) {
-        // إذا كان اليوزر تايتل مطابق لاسم الدومين الأصلي
-        if (domainName && userTitleLower === domainName) {
-          // تحقق من أن اسم الشركة متوافق
-          if (companyName) {
-            setAvailability('available');
-            toast.success("تم التحقق: النطاق متوافق مع موقعك الإلكتروني");
-            return;
-          }
-        }
+      const result = data as ValidationResult;
+      setAvailability(result.status);
+      
+      if (result.reason) {
+        setErrorMessage(result.reason);
+      }
+      
+      if (result.matched_company) {
+        setMatchedCompany(result.matched_company);
       }
 
-      // إذا كان فرد
-      if (accountType === 'individual') {
-        // التحقق مما إذا كان اليوزر تايتل مشابه لدومين عقاري سعودي موجود
-        // هنا نفترض أنه إذا كان الاسم مشابه جداً لاسم شركة عقارية معروفة، لن يُسمح به
-        const realEstateKeywords = ['عقار', 'عقارات', 'realestate', 'property', 'aqar'];
-        const containsRealEstateKeyword = realEstateKeywords.some(keyword => 
-          userTitleLower.includes(keyword)
-        );
-
-        if (containsRealEstateKeyword) {
-          setAvailability('pending');
-          setErrorMessage("يحتاج هذا النطاق للتحقق من أنه ليس مسجلاً لشركة عقارية أخرى");
-          return;
-        }
+      // إظهار رسالة توست حسب الحالة
+      if (result.status === 'available') {
+        toast.success("النطاق متاح للاستخدام");
+      } else if (result.status === 'pending' && result.requires_approval) {
+        toast.info("هذا النطاق يحتاج موافقة الإدارة");
       }
-
-      // النطاق متاح
-      setAvailability('available');
 
     } catch (error) {
       console.error('Error checking availability:', error);
@@ -157,11 +123,11 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     }
   }, [websiteUrl, companyName, accountType]);
 
-  // التحقق عند تغيير القيمة
+  // التحقق عند تغيير القيمة (مع debounce)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       checkAvailability(value);
-    }, 500);
+    }, 600);
 
     return () => clearTimeout(timeoutId);
   }, [value, checkAvailability]);
@@ -175,54 +141,69 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
 
   const getStatusIcon = () => {
     if (isChecking) {
-      return <Loader2 className="w-5 h-5 text-yellow-500 animate-spin" />;
+      return <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />;
     }
 
     switch (availability) {
       case 'available':
-        return <Check className="w-5 h-5 text-green-500" />;
+        return <Check className="w-5 h-5 text-emerald-500" />;
       case 'unavailable':
         return <X className="w-5 h-5 text-red-500" />;
       case 'pending':
-        return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+        return <Clock className="w-5 h-5 text-amber-500" />;
       case 'error':
-        return <X className="w-5 h-5 text-red-500" />;
+        return <AlertTriangle className="w-5 h-5 text-red-500" />;
       default:
-        return <div className="w-5 h-5 rounded-full bg-gray-300" />;
+        return <div className="w-5 h-5 rounded-full bg-muted" />;
     }
   };
 
   const getStatusColor = () => {
     switch (availability) {
       case 'available':
-        return 'border-green-500 bg-green-50';
+        return 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20';
       case 'unavailable':
-        return 'border-red-500 bg-red-50';
+        return 'border-red-500 bg-red-50 dark:bg-red-950/20';
       case 'pending':
-        return 'border-yellow-500 bg-yellow-50';
+        return 'border-amber-500 bg-amber-50 dark:bg-amber-950/20';
       case 'error':
-        return 'border-red-500 bg-red-50';
+        return 'border-red-500 bg-red-50 dark:bg-red-950/20';
       default:
-        return 'border-gray-300';
+        return 'border-muted';
+    }
+  };
+
+  const getStatusTextColor = () => {
+    switch (availability) {
+      case 'available':
+        return 'text-emerald-600 dark:text-emerald-400';
+      case 'unavailable':
+        return 'text-red-600 dark:text-red-400';
+      case 'pending':
+        return 'text-amber-600 dark:text-amber-400';
+      case 'error':
+        return 'text-red-600 dark:text-red-400';
+      default:
+        return 'text-muted-foreground';
     }
   };
 
   return (
     <div className="space-y-2">
-      <Label className="text-[#D4AF37] font-bold flex items-center gap-2">
+      <Label className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-2">
         <Globe className="w-4 h-4" />
         اختر نطاقك الخاص
       </Label>
       
-      <div className={`border-2 border-[#D4AF37] rounded-lg p-3 bg-gradient-to-r from-amber-50 to-yellow-50`}>
+      <div className="border-2 border-amber-500 rounded-lg p-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30">
         <div className="flex items-center gap-2" dir="ltr">
           {/* دائرة حالة التوفر */}
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${getStatusColor()}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${getStatusColor()}`}>
             {getStatusIcon()}
           </div>
           
           {/* اسم الدومين الأساسي */}
-          <span className="text-[#01411C] font-bold text-sm whitespace-nowrap">
+          <span className="text-primary font-bold text-sm whitespace-nowrap">
             WasataAI.com/
           </span>
           
@@ -231,7 +212,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
             value={value}
             onChange={handleChange}
             placeholder="اسمك أو اسم شركتك"
-            className="flex-1 border-[#D4AF37] focus:ring-[#D4AF37] text-left"
+            className="flex-1 border-amber-400 focus:ring-amber-500 focus:border-amber-500 text-left font-medium"
             dir="ltr"
             maxLength={30}
           />
@@ -239,25 +220,42 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         
         {/* رسالة الحالة */}
         {errorMessage && (
-          <p className={`text-xs mt-2 text-right ${
-            availability === 'available' ? 'text-green-600' : 
-            availability === 'pending' ? 'text-yellow-600' : 'text-red-600'
-          }`}>
-            {errorMessage}
-          </p>
+          <div className={`text-sm mt-3 text-right p-2 rounded ${getStatusColor()}`}>
+            <p className={`font-medium ${getStatusTextColor()}`}>
+              {errorMessage}
+            </p>
+            {matchedCompany && (
+              <p className={`text-xs mt-1 ${getStatusTextColor()}`}>
+                الشركة المطابقة: {matchedCompany}
+              </p>
+            )}
+          </div>
         )}
         
         {availability === 'available' && !errorMessage && value && (
-          <p className="text-xs mt-2 text-green-600 text-right">
-            ✅ النطاق متاح! رابطك سيكون: WasataAI.com/{value}
-          </p>
+          <div className="mt-3 p-2 rounded bg-emerald-100 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+            <p className="text-sm text-emerald-700 dark:text-emerald-300 text-right font-medium">
+              ✅ النطاق متاح! رابطك سيكون: WasataAI.com/{value}
+            </p>
+          </div>
+        )}
+
+        {availability === 'pending' && (
+          <div className="mt-3 p-2 rounded bg-amber-100 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+            <p className="text-sm text-amber-700 dark:text-amber-300 text-right font-medium">
+              ⏳ هذا النطاق يحتاج موافقة الإدارة. يمكنك إرسال طلب للمراجعة.
+            </p>
+          </div>
         )}
         
         {/* تعليمات */}
-        <div className="mt-3 text-xs text-gray-500 text-right space-y-1">
+        <div className="mt-4 text-xs text-muted-foreground text-right space-y-1 border-t border-amber-200 dark:border-amber-800 pt-3">
+          <p className="font-medium text-foreground mb-2">📋 شروط اختيار النطاق:</p>
           <p>• يجب أن يحتوي على حروف وأرقام فقط (بدون نقاط أو شرطات)</p>
-          <p>• لا يمكن استخدام اسم أول شائع بمفرده</p>
-          <p>• إذا كان لديك موقع إلكتروني، يمكنك استخدام نفس اسم الدومين</p>
+          <p>• لا يمكن استخدام اسم أول شائع بمفرده (مثل: محمد، أحمد)</p>
+          <p>• لا يمكن استخدام اسم شركة عقارية سعودية مسجلة</p>
+          <p>• إذا كان لديك موقع إلكتروني مسجل، يمكنك استخدام نفس اسم الدومين</p>
+          <p>• الأسماء المشابهة لشركات عقارية تحتاج موافقة خاصة</p>
         </div>
       </div>
     </div>
