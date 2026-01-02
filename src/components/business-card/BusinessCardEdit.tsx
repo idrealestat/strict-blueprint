@@ -142,6 +142,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   const [showPreview, setShowPreview] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [isSlugAvailable, setIsSlugAvailable] = useState(false);
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -311,8 +312,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
 
       // نشر بيانات البطاقة للمنصة العامة (ليظهر الهيدر للزوار على أجهزة أخرى)
-      // ملاحظة: slug يجب أن يطابق النطاق الخاص الذي اختاره المستخدم (مثل: smart)
-      const selectedSlug = String(formData.userTitle || '').trim();
+      // ملاحظة: slug يجب أن يطابق النطاق الخاص الذي اختاره المستخدم (مثل: smart) فقط إذا كان متاحًا (أخضر)
+      const selectedSlug = isSlugAvailable && formData.userTitle ? String(formData.userTitle).trim() : '';
       const slug = selectedSlug || String(user.id || 'default');
       const swapState = localStorage.getItem(`business_card_swap_${user.id}`) === 'true';
       const publishTokenKey = `business_card_publish_token_${slug}`;
@@ -751,6 +752,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                 <UserTitleSelector
                   value={formData.userTitle}
                   onChange={(value) => handleInputChange("userTitle", value)}
+                  onAvailabilityChange={setIsSlugAvailable}
                   companyName={formData.companyName}
                   websiteUrl={formData.websiteUrl}
                   accountType={formData.accountType}
