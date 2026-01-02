@@ -8,7 +8,8 @@ const corsHeaders = {
 
 interface SendOtpRequest {
   phone: string;
-  userId: string;
+  userId?: string; // اختياري - يمكن استخدام identifier بدلاً منه
+  identifier?: string; // معرف مؤقت (الجوال نفسه) قبل إنشاء الحساب
 }
 
 // Rate limiting
@@ -69,39 +70,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { phone, userId }: SendOtpRequest = await req.json();
-
-    console.log("OTP_REQUEST", { phone, userId });
-
-    if (!phone || !userId) {
-      return new Response(
-        JSON.stringify({ error: "رقم الجوال ومعرف المستخدم مطلوبان" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // التحقق من صيغة UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(userId)) {
-      return new Response(
-        JSON.stringify({ error: "معرف المستخدم غير صالح" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    const { phone, userId, identifier }: SendOtpRequest = await req.json();
 
     const phoneRegex = /^(\+966|966|05|5)\d{8}$/;
-    const cleanPhone = phone.replace(/\s/g, "");
-    if (!phoneRegex.test(cleanPhone)) {
+    const cleanPhone = phone?.replace(/\s/g, "") || "";
+    
+    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
       return new Response(
         JSON.stringify({ error: "صيغة رقم الجوال غير صحيحة" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    if (!checkRateLimit(cleanPhone)) {
-      return new Response(
-        JSON.stringify({ error: "تم تجاوز الحد المسموح للطلبات" }),
-        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -115,6 +92,22 @@ const handler = async (req: Request): Promise<Response> => {
       formattedPhone = "+" + formattedPhone;
     }
 
+    // استخدام identifier كبديل عن userId إذا لم يكن متاحاً
+    const effectiveIdentifier = userId || identifier || formattedPhone;
+
+    console.log("OTP_REQUEST", { phone: formattedPhone, userId, identifier, effectiveIdentifier });
+
+    // إذا كان userId موجوداً، تحقق من صيغة UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const hasValidUserId = userId && uuidRegex.test(userId);
+
+    if (!checkRateLimit(cleanPhone)) {
+      return new Response(
+        JSON.stringify({ error: "تم تجاوز الحد المسموح للطلبات" }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     // إنشاء رمز OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -122,23 +115,38 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // حذف الرموز القديمة
+    if (hasValidUserId) {
+      await supabase
+        .from("verification_codes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("type", "phone");
+    }
+    // حذف بناءً على identifier
     await supabase
       .from("verification_codes")
       .delete()
-      .eq("user_id", userId)
+      .eq("identifier", effectiveIdentifier)
       .eq("type", "phone");
 
     // حفظ رمز التحقق
+    const insertData: Record<string, any> = {
+      phone: formattedPhone,
+      code: otp,
+      type: "phone",
+      expires_at: expiresAt.toISOString(),
+      verified: false,
+      identifier: effectiveIdentifier,
+    };
+
+    // إضافة user_id فقط إذا كان UUID صالحاً
+    if (hasValidUserId) {
+      insertData.user_id = userId;
+    }
+
     const { error: insertError } = await supabase
       .from("verification_codes")
-      .insert({
-        user_id: userId,
-        phone: formattedPhone,
-        code: otp,
-        type: "phone",
-        expires_at: expiresAt.toISOString(),
-        verified: false,
-      });
+      .insert(insertData);
 
     if (insertError) {
       console.error("OTP_SAVE_ERROR", insertError);
@@ -148,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("OTP_SAVED", { phone: formattedPhone, otp: ALLOW_DEV_OTP ? otp : "***" });
+    console.log("OTP_SAVED", { phone: formattedPhone, identifier: effectiveIdentifier, otp: ALLOW_DEV_OTP ? otp : "***" });
 
     // ===== وضع التطوير: لا نستدعي Twilio =====
     if (ALLOW_DEV_OTP) {

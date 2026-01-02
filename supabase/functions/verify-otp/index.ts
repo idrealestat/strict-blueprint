@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 interface VerifyOtpRequest {
-  userId: string;
+  userId?: string;
+  identifier?: string; // معرف مؤقت (البريد/الجوال) قبل إنشاء الحساب
   code: string;
   type: "email" | "phone";
 }
@@ -18,10 +19,13 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { userId, code, type }: VerifyOtpRequest = await req.json();
+    const { userId, identifier, code, type }: VerifyOtpRequest = await req.json();
+
+    // استخدام identifier كبديل عن userId
+    const effectiveIdentifier = userId || identifier;
 
     // التحقق من صحة البيانات
-    if (!userId || !code || !type) {
+    if (!effectiveIdentifier || !code || !type) {
       return new Response(
         JSON.stringify({ error: "جميع الحقول مطلوبة" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -41,17 +45,48 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // البحث عن رمز التحقق
-    const { data: verificationCode, error: fetchError } = await supabase
-      .from("verification_codes")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("type", type)
-      .eq("code", code)
-      .eq("verified", false)
-      .single();
+    // التحقق من صيغة UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const hasValidUserId = userId && uuidRegex.test(userId);
 
-    if (fetchError || !verificationCode) {
+    // البحث عن رمز التحقق - أولاً بـ user_id إذا كان صالحاً
+    let verificationCode = null;
+    let fetchError = null;
+
+    if (hasValidUserId) {
+      const result = await supabase
+        .from("verification_codes")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("type", type)
+        .eq("code", code)
+        .eq("verified", false)
+        .maybeSingle();
+      
+      verificationCode = result.data;
+      fetchError = result.error;
+    }
+
+    // إذا لم نجد بـ user_id، نبحث بـ identifier
+    if (!verificationCode) {
+      const result = await supabase
+        .from("verification_codes")
+        .select("*")
+        .eq("identifier", effectiveIdentifier)
+        .eq("type", type)
+        .eq("code", code)
+        .eq("verified", false)
+        .maybeSingle();
+      
+      verificationCode = result.data;
+      fetchError = result.error;
+    }
+
+    if (fetchError) {
+      console.error("FETCH_ERROR", fetchError);
+    }
+
+    if (!verificationCode) {
       return new Response(
         JSON.stringify({ error: "رمز التحقق غير صحيح" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -72,19 +107,18 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ verified: true })
       .eq("id", verificationCode.id);
 
-    // تحديث ملف المستخدم
-    const updateField = type === "email" ? "email_verified" : "phone_verified";
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ [updateField]: true })
-      .eq("user_id", userId);
+    // تحديث ملف المستخدم فقط إذا كان لدينا userId صالح
+    if (hasValidUserId) {
+      const updateField = type === "email" ? "email_verified" : "phone_verified";
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ [updateField]: true })
+        .eq("user_id", userId);
 
-    if (updateError) {
-      console.error("Error updating profile:", updateError);
-      return new Response(
-        JSON.stringify({ error: "خطأ في تحديث الملف الشخصي" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      if (updateError) {
+        console.error("Error updating profile:", updateError);
+        // لا نُرجع خطأ هنا لأن التحقق نجح
+      }
     }
 
     // حذف الرمز المستخدم

@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 interface OtpVerificationProps {
   type: 'email' | 'phone';
   value: string;
-  userId: string;
+  userId?: string; // اختياري الآن
   isVerified: boolean;
   onVerified: () => void;
 }
@@ -28,15 +28,18 @@ export default function OtpVerification({
   const [countdown, setCountdown] = useState(0);
   const { toast } = useToast();
 
+  // استخدام value (البريد/الجوال) كـ identifier إذا لم يكن userId متاحاً
+  const identifier = userId || value;
+
   const sendOtp = async () => {
-    if (!value || !userId) return;
+    if (!value) return;
     
     setIsSending(true);
     try {
       const functionName = type === 'email' ? 'send-email-otp' : 'send-phone-otp';
       const payload = type === 'email' 
-        ? { email: value, userId }
-        : { phone: value, userId };
+        ? { email: value, identifier, ...(userId && { userId }) }
+        : { phone: value, identifier, ...(userId && { userId }) };
 
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: payload,
@@ -99,7 +102,7 @@ export default function OtpVerification({
     setIsVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke('verify-otp', {
-        body: { userId, code: otp, type },
+        body: { identifier, code: otp, type, ...(userId && { userId }) },
       });
 
       if (error) throw error;
@@ -139,14 +142,6 @@ export default function OtpVerification({
     return (
       <div className="text-sm text-muted-foreground">
         {type === 'email' ? 'أدخل البريد الإلكتروني أولاً' : 'أدخل رقم الجوال أولاً'}
-      </div>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        أكمل إنشاء الحساب أولاً ثم أعد محاولة إرسال رمز التفعيل.
       </div>
     );
   }

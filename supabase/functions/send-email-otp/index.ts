@@ -8,7 +8,8 @@ const corsHeaders = {
 
 interface SendOtpRequest {
   email: string;
-  userId: string;
+  userId?: string; // اختياري - يمكن استخدام identifier بدلاً منه
+  identifier?: string; // معرف مؤقت (البريد نفسه) قبل إنشاء الحساب
 }
 
 // Rate limiting: track requests per email
@@ -65,25 +66,23 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { email, userId }: SendOtpRequest = await req.json();
+    const { email, userId, identifier }: SendOtpRequest = await req.json();
 
-    console.log("OTP_REQUEST", { email, userId });
+    // استخدام identifier كبديل عن userId إذا لم يكن متاحاً
+    const effectiveIdentifier = userId || identifier || email;
 
-    if (!email || !userId) {
+    console.log("OTP_REQUEST", { email, userId, identifier, effectiveIdentifier });
+
+    if (!email) {
       return new Response(
-        JSON.stringify({ error: "البريد الإلكتروني ومعرف المستخدم مطلوبان" }),
+        JSON.stringify({ error: "البريد الإلكتروني مطلوب" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // التحقق من صيغة UUID
+    // إذا كان userId موجوداً، تحقق من صيغة UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(userId)) {
-      return new Response(
-        JSON.stringify({ error: "معرف المستخدم غير صالح" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    const hasValidUserId = userId && uuidRegex.test(userId);
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -106,24 +105,39 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // حذف الرموز القديمة
+    // حذف الرموز القديمة باستخدام identifier أو user_id
+    if (hasValidUserId) {
+      await supabase
+        .from("verification_codes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("type", "email");
+    }
+    // حذف بناءً على identifier أو email
     await supabase
       .from("verification_codes")
       .delete()
-      .eq("user_id", userId)
+      .eq("identifier", effectiveIdentifier)
       .eq("type", "email");
 
     // حفظ رمز التحقق
+    const insertData: Record<string, any> = {
+      email: email,
+      code: otp,
+      type: "email",
+      expires_at: expiresAt.toISOString(),
+      verified: false,
+      identifier: effectiveIdentifier,
+    };
+
+    // إضافة user_id فقط إذا كان UUID صالحاً
+    if (hasValidUserId) {
+      insertData.user_id = userId;
+    }
+
     const { error: insertError } = await supabase
       .from("verification_codes")
-      .insert({
-        user_id: userId,
-        email: email,
-        code: otp,
-        type: "email",
-        expires_at: expiresAt.toISOString(),
-        verified: false,
-      });
+      .insert(insertData);
 
     if (insertError) {
       console.error("OTP_SAVE_ERROR", insertError);
@@ -133,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("OTP_SAVED", { email, otp: ALLOW_DEV_OTP ? otp : "***" });
+    console.log("OTP_SAVED", { email, identifier: effectiveIdentifier, otp: ALLOW_DEV_OTP ? otp : "***" });
 
     // ===== وضع التطوير: لا نستدعي Resend =====
     if (ALLOW_DEV_OTP) {
