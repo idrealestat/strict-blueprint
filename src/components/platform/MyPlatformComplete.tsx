@@ -990,10 +990,9 @@ export default function MyPlatformComplete({
     const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
     const ad = publishedAds.find((a: any) => a.id === id);
     
-    // إنشاء رابط حقيقي للعرض
-    const baseUrl = window.location.origin;
+    // إنشاء رابط حقيقي للعرض على wasataai.com
     const slug = localStorage.getItem('public_platform_slug') || 'default';
-    const shareUrl = `${baseUrl}/platform/${slug}?offer=${id}`;
+    const shareUrl = `https://wasataai.com/${slug}?offer=${id}`;
     
     let text = `🏠 *${title}*\n\n`;
     
@@ -1013,9 +1012,8 @@ export default function MyPlatformComplete({
 
   // مشاركة رابط
   const shareItemLink = async (title: string, id: string) => {
-    const baseUrl = window.location.origin;
     const slug = localStorage.getItem('public_platform_slug') || 'default';
-    const shareUrl = `${baseUrl}/platform/${slug}?offer=${id}`;
+    const shareUrl = `https://wasataai.com/${slug}?offer=${id}`;
     
     await navigator.clipboard.writeText(shareUrl);
     toast.success('تم نسخ الرابط');
@@ -1363,7 +1361,8 @@ export default function MyPlatformComplete({
   // Copy Share Link
   const copyShareLink = async () => {
     if (!selectedOfferForShare) return;
-    const shareUrl = `${platformUrl}/offers/${selectedOfferForShare.id}`;
+    const slug = localStorage.getItem('public_platform_slug') || 'default';
+    const shareUrl = `https://wasataai.com/${slug}?offer=${selectedOfferForShare.id}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
@@ -1380,7 +1379,8 @@ export default function MyPlatformComplete({
   // Share via WhatsApp
   const shareViaWhatsApp = () => {
     if (!selectedOfferForShare) return;
-    const shareUrl = `${platformUrl}/offers/${selectedOfferForShare.id}`;
+    const slug = localStorage.getItem('public_platform_slug') || 'default';
+    const shareUrl = `https://wasataai.com/${slug}?offer=${selectedOfferForShare.id}`;
     const message = encodeURIComponent(`${selectedOfferForShare.title}\n${shareUrl}`);
     window.open(`https://wa.me/?text=${message}`, '_blank');
     window.dispatchEvent(new CustomEvent('analyticsEvent', {
@@ -1391,7 +1391,8 @@ export default function MyPlatformComplete({
   // Share via Email
   const shareViaEmail = () => {
     if (!selectedOfferForShare) return;
-    const shareUrl = `${platformUrl}/offers/${selectedOfferForShare.id}`;
+    const slug = localStorage.getItem('public_platform_slug') || 'default';
+    const shareUrl = `https://wasataai.com/${slug}?offer=${selectedOfferForShare.id}`;
     const subject = encodeURIComponent(selectedOfferForShare.title);
     const body = encodeURIComponent(`${selectedOfferForShare.title}\n\n${shareUrl}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
@@ -1801,8 +1802,10 @@ export default function MyPlatformComplete({
                             variant="ghost"
                             onClick={(e) => { 
                               e.stopPropagation(); 
+                              const slug = localStorage.getItem('public_platform_slug') || 'default';
+                              const shareUrl = `https://wasataai.com/${slug}?city=${city.cityName}`;
                               if (navigator.share) {
-                                navigator.share({ title: city.cityName, url: `${platformUrl}/city/${city.cityName}` });
+                                navigator.share({ title: city.cityName, url: shareUrl });
                               } else {
                                 shareItemLink(city.cityName, `city-${city.cityName}`);
                               }
