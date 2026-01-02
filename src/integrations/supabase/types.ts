@@ -47,6 +47,66 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          appointment_type: string
+          created_at: string
+          customer_name: string
+          customer_phone: string | null
+          duration: number | null
+          id: string
+          location: string | null
+          notes: string | null
+          property_id: string | null
+          property_title: string | null
+          reminder: boolean | null
+          reminder_time: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          appointment_type?: string
+          created_at?: string
+          customer_name: string
+          customer_phone?: string | null
+          duration?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          property_id?: string | null
+          property_title?: string | null
+          reminder?: boolean | null
+          reminder_time?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          appointment_type?: string
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string | null
+          duration?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          property_id?: string | null
+          property_title?: string | null
+          reminder?: boolean | null
+          reminder_time?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       map_areas: {
         Row: {
           area_code: string | null

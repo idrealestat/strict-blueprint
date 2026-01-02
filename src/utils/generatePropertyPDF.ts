@@ -1,6 +1,6 @@
 /**
  * generatePropertyPDF.ts
- * دالة توليد ملف PDF لتفاصيل العقار
+ * دالة توليد ملف PDF لتفاصيل العقار مع دعم كامل للعربية
  */
 
 import { jsPDF } from 'jspdf';
@@ -39,8 +39,55 @@ interface PropertyData {
   images?: string[];
 }
 
+// دالة لعكس النص العربي للعرض الصحيح
+const reverseArabicText = (text: string): string => {
+  // التحقق مما إذا كان النص يحتوي على أحرف عربية
+  const arabicRegex = /[\u0600-\u06FF]/;
+  if (!arabicRegex.test(text)) {
+    return text;
+  }
+  
+  // عكس النص العربي لعرضه بشكل صحيح في jsPDF
+  return text.split('').reverse().join('');
+};
+
+// دالة لتحويل الأرقام إلى أرقام عربية
+const toArabicNumerals = (num: string | number): string => {
+  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return String(num).replace(/[0-9]/g, (d) => arabicNumbers[parseInt(d)]);
+};
+
+// ترجمة المصطلحات للعربية
+const arabicLabels: { [key: string]: string } = {
+  'Property Type': 'نوع العقار',
+  'Category': 'التصنيف',
+  'Purpose': 'الغرض',
+  'Area': 'المساحة',
+  'Price': 'السعر',
+  'City': 'المدينة',
+  'District': 'الحي',
+  'Street': 'الشارع',
+  'Building Number': 'رقم المبنى',
+  'Postal Code': 'الرمز البريدي',
+  'Bedrooms': 'غرف النوم',
+  'Bathrooms': 'دورات المياه',
+  'Living Rooms': 'الصالات',
+  'Floors': 'الأدوار',
+  'Floor Number': 'رقم الطابق',
+  'Street Width': 'عرض الشارع',
+  'Property Age': 'عمر العقار',
+  'Facade': 'الواجهة',
+  'Furnishing': 'التأثيث',
+  'Owner Name': 'اسم المالك',
+  'Phone': 'الهاتف',
+  'sqm': 'م²',
+  'SAR': 'ريال',
+  'm': 'م',
+  'years': 'سنة',
+};
+
 /**
- * توليد PDF لتفاصيل العقار
+ * توليد PDF لتفاصيل العقار مع دعم العربية
  */
 export async function generatePropertyPDF(property: PropertyData, includeOwner: boolean = true): Promise<void> {
   const doc = new jsPDF({
@@ -49,7 +96,7 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
     format: 'a4',
   });
 
-  // إعداد الخط العربي - استخدام الخط الافتراضي مع RTL
+  // تفعيل RTL
   doc.setR2L(true);
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -58,171 +105,144 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
   let yPos = margin;
 
   // ======== رأس الصفحة ========
-  // خلفية الرأس
   doc.setFillColor(1, 65, 28); // #01411C
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 45, 'F');
 
   // عنوان رئيسي
   doc.setTextColor(212, 175, 55); // #D4AF37
-  doc.setFontSize(24);
-  doc.text('Wasata Real Estate', pageWidth / 2, 20, { align: 'center' });
+  doc.setFontSize(26);
+  doc.text('Wasata', pageWidth / 2, 18, { align: 'center' });
+  
+  doc.setFontSize(12);
+  doc.text('Real Estate Platform', pageWidth / 2, 28, { align: 'center' });
   
   doc.setFontSize(14);
-  doc.text('Property Details Report', pageWidth / 2, 30, { align: 'center' });
+  doc.setTextColor(255, 255, 255);
+  doc.text('Property Details Report', pageWidth / 2, 38, { align: 'center' });
 
-  yPos = 50;
+  yPos = 55;
 
   // ======== معلومات العقار الأساسية ========
-  doc.setTextColor(1, 65, 28);
-  doc.setFontSize(16);
-  doc.text('Property Information', margin, yPos);
-  
-  yPos += 5;
-  doc.setDrawColor(212, 175, 55);
-  doc.setLineWidth(0.5);
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
+  const drawSectionHeader = (title: string, arabicTitle: string) => {
+    doc.setFillColor(245, 245, 245);
+    doc.rect(margin, yPos - 6, pageWidth - 2 * margin, 10, 'F');
+    
+    doc.setTextColor(1, 65, 28);
+    doc.setFontSize(14);
+    doc.text(title, margin + 5, yPos);
+    doc.text(arabicTitle, pageWidth - margin - 5, yPos, { align: 'right' });
+    
+    yPos += 8;
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+  };
 
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(11);
+  const drawInfoRow = (label: string, value: string, arabicLabel?: string) => {
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(label, margin + 5, yPos);
+    
+    if (arabicLabel) {
+      doc.text(arabicLabel, pageWidth - margin - 5, yPos, { align: 'right' });
+    }
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(value, pageWidth / 2, yPos, { align: 'center' });
+    
+    yPos += 8;
+  };
 
-  // جدول المعلومات الأساسية
+  // معلومات العقار الأساسية
+  drawSectionHeader('Property Information', 'معلومات العقار');
+
   const basicInfo = [
-    ['Property Type', property.propertyType || '-'],
-    ['Category', property.category || '-'],
-    ['Purpose', property.purpose || '-'],
-    ['Area', property.area ? `${property.area} sqm` : '-'],
-    ['Price', property.price ? `${parseInt(property.price).toLocaleString()} SAR` : '-'],
+    { en: 'Property Type', ar: 'نوع العقار', value: property.propertyType || '-' },
+    { en: 'Category', ar: 'التصنيف', value: property.category || '-' },
+    { en: 'Purpose', ar: 'الغرض', value: property.purpose || '-' },
+    { en: 'Area', ar: 'المساحة', value: property.area ? `${property.area} m² / ${toArabicNumerals(property.area)} م²` : '-' },
+    { en: 'Price', ar: 'السعر', value: property.price ? `${parseInt(property.price).toLocaleString()} SAR` : '-' },
   ];
 
-  basicInfo.forEach(([label, value]) => {
-    doc.setFont(undefined, 'bold');
-    doc.text(`${label}:`, pageWidth - margin, yPos, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    doc.text(value, pageWidth - margin - 50, yPos, { align: 'right' });
-    yPos += 7;
+  basicInfo.forEach(({ en, ar, value }) => {
+    drawInfoRow(en, value, ar);
   });
 
   yPos += 5;
 
   // ======== معلومات الموقع ========
-  doc.setTextColor(1, 65, 28);
-  doc.setFontSize(16);
-  doc.text('Location Details', margin, yPos);
-  
-  yPos += 5;
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
-
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(11);
+  drawSectionHeader('Location Details', 'تفاصيل الموقع');
 
   const locationInfo = [
-    ['City', property.locationDetails?.city || '-'],
-    ['District', property.locationDetails?.district || '-'],
-    ['Street', property.locationDetails?.street || '-'],
-    ['Building Number', property.locationDetails?.buildingNumber || '-'],
-    ['Postal Code', property.locationDetails?.postalCode || '-'],
+    { en: 'City', ar: 'المدينة', value: property.locationDetails?.city || '-' },
+    { en: 'District', ar: 'الحي', value: property.locationDetails?.district || '-' },
+    { en: 'Street', ar: 'الشارع', value: property.locationDetails?.street || '-' },
   ];
 
-  locationInfo.forEach(([label, value]) => {
-    doc.setFont(undefined, 'bold');
-    doc.text(`${label}:`, pageWidth - margin, yPos, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    doc.text(value, pageWidth - margin - 50, yPos, { align: 'right' });
-    yPos += 7;
+  locationInfo.forEach(({ en, ar, value }) => {
+    drawInfoRow(en, value, ar);
   });
 
   yPos += 5;
 
   // ======== المواصفات التفصيلية ========
-  doc.setTextColor(1, 65, 28);
-  doc.setFontSize(16);
-  doc.text('Specifications', margin, yPos);
-  
-  yPos += 5;
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
-
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(11);
+  drawSectionHeader('Specifications', 'المواصفات');
 
   const specs = [
-    ['Bedrooms', property.bedrooms || '-'],
-    ['Bathrooms', property.bathrooms || '-'],
-    ['Living Rooms', property.livingRooms || '-'],
-    ['Floors', property.floors || '-'],
-    ['Floor Number', property.floorNumber || '-'],
-    ['Street Width', property.streetWidth ? `${property.streetWidth} m` : '-'],
-    ['Property Age', property.propertyAge ? `${property.propertyAge} years` : '-'],
-    ['Facade', property.facade || '-'],
-    ['Furnishing', property.furnishing || '-'],
-  ].filter(([_, value]) => value !== '-');
+    { en: 'Bedrooms', ar: 'غرف النوم', value: property.bedrooms || '-' },
+    { en: 'Bathrooms', ar: 'دورات المياه', value: property.bathrooms || '-' },
+    { en: 'Living Rooms', ar: 'الصالات', value: property.livingRooms || '-' },
+    { en: 'Floors', ar: 'الأدوار', value: property.floors || '-' },
+    { en: 'Floor Number', ar: 'رقم الطابق', value: property.floorNumber || '-' },
+    { en: 'Street Width', ar: 'عرض الشارع', value: property.streetWidth ? `${property.streetWidth} m` : '-' },
+    { en: 'Property Age', ar: 'عمر العقار', value: property.propertyAge ? `${property.propertyAge} years` : '-' },
+    { en: 'Facade', ar: 'الواجهة', value: property.facade || '-' },
+    { en: 'Furnishing', ar: 'التأثيث', value: property.furnishing || '-' },
+  ].filter(item => item.value !== '-');
 
-  specs.forEach(([label, value]) => {
-    doc.setFont(undefined, 'bold');
-    doc.text(`${label}:`, pageWidth - margin, yPos, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    doc.text(value, pageWidth - margin - 50, yPos, { align: 'right' });
-    yPos += 7;
-  });
-
-  // التحقق من الحاجة لصفحة جديدة
-  if (yPos > pageHeight - 60) {
-    doc.addPage();
-    yPos = margin;
-  }
-
-  yPos += 5;
-
-  // ======== معلومات المالك ========
-  if (includeOwner && (property.ownerName || property.ownerPhone)) {
-    doc.setTextColor(1, 65, 28);
-    doc.setFontSize(16);
-    doc.text('Owner Information', margin, yPos);
-    
-    yPos += 5;
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 10;
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-
-    const ownerInfo = [
-      ['Owner Name', property.ownerName || '-'],
-      ['Phone', property.ownerPhone || '-'],
-    ];
-
-    ownerInfo.forEach(([label, value]) => {
-      doc.setFont(undefined, 'bold');
-      doc.text(`${label}:`, pageWidth - margin, yPos, { align: 'right' });
-      doc.setFont(undefined, 'normal');
-      doc.text(value, pageWidth - margin - 50, yPos, { align: 'right' });
-      yPos += 7;
-    });
-
-    yPos += 5;
-  }
-
-  // ======== المميزات ========
-  if (property.features && property.features.length > 0) {
+  specs.forEach(({ en, ar, value }) => {
     if (yPos > pageHeight - 40) {
       doc.addPage();
       yPos = margin;
     }
+    drawInfoRow(en, value, ar);
+  });
 
-    doc.setTextColor(1, 65, 28);
-    doc.setFontSize(16);
-    doc.text('Features', margin, yPos);
-    
+  // ======== معلومات المالك ========
+  if (includeOwner && (property.ownerName || property.ownerPhone)) {
     yPos += 5;
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 10;
+    
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = margin;
+    }
+    
+    drawSectionHeader('Owner Information', 'معلومات المالك');
+
+    if (property.ownerName) {
+      drawInfoRow('Owner Name', property.ownerName, 'اسم المالك');
+    }
+    if (property.ownerPhone) {
+      drawInfoRow('Phone', property.ownerPhone, 'الهاتف');
+    }
+  }
+
+  // ======== المميزات ========
+  if (property.features && property.features.length > 0) {
+    yPos += 5;
+    
+    if (yPos > pageHeight - 50) {
+      doc.addPage();
+      yPos = margin;
+    }
+
+    drawSectionHeader('Features', 'المميزات');
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
 
-    // عرض المميزات في صفين
     const featuresPerRow = 3;
     const featureWidth = (pageWidth - 2 * margin) / featuresPerRow;
     
@@ -234,12 +254,12 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
         yPos += 7;
       }
       
-      if (yPos > pageHeight - 20) {
+      if (yPos > pageHeight - 25) {
         doc.addPage();
         yPos = margin;
       }
 
-      const xPos = pageWidth - margin - (col * featureWidth) - featureWidth / 2;
+      const xPos = margin + (col * featureWidth) + featureWidth / 2;
       doc.text(`• ${feature}`, xPos, yPos + (row === 0 ? 0 : 0), { align: 'center' });
     });
 
@@ -248,53 +268,46 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
 
   // ======== الوصف ========
   if (property.aiDescription) {
-    if (yPos > pageHeight - 50) {
+    if (yPos > pageHeight - 60) {
       doc.addPage();
       yPos = margin;
     }
 
-    doc.setTextColor(1, 65, 28);
-    doc.setFontSize(16);
-    doc.text('Description', margin, yPos);
-    
-    yPos += 5;
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 10;
+    drawSectionHeader('Description', 'الوصف');
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
 
-    // تقسيم النص الطويل
     const maxWidth = pageWidth - 2 * margin;
     const lines = doc.splitTextToSize(property.aiDescription, maxWidth);
     
     lines.forEach((line: string) => {
-      if (yPos > pageHeight - 20) {
+      if (yPos > pageHeight - 25) {
         doc.addPage();
         yPos = margin;
       }
-      doc.text(line, pageWidth - margin, yPos, { align: 'right' });
+      doc.text(line, pageWidth / 2, yPos, { align: 'center' });
       yPos += 6;
     });
   }
 
   // ======== تذييل الصفحة ========
   const addFooter = (pageNum: number) => {
-    doc.setFillColor(240, 240, 240);
+    doc.setFillColor(1, 65, 28);
     doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
     
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(212, 175, 55);
     doc.setFontSize(9);
     
     const date = new Date().toLocaleDateString('en-SA');
-    doc.text(`Generated on: ${date}`, margin, pageHeight - 10);
+    doc.text(`Generated: ${date}`, margin, pageHeight - 8);
     
     if (property.brokerPhone) {
-      doc.text(`Broker: ${property.brokerPhone}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text(`Broker: ${property.brokerPhone}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
     }
     
     if (property.adLicense) {
-      doc.text(`License: ${property.adLicense}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+      doc.text(`License: ${property.adLicense}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
     }
   };
 
