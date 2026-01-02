@@ -31,6 +31,8 @@ import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppoint
 import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
 import PublicPlatformPage from "./pages/PublicPlatformPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
+import AuthPage from "./pages/AuthPage";
+import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -253,31 +255,34 @@ const App = () => {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <DashboardProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={
-                  <>
-                    {renderPage()}
-                    <AIFloatingButton />
-                  </>
-                } />
-                <Route path="/customers" element={<CustomersListPage />} />
-                <Route path="/cards/:slug" element={<PublicCardView />} />
-                <Route path="/public/offer/:brokerId" element={<PublicOfferForm />} />
-                <Route path="/public/request/:brokerId" element={<PublicRequestForm />} />
-                <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
-                <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
-                <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
-                <Route path="/platform/:userId" element={<PublicPlatformPage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </DashboardProvider>
+        <AuthProvider>
+          <DashboardProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={
+                    <>
+                      {renderPage()}
+                      <AIFloatingButton />
+                    </>
+                  } />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/customers" element={<CustomersListPage />} />
+                  <Route path="/cards/:slug" element={<PublicCardView />} />
+                  <Route path="/public/offer/:brokerId" element={<PublicOfferForm />} />
+                  <Route path="/public/request/:brokerId" element={<PublicRequestForm />} />
+                  <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
+                  <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
+                  <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
+                  <Route path="/platform/:userId" element={<PublicPlatformPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </DashboardProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );
