@@ -66,6 +66,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           appointment_date: string
@@ -85,6 +86,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           appointment_date?: string
@@ -104,6 +106,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -335,6 +338,7 @@ export type Database = {
           title: string
           tour_3d_url: string | null
           updated_at: string
+          user_id: string | null
           video_url: string | null
           views: number | null
           warehouses: string | null
@@ -393,6 +397,7 @@ export type Database = {
           title: string
           tour_3d_url?: string | null
           updated_at?: string
+          user_id?: string | null
           video_url?: string | null
           views?: number | null
           warehouses?: string | null
@@ -451,10 +456,47 @@ export type Database = {
           title?: string
           tour_3d_url?: string | null
           updated_at?: string
+          user_id?: string | null
           video_url?: string | null
           views?: number | null
           warehouses?: string | null
           warranties?: Json | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company_name: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          license_number: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          license_number?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          license_number?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
