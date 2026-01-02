@@ -2068,6 +2068,14 @@ export default function MyPlatformComplete({
                                           {/* محتوى الكارت */}
                                           <CardContent className="p-3">
                                             <h5 className="font-bold text-[#01411C] line-clamp-1 text-sm md:text-base">{offer.title}</h5>
+                                            {/* الموقع: المدينة - الحي */}
+                                            <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                                              <MapPin className="w-3 h-3 text-[#01411C]" />
+                                              <span>{city.cityName}</span>
+                                              {district.districtName && (
+                                                <span className="text-gray-400"> - {district.districtName}</span>
+                                              )}
+                                            </p>
                                             <p className="text-[#D4AF37] font-bold text-sm mt-1">{offer.price}</p>
                                             {/* اسم المالك */}
                                             {offer.ownerName && (
