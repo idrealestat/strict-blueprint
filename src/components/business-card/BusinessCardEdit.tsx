@@ -332,9 +332,16 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         },
       });
 
-      if (!error && data?.token) {
+      if (error) {
+        throw error;
+      }
+
+      // حفظ الـ slug المستخدم للرابط العام دائماً عند نجاح النشر
+      // (حتى لو لم يرجع التوكن في نفس الاستجابة)
+      localStorage.setItem('public_platform_slug', slug);
+
+      if (data?.token) {
         localStorage.setItem(publishTokenKey, data.token);
-        localStorage.setItem('public_platform_slug', slug);
       }
       // إرسال حدث لتحديث المنصة فوراً
       window.dispatchEvent(new CustomEvent('businessCardUpdated'));
