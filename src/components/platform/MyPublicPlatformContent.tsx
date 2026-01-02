@@ -12,8 +12,7 @@ import SimilarOffersSection from './SimilarOffersSection';
 import PlatformSearchFilter from './PlatformSearchFilter';
 import PlatformStats from './PlatformStats';
 import { toast } from 'sonner';
-import { readPlatformComplete, readVisibilityState, syncPlatformCompleteFromPublishedAds } from '@/utils/platformStorage';
-import { usePublicPlatformListings, usePlatformListings } from '@/hooks/usePlatformListings';
+import { usePlatformListings } from '@/hooks/usePlatformListings';
 
 interface Listing {
   id: string;
@@ -162,7 +161,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // استخدام hook قاعدة البيانات للصفحة العامة
   const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
-  const { listings: dbListings, loading: dbLoading } = usePublicPlatformListings(currentSlug);
   const { syncFromLocalStorage } = usePlatformListings(currentSlug);
 
   // استخراج جميع العروض المسطحة من التسلسل الهرمي
@@ -177,54 +175,45 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   };
   
   useEffect(() => {
-    // إذا كانت هناك بيانات من قاعدة البيانات (للصفحة العامة)
-    if (dbListings && dbListings.length > 0) {
-      const adsFromDb = dbListings.map((listing: any) => ({
-        ...listing,
-        image: listing.image || (listing.images && listing.images[0]),
-        imageCount: listing.images?.length || 1,
-      }));
-      const hierarchy = buildHierarchy(adsFromDb);
-      setHierarchyData(hierarchy);
-      setAllListings(flattenListings(hierarchy));
-      return;
-    }
-
     const loadData = () => {
-      // ✅ توحيد مصدر البيانات:
-      // - المنصة العامة كانت تعتمد على wasata_platform_complete فقط
-      // - بينما لوحة الإدارة تعتمد على published_ads_list
-      // لذلك نعمل مزامنة/دمج ثم نبني الواجهة.
-      syncPlatformCompleteFromPublishedAds();
-
-      const visibility = readVisibilityState();
-      const ads = readPlatformComplete()
-        .filter((ad: any) => (ad?.status ?? 'published') === 'published')
-        .filter((ad: any) => !(visibility[`offer_${ad.id}`] ?? ad.isHidden ?? false));
-
-      if (ads.length > 0) {
-        const hierarchy = buildHierarchy(ads);
-        setHierarchyData(hierarchy);
-        setAllListings(flattenListings(hierarchy));
+      // قراءة مباشرة من published_ads_list تماماً كما في MyPlatformComplete
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      const visibility = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
+      
+      if (!Array.isArray(publishedAds) || publishedAds.length === 0) {
+        const mockHierarchy = getMockHierarchy();
+        setHierarchyData(mockHierarchy);
+        setAllListings(flattenListings(mockHierarchy));
         return;
       }
 
-      const mockHierarchy = getMockHierarchy();
-      setHierarchyData(mockHierarchy);
-      setAllListings(flattenListings(mockHierarchy));
+      // تصفية العروض المخفية أو الغير منشورة
+      const visibleAds = publishedAds.filter((ad: any) => {
+        const isHidden = visibility[`offer_${ad.id}`] ?? ad.isHidden ?? false;
+        const status = ad.status ?? 'published';
+        return !isHidden && status === 'published';
+      });
+
+      if (visibleAds.length > 0) {
+        const hierarchy = buildHierarchy(visibleAds);
+        setHierarchyData(hierarchy);
+        setAllListings(flattenListings(hierarchy));
+      } else {
+        const mockHierarchy = getMockHierarchy();
+        setHierarchyData(mockHierarchy);
+        setAllListings(flattenListings(mockHierarchy));
+      }
     };
 
-    // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات
+    // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
     if (typeof businessCardOverride !== 'undefined') {
       // إذا كانت البيانات موجودة (وليست null)، نستخدمها
       if (businessCardOverride !== null) {
         setBusinessCardData(businessCardOverride);
         setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
       }
-      // إذا لا توجد بيانات من قاعدة البيانات للعروض، نحمل من localStorage
-      if (!dbListings || dbListings.length === 0) {
-        loadData();
-      }
+      // لكن العروض دائماً من localStorage
+      loadData();
       return;
     }
 
@@ -273,7 +262,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       window.removeEventListener('publishedAdSaved', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [currentUser, STORAGE_KEY, SWAP_KEY, businessCardOverride, dbListings]);
+  }, [currentUser, STORAGE_KEY, SWAP_KEY, businessCardOverride]);
 
   // دالة مزامنة العروض إلى قاعدة البيانات
   const handleSyncToDatabase = async () => {
