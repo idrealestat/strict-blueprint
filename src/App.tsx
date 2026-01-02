@@ -18,7 +18,7 @@ import { TasksManagement } from "./components/tasks";
 import { MapSystemDashboard } from "./components/map";
 import { AdPublishingSections } from "./components/advertising";
 import CustomersListPage from "./pages/CustomersListPage";
-import PublicCardView from "./pages/PublicCardView";
+// PublicCardView removed - using SlugBusinessCardPage instead
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import RentedPropertiesReport from "./components/reports/RentedPropertiesReport";
@@ -26,8 +26,7 @@ import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
-import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
-import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
+// Legacy public forms removed - using /:slug/* pattern instead
 import SlugOffersPage from "./pages/SlugOffersPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
 import AuthPage from "./pages/AuthPage";
@@ -37,9 +36,7 @@ import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
 import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
-import SlugOfferPage from "./pages/SlugOfferPage";
-import SlugRequestPage from "./pages/SlugRequestPage";
-import SlugQuotePage from "./pages/SlugQuotePage";
+// SlugOfferPage, SlugRequestPage, SlugQuotePage removed per route cleanup
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
@@ -355,24 +352,14 @@ const App = () => {
                     </BusinessCardGuard>
                   } />
                   
-                  {/* Public routes - cards */}
-                  <Route path="/cards/:slug" element={<PublicCardView />} />
-                  
-                  {/* Public form routes */}
-                  <Route path="/public/offer/:brokerId" element={<PublicOfferForm />} />
-                  <Route path="/public/request/:brokerId" element={<PublicRequestForm />} />
-                  <Route path="/public/quote/:brokerId" element={<PublicPriceQuoteForm />} />
-                  <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
-                  <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
-                  
-                  {/* Dynamic slug routes - wasataai.com/{slug} - MUST BE LAST */}
+                  {/* ============================================
+                      PUBLIC ROUTES - Dynamic Slug Pattern ONLY
+                      wasataai.com/{slug}/* - MUST BE LAST
+                      ============================================ */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
-                  <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/businesscard" element={<SlugBusinessCardPage />} />
+                  <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/offers" element={<SlugOffersPage />} />
-                  <Route path="/:slug/offer" element={<SlugOfferPage />} />
-                  <Route path="/:slug/request" element={<SlugRequestPage />} />
-                  <Route path="/:slug/quote" element={<SlugQuotePage />} />
                   
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
