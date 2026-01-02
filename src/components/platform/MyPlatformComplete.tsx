@@ -191,6 +191,7 @@ interface MyPlatformCompleteProps {
 interface SingleOffer {
   id: string;
   title: string;
+  description?: string;
   price: string;
   image: string;
   status: 'published' | 'draft';
@@ -504,6 +505,7 @@ export default function MyPlatformComplete({
       const toSingleOffer = (ad: any): SingleOffer => ({
         id: ad.id,
         title: ad.title || `${ad.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${ad.propertyType} - ${ad.area || ''}م`,
+        description: ad.aiDescription || ad.description || '',
         price: ad.price ? `${ad.price} ريال` : 'السعر عند التواصل',
         image: ad.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
         status: 'published',
@@ -761,6 +763,7 @@ export default function MyPlatformComplete({
       const newOffer: SingleOffer = {
         id: newAd.id,
         title: `${newAd.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${newAd.propertyType} - ${newAd.area || ''}م`,
+        description: newAd.aiDescription || newAd.description || '',
         price: newAd.price ? `${newAd.price} ريال` : 'السعر عند التواصل',
         image: newAd.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
         status: 'published',
@@ -2076,6 +2079,10 @@ export default function MyPlatformComplete({
                                                 <span className="text-gray-400"> - {district.districtName}</span>
                                               )}
                                             </p>
+                                            {/* الوصف المختصر */}
+                                            {offer.description && (
+                                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{offer.description}</p>
+                                            )}
                                             <p className="text-[#D4AF37] font-bold text-sm mt-1">{offer.price}</p>
                                             {/* اسم المالك */}
                                             {offer.ownerName && (
