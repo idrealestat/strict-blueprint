@@ -10,6 +10,7 @@ interface SendOtpRequest {
   email: string;
   userId?: string; // اختياري - يمكن استخدام identifier بدلاً منه
   identifier?: string; // معرف مؤقت (البريد نفسه) قبل إنشاء الحساب
+  probe?: boolean; // فحص وضع التطوير بدون إرسال فعلي في الإنتاج
 }
 
 // Rate limiting: track requests per email
@@ -66,12 +67,20 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { email, userId, identifier }: SendOtpRequest = await req.json();
+    const { email, userId, identifier, probe }: SendOtpRequest = await req.json();
+
+    // في الإنتاج: probe=true يعني "اعرف لي فقط هل Dev OTP مفعل" بدون إنشاء كود/Rate limit/إرسال
+    if (probe && !ALLOW_DEV_OTP) {
+      return new Response(
+        JSON.stringify({ success: true, devMode: false, probe: true }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // استخدام identifier كبديل عن userId إذا لم يكن متاحاً
     const effectiveIdentifier = userId || identifier || email;
 
-    console.log("OTP_REQUEST", { email, userId, identifier, effectiveIdentifier });
+    console.log("OTP_REQUEST", { email, userId, identifier, effectiveIdentifier, probe: !!probe });
 
     if (!email) {
       return new Response(
