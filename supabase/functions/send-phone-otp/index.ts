@@ -10,6 +10,7 @@ interface SendOtpRequest {
   phone: string;
   userId?: string; // اختياري - يمكن استخدام identifier بدلاً منه
   identifier?: string; // معرف مؤقت (الجوال نفسه) قبل إنشاء الحساب
+  probe?: boolean; // فحص وضع التطوير بدون إرسال فعلي في الإنتاج
 }
 
 // Rate limiting
@@ -70,11 +71,19 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { phone, userId, identifier }: SendOtpRequest = await req.json();
+    const { phone, userId, identifier, probe }: SendOtpRequest = await req.json();
+
+    // في الإنتاج: probe=true يعني "اعرف لي فقط هل Dev OTP مفعل" بدون إنشاء كود/Rate limit/إرسال
+    if (probe && !ALLOW_DEV_OTP) {
+      return new Response(
+        JSON.stringify({ success: true, devMode: false, probe: true }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const phoneRegex = /^(\+966|966|05|5)\d{8}$/;
     const cleanPhone = phone?.replace(/\s/g, "") || "";
-    
+
     if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
       return new Response(
         JSON.stringify({ error: "صيغة رقم الجوال غير صحيحة" }),
@@ -95,7 +104,7 @@ const handler = async (req: Request): Promise<Response> => {
     // استخدام identifier كبديل عن userId إذا لم يكن متاحاً
     const effectiveIdentifier = userId || identifier || formattedPhone;
 
-    console.log("OTP_REQUEST", { phone: formattedPhone, userId, identifier, effectiveIdentifier });
+    console.log("OTP_REQUEST", { phone: formattedPhone, userId, identifier, effectiveIdentifier, probe: !!probe });
 
     // إذا كان userId موجوداً، تحقق من صيغة UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
