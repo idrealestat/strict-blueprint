@@ -2246,7 +2246,6 @@ export default function MyPlatformComplete({
                 <div className="flex gap-2 mt-1">
                   <Input 
                     value={`${platformUrl}/offers/${selectedOfferForShare.id}`}
-                    readOnly
                     className="text-sm"
                   />
                   <Button onClick={copyShareLink} variant="outline">
