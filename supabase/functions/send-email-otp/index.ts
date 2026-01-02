@@ -13,13 +13,71 @@ interface SendOtpRequest {
   userId: string;
 }
 
+// Rate limiting: track requests per email
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const MAX_REQUESTS_PER_HOUR = 5;
+
+function checkRateLimit(email: string): boolean {
+  const now = Date.now();
+  const existing = rateLimitMap.get(email);
+  
+  if (!existing || now > existing.resetAt) {
+    rateLimitMap.set(email, { count: 1, resetAt: now + 3600000 }); // 1 hour
+    return true;
+  }
+  
+  if (existing.count >= MAX_REQUESTS_PER_HOUR) {
+    return false;
+  }
+  
+  existing.count++;
+  return true;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // ============ AUTHENTICATION CHECK ============
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError?.message || 'No user found');
+      return new Response(
+        JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+    // ============ END AUTHENTICATION CHECK ============
+
     const { email, userId }: SendOtpRequest = await req.json();
+
+    // Verify the userId matches the authenticated user
+    if (userId !== user.id) {
+      console.error('User ID mismatch:', userId, 'vs', user.id);
+      return new Response(
+        JSON.stringify({ error: "غير مصرح بهذا الإجراء" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // التحقق من صحة البيانات
     if (!email || !userId) {
@@ -38,12 +96,20 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check rate limit
+    if (!checkRateLimit(email)) {
+      console.error('Rate limit exceeded for email:', email);
+      return new Response(
+        JSON.stringify({ error: "تم تجاوز الحد المسموح للطلبات، يرجى المحاولة لاحقاً" }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     // إنشاء رمز OTP عشوائي من 6 أرقام
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // صالح لمدة 10 دقائق
 
-    // الاتصال بـ Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    // الاتصال بـ Supabase with service role for database operations
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 

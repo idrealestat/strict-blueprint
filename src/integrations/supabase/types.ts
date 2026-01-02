@@ -700,7 +700,6 @@ export type Database = {
           commercial_reg_number: string | null
           company_name: string | null
           created_at: string
-          email_otp: string | null
           email_verified: boolean | null
           fal_license_expiry: string | null
           fal_license_number: string | null
@@ -711,9 +710,7 @@ export type Database = {
           office_address: string | null
           office_lat: number | null
           office_lng: number | null
-          otp_expires_at: string | null
           phone: string | null
-          phone_otp: string | null
           phone_verified: boolean | null
           updated_at: string
           user_id: string
@@ -727,7 +724,6 @@ export type Database = {
           commercial_reg_number?: string | null
           company_name?: string | null
           created_at?: string
-          email_otp?: string | null
           email_verified?: boolean | null
           fal_license_expiry?: string | null
           fal_license_number?: string | null
@@ -738,9 +734,7 @@ export type Database = {
           office_address?: string | null
           office_lat?: number | null
           office_lng?: number | null
-          otp_expires_at?: string | null
           phone?: string | null
-          phone_otp?: string | null
           phone_verified?: boolean | null
           updated_at?: string
           user_id: string
@@ -754,7 +748,6 @@ export type Database = {
           commercial_reg_number?: string | null
           company_name?: string | null
           created_at?: string
-          email_otp?: string | null
           email_verified?: boolean | null
           fal_license_expiry?: string | null
           fal_license_number?: string | null
@@ -765,9 +758,7 @@ export type Database = {
           office_address?: string | null
           office_lat?: number | null
           office_lng?: number | null
-          otp_expires_at?: string | null
           phone?: string | null
-          phone_otp?: string | null
           phone_verified?: boolean | null
           updated_at?: string
           user_id?: string
@@ -827,6 +818,7 @@ export type Database = {
           status: string
           twilio_message_sid: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           appointment_id?: string | null
@@ -840,6 +832,7 @@ export type Database = {
           status?: string
           twilio_message_sid?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           appointment_id?: string | null
@@ -853,6 +846,7 @@ export type Database = {
           status?: string
           twilio_message_sid?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
