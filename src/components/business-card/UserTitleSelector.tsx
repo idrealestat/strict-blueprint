@@ -315,6 +315,18 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     }
   };
 
+  // الحصول على base URL ديناميكياً
+  const getBaseUrl = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wasataai.com';
+    // إزالة البروتوكول للعرض
+    return origin.replace(/^https?:\/\//, '');
+  };
+
+  const getFullPublicUrl = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wasataai.com';
+    return value ? `${origin}/${value}` : '';
+  };
+
   return (
     <div className="space-y-2">
       <Label className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-2">
@@ -329,9 +341,9 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
             {getStatusIcon()}
           </div>
           
-          {/* اسم الدومين الأساسي */}
+          {/* اسم الدومين الأساسي - ديناميكي */}
           <span className="text-primary font-bold text-sm whitespace-nowrap">
-            WasataAI.com/smart
+            {getBaseUrl()}/
           </span>
           
           {/* حقل الإدخال */}
@@ -362,7 +374,9 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         {availability === 'available' && !errorMessage && value && (
           <div className="mt-3 p-2 rounded bg-emerald-100 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
             <p className="text-sm text-emerald-700 dark:text-emerald-300 text-right font-medium">
-              {officialDomainVerified ? '🔐 تم التحقق من ملكية النطاق الرسمي - قبول تلقائي!' : '✅ الرابط الثابت جاهز! رابطك سيكون: WasataAI.com/smart'}
+              {officialDomainVerified 
+                ? '🔐 تم التحقق من ملكية النطاق الرسمي - قبول تلقائي!' 
+                : `✅ الرابط الثابت جاهز! رابطك سيكون: ${getBaseUrl()}/${value}`}
             </p>
             {priorityLevel && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400 text-right mt-1">
