@@ -41,13 +41,21 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const ALLOW_DEV_OTP = Deno.env.get("ALLOW_DEV_OTP") === "true";
+    const ALLOW_DEV_OTP_RAW = Deno.env.get("ALLOW_DEV_OTP");
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") || Deno.env.get("LOVABLE_ENV") || "production";
+
+    // Dev OTP مسموح فقط في بيئة التطوير
+    const isDevEnvironment = ENVIRONMENT === "development" || ENVIRONMENT === "dev";
+    const ALLOW_DEV_OTP = ALLOW_DEV_OTP_RAW === "true" && isDevEnvironment;
 
     console.log("ENV_CHECK", {
       hasSupabaseUrl: !!supabaseUrl,
       hasServiceRoleKey: !!supabaseKey,
       hasResendKey: !!RESEND_API_KEY,
-      allowDevOtp: ALLOW_DEV_OTP,
+      allowDevOtpRaw: ALLOW_DEV_OTP_RAW,
+      environment: ENVIRONMENT,
+      isDevEnvironment,
+      allowDevOtpFinal: ALLOW_DEV_OTP,
     });
 
     if (!supabaseUrl || !supabaseKey) {
@@ -127,70 +135,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("OTP_SAVED", { email, otp: ALLOW_DEV_OTP ? otp : "***" });
 
-    // محاولة إرسال البريد عبر Resend
-    let emailSent = false;
-    let emailError: string | null = null;
-
-    if (RESEND_API_KEY) {
-      try {
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${RESEND_API_KEY}`,
-          },
-          body: JSON.stringify({
-            from: "وساطة <onboarding@resend.dev>",
-            to: [email],
-            subject: "رمز تفعيل البريد الإلكتروني - وساطة",
-            html: `
-              <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="background: linear-gradient(135deg, #01411C 0%, #016B30 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-                  <h1 style="color: white; margin: 0; font-size: 28px;">وساطة</h1>
-                  <p style="color: rgba(255,255,255,0.9); margin-top: 10px;">منصة الوساطة العقارية</p>
-                </div>
-                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
-                  <h2 style="color: #333; margin-top: 0;">رمز تفعيل البريد الإلكتروني</h2>
-                  <p style="color: #666; line-height: 1.6;">
-                    مرحباً بك في وساطة! استخدم الرمز التالي لتفعيل بريدك الإلكتروني:
-                  </p>
-                  <div style="background: white; border: 2px dashed #01411C; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-                    <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #01411C;">${otp}</span>
-                  </div>
-                  <p style="color: #999; font-size: 14px;">
-                    هذا الرمز صالح لمدة 10 دقائق فقط.
-                  </p>
-                </div>
-              </div>
-            `,
-          }),
-        });
-
-        const emailData = await emailResponse.json();
-
-        if (emailResponse.ok) {
-          emailSent = true;
-          console.log("EMAIL_SENT", { id: emailData.id });
-        } else {
-          emailError = emailData.message || emailData.error || "Resend error";
-          console.error("RESEND_ERROR", emailData);
-        }
-      } catch (err: any) {
-        emailError = err.message;
-        console.error("RESEND_EXCEPTION", err);
-      }
-    } else {
-      emailError = "RESEND_API_KEY not configured";
-      console.warn("RESEND_NOT_CONFIGURED");
-    }
-
-    // Dev Fallback: إذا فشل الإرسال وفي وضع التطوير → نرجع الكود مباشرة
-    if (!emailSent && ALLOW_DEV_OTP) {
-      console.log("DEV_FALLBACK_ENABLED", { otp });
+    // ===== وضع التطوير: لا نستدعي Resend =====
+    if (ALLOW_DEV_OTP) {
+      console.log("DEV_MODE_ACTIVE", { otp, skippingResend: true });
       return new Response(
         JSON.stringify({
           success: true,
-          message: "تم حفظ رمز التحقق (وضع التطوير)",
+          message: "تم حفظ رمز التحقق (وضع التطوير - لم يُرسل بريد)",
           devCode: otp,
           devMode: true,
         }),
@@ -198,17 +149,61 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // إذا فشل الإرسال ولا يوجد dev fallback
-    if (!emailSent) {
+    // ===== وضع الإنتاج: استخدم Resend =====
+    if (!RESEND_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "RESEND_API_KEY غير مُعد" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const emailResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: "وساطة <onboarding@resend.dev>",
+        to: [email],
+        subject: "رمز تفعيل البريد الإلكتروني - وساطة",
+        html: `
+          <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #01411C 0%, #016B30 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">وساطة</h1>
+              <p style="color: rgba(255,255,255,0.9); margin-top: 10px;">منصة الوساطة العقارية</p>
+            </div>
+            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #333; margin-top: 0;">رمز تفعيل البريد الإلكتروني</h2>
+              <p style="color: #666; line-height: 1.6;">
+                مرحباً بك في وساطة! استخدم الرمز التالي لتفعيل بريدك الإلكتروني:
+              </p>
+              <div style="background: white; border: 2px dashed #01411C; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+                <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #01411C;">${otp}</span>
+              </div>
+              <p style="color: #999; font-size: 14px;">
+                هذا الرمز صالح لمدة 10 دقائق فقط.
+              </p>
+            </div>
+          </div>
+        `,
+      }),
+    });
+
+    const emailData = await emailResponse.json();
+
+    if (!emailResponse.ok) {
+      console.error("RESEND_ERROR", emailData);
       return new Response(
         JSON.stringify({
           error: "خطأ في إرسال البريد الإلكتروني",
-          details: emailError,
+          details: emailData.message || emailData.error || "Resend error",
         }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
+    console.log("EMAIL_SENT", { id: emailData.id });
     return new Response(
       JSON.stringify({ success: true, message: "تم إرسال رمز التحقق بنجاح" }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
