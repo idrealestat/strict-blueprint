@@ -21,7 +21,7 @@ export type Database = {
           id: string
           publish_token_hash: string | null
           published: boolean
-          slug: string
+          slug: string | null
           updated_at: string
           user_id: string
         }
@@ -31,7 +31,7 @@ export type Database = {
           id?: string
           publish_token_hash?: string | null
           published?: boolean
-          slug: string
+          slug?: string | null
           updated_at?: string
           user_id: string
         }
@@ -41,7 +41,7 @@ export type Database = {
           id?: string
           publish_token_hash?: string | null
           published?: boolean
-          slug?: string
+          slug?: string | null
           updated_at?: string
           user_id?: string
         }
