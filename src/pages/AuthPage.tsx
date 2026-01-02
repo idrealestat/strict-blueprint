@@ -86,7 +86,9 @@ export default function AuthPage() {
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
-  
+
+  const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
+
   const { toast } = useToast();
   const { signIn, signUp, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
@@ -96,6 +98,52 @@ export default function AuthPage() {
       navigate('/app/businesscard/edit');
     }
   }, [isAuthenticated, loading, navigate]);
+
+  // استرجاع بيانات التسجيل إن وُجدت ولم يكتمل التسجيل
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(REGISTER_CACHE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as {
+        data?: RegistrationData;
+        currentStep?: number;
+        accountType?: AccountType;
+      };
+
+      if (!parsed?.data) return;
+
+      // إذا كان المستخدم لم يصل لمرحلة النجاح/التحويل، نعيد فتح وضع التسجيل مع نفس البيانات
+      setIsLogin(false);
+      setData({ ...initialData, ...parsed.data, accountType: (parsed.accountType ?? parsed.data.accountType ?? 'individual') as AccountType });
+      setCurrentStep(typeof parsed.currentStep === 'number' ? Math.max(1, parsed.currentStep) : 1);
+    } catch {
+      // ignore parse errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // حفظ بيانات التسجيل بشكل مؤقت (debounced) بدون التأثير على التوجيه أو isAuthenticated
+  useEffect(() => {
+    if (isLogin) return;
+
+    const id = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          REGISTER_CACHE_KEY,
+          JSON.stringify({
+            data,
+            currentStep,
+            accountType: data.accountType,
+          })
+        );
+      } catch {
+        // ignore storage errors
+      }
+    }, 400);
+
+    return () => window.clearTimeout(id);
+  }, [REGISTER_CACHE_KEY, data, currentStep, isLogin]);
 
   const getTotalSteps = () => {
     if (data.accountType === 'individual') return 4;
@@ -347,6 +395,13 @@ export default function AuthPage() {
         title: 'تم التسجيل بنجاح!',
         description: 'مرحباً بك في وساطة'
       });
+
+      // تنظيف بيانات التسجيل المؤقتة بعد نجاح التسجيل
+      try {
+        localStorage.removeItem(REGISTER_CACHE_KEY);
+      } catch {
+        // ignore
+      }
       
       // Set flag to show welcome dialog and redirect to businesscard edit page
       localStorage.setItem('show_welcome_dialog', 'true');
