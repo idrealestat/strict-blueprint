@@ -181,9 +181,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       const visibility = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
       
       if (!Array.isArray(publishedAds) || publishedAds.length === 0) {
-        const mockHierarchy = getMockHierarchy();
-        setHierarchyData(mockHierarchy);
-        setAllListings(flattenListings(mockHierarchy));
+        // لا توجد عروض - عرض قائمة فارغة بدلاً من البيانات الوهمية
+        setHierarchyData([]);
+        setAllListings([]);
         return;
       }
 
@@ -199,11 +199,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         setHierarchyData(hierarchy);
         setAllListings(flattenListings(hierarchy));
       } else {
-        const mockHierarchy = getMockHierarchy();
-        setHierarchyData(mockHierarchy);
-        setAllListings(flattenListings(mockHierarchy));
+        // لا توجد عروض مرئية - عرض قائمة فارغة
+        setHierarchyData([]);
+        setAllListings([]);
       }
     };
+    
+    // تحميل البيانات فوراً
+    loadData();
+    
+    // التحديث التلقائي كل 2 ثانية
+    const autoRefreshInterval = setInterval(() => {
+      loadData();
+    }, 2000);
 
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
     if (typeof businessCardOverride !== 'undefined') {
@@ -213,8 +221,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
       }
       // لكن العروض دائماً من localStorage
-      loadData();
-      return;
+      return () => {
+        clearInterval(autoRefreshInterval);
+      };
     }
 
     const loadCardData = () => {
@@ -238,7 +247,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       setIsSwapped(swapState === 'true');
     };
 
-    loadData();
     loadCardData();
 
     const handleUpdate = () => {
@@ -257,6 +265,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     window.addEventListener('publishedAdSaved', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
+      clearInterval(autoRefreshInterval);
       window.removeEventListener('businessCardUpdated', handleUpdate);
       window.removeEventListener('businessCardSwapped', handleSwap);
       window.removeEventListener('publishedAdSaved', handleUpdate);
