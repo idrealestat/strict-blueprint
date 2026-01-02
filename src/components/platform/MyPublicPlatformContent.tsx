@@ -346,12 +346,31 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     ];
   };
   
+  const parseCityDistrictFromSmartPathLocal = (smartPath?: string): { city?: string; district?: string } => {
+    if (!smartPath) return {};
+    const parts = smartPath.split('/').map((p) => p.trim()).filter(Boolean);
+    const purposeLike = parts[1];
+    const looksLikeFormatB = purposeLike === 'للبيع' || purposeLike === 'للإيجار' || purposeLike === 'للايجار';
+    if (looksLikeFormatB) {
+      const city = parts.length >= 3 ? parts[2] : undefined;
+      const district = parts.length >= 4 ? parts[3]?.replace(/^حي\s+/u, '').trim() : undefined;
+      return { city, district };
+    }
+    const city = parts.length >= 1 ? parts[0] : undefined;
+    const district = parts.length >= 2 ? parts[1]?.replace(/^حي\s+/u, '').trim() : undefined;
+    return { city, district };
+  };
+
   const buildHierarchy = (ads: any[]): CityGroup[] => {
     const cityGroups: { [key: string]: any } = {};
     
     ads.forEach((ad: any) => {
-      const city = ad.city || ad.locationDetails?.city || ad.location?.city || 'غير محدد';
-      const district = ad.district || ad.locationDetails?.district || ad.location?.district || 'غير محدد';
+      const smartPath = ad.smartPath || ad.smart_path || ad.platformPath;
+      const parsed = parseCityDistrictFromSmartPathLocal(smartPath);
+      const rawCity = ad.city || ad.locationDetails?.city || ad.location?.city || parsed.city || 'غير محدد';
+      const rawDistrict = ad.district || ad.locationDetails?.district || ad.location?.district || parsed.district || 'غير محدد';
+      const city = rawCity === 'غير محدد' && parsed.city ? parsed.city : rawCity;
+      const district = rawDistrict === 'غير محدد' && parsed.district ? parsed.district : rawDistrict;
       
       if (!cityGroups[city]) {
         cityGroups[city] = {
