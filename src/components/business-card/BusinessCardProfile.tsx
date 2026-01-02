@@ -21,7 +21,9 @@ import {
   Award,
   Users,
   Building,
-  Calendar
+  Calendar,
+  Copy,
+  Link
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -380,6 +382,36 @@ END:VCARD`;
             تحرير
           </Button>
         </div>
+
+        {/* Current Slug Display with Copy Button */}
+        {(() => {
+          const currentSlug = getSlug();
+          const fullUrl = `${PLATFORM_BASE_URL}/${currentSlug}`;
+          return (
+            <div className="relative z-10 mx-4 mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Link className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
+                  <span className="text-xs text-white/70">رابطك العام:</span>
+                  <span className="text-sm font-medium text-white truncate" dir="ltr">
+                    {fullUrl}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(fullUrl);
+                    toast.success("تم نسخ الرابط!");
+                  }}
+                  className="text-white hover:bg-white/20 px-2 py-1 h-auto flex-shrink-0"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Profile Image - Bigger size with improved touch swap */}
         <div className="relative z-10 flex justify-center pt-6">
