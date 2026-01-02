@@ -674,10 +674,22 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
     const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
 
     const city = String(
-      firstNonEmpty(ad.locationDetails?.city, ad.city, parsedFromPath.city, 'غير محدد') as any
+      firstNonEmpty(
+        ad.locationDetails?.city,
+        ad.location?.city,
+        ad.city,
+        parsedFromPath.city,
+        'غير محدد'
+      ) as any
     );
     const district = String(
-      firstNonEmpty(ad.locationDetails?.district, ad.district, parsedFromPath.district, 'غير محدد') as any
+      firstNonEmpty(
+        ad.locationDetails?.district,
+        ad.location?.district,
+        ad.district,
+        parsedFromPath.district,
+        'غير محدد'
+      ) as any
     );
 
     // استخراج الصور
