@@ -664,6 +664,79 @@ export function usePlatformListings(slug?: string) {
     };
   }, [slug, fetchListings]);
 
+  // ✅ دالة تنظيف التكرارات من قاعدة البيانات (للمالك فقط)
+  const cleanupDuplicates = async () => {
+    if (!slug) {
+      toast.error('لا يوجد slug محدد');
+      return { removed: 0 };
+    }
+
+    try {
+      // جلب كل العروض لهذا الـ slug
+      const { data: allRows, error: fetchError } = await supabase
+        .from('platform_listings')
+        .select('*')
+        .eq('slug', slug)
+        .order('created_at', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      if (!allRows || allRows.length === 0) {
+        toast.info('لا توجد عروض للتنظيف');
+        return { removed: 0 };
+      }
+
+      // دالة بناء المفتاح الفريد
+      const buildDuplicateKey = (row: any) => {
+        const title = String(row.title ?? '').trim();
+        const price = String(row.price ?? '').trim();
+        const city = String(row.city ?? '').trim();
+        const district = String(row.district ?? '').trim();
+        const propertyType = String(row.property_type ?? '').trim();
+        const smartPath = String(row.smart_path ?? '').trim();
+        return `${title}__${price}__${city}__${district}__${propertyType}__${smartPath}`;
+      };
+
+      // تحديد التكرارات: نحتفظ بأول نسخة من كل مفتاح فريد
+      const seen = new Map<string, string>(); // key -> id (الأول)
+      const idsToDelete: string[] = [];
+
+      allRows.forEach((row: any) => {
+        const key = buildDuplicateKey(row);
+        if (seen.has(key)) {
+          // هذا تكرار - سيتم حذفه
+          idsToDelete.push(row.id);
+        } else {
+          // هذا الأصلي - نحتفظ به
+          seen.set(key, row.id);
+        }
+      });
+
+      if (idsToDelete.length === 0) {
+        toast.success('لا توجد تكرارات للحذف');
+        return { removed: 0 };
+      }
+
+      // حذف التكرارات
+      const { error: deleteError } = await supabase
+        .from('platform_listings')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (deleteError) throw deleteError;
+
+      // تحديث القائمة المحلية
+      setListings((prev) => prev.filter((l) => !idsToDelete.includes(l.id)));
+
+      toast.success(`تم حذف ${idsToDelete.length} عرض مكرر`);
+      return { removed: idsToDelete.length };
+    } catch (err: any) {
+      console.error('Error cleaning duplicates:', err);
+      toast.error('فشل في تنظيف التكرارات');
+      throw err;
+    }
+  };
+
   return {
     listings,
     loading,
@@ -674,6 +747,7 @@ export function usePlatformListings(slug?: string) {
     deleteListing,
     syncFromLocalStorage,
     incrementViews,
+    cleanupDuplicates,
   };
 }
 

@@ -497,7 +497,7 @@ export default function MyPlatformComplete({
     () => localStorage.getItem('public_platform_slug') || String(user?.id || 'default'),
     [user]
   );
-  const { syncFromLocalStorage } = usePlatformListings(currentSlug);
+  const { syncFromLocalStorage, cleanupDuplicates } = usePlatformListings(currentSlug);
   
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
@@ -1726,6 +1726,29 @@ export default function MyPlatformComplete({
                     <FileDown className="w-4 h-4 ml-2" />
                     تقرير PDF
                   </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          onClick={async () => {
+                            try {
+                              await cleanupDuplicates();
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                          className="text-red-600 border-red-300 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 ml-2" />
+                          تنظيف التكرارات
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>حذف العروض المكررة من قاعدة البيانات (صفحة المشاركة العامة)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </CardContent>
             </Card>
