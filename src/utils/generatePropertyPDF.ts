@@ -67,7 +67,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
     min-height: 842px;
     padding: 0;
     margin: 0;
-    font-family: 'Tajawal', 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
+    font-family: 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
     direction: rtl;
     background: white;
     position: fixed;
@@ -85,8 +85,8 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
 
   container.innerHTML = `
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
-      * { font-family: 'Tajawal', 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+      * { font-family: 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
     </style>
     
     <!-- رأس الصفحة -->
@@ -288,9 +288,9 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
   const container = createPDFContent(property, includeOwner);
   document.body.appendChild(container);
 
-  // إضافة خط عربي ديناميكياً
+  // إضافة خط عربي ديناميكياً (نفس خط التطبيق)
   const fontLink = document.createElement('link');
-  fontLink.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap';
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap';
   fontLink.rel = 'stylesheet';
   document.head.appendChild(fontLink);
 
@@ -328,7 +328,7 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
         // التأكد من تطبيق الخطوط على العنصر المنسوخ
         const clonedContainer = clonedDoc.getElementById('pdf-content');
         if (clonedContainer) {
-          clonedContainer.style.fontFamily = "'Tajawal', 'Cairo', 'Segoe UI', Arial, sans-serif";
+          clonedContainer.style.fontFamily = "'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif";
         }
       }
     });
