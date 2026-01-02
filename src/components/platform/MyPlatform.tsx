@@ -596,7 +596,7 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                       slug = data.userTitle || data.slug || 'default';
                     } catch (e) {}
                   }
-                  const platformUrl = `${window.location.origin}/${slug}`;
+                  const platformUrl = `https://wasataai.com/${slug}`;
                   navigator.clipboard.writeText(platformUrl);
                   toast.success('تم نسخ رابط منصتك العامة!', {
                     description: platformUrl
