@@ -93,7 +93,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/');
+      navigate('/app/businesscard/edit');
     }
   }, [isAuthenticated, loading, navigate]);
 
@@ -224,7 +224,8 @@ export default function AuthPage() {
         title: 'مرحباً بك!',
         description: 'تم تسجيل الدخول بنجاح'
       });
-      navigate('/');
+      // Redirect to businesscard edit page after login
+      navigate('/app/businesscard/edit');
     } catch (error) {
       toast({
         title: 'خطأ غير متوقع',
@@ -312,10 +313,9 @@ export default function AuthPage() {
         description: 'مرحباً بك في وساطة'
       });
       
-      // Set flag to show welcome dialog and redirect to edit page
+      // Set flag to show welcome dialog and redirect to businesscard edit page
       localStorage.setItem('show_welcome_dialog', 'true');
-      localStorage.setItem('redirect_to_edit', 'true');
-      navigate('/');
+      navigate('/app/businesscard/edit');
     } catch (error) {
       toast({
         title: 'خطأ غير متوقع',

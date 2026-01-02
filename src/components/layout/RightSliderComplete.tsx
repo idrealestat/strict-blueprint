@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -38,6 +39,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Broker {
   id: number;
@@ -240,6 +243,30 @@ export default function RightSliderComplete({
   );
   const [activeBroker, setActiveBroker] = useState<Broker | null>(null);
   const [brokers] = useState<Broker[]>(SAMPLE_BROKERS);
+  const navigate = useNavigate();
+  const { signOut, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  // Handle logout
+  const handleLogout = async () => {
+    if (confirm("هل أنت متأكد من تسجيل الخروج؟")) {
+      const { error } = await signOut();
+      if (error) {
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء تسجيل الخروج',
+          variant: 'destructive'
+        });
+        return;
+      }
+      toast({
+        title: 'تم تسجيل الخروج',
+        description: 'سنفتقدك! 👋'
+      });
+      onClose();
+      navigate('/app/login');
+    }
+  };
 
   // مكونات فرعية
   const BrokerCard = ({ broker }: { broker: Broker }) => (
@@ -501,29 +528,44 @@ export default function RightSliderComplete({
 
       {/* زر تسجيل الخروج */}
       <div className="pt-4 mt-4 border-t-2 border-gray-200">
-        <div
-          className="flex items-center justify-center text-xs bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-[#D4AF37] border-l-4 border-l-red-500 cursor-pointer hover:shadow-lg transition-all duration-200 group bg-gradient-to-br from-red-50 to-white"
-          onClick={() => {
-            if (confirm("هل أنت متأكد من تسجيل الخروج؟")) {
-              window.dispatchEvent(
-                new CustomEvent("navigateToPage", { detail: "registration" })
-              );
-              onClose();
-            }
-          }}
-        >
-          <div className="flex items-center gap-3 flex-1">
-            <div className="p-2 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
-              <LogOut className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <span className="font-medium text-red-600 group-hover:text-red-700 transition-colors">
-                تسجيل الخروج
-              </span>
-              <p className="text-xs text-red-500 mt-1">الخروج من الحساب</p>
+        {isAuthenticated ? (
+          <div
+            className="flex items-center justify-center text-xs bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-[#D4AF37] border-l-4 border-l-red-500 cursor-pointer hover:shadow-lg transition-all duration-200 group bg-gradient-to-br from-red-50 to-white"
+            onClick={handleLogout}
+          >
+            <div className="flex items-center gap-3 flex-1">
+              <div className="p-2 rounded-lg bg-red-100 text-red-600 group-hover:bg-red-200 transition-colors">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <span className="font-medium text-red-600 group-hover:text-red-700 transition-colors">
+                  تسجيل الخروج
+                </span>
+                <p className="text-xs text-red-500 mt-1">الخروج من الحساب</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div
+            className="flex items-center justify-center text-xs bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-[#D4AF37] border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition-all duration-200 group bg-gradient-to-br from-green-50 to-white"
+            onClick={() => {
+              onClose();
+              navigate('/app/login');
+            }}
+          >
+            <div className="flex items-center gap-3 flex-1">
+              <div className="p-2 rounded-lg bg-green-100 text-green-600 group-hover:bg-green-200 transition-colors">
+                <User className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <span className="font-medium text-green-600 group-hover:text-green-700 transition-colors">
+                  تسجيل الدخول
+                </span>
+                <p className="text-xs text-green-500 mt-1">الدخول إلى حسابك</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
