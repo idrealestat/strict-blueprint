@@ -1,11 +1,12 @@
 /**
  * useDomainNotifications.ts
- * إدارة إشعارات طلبات النطاقات
+ * إدارة إشعارات طلبات النطاقات مع دعم Push Notifications
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { showPushNotification } from './usePushNotifications';
 
 export interface DomainNotification {
   id: string;
@@ -112,7 +113,7 @@ export function useDomainNotifications() {
           table: 'domain_notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const newNotification = {
             ...payload.new,
             notification_type: (payload.new as any).notification_type as DomainNotification['notification_type']
@@ -120,6 +121,23 @@ export function useDomainNotifications() {
           
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
+
+          // إرسال Push Notification
+          const pushIcon = newNotification.notification_type === 'approval' ? '✅' 
+            : newNotification.notification_type === 'rejection' ? '❌'
+            : newNotification.notification_type === 'revocation' ? '⚠️'
+            : '🔔';
+          
+          await showPushNotification(
+            `${pushIcon} ${newNotification.title}`,
+            newNotification.message,
+            {
+              type: 'domain_notification',
+              notification_id: newNotification.id,
+              request_id: newNotification.request_id,
+              notification_type: newNotification.notification_type
+            }
+          );
 
           // إرسال حدث للنظام العام
           window.dispatchEvent(

@@ -230,30 +230,30 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
 
     switch (availability) {
       case 'available':
-        return <Check className="w-5 h-5 text-emerald-500" />;
+        return <div className="w-full h-full rounded-full bg-emerald-500" />;
       case 'unavailable':
-        return <X className="w-5 h-5 text-red-500" />;
+        return <div className="w-full h-full rounded-full bg-red-500" />;
       case 'pending':
         return <Clock className="w-5 h-5 text-amber-500" />;
       case 'error':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
+        return <div className="w-full h-full rounded-full bg-red-500" />;
       default:
-        return <div className="w-5 h-5 rounded-full bg-muted" />;
+        return <div className="w-full h-full rounded-full bg-muted" />;
     }
   };
 
   const getStatusColor = () => {
     switch (availability) {
       case 'available':
-        return 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20';
+        return 'border-emerald-500 bg-emerald-100 dark:bg-emerald-950/30';
       case 'unavailable':
-        return 'border-red-500 bg-red-50 dark:bg-red-950/20';
+        return 'border-red-500 bg-red-100 dark:bg-red-950/30';
       case 'pending':
-        return 'border-amber-500 bg-amber-50 dark:bg-amber-950/20';
+        return 'border-amber-500 bg-amber-100 dark:bg-amber-950/30';
       case 'error':
-        return 'border-red-500 bg-red-50 dark:bg-red-950/20';
+        return 'border-red-500 bg-red-100 dark:bg-red-950/30';
       default:
-        return 'border-muted';
+        return 'border-muted bg-muted/50';
     }
   };
 

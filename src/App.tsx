@@ -33,6 +33,8 @@ import PublicPlatformPage from "./pages/PublicPlatformPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
 import AuthPage from "./pages/AuthPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
+import DomainRequestsListPage from "./pages/DomainRequestsListPage";
+import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
 import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
@@ -294,6 +296,8 @@ const App = () => {
                   <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
                   <Route path="/platform/:userId" element={<PublicPlatformPage />} />
                   <Route path="/admin/domains" element={<DomainAdminPage />} />
+                  <Route path="/domain-requests" element={<DomainRequestsListPage />} />
+                  <Route path="/domain-requests/:requestId" element={<DomainRequestDetailsPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
