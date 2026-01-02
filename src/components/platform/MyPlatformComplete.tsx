@@ -74,8 +74,7 @@ import {
 } from "@/components/offers";
 import { useOfferViewNotifications } from "@/hooks/useOfferViewNotifications";
 import { toast } from "sonner";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
 import { usePlatformListings } from "@/hooks/usePlatformListings";
@@ -1274,105 +1273,41 @@ export default function MyPlatformComplete({
     setItemToMove(null);
   };
 
-  // تصدير PDF احترافي للعرض
+  // تصدير PDF للعرض (يدعم العربية عبر تحويل HTML إلى صورة)
   const exportOfferToPDF = async (offer: SingleOffer, cityName: string, districtName?: string) => {
     toast.info('جاري إنشاء ملف PDF...');
-    
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    
-    // خلفية متدرجة
-    pdf.setFillColor(1, 65, 28); // Wasata Green
-    pdf.rect(0, 0, pageWidth, 50, 'F');
-    
-    // شريط ذهبي
-    pdf.setFillColor(212, 175, 55); // Wasata Gold
-    pdf.rect(0, 50, pageWidth, 3, 'F');
-    
-    // العنوان الرئيسي
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(24);
-    pdf.text('منصة وساطه العقارية', pageWidth / 2, 25, { align: 'center' });
-    
-    pdf.setFontSize(12);
-    pdf.text('Wasata Real Estate Platform', pageWidth / 2, 35, { align: 'center' });
-    
-    // معلومات العرض
-    pdf.setTextColor(1, 65, 28);
-    pdf.setFontSize(18);
-    pdf.text(offer.title, pageWidth / 2, 70, { align: 'center' });
-    
-    // السعر
-    pdf.setTextColor(212, 175, 55);
-    pdf.setFontSize(22);
-    pdf.text(offer.price, pageWidth / 2, 85, { align: 'center' });
-    
-    // الموقع
-    pdf.setTextColor(100, 100, 100);
-    pdf.setFontSize(14);
-    pdf.text(`${cityName}${districtName ? ` - ${districtName}` : ''}`, pageWidth / 2, 98, { align: 'center' });
-    
-    // صندوق معلومات
-    pdf.setFillColor(245, 245, 245);
-    pdf.roundedRect(15, 110, pageWidth - 30, 60, 5, 5, 'F');
-    
-    pdf.setTextColor(1, 65, 28);
-    pdf.setFontSize(12);
-    
-    let yPos = 125;
-    const infoItems = [
-      { label: 'نوع العقار:', value: offer.propertyType },
-      { label: 'المساحة:', value: offer.area ? `${offer.area} م²` : 'غير محدد' },
-      { label: 'غرف النوم:', value: offer.bedrooms ? `${offer.bedrooms} غرف` : 'غير محدد' },
-      { label: 'دورات المياه:', value: offer.bathrooms ? `${offer.bathrooms} حمامات` : 'غير محدد' },
-    ];
-    
-    infoItems.forEach(item => {
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(item.label, pageWidth - 25, yPos, { align: 'right' });
-      pdf.setTextColor(1, 65, 28);
-      pdf.text(item.value, pageWidth - 60, yPos, { align: 'right' });
-      yPos += 12;
-    });
-    
-    // إحصائيات
-    pdf.setFillColor(1, 65, 28);
-    pdf.roundedRect(15, 180, (pageWidth - 40) / 2, 35, 5, 5, 'F');
-    pdf.roundedRect((pageWidth / 2) + 5, 180, (pageWidth - 40) / 2, 35, 5, 5, 'F');
-    
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(10);
-    pdf.text('المشاهدات', 15 + (pageWidth - 40) / 4, 192, { align: 'center' });
-    pdf.text('الطلبات', (pageWidth / 2) + 5 + (pageWidth - 40) / 4, 192, { align: 'center' });
-    
-    pdf.setTextColor(212, 175, 55);
-    pdf.setFontSize(18);
-    pdf.text(offer.views.toLocaleString(), 15 + (pageWidth - 40) / 4, 207, { align: 'center' });
-    pdf.text(offer.requests.toString(), (pageWidth / 2) + 5 + (pageWidth - 40) / 4, 207, { align: 'center' });
-    
-    // معلومات المالك
-    pdf.setFillColor(212, 175, 55);
-    pdf.roundedRect(15, 225, pageWidth - 30, 40, 5, 5, 'F');
-    
-    pdf.setTextColor(1, 65, 28);
-    pdf.setFontSize(14);
-    pdf.text('معلومات التواصل', pageWidth / 2, 240, { align: 'center' });
-    
-    pdf.setFontSize(12);
-    pdf.text(`${offer.owner.name} | ${offer.owner.phone}`, pageWidth / 2, 255, { align: 'center' });
-    
-    // التذييل
-    pdf.setFillColor(1, 65, 28);
-    pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-    
-    pdf.setTextColor(212, 175, 55);
-    pdf.setFontSize(10);
-    pdf.text(`تم الإنشاء بتاريخ: ${new Date().toLocaleDateString('ar-SA')}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
-    
-    // حفظ الملف
-    pdf.save(`عرض_${offer.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
-    toast.success('تم تصدير ملف PDF بنجاح');
+
+    try {
+      const category = offer.title?.includes('للإيجار') ? 'للإيجار' : 'للبيع';
+
+      await generatePropertyPDF(
+        {
+          id: offer.id,
+          title: offer.title,
+          category,
+          propertyType: offer.propertyType,
+          price: offer.price,
+          area: offer.area?.toString(),
+          bedrooms: offer.bedrooms?.toString(),
+          bathrooms: offer.bathrooms?.toString(),
+          ownerName: offer.ownerName ?? offer.owner?.name,
+          ownerPhone: offer.owner?.phone,
+          image: offer.image,
+          images: offer.image ? [offer.image] : undefined,
+          locationDetails: {
+            city: cityName,
+            district: districtName,
+          },
+          aiDescription: offer.description,
+        },
+        true
+      );
+
+      toast.success('تم تحميل PDF بنجاح');
+    } catch (error) {
+      console.error('exportOfferToPDF error:', error);
+      toast.error('تعذر إنشاء PDF');
+    }
   };
 
   // Toggle Publish Status
