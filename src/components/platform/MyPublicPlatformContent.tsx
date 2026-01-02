@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw } from 'lucide-react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
@@ -914,7 +914,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
             )}
 
             {/* أزرار التواصل */}
-            <div className="flex items-center justify-center gap-3 mt-4">
+            <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
               <Button 
                 size="sm" 
                 className="bg-green-500 hover:bg-green-600 text-white"
@@ -930,6 +930,58 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               >
                 <Phone className="w-4 h-4 ml-2" />
                 اتصال
+              </Button>
+              <Button 
+                size="sm" 
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                onClick={() => {
+                  // إنشاء vCard للوسيط
+                  const brokerName = effectiveBusinessCardData?.userName || 'وسيط عقاري';
+                  const companyName = effectiveBusinessCardData?.companyName || '';
+                  const phone = effectiveBusinessCardData?.primaryPhone || '';
+                  const email = effectiveBusinessCardData?.email || '';
+                  const domain = effectiveBusinessCardData?.domain || effectiveBusinessCardData?.officialPlatform || '';
+                  const location = effectiveBusinessCardData?.location || '';
+                  const jobTitle = 'وسيط ومسوق عقاري';
+                  const falLicense = effectiveBusinessCardData?.falLicense || '';
+                  
+                  // بناء نص vCard
+                  const vCardLines = [
+                    'BEGIN:VCARD',
+                    'VERSION:3.0',
+                    `FN:${brokerName}`,
+                    `N:${brokerName};;;`,
+                  ];
+                  
+                  if (companyName) vCardLines.push(`ORG:${companyName}`);
+                  vCardLines.push(`TITLE:${jobTitle}`);
+                  if (phone) vCardLines.push(`TEL;TYPE=CELL:${phone}`);
+                  if (phone) vCardLines.push(`TEL;TYPE=WORK:${phone}`);
+                  if (email) vCardLines.push(`EMAIL:${email}`);
+                  if (domain) vCardLines.push(`URL:${domain}`);
+                  if (location) vCardLines.push(`ADR;TYPE=WORK:;;${location};;;`);
+                  if (falLicense) vCardLines.push(`NOTE:رخصة فال: ${falLicense}${companyName ? ' | ' + companyName : ''}`);
+                  if (currentSlug) vCardLines.push(`X-PLATFORM-SLUG:${currentSlug}`);
+                  vCardLines.push('END:VCARD');
+                  
+                  const vCard = vCardLines.join('\n');
+                  
+                  // تحميل الملف
+                  const blob = new Blob([vCard], { type: 'text/vcard;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `${brokerName}.vcf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  
+                  toast.success('تم تحميل بطاقة الوسيط بنجاح!');
+                }}
+              >
+                <Download className="w-4 h-4 ml-2" />
+                حفظ جهة الاتصال
               </Button>
             </div>
           </div>
