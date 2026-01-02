@@ -27,17 +27,27 @@ const normalizeDistrict = (district: string) => district.replace(/^حي\s+/u, ''
 const parseCityDistrictFromSmartPath = (smartPath?: string): { city?: string; district?: string } => {
   if (!smartPath) return {};
 
-  // صيغة المسار عندنا غالباً: "سكني / للإيجار / الخبر / حي الحمراء"
   const parts = smartPath
     .split('/')
     .map((p) => p.trim())
     .filter(Boolean);
 
-  // نتوقع: [category, purpose, city, district]
-  const city = parts.length >= 3 ? parts[2] : undefined;
-  const districtRaw = parts.length >= 4 ? parts[3] : undefined;
-  const district = districtRaw ? normalizeDistrict(districtRaw) : undefined;
+  // يدعم صيغتين موجودتين في المشروع:
+  // (A) publishedAds: المدينة/الحي/نوع العقار/الغرض/التصنيف
+  // (B) بعض الأجزاء القديمة: التصنيف/الغرض/المدينة/الحي
+  const purposeLike = parts[1];
+  const looksLikeFormatB = purposeLike === 'للبيع' || purposeLike === 'للإيجار' || purposeLike === 'للايجار';
 
+  if (looksLikeFormatB) {
+    const city = parts.length >= 3 ? parts[2] : undefined;
+    const districtRaw = parts.length >= 4 ? parts[3] : undefined;
+    const district = districtRaw ? normalizeDistrict(districtRaw) : undefined;
+    return { city, district };
+  }
+
+  const city = parts.length >= 1 ? parts[0] : undefined;
+  const districtRaw = parts.length >= 2 ? parts[1] : undefined;
+  const district = districtRaw ? normalizeDistrict(districtRaw) : undefined;
   return { city, district };
 };
 
@@ -434,10 +444,22 @@ export function usePlatformListings(slug?: string) {
         const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
 
         const city = String(
-          firstNonEmpty(ad.locationDetails?.city, ad.city, parsedFromPath.city, 'غير محدد') as any
+          firstNonEmpty(
+            ad.locationDetails?.city,
+            ad.location?.city,
+            ad.city,
+            parsedFromPath.city,
+            'غير محدد'
+          ) as any
         );
         const district = String(
-          firstNonEmpty(ad.locationDetails?.district, ad.district, parsedFromPath.district, 'غير محدد') as any
+          firstNonEmpty(
+            ad.locationDetails?.district,
+            ad.location?.district,
+            ad.district,
+            parsedFromPath.district,
+            'غير محدد'
+          ) as any
         );
 
         const titleCandidate = firstNonEmpty(ad.title);
