@@ -677,11 +677,28 @@ export function usePlatformListings(slug?: string) {
   };
 }
 
-// Hook للصفحة العامة (قراءة فقط)
+// دالة مساعدة لبناء مفتاح فريد لمنع التكرار
+const buildListingKey = (row: any) =>
+  `${String(row.title ?? '').trim()}__${String(row.price ?? '').trim()}__${String(row.city ?? '').trim()}__${String(row.district ?? '').trim()}__${String(row.property_type ?? '').trim()}__${String(row.smart_path ?? '').trim()}`;
+
+// Hook للصفحة العامة (قراءة فقط + تحديث لحظي)
 export function usePublicPlatformListings(slug?: string) {
   const [listings, setListings] = useState<PlatformListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // دالة لإزالة التكرارات
+  const dedupeListings = (rows: any[]): PlatformListing[] => {
+    const seen = new Set<string>();
+    return rows
+      .filter((row: any) => {
+        const key = buildListingKey(row);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(mapDbToListing);
+  };
 
   useEffect(() => {
     if (!slug) {
@@ -705,16 +722,7 @@ export function usePublicPlatformListings(slug?: string) {
 
         if (fetchError) throw fetchError;
 
-        // إزالة التكرارات على مستوى العرض (للتعامل مع أي بيانات قديمة مكررة)
-        const seen = new Set<string>();
-        const uniqueRows = (data || []).filter((row: any) => {
-          const key = `${String(row.title ?? '').trim()}__${String(row.price ?? '').trim()}__${String(row.city ?? '').trim()}__${String(row.district ?? '').trim()}__${String(row.property_type ?? '').trim()}__${String(row.smart_path ?? '').trim()}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        setListings(uniqueRows.map(mapDbToListing));
+        setListings(dedupeListings(data || []));
       } catch (err: any) {
         console.error('Error fetching public listings:', err);
         setError(err.message);
@@ -724,6 +732,60 @@ export function usePublicPlatformListings(slug?: string) {
     };
 
     fetchPublicListings();
+
+    // ✅ تحديث لحظي (Realtime) - الزائر يرى التغييرات فوراً
+    const channel = supabase
+      .channel(`public-listings-${slug}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'platform_listings',
+          filter: `slug=eq.${slug}`,
+        },
+        (payload) => {
+          console.log('Realtime public update:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newRow = payload.new as any;
+            // نضيف فقط إذا كان published وغير مخفي
+            if (newRow.status === 'published' && !newRow.is_hidden) {
+              setListings((prev) => {
+                const key = buildListingKey(newRow);
+                // تحقق من عدم وجود نسخة مكررة
+                const exists = prev.some((l) => buildListingKey(l) === key || l.id === newRow.id);
+                if (exists) return prev;
+                return [mapDbToListing(newRow), ...prev];
+              });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedRow = payload.new as any;
+            setListings((prev) => {
+              // إذا أصبح مخفياً أو غير منشور، نحذفه من القائمة
+              if (updatedRow.status !== 'published' || updatedRow.is_hidden) {
+                return prev.filter((l) => l.id !== updatedRow.id);
+              }
+              // تحديث العرض الموجود
+              const exists = prev.some((l) => l.id === updatedRow.id);
+              if (exists) {
+                return prev.map((l) =>
+                  l.id === updatedRow.id ? mapDbToListing(updatedRow) : l
+                );
+              }
+              // إذا لم يكن موجوداً (أصبح منشوراً الآن)، نضيفه
+              return [mapDbToListing(updatedRow), ...prev];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setListings((prev) => prev.filter((l) => l.id !== (payload.old as any).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [slug]);
 
   return { listings, loading, error };
