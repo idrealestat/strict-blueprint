@@ -20,6 +20,7 @@ import {
   Eye,
   EyeOff,
   UploadCloud,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface User {
   id: string;
@@ -47,6 +57,7 @@ interface User {
 interface BusinessCardEditProps {
   onBack: () => void;
   user: User;
+  isNewUser?: boolean;
 }
 
 interface WorkingHour {
@@ -78,6 +89,7 @@ interface Achievements {
 interface BusinessCardData {
   userName: string;
   companyName: string;
+  websiteUrl: string;
   falLicense: string;
   falExpiry: string;
   commercialRegistration: string;
@@ -95,9 +107,15 @@ interface BusinessCardData {
   profileImage: string;
   coverImage: string;
   logoImage: string;
+  officeLat: number | null;
+  officeLng: number | null;
+  officeAddress: string;
+  nationalId: string;
+  birthDate: string;
+  accountType: string;
 }
 
-const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => {
+const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNewUser = false }) => {
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -105,6 +123,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
   const [newAward, setNewAward] = useState("");
   const [newCertification, setNewCertification] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -112,6 +132,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
   const defaultFormData: BusinessCardData = {
     userName: user.name,
     companyName: user.companyName || "",
+    websiteUrl: "",
     falLicense: "",
     falExpiry: "",
     commercialRegistration: "",
@@ -152,23 +173,102 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
     },
     profileImage: "",
     coverImage: "",
-    logoImage: ""
+    logoImage: "",
+    officeLat: null,
+    officeLng: null,
+    officeAddress: "",
+    nationalId: "",
+    birthDate: "",
+    accountType: "individual"
   };
 
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
 
-  // Load data from localStorage
+  // Load data from Supabase profiles first, then localStorage
   useEffect(() => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
+    const loadProfileData = async () => {
       try {
-        const parsed = JSON.parse(savedData);
-        setFormData({ ...defaultFormData, ...parsed });
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (authUser) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .single();
+          
+          if (profile && !error) {
+            // Load saved card data from localStorage
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            let localData: Partial<BusinessCardData> = {};
+            if (savedData) {
+              try {
+                localData = JSON.parse(savedData);
+              } catch (e) {
+                console.error("Error parsing saved data:", e);
+              }
+            }
+            
+            // Merge profile data with local data (profile takes priority for certain fields)
+            setFormData(prev => ({
+              ...prev,
+              ...localData,
+              userName: profile.full_name || localData.userName || prev.userName,
+              companyName: profile.company_name || localData.companyName || prev.companyName,
+              websiteUrl: profile.website || localData.websiteUrl || "",
+              primaryPhone: profile.phone || localData.primaryPhone || prev.primaryPhone,
+              falLicense: profile.fal_license_number || localData.falLicense || "",
+              falExpiry: profile.fal_license_expiry || localData.falExpiry || "",
+              commercialRegistration: profile.commercial_reg_number || localData.commercialRegistration || "",
+              commercialExpiryDate: profile.commercial_reg_expiry || localData.commercialExpiryDate || "",
+              nationalId: profile.national_id || localData.nationalId || "",
+              birthDate: profile.birth_date || localData.birthDate || "",
+              accountType: profile.account_type || localData.accountType || "individual",
+              officeLat: profile.office_lat || localData.officeLat || null,
+              officeLng: profile.office_lng || localData.officeLng || null,
+              officeAddress: profile.office_address || localData.officeAddress || "",
+              domain: profile.website || localData.domain || "",
+            }));
+            
+            setProfileLoaded(true);
+          }
+        } else {
+          // No auth user, load from localStorage only
+          const savedData = localStorage.getItem(STORAGE_KEY);
+          if (savedData) {
+            try {
+              const parsed = JSON.parse(savedData);
+              setFormData({ ...defaultFormData, ...parsed });
+            } catch (error) {
+              console.error("Error loading saved data:", error);
+            }
+          }
+        }
       } catch (error) {
-        console.error("Error loading saved data:", error);
+        console.error("Error loading profile:", error);
+        // Fallback to localStorage
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          try {
+            const parsed = JSON.parse(savedData);
+            setFormData({ ...defaultFormData, ...parsed });
+          } catch (e) {
+            console.error("Error loading saved data:", e);
+          }
+        }
       }
-    }
+    };
+
+    loadProfileData();
   }, []);
+
+  // Show welcome dialog for new users
+  useEffect(() => {
+    if (isNewUser || localStorage.getItem('show_welcome_dialog') === 'true') {
+      setShowWelcomeDialog(true);
+      localStorage.removeItem('show_welcome_dialog');
+    }
+  }, [isNewUser]);
 
   // Handle save - حفظ مزدوج للربط مع منصتي + نشر للصفحة العامة
   const handleSave = async () => {
@@ -608,11 +708,22 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
                   />
                 </div>
                 <div>
-                  <Label>اسم الشركة</Label>
+                  <Label>اسم الشركة / المكتب</Label>
                   <Input
                     value={formData.companyName}
                     onChange={(e) => handleInputChange("companyName", e.target.value)}
                     className="mt-1"
+                    placeholder="اسم الشركة أو المكتب العقاري"
+                  />
+                </div>
+                <div>
+                  <Label>رابط الموقع الإلكتروني</Label>
+                  <Input
+                    value={formData.websiteUrl}
+                    onChange={(e) => handleInputChange("websiteUrl", e.target.value)}
+                    className="mt-1"
+                    placeholder="https://example.com"
+                    dir="ltr"
                   />
                 </div>
                 <div>
@@ -674,6 +785,73 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C]">🆔 البيانات الشخصية</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>رقم الهوية / الإقامة</Label>
+                    <Input
+                      value={formData.nationalId}
+                      onChange={(e) => handleInputChange("nationalId", e.target.value)}
+                      className="mt-1"
+                      dir="ltr"
+                      maxLength={10}
+                    />
+                  </div>
+                  <div>
+                    <Label>تاريخ الميلاد</Label>
+                    <Input
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>نوع الحساب</Label>
+                  <Input
+                    value={formData.accountType === 'individual' ? 'فرد' : formData.accountType === 'office' ? 'مكتب' : 'شركة'}
+                    className="mt-1 bg-gray-100"
+                    disabled
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {(formData.accountType === 'office' || formData.accountType === 'company') && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-[#01411C]">📍 موقع المكتب / الشركة</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>العنوان</Label>
+                    <Input
+                      value={formData.officeAddress}
+                      onChange={(e) => handleInputChange("officeAddress", e.target.value)}
+                      className="mt-1"
+                      placeholder="عنوان المكتب أو الشركة"
+                    />
+                  </div>
+                  {formData.officeLat && formData.officeLng && (
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 text-green-700">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm">تم تحديد الموقع على الخريطة</span>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">
+                        الإحداثيات: {formData.officeLat?.toFixed(6)}, {formData.officeLng?.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Contact Tab */}
@@ -979,6 +1157,41 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user }) => 
       >
         <Save className="w-6 h-6" />
       </button>
+
+      {/* Welcome Dialog for New Users */}
+      <AlertDialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
+        <AlertDialogContent className="max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <Info className="w-6 h-6 text-[#D4AF37]" />
+              مرحباً بك في وساطة!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right space-y-3">
+              <p className="text-base font-medium text-foreground">
+                يرجى إكمال تسجيل المعلومات في جميع التبويبات:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                <li><strong>الأساسية:</strong> المعلومات الشخصية والرخص</li>
+                <li><strong>التواصل:</strong> أرقام الهاتف والبريد والموقع</li>
+                <li><strong>السوشيال:</strong> حسابات التواصل الاجتماعي</li>
+                <li><strong>الأوقات:</strong> ساعات العمل</li>
+                <li><strong>الإنجازات:</strong> الإحصائيات والجوائز</li>
+              </ul>
+              <p className="text-sm text-muted-foreground mt-4">
+                لا تنسَ رفع صورتك الشخصية وشعار الشركة لإكمال ملفك!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => setShowWelcomeDialog(false)}
+              className="bg-[#01411C] hover:bg-[#065f41] w-full"
+            >
+              فهمت، سأكمل البيانات
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

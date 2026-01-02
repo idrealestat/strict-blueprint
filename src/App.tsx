@@ -58,9 +58,24 @@ interface LinkedCustomer {
 }
 
 const App = () => {
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Check if user should be redirected to edit page after registration
+    if (localStorage.getItem('redirect_to_edit') === 'true') {
+      localStorage.removeItem('redirect_to_edit');
+      return "business-card-edit";
+    }
+    return "dashboard";
+  });
   const [linkedCustomerForTask, setLinkedCustomerForTask] = useState<LinkedCustomer | null>(null);
   const [linkedCustomerForAppointment, setLinkedCustomerForAppointment] = useState<LinkedCustomer | null>(null);
+  const [isNewUser, setIsNewUser] = useState(false);
+
+  // Check for new user flag
+  useEffect(() => {
+    if (localStorage.getItem('show_welcome_dialog') === 'true') {
+      setIsNewUser(true);
+    }
+  }, []);
 
   const handleNavigate = (page: string) => {
     console.log("Navigate to:", page);
@@ -155,7 +170,7 @@ const App = () => {
       case "business-card-profile":
         return <BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={mockUser} />;
       case "business-card-edit":
-        return <BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={mockUser} />;
+        return <BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={mockUser} isNewUser={isNewUser} />;
       case "reports-analytics":
         return <ReportsAnalytics onBack={handleBack} />;
       case "digital-card":
