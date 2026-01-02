@@ -635,12 +635,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     );
   };
 
-  // إنشاء رابط المنصة (استعادة الرابط القديم /platform/{userId})
+  // إنشاء رابط المنصة العامة (بدون أي prefix)
   const getPlatformUrl = () => {
     const origin = window.location.origin;
-    const effectiveUserId = (businessCardOverride as any)?.user_id || userId;
-    const safeUserId = effectiveUserId && effectiveUserId !== 'public' ? String(effectiveUserId) : '1';
-    return `${origin}/platform/${safeUserId}`;
+
+    const slugFromProps = typeof platformSlug === 'string' ? platformSlug.trim() : '';
+    const slugFromOverride = typeof (businessCardOverride as any)?.slug === 'string'
+      ? String((businessCardOverride as any).slug).trim()
+      : '';
+
+    const effectiveSlug = (slugFromProps || slugFromOverride).toLowerCase();
+    if (!effectiveSlug) return origin;
+
+    return `${origin}/${effectiveSlug}`;
   };
 
   // مشاركة رابط المنصة
