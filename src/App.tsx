@@ -43,6 +43,7 @@ import SlugQuotePage from "./pages/SlugQuotePage";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
+import RoleGuard from "./components/auth/RoleGuard";
 
 const queryClient = new QueryClient();
 
@@ -314,13 +315,17 @@ const App = () => {
                   
                   <Route path="/app/settings" element={
                     <BusinessCardGuard>
-                      <NotificationSettings />
+                      <RoleGuard allowedRoles={['admin', 'owner']} showAccessDenied>
+                        <NotificationSettings />
+                      </RoleGuard>
                     </BusinessCardGuard>
                   } />
                   
                   <Route path="/app/admin" element={
                     <BusinessCardGuard>
-                      <DomainAdminPage />
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <DomainAdminPage />
+                      </RoleGuard>
                     </BusinessCardGuard>
                   } />
                   
@@ -332,7 +337,9 @@ const App = () => {
                   
                   <Route path="/app/admin/domains" element={
                     <BusinessCardGuard>
-                      <DomainAdminPage />
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <DomainAdminPage />
+                      </RoleGuard>
                     </BusinessCardGuard>
                   } />
                   
