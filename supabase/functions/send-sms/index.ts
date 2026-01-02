@@ -30,10 +30,38 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Initialize Supabase client for logging
+  // Initialize Supabase client
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? '';
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? '';
   const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // ============ AUTHENTICATION CHECK ============
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    console.error('No authorization header provided');
+    return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Create client with user's auth token to verify identity
+  const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
+  const userClient = createClient(supabaseUrl, supabaseAnon, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  if (authError || !user) {
+    console.error('Auth error:', authError?.message || 'No user found');
+    return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  console.log('Authenticated user:', user.id);
+  // ============ END AUTHENTICATION CHECK ============
 
   let logId: string | null = null;
 
@@ -97,7 +125,7 @@ serve(async (req) => {
       }
     }
 
-    // Log the SMS attempt to database
+    // Log the SMS attempt to database with user_id
     const { data: logData, error: logError } = await supabase
       .from('sms_logs')
       .insert({
@@ -106,6 +134,7 @@ serve(async (req) => {
         message_type: messageType,
         appointment_id: appointmentId || null,
         status: 'pending',
+        user_id: user.id, // Track which user sent this SMS
       })
       .select('id')
       .single();
