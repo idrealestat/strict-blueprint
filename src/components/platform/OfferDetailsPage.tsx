@@ -827,28 +827,20 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
     <>
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={onClose}
+          initial={{ opacity: 0, x: '100%' }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="fixed inset-0 z-[99999] bg-white overflow-y-auto"
+          dir="rtl"
         >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', duration: 0.5 }}
-            className="relative w-full max-w-5xl h-[95vh] bg-white rounded-2xl shadow-2xl overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-            dir="rtl"
+          {/* زر الرجوع */}
+          <button
+            onClick={onClose}
+            className="fixed top-4 right-4 z-[100000] w-12 h-12 bg-[#01411C] hover:bg-[#065f41] text-white rounded-full shadow-lg flex items-center justify-center transition-all"
           >
-            {/* زر الإغلاق */}
-            <button
-              onClick={onClose}
-              className="fixed top-4 left-4 z-[100000] w-10 h-10 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all"
-            >
-              <X className="w-5 h-5 text-gray-800" />
-            </button>
+            <ChevronRight className="w-6 h-6" />
+          </button>
 
             {/* معرض الصور مع السحب */}
             <div 
@@ -1402,8 +1394,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
             </div>
 
           </motion.div>
-        </motion.div>
-      </AnimatePresence>
+        </AnimatePresence>
 
       {/* المودالات */}
       <ScheduleVisitModal
