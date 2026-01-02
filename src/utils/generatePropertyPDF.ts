@@ -61,17 +61,20 @@ const formatArabicPrice = (price: string | number): string => {
 const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDivElement => {
   const container = document.createElement('div');
   container.id = 'pdf-content';
+  // نضعه في موقع مرئي مؤقتاً للسماح بتحميل الخطوط
   container.style.cssText = `
     width: 595px;
     min-height: 842px;
     padding: 0;
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    font-family: 'Tajawal', 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
     direction: rtl;
     background: white;
-    position: absolute;
-    left: -9999px;
+    position: fixed;
+    left: 0;
     top: 0;
+    z-index: 99999;
+    overflow: hidden;
   `;
 
   const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
@@ -81,6 +84,11 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
   const mainImage = property.image || (property.images && property.images.length > 0 ? property.images[0] : null);
 
   container.innerHTML = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+      * { font-family: 'Tajawal', 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
+    </style>
+    
     <!-- رأس الصفحة -->
     <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 20px; text-align: center;">
       <h1 style="color: #D4AF37; font-size: 26px; margin: 0 0 5px 0; font-weight: bold;">منصة وساطة العقارية</h1>
@@ -280,6 +288,15 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
   const container = createPDFContent(property, includeOwner);
   document.body.appendChild(container);
 
+  // إضافة خط عربي ديناميكياً
+  const fontLink = document.createElement('link');
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap';
+  fontLink.rel = 'stylesheet';
+  document.head.appendChild(fontLink);
+
+  // انتظار تحميل الخطوط والصور
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
   // انتظار تحميل الصور
   const images = container.querySelectorAll('img');
   await Promise.all(
@@ -296,6 +313,9 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
     )
   );
 
+  // انتظار إضافي للخطوط
+  await document.fonts.ready;
+
   try {
     // تحويل HTML إلى Canvas
     const canvas = await html2canvas(container, {
@@ -304,6 +324,13 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
+      onclone: (clonedDoc) => {
+        // التأكد من تطبيق الخطوط على العنصر المنسوخ
+        const clonedContainer = clonedDoc.getElementById('pdf-content');
+        if (clonedContainer) {
+          clonedContainer.style.fontFamily = "'Tajawal', 'Cairo', 'Segoe UI', Arial, sans-serif";
+        }
+      }
     });
 
     // إنشاء PDF من Canvas
@@ -345,7 +372,8 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
     
     pdf.save(fileName);
   } finally {
-    // تنظيف العنصر المؤقت
+    // تنظيف العناصر المؤقتة
     document.body.removeChild(container);
+    document.head.removeChild(fontLink);
   }
 }
