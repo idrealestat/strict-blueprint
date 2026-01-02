@@ -44,12 +44,21 @@ export default function OtpVerification({
 
       if (error) throw error;
 
-      toast({
-        title: 'تم الإرسال',
-        description: type === 'email' 
-          ? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني'
-          : 'تم إرسال رمز التحقق إلى رقم جوالك',
-      });
+      // في وضع التطوير: استخدم devCode المُرجع تلقائياً
+      if (data?.devCode) {
+        setOtp(data.devCode);
+        toast({
+          title: 'وضع التطوير',
+          description: 'تم ملء رمز التحقق تلقائياً (لم يُرسل فعلياً)',
+        });
+      } else {
+        toast({
+          title: 'تم الإرسال',
+          description: type === 'email' 
+            ? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني'
+            : 'تم إرسال رمز التحقق إلى رقم جوالك',
+        });
+      }
 
       setShowOtpInput(true);
       
