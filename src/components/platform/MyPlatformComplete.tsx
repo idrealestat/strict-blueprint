@@ -493,8 +493,8 @@ export default function MyPlatformComplete({
 
   // slug المستخدم للمنصة العامة + مزامنة تلقائية لقاعدة البيانات
   const currentSlug = useMemo(
-    () => localStorage.getItem('public_platform_slug') || String(user?.id || 'default'),
-    [user]
+    () => localStorage.getItem('public_platform_slug') || 'default',
+    []
   );
   const { syncFromLocalStorage, cleanupDuplicates } = usePlatformListings(currentSlug);
   
