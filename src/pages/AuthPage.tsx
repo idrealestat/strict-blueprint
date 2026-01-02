@@ -311,6 +311,10 @@ export default function AuthPage() {
         title: 'تم التسجيل بنجاح!',
         description: 'مرحباً بك في وساطة'
       });
+      
+      // Set flag to show welcome dialog and redirect to edit page
+      localStorage.setItem('show_welcome_dialog', 'true');
+      localStorage.setItem('redirect_to_edit', 'true');
       navigate('/');
     } catch (error) {
       toast({
