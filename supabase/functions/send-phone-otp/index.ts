@@ -38,44 +38,12 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // ============ AUTHENTICATION CHECK ============
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header provided');
-      return new Response(
-        JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
-    const userClient = createClient(supabaseUrl, supabaseAnon, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth error:', authError?.message || 'No user found');
-      return new Response(
-        JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    console.log('Authenticated user:', user.id);
-    // ============ END AUTHENTICATION CHECK ============
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const { phone, userId }: SendOtpRequest = await req.json();
 
-    // Verify the userId matches the authenticated user
-    if (userId !== user.id) {
-      console.error('User ID mismatch:', userId, 'vs', user.id);
-      return new Response(
-        JSON.stringify({ error: "غير مصرح بهذا الإجراء" }),
-        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    console.log('OTP request for phone:', phone, 'userId:', userId);
 
     // التحقق من صحة البيانات
     if (!phone || !userId) {
@@ -119,7 +87,6 @@ const handler = async (req: Request): Promise<Response> => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // صالح لمدة 10 دقائق
 
     // الاتصال بـ Supabase with service role for database operations
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // حذف الرموز القديمة

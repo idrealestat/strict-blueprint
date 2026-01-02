@@ -29,3 +29,12 @@ verify_jwt = false
 
 [functions.publish-business-card]
 verify_jwt = false
+
+[functions.send-email-otp]
+verify_jwt = false
+
+[functions.send-phone-otp]
+verify_jwt = false
+
+[functions.verify-otp]
+verify_jwt = false
