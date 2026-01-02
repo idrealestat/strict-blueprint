@@ -284,10 +284,12 @@ export default function AuthPage() {
         return;
       }
       
-      // تحديث ملف المستخدم بالبيانات الإضافية
+      // تحديث ملف المستخدم بالبيانات الإضافية وإنشاء بطاقة أعمال
       if (authData?.user) {
         const { supabase } = await import('@/integrations/supabase/client');
+        const userId = authData.user.id;
         
+        // 1) تحديث جدول profiles
         await supabase.from('profiles').update({
           full_name: fullName,
           phone: data.phone,
@@ -305,7 +307,32 @@ export default function AuthPage() {
           website: data.website || null,
           email_verified: emailVerified,
           phone_verified: phoneVerified,
-        }).eq('user_id', authData.user.id);
+        }).eq('user_id', userId);
+        
+        // 2) إنشاء سجل مبدئي في business_cards
+        // توليد slug فريد بناءً على الاسم أو userId
+        const baseSlug = data.firstName.toLowerCase().replace(/\s+/g, '-') || 'user';
+        const uniqueSlug = `${baseSlug}-${userId.slice(0, 8)}`;
+        
+        const { error: bcError } = await supabase.from('business_cards').insert({
+          user_id: userId,
+          slug: uniqueSlug,
+          published: false,
+          data: {
+            name: fullName,
+            phone: data.phone,
+            email: data.email,
+            company: data.companyName || '',
+            title: data.accountType === 'individual' ? 'وسيط عقاري' : 'مكتب عقاري',
+          }
+        });
+        
+        if (bcError) {
+          console.error('Error creating business card:', bcError);
+        }
+        
+        // حفظ createdUserId للاستخدام لاحقاً
+        setCreatedUserId(userId);
       }
       
       toast({
