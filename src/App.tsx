@@ -38,6 +38,9 @@ import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
 import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
+import SlugOfferPage from "./pages/SlugOfferPage";
+import SlugRequestPage from "./pages/SlugRequestPage";
+import SlugQuotePage from "./pages/SlugQuotePage";
 import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
@@ -305,6 +308,9 @@ const App = () => {
                   <Route path="/:slug" element={<SlugPlatformPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/businesscard" element={<SlugBusinessCardPage />} />
+                  <Route path="/:slug/offer" element={<SlugOfferPage />} />
+                  <Route path="/:slug/request" element={<SlugRequestPage />} />
+                  <Route path="/:slug/quote" element={<SlugQuotePage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>

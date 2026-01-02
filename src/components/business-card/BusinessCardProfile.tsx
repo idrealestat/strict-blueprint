@@ -261,9 +261,22 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
+  // Get slug from localStorage
+  const getSlug = () => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        return data.userTitle || data.slug || 'default';
+      } catch (e) {}
+    }
+    return 'default';
+  };
+
   // Share business card
   const shareBusinessCard = async () => {
-    const cardLink = `${window.location.origin}/business-card/${user.id}`;
+    const slug = getSlug();
+    const cardLink = `${window.location.origin}/${slug}/businesscard`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -724,7 +737,8 @@ END:VCARD`;
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
-                  const link = `${window.location.origin}/public/offer/${user.id}`;
+                  const slug = getSlug();
+                  const link = `${window.location.origin}/${slug}/offer`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط إرسال العرض");
                   window.open(link, '_blank');
@@ -739,7 +753,8 @@ END:VCARD`;
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
-                  const link = `${window.location.origin}/public/request/${user.id}`;
+                  const slug = getSlug();
+                  const link = `${window.location.origin}/${slug}/request`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط إرسال الطلب");
                   window.open(link, '_blank');
@@ -754,7 +769,8 @@ END:VCARD`;
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
-                  const link = `${window.location.origin}/public/quote/${user.id}`;
+                  const slug = getSlug();
+                  const link = `${window.location.origin}/${slug}/quote`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط عرض السعر");
                   window.open(link, '_blank');
@@ -769,7 +785,8 @@ END:VCARD`;
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
-                  const link = `${window.location.origin}/public/appointment/${user.id}`;
+                  const slug = getSlug();
+                  const link = `${window.location.origin}/${slug}/calendar`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط إنشاء موعد");
                   window.open(link, '_blank');
