@@ -164,10 +164,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // slug المستخدم للمنصة العامة
   const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
-
-  // رابط المنصة الأساسي
-  const PLATFORM_BASE_URL = 'https://wasataai.com';
-
   // مزامنة (للـمالك فقط)
   const { syncFromLocalStorage } = usePlatformListings(!isPublicViewer ? currentSlug : undefined);
 
@@ -639,8 +635,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     );
   };
 
-  // إنشاء رابط المنصة الحقيقي (slug من النشر)
-  const getPlatformUrl = () => `${PLATFORM_BASE_URL}/${currentSlug}`;
+  // إنشاء رابط المنصة (استعادة الرابط القديم /platform/{userId})
+  const getPlatformUrl = () => {
+    const origin = window.location.origin;
+    const effectiveUserId = (businessCardOverride as any)?.user_id || userId;
+    const safeUserId = effectiveUserId && effectiveUserId !== 'public' ? String(effectiveUserId) : '1';
+    return `${origin}/platform/${safeUserId}`;
+  };
 
   // مشاركة رابط المنصة
   const sharePlatformLink = async () => {
