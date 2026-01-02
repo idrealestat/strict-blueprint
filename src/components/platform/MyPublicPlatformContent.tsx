@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User } from 'lucide-react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
@@ -164,6 +164,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // slug المستخدم للمنصة العامة
   const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
+
+  // رابط المنصة الأساسي
+  const PLATFORM_BASE_URL = 'https://wasataai.com';
 
   // مزامنة (للـمالك فقط)
   const { syncFromLocalStorage } = usePlatformListings(!isPublicViewer ? currentSlug : undefined);
@@ -637,10 +640,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   };
 
   // إنشاء رابط المنصة الحقيقي (slug من النشر)
-  const getPlatformUrl = () => {
-    const slug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
-    return `https://wasataai.com/${slug}`;
-  };
+  const getPlatformUrl = () => `${PLATFORM_BASE_URL}/${currentSlug}`;
 
   // مشاركة رابط المنصة
   const sharePlatformLink = async () => {
@@ -783,8 +783,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           </div>
         )}
 
-        {/* أزرار أعلى اليمين */}
-        <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+        {/* أزرار المشاركة أعلى اليمين */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-1">
           {/* زر المزامنة - يظهر فقط للمالك (ليس في الصفحة العامة) */}
           {typeof businessCardOverride === 'undefined' && (
             <Button
@@ -797,13 +797,63 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               {isSyncing ? 'جاري المزامنة...' : 'مزامنة'}
             </Button>
           )}
+          
+          {/* زر نسخ الرابط */}
+          <Button
+            onClick={() => {
+              const platformUrl = getPlatformUrl();
+              navigator.clipboard.writeText(platformUrl);
+              toast.success("تم نسخ الرابط!");
+            }}
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20"
+            title="نسخ الرابط"
+          >
+            <Copy className="w-5 h-5" />
+          </Button>
+          
+          {/* زر مشاركة واتساب */}
+          <Button
+            onClick={() => {
+              const platformUrl = getPlatformUrl();
+              const text = `تفضل بزيارة منصتي العقارية: ${platformUrl}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20"
+            title="مشاركة عبر واتساب"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </Button>
+          
+          {/* زر مشاركة تويتر */}
+          <Button
+            onClick={() => {
+              const platformUrl = getPlatformUrl();
+              const text = `تفضل بزيارة منصتي العقارية`;
+              window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(platformUrl)}`, '_blank');
+            }}
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20"
+            title="مشاركة عبر تويتر"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </Button>
+          
+          {/* زر مشاركة عام */}
           <Button
             onClick={sharePlatformLink}
             variant="ghost"
-            className="text-white hover:bg-white/20 flex items-center gap-2"
+            size="icon"
+            className="text-white hover:bg-white/20"
+            title="مشاركة"
           >
             <Share2 className="w-5 h-5" />
-            مشاركة
           </Button>
         </div>
 
