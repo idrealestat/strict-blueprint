@@ -3,7 +3,7 @@
  * صفحة تفاصيل العرض للعملاء - تظهر عند الضغط على "عرض التفاصيل"
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import {
   X,
@@ -44,6 +44,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import SimilarOffersSection from './SimilarOffersSection';
 import { mockCustomers, Customer } from '@/data/mockCustomers';
+import { saveViewingAppointmentToDb } from '@/hooks/useCalendarAppointments';
+import { useViewsSync } from '@/hooks/useViewsSync';
+import { showPushNotification } from '@/hooks/usePushNotifications';
 
 interface Listing {
   id: string;
@@ -132,8 +135,11 @@ const ScheduleVisitModal: React.FC<{
     '05:00 م', '06:00 م', '07:00 م', '08:00 م'
   ];
 
-  // حفظ الموعد في التقويم
-  const saveToCalendar = (appointmentData: any) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // حفظ الموعد في التقويم (localStorage + DB)
+  const saveToCalendar = async (appointmentData: any) => {
+    // حفظ محلي للتوافقية
     const existingAppointments = JSON.parse(localStorage.getItem('calendar_appointments') || '[]');
     const newAppointment = {
       id: `apt_${Date.now()}`,
@@ -152,29 +158,61 @@ const ScheduleVisitModal: React.FC<{
     };
     existingAppointments.push(newAppointment);
     localStorage.setItem('calendar_appointments', JSON.stringify(existingAppointments));
+
+    // حفظ في قاعدة البيانات
+    await saveViewingAppointmentToDb({
+      title: `معاينة: ${listing.title}`,
+      customerName: appointmentData.name,
+      customerPhone: appointmentData.phone,
+      date: appointmentData.date,
+      time: appointmentData.time.replace(' ص', '').replace(' م', ''),
+      propertyId: listing.id,
+      propertyTitle: listing.title,
+      location: `${listing.city} - ${listing.district}`,
+      notes: appointmentData.notes,
+    });
+
+    // إطلاق حدث لتحديث التقويم
+    window.dispatchEvent(new CustomEvent('appointmentCreated', { detail: newAppointment }));
+
     return newAppointment;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedDate || !selectedTime || !name || !phone) {
       toast({ title: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
       return;
     }
     
-    // حفظ في التقويم
-    const savedAppointment = saveToCalendar({
-      date: selectedDate,
-      time: selectedTime,
-      name,
-      phone,
-      notes
-    });
-    
-    toast({
-      title: '✅ تم جدولة موعد المعاينة وحفظه في التقويم',
-      description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
-    });
-    onClose();
+    setIsSubmitting(true);
+    try {
+      // حفظ في التقويم (محلي + DB)
+      await saveToCalendar({
+        date: selectedDate,
+        time: selectedTime,
+        name,
+        phone,
+        notes
+      });
+      
+      // إرسال Push Notification
+      await showPushNotification(
+        '📅 موعد معاينة جديد',
+        `${name} - ${listing.title} - ${selectedDate} ${selectedTime}`,
+        { type: 'appointment', propertyId: listing.id }
+      );
+      
+      toast({
+        title: '✅ تم جدولة موعد المعاينة وحفظه في التقويم',
+        description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error saving appointment:', error);
+      toast({ title: 'حدث خطأ أثناء حفظ الموعد', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
