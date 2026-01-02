@@ -143,6 +143,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [isSlugAvailable, setIsSlugAvailable] = useState(false);
+  const [isPublished, setIsPublished] = useState<boolean | null>(null);
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -211,11 +213,24 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         const { data: { user: authUser } } = await supabase.auth.getUser();
         
         if (authUser) {
+          // جلب بيانات الملف الشخصي
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', authUser.id)
             .single();
+
+          // جلب حالة النشر والـ slug من business_cards
+          const { data: businessCard } = await supabase
+            .from('business_cards')
+            .select('published, slug')
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+
+          if (businessCard) {
+            setIsPublished(businessCard.published);
+            setCurrentSlug(businessCard.slug);
+          }
           
           if (profile && !error) {
             // Load saved card data from localStorage
@@ -404,6 +419,12 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
 
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
+
+      // تحديث حالة النشر والـ slug في الـ state
+      setCurrentSlug(selectedSlug);
+      if (isFirstAutoPublish) {
+        setIsPublished(true);
+      }
 
       // رسالة مختلفة حسب حالة النشر التلقائي
       if (isFirstAutoPublish) {
@@ -622,7 +643,47 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             </Button>
           </div>
         </div>
-        <h1 className="text-white text-lg font-bold text-center mt-2">تعديل بطاقة الأعمال</h1>
+        
+        {/* عنوان الصفحة مع مؤشر حالة النشر */}
+        <div className="flex items-center justify-center gap-3 mt-2">
+          <h1 className="text-white text-lg font-bold">تعديل بطاقة الأعمال</h1>
+          
+          {/* مؤشر حالة النشر */}
+          {isPublished !== null && (
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+              isPublished 
+                ? 'bg-green-500/20 text-green-100 border border-green-400/30' 
+                : 'bg-yellow-500/20 text-yellow-100 border border-yellow-400/30'
+            }`}>
+              {isPublished ? (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>منشورة</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>غير منشورة</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* رابط الصفحة العامة إذا كانت منشورة */}
+        {isPublished && currentSlug && (
+          <div className="flex items-center justify-center mt-2">
+            <a
+              href={`https://wasataai.com/${currentSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#D4AF37] text-sm hover:underline flex items-center gap-1"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              wasataai.com/{currentSlug}
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Live Preview Section */}
