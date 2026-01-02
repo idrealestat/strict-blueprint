@@ -315,19 +315,8 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     }
   };
 
-  // الحصول على base domain من env أو fallback
-  const getBaseDomain = () => {
-    // قراءة من متغير البيئة (VITE_ prefix مطلوب للواجهة)
-    const envDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN;
-    if (envDomain) {
-      // إزالة أي بروتوكول أو سلاش زائد
-      return envDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    }
-    // fallback إلى hostname الحالي
-    return typeof window !== 'undefined' ? window.location.hostname : 'wasataai.com';
-  };
-
-  const baseDomain = getBaseDomain();
+  // الدومين الأساسي للمنصة (ثابت - ليس secret)
+  const baseDomain = 'wasataai.com';
 
   return (
     <div className="space-y-2">
