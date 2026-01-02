@@ -312,9 +312,16 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
 
       // نشر بيانات البطاقة للمنصة العامة (ليظهر الهيدر للزوار على أجهزة أخرى)
-      // ملاحظة: slug يجب أن يطابق النطاق الخاص الذي اختاره المستخدم (مثل: smart) فقط إذا كان متاحًا (أخضر)
+      // ملاحظة مهمة: يجب اختيار slug متاح (باللون الأخضر) ولا نستخدم أي قيمة بديلة مثل user.id
       const selectedSlug = isSlugAvailable && formData.userTitle ? String(formData.userTitle).trim() : '';
-      const slug = selectedSlug || String(user.id || 'default');
+      if (!selectedSlug) {
+        setShowError(true);
+        setErrorMessage('اختر اسم رابط (Slug) متاح باللون الأخضر ثم احفظ.');
+        toast.error('اختر اسم رابط (Slug) متاح ثم أعد الحفظ');
+        return;
+      }
+
+      const slug = selectedSlug;
       const swapState = localStorage.getItem(`business_card_swap_${user.id}`) === 'true';
       const publishTokenKey = `business_card_publish_token_${slug}`;
       const existingToken = localStorage.getItem(publishTokenKey) || undefined;
