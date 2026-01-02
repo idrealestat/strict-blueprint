@@ -638,10 +638,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // إنشاء رابط المنصة الحقيقي (slug من النشر)
   const getPlatformUrl = () => {
-    // يمكن استبدال هذا بالدومين المخصص لاحقاً
-    const baseUrl = window.location.origin;
     const slug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
-    return `${baseUrl}/platform/${slug}`;
+    return `https://wasataai.com/${slug}`;
   };
 
   // مشاركة رابط المنصة
