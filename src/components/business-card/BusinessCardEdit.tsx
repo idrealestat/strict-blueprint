@@ -650,23 +650,22 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           
           {/* مؤشر حالة النشر */}
           {isPublished !== null && (
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-              isPublished 
-                ? 'bg-green-500/20 text-green-100 border border-green-400/30' 
-                : 'bg-yellow-500/20 text-yellow-100 border border-yellow-400/30'
-            }`}>
-              {isPublished ? (
-                <>
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>منشورة</span>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>غير منشورة</span>
-                </>
-              )}
-            </div>
+            isPublished ? (
+              // مؤشر مباشر النابض
+              <div className="inline-flex items-center gap-1.5 bg-green-400/20 text-green-100 px-3 py-1 rounded-full border border-green-400/40 animate-pulse">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                </span>
+                <span className="text-xs font-bold">مباشر</span>
+              </div>
+            ) : (
+              // مؤشر غير منشورة
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-100 border border-yellow-400/30">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>غير منشورة</span>
+              </div>
+            )
           )}
         </div>
         

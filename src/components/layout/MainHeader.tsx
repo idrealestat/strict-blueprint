@@ -2,6 +2,8 @@ import { Building2, Menu, Bell, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDomainNotifications } from "@/hooks/useDomainNotifications";
 import { useNotificationSystem } from "@/hooks/useNotificationSystem";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 interface MainHeaderProps {
   onRightMenuOpen: () => void;
@@ -12,8 +14,35 @@ interface MainHeaderProps {
 const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: MainHeaderProps) => {
   const { unreadCount: domainUnreadCount } = useDomainNotifications();
   const { unreadCount: systemUnreadCount } = useNotificationSystem();
+  const [isPublished, setIsPublished] = useState<boolean | null>(null);
   
   const totalUnreadCount = domainUnreadCount + systemUnreadCount;
+
+  // جلب حالة النشر من قاعدة البيانات
+  useEffect(() => {
+    const fetchPublishStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('published')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (data) {
+          setIsPublished(data.published);
+        }
+      }
+    };
+    
+    fetchPublishStatus();
+
+    // الاستماع لتحديثات البطاقة
+    const handleUpdate = () => fetchPublishStatus();
+    window.addEventListener('businessCardUpdated', handleUpdate);
+    
+    return () => window.removeEventListener('businessCardUpdated', handleUpdate);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-r from-wasata-green via-wasata-green-dark to-wasata-green backdrop-blur-md border-b-2 border-wasata-gold shadow-lg">
@@ -31,14 +60,25 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
             </Button>
           </div>
 
-          {/* Center: Logo */}
-          <div className="flex-1 text-center">
+          {/* Center: Logo + Live Badge */}
+          <div className="flex-1 flex items-center justify-center gap-3">
             <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-wasata-gold backdrop-blur-sm">
               <Building2 className="w-5 h-5" />
               <span className="font-bold">عقاري</span>
               <span className="font-bold text-wasata-gold">AI</span>
               <span className="font-bold">Aqari</span>
             </div>
+            
+            {/* مؤشر مباشر النابض */}
+            {isPublished && (
+              <div className="inline-flex items-center gap-1.5 bg-green-400/20 text-green-300 px-3 py-1 rounded-full border border-green-400/40 animate-pulse">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                </span>
+                <span className="text-xs font-bold">مباشر</span>
+              </div>
+            )}
           </div>
 
           {/* Left: Icons */}
