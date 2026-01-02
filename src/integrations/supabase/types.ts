@@ -466,37 +466,85 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string | null
           avatar_url: string | null
+          birth_date: string | null
+          commercial_reg_expiry: string | null
+          commercial_reg_number: string | null
           company_name: string | null
           created_at: string
+          email_otp: string | null
+          email_verified: boolean | null
+          fal_license_expiry: string | null
+          fal_license_number: string | null
           full_name: string | null
           id: string
           license_number: string | null
+          national_id: string | null
+          office_address: string | null
+          office_lat: number | null
+          office_lng: number | null
+          otp_expires_at: string | null
           phone: string | null
+          phone_otp: string | null
+          phone_verified: boolean | null
           updated_at: string
           user_id: string
+          website: string | null
         }
         Insert: {
+          account_type?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
+          commercial_reg_expiry?: string | null
+          commercial_reg_number?: string | null
           company_name?: string | null
           created_at?: string
+          email_otp?: string | null
+          email_verified?: boolean | null
+          fal_license_expiry?: string | null
+          fal_license_number?: string | null
           full_name?: string | null
           id?: string
           license_number?: string | null
+          national_id?: string | null
+          office_address?: string | null
+          office_lat?: number | null
+          office_lng?: number | null
+          otp_expires_at?: string | null
           phone?: string | null
+          phone_otp?: string | null
+          phone_verified?: boolean | null
           updated_at?: string
           user_id: string
+          website?: string | null
         }
         Update: {
+          account_type?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
+          commercial_reg_expiry?: string | null
+          commercial_reg_number?: string | null
           company_name?: string | null
           created_at?: string
+          email_otp?: string | null
+          email_verified?: boolean | null
+          fal_license_expiry?: string | null
+          fal_license_number?: string | null
           full_name?: string | null
           id?: string
           license_number?: string | null
+          national_id?: string | null
+          office_address?: string | null
+          office_lat?: number | null
+          office_lng?: number | null
+          otp_expires_at?: string | null
           phone?: string | null
+          phone_otp?: string | null
+          phone_verified?: boolean | null
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -578,6 +626,42 @@ export type Database = {
           status?: string
           twilio_message_sid?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      verification_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          email: string | null
+          expires_at: string
+          id: string
+          phone: string | null
+          type: string
+          user_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          email?: string | null
+          expires_at: string
+          id?: string
+          phone?: string | null
+          type: string
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          phone?: string | null
+          type?: string
+          user_id?: string | null
+          verified?: boolean | null
         }
         Relationships: []
       }
