@@ -155,6 +155,47 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          request_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type: string
+          request_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          request_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "domain_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       domain_requests: {
         Row: {
           account_type: string | null
@@ -163,6 +204,12 @@ export type Database = {
           created_at: string
           id: string
           matched_company: string | null
+          notified_at: string | null
+          original_owner_claimed: boolean | null
+          price: number | null
+          price_enabled: boolean | null
+          priority_revoked: boolean | null
+          priority_revoked_at: string | null
           rejection_reason: string | null
           requested_title: string
           reviewed_at: string | null
@@ -179,6 +226,12 @@ export type Database = {
           created_at?: string
           id?: string
           matched_company?: string | null
+          notified_at?: string | null
+          original_owner_claimed?: boolean | null
+          price?: number | null
+          price_enabled?: boolean | null
+          priority_revoked?: boolean | null
+          priority_revoked_at?: string | null
           rejection_reason?: string | null
           requested_title: string
           reviewed_at?: string | null
@@ -195,6 +248,12 @@ export type Database = {
           created_at?: string
           id?: string
           matched_company?: string | null
+          notified_at?: string | null
+          original_owner_claimed?: boolean | null
+          price?: number | null
+          price_enabled?: boolean | null
+          priority_revoked?: boolean | null
+          priority_revoked_at?: string | null
           rejection_reason?: string | null
           requested_title?: string
           reviewed_at?: string | null
@@ -203,6 +262,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      domain_settings: {
+        Row: {
+          created_at: string
+          default_price: number | null
+          id: string
+          pricing_enabled: boolean | null
+          priority_warning_enabled: boolean | null
+          priority_warning_message: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_price?: number | null
+          id?: string
+          pricing_enabled?: boolean | null
+          priority_warning_enabled?: boolean | null
+          priority_warning_message?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_price?: number | null
+          id?: string
+          pricing_enabled?: boolean | null
+          priority_warning_enabled?: boolean | null
+          priority_warning_message?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

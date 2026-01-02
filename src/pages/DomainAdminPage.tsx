@@ -7,10 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { 
   Shield, Check, X, Clock, Plus, Trash2, Search, 
-  Building2, Globe, AlertTriangle, RefreshCw, FileText
+  Building2, Globe, AlertTriangle, RefreshCw, FileText,
+  Bell, DollarSign, Settings, Crown
 } from "lucide-react";
 import {
   Table,
@@ -36,6 +38,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 interface DomainRequest {
   id: string;
@@ -49,6 +56,9 @@ interface DomainRequest {
   matched_company: string | null;
   admin_notes: string | null;
   created_at: string;
+  price_enabled: boolean;
+  price: number | null;
+  priority_revoked: boolean;
 }
 
 interface BlacklistEntry {
@@ -73,11 +83,20 @@ interface ForbiddenPattern {
   is_active: boolean;
 }
 
+interface DomainSettings {
+  id: string;
+  pricing_enabled: boolean;
+  default_price: number;
+  priority_warning_enabled: boolean;
+  priority_warning_message: string;
+}
+
 const DomainAdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("requests");
   const [requests, setRequests] = useState<DomainRequest[]>([]);
   const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
   const [patterns, setPatterns] = useState<ForbiddenPattern[]>([]);
+  const [settings, setSettings] = useState<DomainSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -87,6 +106,8 @@ const DomainAdminPage: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<DomainRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
+  const [requestPrice, setRequestPrice] = useState<string>("");
+  const [enablePriceForRequest, setEnablePriceForRequest] = useState(false);
 
   // نموذج إضافة للقائمة السوداء
   const [newBlacklistEntry, setNewBlacklistEntry] = useState({
@@ -137,6 +158,17 @@ const DomainAdminPage: React.FC = () => {
       if (patternsError) throw patternsError;
       setPatterns(patternsData || []);
 
+      // جلب الإعدادات
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('domain_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (!settingsError && settingsData) {
+        setSettings(settingsData);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error("حدث خطأ في جلب البيانات");
@@ -149,23 +181,71 @@ const DomainAdminPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // إرسال إشعار
+  const sendNotification = async (
+    userId: string, 
+    requestId: string, 
+    type: string, 
+    title: string, 
+    message: string
+  ) => {
+    try {
+      await supabase
+        .from('domain_notifications')
+        .insert({
+          user_id: userId,
+          request_id: requestId,
+          notification_type: type,
+          title,
+          message
+        });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
+
   // الموافقة على طلب
   const approveRequest = async (request: DomainRequest) => {
     try {
+      const updateData: any = {
+        status: 'approved',
+        admin_notes: adminNotes,
+        reviewed_at: new Date().toISOString()
+      };
+
+      // إضافة السعر إذا تم تفعيله
+      if (enablePriceForRequest && requestPrice) {
+        updateData.price_enabled = true;
+        updateData.price = parseFloat(requestPrice);
+      }
+
       const { error } = await supabase
         .from('domain_requests')
-        .update({
-          status: 'approved',
-          admin_notes: adminNotes,
-          reviewed_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', request.id);
 
       if (error) throw error;
 
-      toast.success("تمت الموافقة على الطلب");
+      // إرسال إشعار للمستخدم
+      let notificationMessage = `تمت الموافقة على طلب النطاق الخاص بك: WasataAI.com/${request.requested_title}`;
+      if (enablePriceForRequest && requestPrice) {
+        notificationMessage += `\n\nرسوم النطاق: ${requestPrice} ريال`;
+      }
+      notificationMessage += '\n\n⚠️ تنبيه: أولوية اختيار النطاق دائماً ستكون لمن يملك النطاق الأصلي حتى لو تم اختيارك له قبله أو تم دفع رسوم عليه.';
+
+      await sendNotification(
+        request.user_id,
+        request.id,
+        'approved',
+        '✅ تمت الموافقة على طلب النطاق',
+        notificationMessage
+      );
+
+      toast.success("تمت الموافقة على الطلب وتم إشعار المستخدم");
       setSelectedRequest(null);
       setAdminNotes("");
+      setRequestPrice("");
+      setEnablePriceForRequest(false);
       fetchData();
     } catch (error) {
       console.error('Error approving request:', error);
@@ -193,7 +273,16 @@ const DomainAdminPage: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success("تم رفض الطلب");
+      // إرسال إشعار للمستخدم
+      await sendNotification(
+        request.user_id,
+        request.id,
+        'rejected',
+        '❌ تم رفض طلب النطاق',
+        `تم رفض طلب النطاق الخاص بك: WasataAI.com/${request.requested_title}\n\nسبب الرفض: ${rejectionReason}\n\nيمكنك اختيار نطاق آخر.`
+      );
+
+      toast.success("تم رفض الطلب وتم إشعار المستخدم");
       setSelectedRequest(null);
       setRejectionReason("");
       setAdminNotes("");
@@ -201,6 +290,61 @@ const DomainAdminPage: React.FC = () => {
     } catch (error) {
       console.error('Error rejecting request:', error);
       toast.error("حدث خطأ في الرفض");
+    }
+  };
+
+  // سحب النطاق (عندما يطالب المالك الأصلي)
+  const revokeRequest = async (request: DomainRequest) => {
+    try {
+      const { error } = await supabase
+        .from('domain_requests')
+        .update({
+          status: 'revoked',
+          priority_revoked: true,
+          priority_revoked_at: new Date().toISOString(),
+          original_owner_claimed: true
+        })
+        .eq('id', request.id);
+
+      if (error) throw error;
+
+      // إرسال إشعار للمستخدم
+      await sendNotification(
+        request.user_id,
+        request.id,
+        'revoked',
+        '⚠️ تم سحب النطاق - مطالبة المالك الأصلي',
+        `نأسف لإبلاغك أنه تم سحب النطاق: WasataAI.com/${request.requested_title}\n\nالسبب: طالب المالك الأصلي للنطاق باستعادته.\n\nكما أوضحنا مسبقاً، أولوية اختيار النطاق دائماً ستكون لمن يملك النطاق الأصلي.\n\nيرجى اختيار نطاق آخر مناسب لك.`
+      );
+
+      toast.success("تم سحب النطاق وإشعار المستخدم");
+      fetchData();
+    } catch (error) {
+      console.error('Error revoking request:', error);
+      toast.error("حدث خطأ في سحب النطاق");
+    }
+  };
+
+  // تحديث الإعدادات
+  const updateSettings = async (newSettings: Partial<DomainSettings>) => {
+    if (!settings) return;
+    
+    try {
+      const { error } = await supabase
+        .from('domain_settings')
+        .update({
+          ...newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', settings.id);
+
+      if (error) throw error;
+
+      setSettings({ ...settings, ...newSettings });
+      toast.success("تم تحديث الإعدادات");
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      toast.error("حدث خطأ في تحديث الإعدادات");
     }
   };
 
@@ -319,6 +463,8 @@ const DomainAdminPage: React.FC = () => {
     b.domain?.includes(searchQuery)
   );
 
+  const pendingCount = requests.filter(r => r.status === 'pending').length;
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -327,6 +473,8 @@ const DomainAdminPage: React.FC = () => {
         return <Badge variant="secondary" className="bg-emerald-100 text-emerald-800"><Check className="w-3 h-3 ml-1" />موافق عليه</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><X className="w-3 h-3 ml-1" />مرفوض</Badge>;
+      case 'revoked':
+        return <Badge variant="destructive" className="bg-orange-100 text-orange-800"><Crown className="w-3 h-3 ml-1" />تم السحب</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -343,11 +491,29 @@ const DomainAdminPage: React.FC = () => {
             <p className="text-muted-foreground">مراجعة طلبات النطاقات وإدارة القائمة السوداء</p>
           </div>
         </div>
-        <Button onClick={fetchData} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 ml-2" />
-          تحديث
-        </Button>
+        <div className="flex items-center gap-2">
+          {pendingCount > 0 && (
+            <Badge variant="destructive" className="animate-pulse">
+              <Bell className="w-3 h-3 ml-1" />
+              {pendingCount} طلب جديد
+            </Badge>
+          )}
+          <Button onClick={fetchData} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 ml-2" />
+            تحديث
+          </Button>
+        </div>
       </div>
+
+      {/* تنبيه الأولوية */}
+      <Alert className="border-amber-500 bg-amber-50">
+        <Crown className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-800">تنبيه مهم حول أولوية النطاقات</AlertTitle>
+        <AlertDescription className="text-amber-700">
+          أولوية اختيار النطاق دائماً ستكون لمن يملك النطاق الأصلي حتى لو تم اختياره من قبل مستخدم آخر أو تم دفع رسوم عليه. 
+          يتم إشعار المستخدم تلقائياً عند سحب النطاق منه.
+        </AlertDescription>
+      </Alert>
 
       {/* شريط البحث */}
       <div className="relative">
@@ -362,13 +528,13 @@ const DomainAdminPage: React.FC = () => {
 
       {/* التبويبات */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="requests" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             طلبات النطاقات
-            {requests.filter(r => r.status === 'pending').length > 0 && (
+            {pendingCount > 0 && (
               <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
-                {requests.filter(r => r.status === 'pending').length}
+                {pendingCount}
               </Badge>
             )}
           </TabsTrigger>
@@ -379,6 +545,10 @@ const DomainAdminPage: React.FC = () => {
           <TabsTrigger value="patterns" className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" />
             الكلمات المحظورة ({patterns.length})
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            الإعدادات
           </TabsTrigger>
         </TabsList>
 
@@ -402,6 +572,7 @@ const DomainAdminPage: React.FC = () => {
                       <TableHead>نوع الحساب</TableHead>
                       <TableHead>الشركة</TableHead>
                       <TableHead>الحالة</TableHead>
+                      <TableHead>السعر</TableHead>
                       <TableHead>التاريخ</TableHead>
                       <TableHead>الإجراءات</TableHead>
                     </TableRow>
@@ -417,86 +588,164 @@ const DomainAdminPage: React.FC = () => {
                         </TableCell>
                         <TableCell>{request.company_name || '-'}</TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
+                        <TableCell>
+                          {request.price_enabled && request.price ? (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700">
+                              <DollarSign className="w-3 h-3 ml-1" />
+                              {request.price} ريال
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(request.created_at).toLocaleDateString('ar-SA')}
                         </TableCell>
                         <TableCell>
-                          {request.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="outline" className="text-emerald-600" onClick={() => setSelectedRequest(request)}>
-                                    <Check className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>الموافقة على الطلب</DialogTitle>
-                                    <DialogDescription>
-                                      هل أنت متأكد من الموافقة على النطاق: {request.requested_title}؟
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>ملاحظات الإدارة (اختياري)</Label>
-                                      <Textarea
-                                        value={adminNotes}
-                                        onChange={(e) => setAdminNotes(e.target.value)}
-                                        placeholder="أضف ملاحظات..."
-                                      />
-                                    </div>
-                                  </div>
-                                  <DialogFooter>
-                                    <Button onClick={() => approveRequest(request)} className="bg-emerald-600 hover:bg-emerald-700">
-                                      <Check className="w-4 h-4 ml-2" />
-                                      موافقة
+                          <div className="flex gap-2">
+                            {request.status === 'pending' && (
+                              <>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="text-emerald-600" onClick={() => setSelectedRequest(request)}>
+                                      <Check className="w-4 h-4" />
                                     </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>الموافقة على الطلب</DialogTitle>
+                                      <DialogDescription>
+                                        هل أنت متأكد من الموافقة على النطاق: {request.requested_title}؟
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      {/* خيار السعر */}
+                                      {settings?.pricing_enabled && (
+                                        <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                                          <div className="flex items-center justify-between">
+                                            <Label htmlFor="enable-price" className="flex items-center gap-2">
+                                              <DollarSign className="w-4 h-4 text-emerald-600" />
+                                              تفعيل رسوم النطاق
+                                            </Label>
+                                            <Switch
+                                              id="enable-price"
+                                              checked={enablePriceForRequest}
+                                              onCheckedChange={setEnablePriceForRequest}
+                                            />
+                                          </div>
+                                          {enablePriceForRequest && (
+                                            <div>
+                                              <Label>السعر (ريال)</Label>
+                                              <Input
+                                                type="number"
+                                                value={requestPrice}
+                                                onChange={(e) => setRequestPrice(e.target.value)}
+                                                placeholder={settings.default_price.toString()}
+                                                className="mt-1"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      <div>
+                                        <Label>ملاحظات الإدارة (اختياري)</Label>
+                                        <Textarea
+                                          value={adminNotes}
+                                          onChange={(e) => setAdminNotes(e.target.value)}
+                                          placeholder="أضف ملاحظات..."
+                                        />
+                                      </div>
 
+                                      <Alert className="border-amber-300 bg-amber-50">
+                                        <Crown className="h-4 w-4 text-amber-600" />
+                                        <AlertDescription className="text-amber-700 text-sm">
+                                          سيتم إشعار المستخدم بتنبيه أولوية النطاق للمالك الأصلي
+                                        </AlertDescription>
+                                      </Alert>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button onClick={() => approveRequest(request)} className="bg-emerald-600 hover:bg-emerald-700">
+                                        <Check className="w-4 h-4 ml-2" />
+                                        موافقة
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => setSelectedRequest(request)}>
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>رفض الطلب</DialogTitle>
+                                      <DialogDescription>
+                                        رفض النطاق: {request.requested_title}
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <Label>سبب الرفض *</Label>
+                                        <Textarea
+                                          value={rejectionReason}
+                                          onChange={(e) => setRejectionReason(e.target.value)}
+                                          placeholder="اكتب سبب الرفض..."
+                                          required
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>ملاحظات إضافية</Label>
+                                        <Textarea
+                                          value={adminNotes}
+                                          onChange={(e) => setAdminNotes(e.target.value)}
+                                          placeholder="ملاحظات داخلية..."
+                                        />
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button onClick={() => rejectRequest(request)} variant="destructive">
+                                        <X className="w-4 h-4 ml-2" />
+                                        رفض
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              </>
+                            )}
+
+                            {request.status === 'approved' && !request.priority_revoked && (
                               <Dialog>
                                 <DialogTrigger asChild>
-                                  <Button size="sm" variant="outline" className="text-red-600" onClick={() => setSelectedRequest(request)}>
-                                    <X className="w-4 h-4" />
+                                  <Button size="sm" variant="outline" className="text-orange-600">
+                                    <Crown className="w-4 h-4" />
                                   </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                   <DialogHeader>
-                                    <DialogTitle>رفض الطلب</DialogTitle>
+                                    <DialogTitle>سحب النطاق - مطالبة المالك الأصلي</DialogTitle>
                                     <DialogDescription>
-                                      رفض النطاق: {request.requested_title}
+                                      هل المالك الأصلي للنطاق يطالب باستعادته؟
                                     </DialogDescription>
                                   </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label>سبب الرفض *</Label>
-                                      <Textarea
-                                        value={rejectionReason}
-                                        onChange={(e) => setRejectionReason(e.target.value)}
-                                        placeholder="اكتب سبب الرفض..."
-                                        required
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label>ملاحظات إضافية</Label>
-                                      <Textarea
-                                        value={adminNotes}
-                                        onChange={(e) => setAdminNotes(e.target.value)}
-                                        placeholder="ملاحظات داخلية..."
-                                      />
-                                    </div>
-                                  </div>
+                                  <Alert className="border-red-300 bg-red-50">
+                                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    <AlertDescription className="text-red-700 text-sm">
+                                      سيتم سحب النطاق من المستخدم الحالي وإشعاره باختيار نطاق آخر
+                                    </AlertDescription>
+                                  </Alert>
                                   <DialogFooter>
-                                    <Button onClick={() => rejectRequest(request)} variant="destructive">
-                                      <X className="w-4 h-4 ml-2" />
-                                      رفض
+                                    <Button onClick={() => revokeRequest(request)} className="bg-orange-600 hover:bg-orange-700">
+                                      <Crown className="w-4 h-4 ml-2" />
+                                      تأكيد السحب
                                     </Button>
                                   </DialogFooter>
                                 </DialogContent>
                               </Dialog>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -742,6 +991,86 @@ const DomainAdminPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* الإعدادات */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                إعدادات النطاقات
+              </CardTitle>
+              <CardDescription>إدارة إعدادات التسعير والتنبيهات</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {settings && (
+                <>
+                  {/* إعدادات التسعير */}
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      إعدادات التسعير
+                    </h3>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>تفعيل التسعير للنطاقات الخاصة</Label>
+                        <p className="text-sm text-muted-foreground">عند التفعيل، يمكنك تحديد سعر لكل طلب</p>
+                      </div>
+                      <Switch
+                        checked={settings.pricing_enabled}
+                        onCheckedChange={(checked) => updateSettings({ pricing_enabled: checked })}
+                      />
+                    </div>
+
+                    {settings.pricing_enabled && (
+                      <div>
+                        <Label>السعر الافتراضي (ريال)</Label>
+                        <Input
+                          type="number"
+                          value={settings.default_price}
+                          onChange={(e) => updateSettings({ default_price: parseFloat(e.target.value) || 0 })}
+                          className="mt-1 max-w-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* إعدادات تنبيه الأولوية */}
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Crown className="w-4 h-4" />
+                      تنبيه أولوية المالك الأصلي
+                    </h3>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>تفعيل تنبيه الأولوية</Label>
+                        <p className="text-sm text-muted-foreground">إظهار تنبيه للمستخدمين حول أولوية المالك الأصلي</p>
+                      </div>
+                      <Switch
+                        checked={settings.priority_warning_enabled}
+                        onCheckedChange={(checked) => updateSettings({ priority_warning_enabled: checked })}
+                      />
+                    </div>
+
+                    {settings.priority_warning_enabled && (
+                      <div>
+                        <Label>نص التنبيه</Label>
+                        <Textarea
+                          value={settings.priority_warning_message}
+                          onChange={(e) => updateSettings({ priority_warning_message: e.target.value })}
+                          className="mt-1"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

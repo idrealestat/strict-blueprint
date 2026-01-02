@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Globe, Check, X, Loader2, AlertTriangle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Globe, Check, X, Loader2, AlertTriangle, Clock, Crown, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 
 interface UserTitleSelectorProps {
   value: string;
@@ -19,6 +24,14 @@ interface ValidationResult {
   reason?: string;
   matched_company?: string;
   requires_approval?: boolean;
+  price?: number;
+}
+
+interface DomainSettings {
+  pricing_enabled: boolean;
+  default_price: number;
+  priority_warning_enabled: boolean;
+  priority_warning_message: string;
 }
 
 const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
@@ -32,6 +45,29 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   const [availability, setAvailability] = useState<'available' | 'unavailable' | 'pending' | 'error' | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [matchedCompany, setMatchedCompany] = useState("");
+  const [settings, setSettings] = useState<DomainSettings | null>(null);
+  const [requestPrice, setRequestPrice] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // جلب الإعدادات
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('domain_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (!error && data) {
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // التحقق من صيغة اليوزر تايتل الأساسية (قبل إرسال للخادم)
   const validateFormat = (input: string): { valid: boolean; message: string } => {
@@ -63,6 +99,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       setAvailability(null);
       setErrorMessage("");
       setMatchedCompany("");
+      setRequestPrice(null);
       return;
     }
 
@@ -71,12 +108,14 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       setAvailability('error');
       setErrorMessage(formatValidation.message);
       setMatchedCompany("");
+      setRequestPrice(null);
       return;
     }
 
     setIsChecking(true);
     setErrorMessage("");
     setMatchedCompany("");
+    setRequestPrice(null);
 
     try {
       // استدعاء Edge Function للتحقق الذكي
@@ -107,6 +146,10 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         setMatchedCompany(result.matched_company);
       }
 
+      if (result.price) {
+        setRequestPrice(result.price);
+      }
+
       // إظهار رسالة توست حسب الحالة
       if (result.status === 'available') {
         toast.success("النطاق متاح للاستخدام");
@@ -122,6 +165,47 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       setIsChecking(false);
     }
   }, [websiteUrl, companyName, accountType]);
+
+  // إرسال طلب للإدارة
+  const submitDomainRequest = async () => {
+    if (!value) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("يجب تسجيل الدخول أولاً");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('domain_requests')
+        .insert({
+          user_id: user.id,
+          requested_title: value,
+          company_name: companyName || null,
+          website_url: websiteUrl || null,
+          account_type: accountType,
+          status: 'pending'
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error("لديك طلب سابق لهذا النطاق");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      toast.success("تم إرسال طلبك للمراجعة، سيتم إشعارك بالنتيجة");
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      toast.error("حدث خطأ في إرسال الطلب");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // التحقق عند تغيير القيمة (مع debounce)
   useEffect(() => {
@@ -241,11 +325,42 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         )}
 
         {availability === 'pending' && (
-          <div className="mt-3 p-2 rounded bg-amber-100 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-            <p className="text-sm text-amber-700 dark:text-amber-300 text-right font-medium">
-              ⏳ هذا النطاق يحتاج موافقة الإدارة. يمكنك إرسال طلب للمراجعة.
-            </p>
+          <div className="mt-3 space-y-3">
+            <div className="p-2 rounded bg-amber-100 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-700 dark:text-amber-300 text-right font-medium">
+                ⏳ هذا النطاق يحتاج موافقة الإدارة. يمكنك إرسال طلب للمراجعة.
+              </p>
+              {requestPrice && settings?.pricing_enabled && (
+                <p className="text-sm text-amber-700 dark:text-amber-300 text-right mt-2 flex items-center justify-end gap-1">
+                  <DollarSign className="w-4 h-4" />
+                  رسوم هذا النطاق: <strong>{requestPrice} ريال</strong>
+                </p>
+              )}
+            </div>
+            
+            <Button 
+              onClick={submitDomainRequest} 
+              disabled={isSubmitting}
+              className="w-full bg-amber-600 hover:bg-amber-700"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+              ) : (
+                <Clock className="w-4 h-4 ml-2" />
+              )}
+              إرسال طلب للمراجعة
+            </Button>
           </div>
+        )}
+
+        {/* تنبيه أولوية المالك الأصلي */}
+        {settings?.priority_warning_enabled && value && (availability === 'available' || availability === 'pending') && (
+          <Alert className="mt-4 border-amber-400 bg-amber-50 dark:bg-amber-950/30">
+            <Crown className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-700 dark:text-amber-300 text-sm text-right">
+              {settings.priority_warning_message}
+            </AlertDescription>
+          </Alert>
         )}
         
         {/* تعليمات */}
