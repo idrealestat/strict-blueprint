@@ -86,6 +86,7 @@ export default function AuthPage() {
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [tempIdentifier, setTempIdentifier] = useState<string | null>(null);
 
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
 
