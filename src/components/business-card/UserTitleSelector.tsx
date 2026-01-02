@@ -13,6 +13,7 @@ import {
 interface UserTitleSelectorProps {
   value: string;
   onChange: (value: string) => void;
+  onAvailabilityChange?: (isAvailable: boolean) => void;
   companyName: string;
   websiteUrl: string;
   accountType: string;
@@ -40,6 +41,7 @@ interface DomainSettings {
 const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   value,
   onChange,
+  onAvailabilityChange,
   companyName,
   websiteUrl,
   accountType
@@ -177,15 +179,19 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         setOfficialDomainVerified(true);
       }
 
-      // إظهار رسالة توست حسب الحالة
+      // إظهار رسالة توست حسب الحالة وإبلاغ الأب بحالة التوفر
       if (result.status === 'available') {
+        onAvailabilityChange?.(true);
         if (result.official_domain_verified) {
           toast.success("تم التحقق من ملكية النطاق - قبول تلقائي!");
         } else {
           toast.success("النطاق متاح للاستخدام");
         }
-      } else if (result.status === 'pending' && result.requires_approval) {
-        toast.info("هذا النطاق يحتاج موافقة الإدارة");
+      } else {
+        onAvailabilityChange?.(false);
+        if (result.status === 'pending' && result.requires_approval) {
+          toast.info("هذا النطاق يحتاج موافقة الإدارة");
+        }
       }
 
     } catch (error) {
