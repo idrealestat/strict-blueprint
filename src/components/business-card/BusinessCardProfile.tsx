@@ -261,8 +261,13 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
-  // Get slug from localStorage
+  const PLATFORM_BASE_URL = 'https://wasataai.com';
+
+  // Get slug (الأولوية للـ slug المنشور للمنصة العامة)
   const getSlug = () => {
+    const publishedSlug = String(localStorage.getItem('public_platform_slug') || '').trim();
+    if (publishedSlug) return publishedSlug;
+
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
       try {
@@ -276,13 +281,13 @@ END:VCARD`;
   // Share business card
   const shareBusinessCard = async () => {
     const slug = getSlug();
-    const cardLink = `${window.location.origin}/${slug}/businesscard`;
+    const cardLink = `${PLATFORM_BASE_URL}/${slug}/businesscard`;
     if (navigator.share) {
       try {
         await navigator.share({
           title: `بطاقة أعمال - ${formData.userName}`,
           text: `تفضل بزيارة بطاقتي الرقمية`,
-          url: cardLink
+          url: cardLink,
         });
       } catch (error) {
         navigator.clipboard.writeText(cardLink);
@@ -653,16 +658,8 @@ END:VCARD`;
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#b8941f] text-[#01411C] hover:opacity-90 col-span-2 md:col-span-4"
                 onClick={() => {
-                  // Get slug from localStorage
-                  const savedData = localStorage.getItem(`business_card_${user.id}`);
-                  let slug = 'default';
-                  if (savedData) {
-                    try {
-                      const data = JSON.parse(savedData);
-                      slug = data.userTitle || data.slug || 'default';
-                    } catch (e) {}
-                  }
-                  window.open(`${window.location.origin}/${slug}`, '_blank');
+                  const slug = getSlug();
+                  window.open(`${PLATFORM_BASE_URL}/${slug}`, '_blank');
                 }}
               >
                 <Home className="w-6 h-6" />
@@ -738,7 +735,7 @@ END:VCARD`;
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
                   const slug = getSlug();
-                  const link = `${window.location.origin}/${slug}/offer`;
+                  const link = `${PLATFORM_BASE_URL}/${slug}/offer`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط إرسال العرض");
                   window.open(link, '_blank');
@@ -754,7 +751,7 @@ END:VCARD`;
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
                   const slug = getSlug();
-                  const link = `${window.location.origin}/${slug}/request`;
+                  const link = `${PLATFORM_BASE_URL}/${slug}/request`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط إرسال الطلب");
                   window.open(link, '_blank');
@@ -770,7 +767,7 @@ END:VCARD`;
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
                   const slug = getSlug();
-                  const link = `${window.location.origin}/${slug}/quote`;
+                  const link = `${PLATFORM_BASE_URL}/${slug}/quote`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط عرض السعر");
                   window.open(link, '_blank');
@@ -786,7 +783,7 @@ END:VCARD`;
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => {
                   const slug = getSlug();
-                  const link = `${window.location.origin}/${slug}/calendar`;
+                  const link = `${PLATFORM_BASE_URL}/${slug}/calendar`;
                   navigator.clipboard.writeText(link);
                   toast.success("تم نسخ رابط إنشاء موعد");
                   window.open(link, '_blank');
