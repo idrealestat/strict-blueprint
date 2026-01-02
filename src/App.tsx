@@ -30,6 +30,7 @@ import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import { PublicOfferForm, PublicRequestForm, PublicPriceQuoteForm, PublicAppointmentForm } from "./pages/public-forms";
 import PublicViewingConfirmation from "./pages/public-forms/PublicViewingConfirmation";
 import PublicPlatformPage from "./pages/PublicPlatformPage";
+import SmartPlatformAliasPage from "./pages/SmartPlatformAliasPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
 import AuthPage from "./pages/AuthPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
@@ -301,6 +302,7 @@ const App = () => {
                   <Route path="/public/appointment/:brokerId" element={<PublicAppointmentForm />} />
                   <Route path="/public/viewing-confirm/:brokerId/:appointmentId" element={<PublicViewingConfirmation />} />
                   <Route path="/platform/:userId" element={<PublicPlatformPage />} />
+                  <Route path="/smart" element={<SmartPlatformAliasPage />} />
                   <Route path="/admin/domains" element={<DomainAdminPage />} />
                   <Route path="/domain-requests" element={<DomainRequestsListPage />} />
                   <Route path="/domain-requests/:requestId" element={<DomainRequestDetailsPage />} />
