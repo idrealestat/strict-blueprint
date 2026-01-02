@@ -78,6 +78,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
+import { usePlatformListings } from "@/hooks/usePlatformListings";
 
 // ===================== Types =====================
 
@@ -490,6 +491,13 @@ export default function MyPlatformComplete({
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+
+  // slug المستخدم للمنصة العامة + مزامنة تلقائية لقاعدة البيانات
+  const currentSlug = useMemo(
+    () => localStorage.getItem('public_platform_slug') || String(user?.id || 'default'),
+    [user]
+  );
+  const { syncFromLocalStorage } = usePlatformListings(currentSlug);
   
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
@@ -621,12 +629,26 @@ export default function MyPlatformComplete({
     if (updated) {
       localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
     }
-  }, [cityHierarchy]);
+
+    // ✅ مزامنة تلقائية: أي تغيير في الإظهار/الإخفاء ينعكس فوراً على صفحة المشاركة العامة
+    // (نستخدم نفس الـ slug المخزن للبطاقة العامة)
+    syncFromLocalStorage(currentSlug).catch((e) => {
+      console.error('Auto-sync to database failed:', e);
+    });
+  }, [cityHierarchy, currentSlug, syncFromLocalStorage]);
 
   // ✅ مزامنة المنصة العامة مع قائمة العروض المنشورة حتى لا تختفي العروض من «منصتي»
   useEffect(() => {
     syncPlatformCompleteFromPublishedAds();
   }, []);
+
+  // ✅ مزامنة تلقائية عند فتح منصتي: يرفع كل العروض الحالية لقاعدة البيانات ليظهرها للزوار
+  useEffect(() => {
+    syncFromLocalStorage(currentSlug).catch((e) => {
+      console.error('Initial sync to database failed:', e);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSlug]);
 
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
