@@ -7,9 +7,10 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin } from 'lucide-react';
+import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart } from 'lucide-react';
 import VisitorsHeatMap from './analytics/VisitorsHeatMap';
 import ViewsLogPage from './analytics/ViewsLogPage';
+import PublicPagesStats from './analytics/PublicPagesStats';
 
 interface Metric {
   title: string;
@@ -91,10 +92,14 @@ const AnalyticsDashboard = () => {
     <div className="space-y-6">
       {/* تبويبات رئيسية */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
-        <TabsList className="grid grid-cols-2 w-full max-w-md bg-gray-100 dark:bg-gray-800">
+        <TabsList className="grid grid-cols-3 w-full max-w-lg bg-gray-100 dark:bg-gray-800">
           <TabsTrigger value="market" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
             <TrendingUp className="w-4 h-4" />
             تحليلات السوق
+          </TabsTrigger>
+          <TabsTrigger value="public-pages" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
+            <FileBarChart className="w-4 h-4" />
+            الصفحات العامة
           </TabsTrigger>
           <TabsTrigger value="platform" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
             <Building className="w-4 h-4" />
@@ -226,6 +231,11 @@ const AnalyticsDashboard = () => {
               </table>
             </div>
           </div>
+        </TabsContent>
+
+        {/* تبويب الصفحات العامة */}
+        <TabsContent value="public-pages" className="space-y-6 mt-6">
+          <PublicPagesStats />
         </TabsContent>
 
         {/* تبويب منصتي */}
