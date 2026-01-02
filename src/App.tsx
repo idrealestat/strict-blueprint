@@ -35,6 +35,9 @@ import AuthPage from "./pages/AuthPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
 import DomainRequestsListPage from "./pages/DomainRequestsListPage";
 import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
+import SlugPlatformPage from "./pages/SlugPlatformPage";
+import SlugCalendarPage from "./pages/SlugCalendarPage";
+import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
 import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
@@ -298,6 +301,10 @@ const App = () => {
                   <Route path="/admin/domains" element={<DomainAdminPage />} />
                   <Route path="/domain-requests" element={<DomainRequestsListPage />} />
                   <Route path="/domain-requests/:requestId" element={<DomainRequestDetailsPage />} />
+                  {/* Dynamic slug routes - wasataai.com/{slug} */}
+                  <Route path="/:slug" element={<SlugPlatformPage />} />
+                  <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
+                  <Route path="/:slug/businesscard" element={<SlugBusinessCardPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
