@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Globe, Check, X, Loader2, AlertTriangle, Clock, Crown, DollarSign } from "lucide-react";
+import { Globe, Check, X, Loader2, AlertTriangle, Clock, Crown, DollarSign, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -56,6 +56,67 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   const [priorityLevel, setPriorityLevel] = useState<number | null>(null);
   const [alternativeSuggestions, setAlternativeSuggestions] = useState<string[]>([]);
   const [officialDomainVerified, setOfficialDomainVerified] = useState(false);
+  const [isPublished, setIsPublished] = useState<boolean | null>(null);
+  const [isTogglingPublish, setIsTogglingPublish] = useState(false);
+
+  // جلب حالة النشر
+  useEffect(() => {
+    const fetchPublishStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('published, slug')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (data) {
+          setIsPublished(data.published);
+        }
+      }
+    };
+    
+    fetchPublishStatus();
+  }, []);
+
+  // تبديل حالة النشر
+  const togglePublish = async () => {
+    setIsTogglingPublish(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("يجب تسجيل الدخول أولاً");
+        return;
+      }
+
+      const newPublishedState = !isPublished;
+      
+      const { error } = await supabase
+        .from('business_cards')
+        .update({ published: newPublishedState, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+
+      if (error) {
+        toast.error("فشل تحديث حالة النشر");
+        console.error('Toggle publish error:', error);
+        return;
+      }
+
+      setIsPublished(newPublishedState);
+      window.dispatchEvent(new CustomEvent('businessCardUpdated'));
+      
+      if (newPublishedState) {
+        toast.success("تم نشر صفحتك العامة بنجاح ✨");
+      } else {
+        toast.success("تم إيقاف نشر صفحتك العامة");
+      }
+    } catch (error) {
+      console.error('Toggle publish error:', error);
+      toast.error("حدث خطأ أثناء تحديث حالة النشر");
+    } finally {
+      setIsTogglingPublish(false);
+    }
+  };
 
   // جلب الإعدادات
   useEffect(() => {
@@ -372,6 +433,56 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
             {priorityLevel && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400 text-right mt-1">
                 مستوى الأولوية: {priorityLevel === 1 ? '🥇 الأعلى (مالك نطاق رسمي)' : priorityLevel === 2 ? '🥈 شركة/مكتب' : '🥉 فرد'}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* زر نشر/إلغاء النشر */}
+        {isPublished !== null && value && (
+          <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isPublished ? (
+                  <div className="inline-flex items-center gap-1.5 bg-green-400/20 text-green-600 dark:text-green-400 px-3 py-1 rounded-full border border-green-400/40 animate-pulse">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span className="text-xs font-bold">مباشر</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-3 py-1 rounded-full">
+                    <EyeOff className="w-3 h-3" />
+                    <span className="text-xs font-medium">غير منشور</span>
+                  </div>
+                )}
+              </div>
+              
+              <Button
+                onClick={togglePublish}
+                disabled={isTogglingPublish}
+                variant={isPublished ? "outline" : "default"}
+                size="sm"
+                className={isPublished 
+                  ? "border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30" 
+                  : "bg-green-600 hover:bg-green-700 text-white"
+                }
+              >
+                {isTogglingPublish ? (
+                  <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                ) : isPublished ? (
+                  <EyeOff className="w-4 h-4 ml-1" />
+                ) : (
+                  <Eye className="w-4 h-4 ml-1" />
+                )}
+                {isPublished ? 'إيقاف النشر' : 'نشر الصفحة'}
+              </Button>
+            </div>
+            
+            {isPublished && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-right mt-2">
+                صفحتك العامة متاحة الآن على: <span className="font-medium text-green-600 dark:text-green-400">{baseDomain}/{value}</span>
               </p>
             )}
           </div>
