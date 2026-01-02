@@ -309,14 +309,14 @@ export default function AuthPage() {
           phone_verified: phoneVerified,
         }).eq('user_id', userId);
         
-        // 2) إنشاء سجل مبدئي في business_cards
-        // توليد slug فريد بناءً على الاسم أو userId
-        const baseSlug = data.firstName.toLowerCase().replace(/\s+/g, '-') || 'user';
-        const uniqueSlug = `${baseSlug}-${userId.slice(0, 8)}`;
+        // 2) إنشاء سجل مبدئي في business_cards بدون slug
+        // slug يُختار من قبل المستخدم في /app/businesscard/edit
+        // نستخدم slug مؤقت فريد (userId) لأن العمود NOT NULL مع UNIQUE
+        const tempSlug = `temp-${userId}`;
         
         const { error: bcError } = await supabase.from('business_cards').insert({
           user_id: userId,
-          slug: uniqueSlug,
+          slug: tempSlug, // مؤقت - سيختاره المستخدم لاحقاً
           published: false,
           data: {
             name: fullName,
@@ -331,7 +331,6 @@ export default function AuthPage() {
           console.error('Error creating business card:', bcError);
         }
         
-        // حفظ createdUserId للاستخدام لاحقاً
         setCreatedUserId(userId);
       }
       
