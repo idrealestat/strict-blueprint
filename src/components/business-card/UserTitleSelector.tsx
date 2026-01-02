@@ -439,7 +439,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         )}
 
         {/* زر نشر/إلغاء النشر */}
-        {isPublished !== null && value && (
+        {isPublished !== null && (
           <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
