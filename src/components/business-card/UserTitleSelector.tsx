@@ -75,15 +75,20 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
       return { valid: false, message: "" };
     }
 
-    // لا يقبل نقطة أو شرطة
-    if (input.includes('.') || input.includes('-') || input.includes('_')) {
-      return { valid: false, message: "لا يسمح باستخدام النقطة أو الشرطة كفاصل" };
+    // لا يقبل نقطة أو شرطة سفلية (يسمح بالشرطة العادية -)
+    if (input.includes('.') || input.includes('_')) {
+      return { valid: false, message: "لا يسمح باستخدام النقطة أو الشرطة السفلية" };
     }
 
-    // يجب أن يحتوي على حروف وأرقام فقط
-    const validPattern = /^[a-zA-Z0-9\u0600-\u06FF]+$/;
+    // لا يسمح بالشرطة في البداية أو النهاية أو مكررة
+    if (input.startsWith('-') || input.endsWith('-') || input.includes('--')) {
+      return { valid: false, message: "لا يسمح بالشرطة في البداية أو النهاية أو مكررة" };
+    }
+
+    // يجب أن يحتوي على حروف وأرقام وشرطات فقط
+    const validPattern = /^[a-zA-Z0-9\u0600-\u06FF-]+$/;
     if (!validPattern.test(input)) {
-      return { valid: false, message: "يجب أن يحتوي على حروف وأرقام فقط" };
+      return { valid: false, message: "يجب أن يحتوي على حروف وأرقام وشرطات فقط" };
     }
 
     if (input.length < 3) {
@@ -218,8 +223,10 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let newValue = e.target.value.toLowerCase().trim();
-    // إزالة المسافات والأحرف غير المسموحة
-    newValue = newValue.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '');
+    // إزالة المسافات والأحرف غير المسموحة (يسمح بالشرطة -)
+    newValue = newValue.replace(/[^a-zA-Z0-9\u0600-\u06FF-]/g, '');
+    // منع الشرطات المتتالية
+    newValue = newValue.replace(/--+/g, '-');
     onChange(newValue);
   };
 
@@ -366,11 +373,12 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         {/* تعليمات */}
         <div className="mt-4 text-xs text-muted-foreground text-right space-y-1 border-t border-amber-200 dark:border-amber-800 pt-3">
           <p className="font-medium text-foreground mb-2">📋 شروط اختيار النطاق:</p>
-          <p>• يجب أن يحتوي على حروف وأرقام فقط (بدون نقاط أو شرطات)</p>
+          <p>• يجب أن يحتوي على حروف وأرقام وشرطات فقط (مثال: ahmed-realestate)</p>
           <p>• لا يمكن استخدام اسم أول شائع بمفرده (مثل: محمد، أحمد)</p>
           <p>• لا يمكن استخدام اسم شركة عقارية سعودية مسجلة</p>
           <p>• إذا كان لديك موقع إلكتروني مسجل، يمكنك استخدام نفس اسم الدومين</p>
           <p>• الأسماء المشابهة لشركات عقارية تحتاج موافقة خاصة</p>
+          <p>• أولوية النطاق دائماً لمالك النطاق الرسمي</p>
         </div>
       </div>
     </div>
