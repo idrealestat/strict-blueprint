@@ -24,6 +24,7 @@ import {
   Map,
 } from "lucide-react";
 import OfficeLocationMap from "./OfficeLocationMap";
+import UserTitleSelector from "./UserTitleSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,7 @@ interface BusinessCardData {
   userName: string;
   companyName: string;
   websiteUrl: string;
+  userTitle: string;
   falLicense: string;
   falExpiry: string;
   commercialRegistration: string;
@@ -148,6 +150,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     userName: user.name,
     companyName: user.companyName || "",
     websiteUrl: "",
+    userTitle: "",
     falLicense: "",
     falExpiry: "",
     commercialRegistration: "",
@@ -742,6 +745,15 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     dir="ltr"
                   />
                 </div>
+                
+                {/* حقل اختيار النطاق الخاص */}
+                <UserTitleSelector
+                  value={formData.userTitle}
+                  onChange={(value) => handleInputChange("userTitle", value)}
+                  companyName={formData.companyName}
+                  websiteUrl={formData.websiteUrl}
+                  accountType={formData.accountType}
+                />
                 <div>
                   <Label>نبذة عني (500 حرف كحد أقصى)</Label>
                   <Textarea
