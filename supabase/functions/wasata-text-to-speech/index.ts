@@ -5,16 +5,72 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Valid voice options for TTS
+const VALID_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+
+// Speed range (OpenAI TTS valid range)
+const MIN_SPEED = 0.25;
+const MAX_SPEED = 4.0;
+
+// Maximum text length (OpenAI TTS limit)
+const MAX_TEXT_LENGTH = 4096;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, voice = 'alloy', speed = 1.0 } = await req.json();
+    let { text, voice = 'alloy', speed = 1.0 } = await req.json();
     
-    if (!text) {
-      throw new Error("لم يتم إرسال نص للتحويل");
+    // Validate text exists and is a string
+    if (!text || typeof text !== 'string') {
+      console.error("Invalid text: missing or not a string");
+      return new Response(JSON.stringify({ 
+        error: "لم يتم إرسال نص صالح للتحويل",
+        success: false 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Trim and validate text length
+    text = text.trim();
+    if (text.length === 0) {
+      console.error("Empty text after trimming");
+      return new Response(JSON.stringify({ 
+        error: "النص فارغ",
+        success: false 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (text.length > MAX_TEXT_LENGTH) {
+      console.error(`Text too long: ${text.length} chars (max: ${MAX_TEXT_LENGTH})`);
+      return new Response(JSON.stringify({ 
+        error: `النص طويل جداً. الحد الأقصى ${MAX_TEXT_LENGTH} حرف`,
+        success: false 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate and sanitize voice parameter
+    if (!voice || typeof voice !== 'string' || !VALID_VOICES.includes(voice.toLowerCase())) {
+      console.log(`Invalid voice "${voice}", defaulting to "alloy"`);
+      voice = 'alloy';
+    } else {
+      voice = voice.toLowerCase();
+    }
+
+    // Validate and sanitize speed parameter
+    if (typeof speed !== 'number' || isNaN(speed) || speed < MIN_SPEED || speed > MAX_SPEED) {
+      console.log(`Invalid speed "${speed}", defaulting to 1.0`);
+      speed = 1.0;
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -24,10 +80,9 @@ serve(async (req) => {
     }
 
     console.log("Converting text to speech:", text.substring(0, 100));
-    console.log("Voice:", voice, "Speed:", speed);
+    console.log("Voice:", voice, "Speed:", speed, "Text length:", text.length);
 
     // استخدام Lovable AI لتوليد الصوت
-    // ملاحظة: Lovable AI يستخدم نماذج مختلفة، سنستخدم النموذج المناسب
     const response = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
       method: "POST",
       headers: {
