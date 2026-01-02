@@ -631,8 +631,8 @@ export default function MyPlatformComplete({
     }
 
     // ✅ مزامنة تلقائية: أي تغيير في الإظهار/الإخفاء ينعكس فوراً على صفحة المشاركة العامة
-    // (نستخدم نفس الـ slug المخزن للبطاقة العامة)
-    syncFromLocalStorage(currentSlug).catch((e) => {
+    // (بدون إشعارات متكررة)
+    syncFromLocalStorage(currentSlug, { silent: true }).catch((e) => {
       console.error('Auto-sync to database failed:', e);
     });
   }, [cityHierarchy, currentSlug, syncFromLocalStorage]);
@@ -642,9 +642,9 @@ export default function MyPlatformComplete({
     syncPlatformCompleteFromPublishedAds();
   }, []);
 
-  // ✅ مزامنة تلقائية عند فتح منصتي: يرفع كل العروض الحالية لقاعدة البيانات ليظهرها للزوار
+  // ✅ مزامنة تلقائية عند فتح منصتي: يرفع كل العروض الحالية لقاعدة البيانات ليظهرها للزوار (بدون إشعارات)
   useEffect(() => {
-    syncFromLocalStorage(currentSlug).catch((e) => {
+    syncFromLocalStorage(currentSlug, { silent: true }).catch((e) => {
       console.error('Initial sync to database failed:', e);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
