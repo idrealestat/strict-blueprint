@@ -43,11 +43,22 @@ function extractDomainRoot(domain: string): string {
   return cleaned;
 }
 
-// تنظيف الاسم للمقارنة
+// تنظيف الاسم للمقارنة (يحتفظ بالشرطات للمقارنة الأولية ثم يزيلها للمقارنة الدقيقة)
 function cleanName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^\u0600-\u06FFa-z0-9]/g, '') // إزالة كل شيء ماعدا العربية والإنجليزية والأرقام
+    .replace(/[^\u0600-\u06FFa-z0-9-]/g, '') // إزالة كل شيء ماعدا العربية والإنجليزية والأرقام والشرطات
+    .replace(/-+/g, '') // إزالة الشرطات للمقارنة
+    .trim();
+}
+
+// تنظيف الاسم مع الحفاظ على الشرطات (للتخزين)
+function cleanNameKeepDashes(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\u0600-\u06FFa-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
     .trim();
 }
 
