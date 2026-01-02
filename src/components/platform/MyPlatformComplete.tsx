@@ -523,9 +523,33 @@ export default function MyPlatformComplete({
 
       const updated: CityLevel[] = [];
 
+      const parseCityDistrictFromSmartPath = (smartPath?: string): { city?: string; district?: string } => {
+        if (!smartPath) return {};
+        const parts = smartPath
+          .split('/')
+          .map((p) => p.trim())
+          .filter(Boolean);
+
+        const purposeLike = parts[1];
+        const looksLikeFormatB = purposeLike === 'للبيع' || purposeLike === 'للإيجار' || purposeLike === 'للايجار';
+
+        if (looksLikeFormatB) {
+          const city = parts.length >= 3 ? parts[2] : undefined;
+          const district = parts.length >= 4 ? parts[3]?.replace(/^حي\s+/u, '').trim() : undefined;
+          return { city, district };
+        }
+
+        const city = parts.length >= 1 ? parts[0] : undefined;
+        const district = parts.length >= 2 ? parts[1]?.replace(/^حي\s+/u, '').trim() : undefined;
+        return { city, district };
+      };
+
       publishedAds.forEach((ad: any) => {
-        const city = ad.locationDetails?.city || ad.location?.city || ad.city || 'غير محدد';
-        const districtRaw = ad.locationDetails?.district || ad.location?.district || ad.district || 'غير محدد';
+        const smartPath = ad.smartPath || ad.platformPath || ad.smart_path;
+        const parsed = parseCityDistrictFromSmartPath(typeof smartPath === 'string' ? smartPath : undefined);
+
+        const city = ad.locationDetails?.city || ad.location?.city || ad.city || parsed.city || 'غير محدد';
+        const districtRaw = ad.locationDetails?.district || ad.location?.district || ad.district || parsed.district || 'غير محدد';
         const offer = toSingleOffer(ad);
 
         let cityObj = updated.find(c => c.cityName === city);

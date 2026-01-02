@@ -9,7 +9,10 @@ import { toast } from 'sonner';
 
 // ===== Helpers (بدون افتراضات على UI، فقط توحيد الربط بين العروض/المنصة/الصفحة العامة) =====
 
-const isEmptyValue = (v: any) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+const isEmptyValue = (v: any) =>
+  v === undefined ||
+  v === null ||
+  (typeof v === 'string' && (v.trim() === '' || v.trim() === 'غير محدد'));
 
 const isUuid = (v: any) =>
   typeof v === 'string' &&
