@@ -78,6 +78,7 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
 import { usePlatformListings } from "@/hooks/usePlatformListings";
+import { getPublicPlatformSlug } from "@/utils/publicPlatform";
 
 // ===================== Types =====================
 
@@ -693,12 +694,11 @@ export default function MyPlatformComplete({
     ownerEmail: '',
   });
 
-  // Platform URL
+  // Platform URL (الرابط العام الحقيقي عبر slug)
   const platformUrl = useMemo(() => {
-    const appTitle = user?.appTitle || 'wasata';
-    const userTitle = user?.name?.toLowerCase().replace(/\s+/g, '-') || 'user';
-    return `https://${appTitle}-${userTitle}.wasata.ai`;
-  }, [user]);
+    const slug = getPublicPlatformSlug([currentSlug]);
+    return `https://wasataai.com/${slug}`;
+  }, [currentSlug]);
 
   // Filtered Offers
   const filteredOffers = useMemo(() => {

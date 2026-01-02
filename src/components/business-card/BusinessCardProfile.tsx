@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { getPublicPlatformSlug } from "@/utils/publicPlatform";
 
 interface User {
   id: string;
@@ -267,17 +268,17 @@ END:VCARD`;
 
   // Get slug (الأولوية للـ slug المنشور للمنصة العامة)
   const getSlug = () => {
-    const publishedSlug = String(localStorage.getItem('public_platform_slug') || '').trim();
-    if (publishedSlug) return publishedSlug;
-
     const savedData = localStorage.getItem(STORAGE_KEY);
+    let fromSaved: any = undefined;
     if (savedData) {
       try {
         const data = JSON.parse(savedData);
-        return data.userTitle || data.slug || 'default';
+        fromSaved = data.userTitle || data.slug;
       } catch (e) {}
     }
-    return 'default';
+
+    // لا نسمح أبداً بإظهار رقم مثل /1 كرابط عام
+    return getPublicPlatformSlug([fromSaved]);
   };
 
   // Share business card
