@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { useSingleOfferLiveViewers } from '@/hooks/useLiveViewers';
-
+import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
 interface AdStats {
   views?: number;
   shares?: number;
@@ -120,7 +120,28 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
       window.open(`https://wa.me/?text=${message}`, '_blank');
     } else if (type === 'pdf') {
       toast.info('جاري تحميل PDF...');
-      // TODO: Implement PDF download
+      // تحويل بيانات Ad إلى PropertyData
+      const propertyData = {
+        id: ad.id,
+        title: ad.title,
+        price: ad.price?.toString(),
+        area: ad.area?.toString(),
+        bedrooms: ad.bedrooms?.toString(),
+        locationDetails: {
+          city: ad.location?.city || '',
+          district: ad.location?.district || '',
+        },
+        ownerName: ad.ownerName,
+        ownerPhone: ad.ownerPhone,
+        image: ad.mediaFiles?.[0]?.url,
+        images: ad.mediaFiles?.map(f => f.url),
+      };
+      generatePropertyPDF(propertyData, true)
+        .then(() => toast.success('تم تحميل PDF بنجاح!'))
+        .catch((error) => {
+          console.error('Error generating PDF:', error);
+          toast.error('حدث خطأ أثناء إنشاء PDF');
+        });
     } else if (type === 'qr') {
       toast.info('جاري إنشاء QR Code...');
       // TODO: Implement QR code modal
