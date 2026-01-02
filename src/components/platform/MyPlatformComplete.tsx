@@ -524,8 +524,8 @@ export default function MyPlatformComplete({
       const updated: CityLevel[] = [];
 
       publishedAds.forEach((ad: any) => {
-        const city = ad.locationDetails?.city || 'أخرى';
-        const districtRaw = ad.locationDetails?.district || 'عروض مباشرة';
+        const city = ad.locationDetails?.city || ad.location?.city || ad.city || 'غير محدد';
+        const districtRaw = ad.locationDetails?.district || ad.location?.district || ad.district || 'غير محدد';
         const offer = toSingleOffer(ad);
 
         let cityObj = updated.find(c => c.cityName === city);
