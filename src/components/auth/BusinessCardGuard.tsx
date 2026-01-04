@@ -9,11 +9,12 @@ interface BusinessCardGuardProps {
 }
 
 type GuardState = 
-  | 'loading'           // جاري التحقق
-  | 'not_authenticated' // غير مسجل
-  | 'no_slug'           // مسجل لكن بدون slug
-  | 'has_slug'          // مسجل ولديه slug صالح
-  | 'error';            // خطأ
+  | 'loading'              // جاري التحقق
+  | 'not_authenticated'    // غير مسجل
+  | 'not_verified'         // مسجل لكن البريد غير موثق
+  | 'no_slug'              // مسجل ولكن بدون slug
+  | 'has_slug'             // مسجل ولديه slug صالح
+  | 'error';               // خطأ
 
 /**
  * BusinessCardGuard - Production-safe
@@ -24,7 +25,7 @@ type GuardState =
  * 3. slug غير فارغ وغير NULL
  */
 export default function BusinessCardGuard({ children }: BusinessCardGuardProps) {
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, loading: authLoading, isEmailVerified } = useAuth();
   const location = useLocation();
   
   const [guardState, setGuardState] = useState<GuardState>('loading');
@@ -141,9 +142,15 @@ export default function BusinessCardGuard({ children }: BusinessCardGuardProps) 
       return;
     }
 
-    // مسجل -> فحص business_cards
+    // مسجل لكن البريد غير موثق
+    if (!isEmailVerified) {
+      setGuardState('not_verified');
+      return;
+    }
+
+    // مسجل وموثق -> فحص business_cards
     checkBusinessCard(user.id);
-  }, [authLoading, isAuthenticated, user, checkBusinessCard]);
+  }, [authLoading, isAuthenticated, user, isEmailVerified, checkBusinessCard]);
 
   // عرض رسالة الخطأ
   useEffect(() => {
@@ -173,6 +180,16 @@ export default function BusinessCardGuard({ children }: BusinessCardGuardProps) 
   // 2. Not authenticated
   if (guardState === 'not_authenticated') {
     return <Navigate to="/app/login" state={{ from: location }} replace />;
+  }
+
+  // 2.5. Not verified - توجيه مع رسالة
+  if (guardState === 'not_verified') {
+    toast({
+      title: 'البريد غير موثق',
+      description: 'يرجى توثيق البريد عبر الرابط المرسل إليك',
+      variant: 'destructive',
+    });
+    return <Navigate to="/app/login" state={{ from: location, needsVerification: true }} replace />;
   }
 
   // 3. Error - redirect to businesscard/edit with error state

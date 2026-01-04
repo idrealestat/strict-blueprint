@@ -11,6 +11,7 @@ interface AuthState {
   role: AppRole | null;
   roleLoading: boolean;
   isAuthenticated: boolean;
+  isEmailVerified: boolean;
 }
 
 export function useAuth() {
@@ -127,6 +128,9 @@ export function useAuth() {
     return requiredRoles.includes(role);
   };
 
+  // التحقق من توثيق البريد - مصدر الحقيقة: email_confirmed_at
+  const isEmailVerified = !!user?.email_confirmed_at;
+
   return {
     user,
     session,
@@ -137,6 +141,7 @@ export function useAuth() {
     signIn,
     signOut,
     isAuthenticated: !!session,
+    isEmailVerified,
     isOwner,
     isAdmin,
     isUser,
