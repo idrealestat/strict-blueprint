@@ -230,6 +230,10 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           if (businessCard) {
             setIsPublished(businessCard.published);
             setCurrentSlug(businessCard.slug);
+          } else {
+            // لا يوجد سجل بعد - نُظهر زر النشر (غير منشور افتراضياً)
+            setIsPublished(false);
+            setCurrentSlug(null);
           }
           
           if (profile && !error) {
@@ -367,47 +371,47 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       // التحقق من حالة النشر الحالية للبطاقة الخاصة بالمستخدم
       const { data: currentCard } = await supabase
         .from('business_cards')
-        .select('published, slug')
+        .select('id, published, slug')
         .eq('user_id', authUser.id)
         .maybeSingle();
 
       // تحديد ما إذا كان هذا أول نشر تلقائي
       // النشر التلقائي يحدث فقط إذا:
-      // 1. البطاقة غير منشورة حالياً (published = false)
+      // 1. البطاقة غير منشورة حالياً (published = false) أو لا يوجد سجل
       // 2. يوجد slug متاح
       // 3. البيانات الأساسية مكتملة (الاسم + الهاتف)
-      const isFirstAutoPublish = currentCard && !currentCard.published && selectedSlug && hasBasicFields;
+      const isFirstAutoPublish = (!currentCard || !currentCard.published) && selectedSlug && hasBasicFields;
 
-      // 2) تحديث سجل business_cards بالـ slug
+      // 2) إعداد بيانات الحفظ
       const cardDataPayload = JSON.parse(JSON.stringify({
         ...formData,
         swapState: localStorage.getItem(`business_card_swap_${user.id}`) === 'true',
       }));
 
-      const updatePayload: {
-        slug: string;
-        data: typeof cardDataPayload;
-        updated_at: string;
-        published?: boolean;
-      } = {
+      // استخدام upsert بدلاً من update لإنشاء السجل إذا لم يكن موجوداً
+      const upsertPayload = {
+        user_id: authUser.id,
         slug: selectedSlug,
         data: cardDataPayload,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        published: isFirstAutoPublish ? true : (currentCard?.published ?? false)
       };
 
-      // إضافة published = true فقط في حالة النشر التلقائي الأول
-      if (isFirstAutoPublish) {
-        updatePayload.published = true;
-      }
-
-      const { error: updateError } = await supabase
+      const { error: upsertError } = await supabase
         .from('business_cards')
-        .update(updatePayload)
-        .eq('user_id', authUser.id);
+        .upsert(upsertPayload, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
+        });
 
-      if (updateError) {
-        console.error('Error updating business card:', updateError);
-        toast.error('حدث خطأ في حفظ الرابط');
+      if (upsertError) {
+        console.error('Error saving business card:', upsertError);
+        // التحقق إذا كان الخطأ بسبب تكرار الـ slug
+        if (upsertError.code === '23505' && upsertError.message?.includes('slug')) {
+          toast.error('هذا الرابط محجوز بالفعل. اختر رابطاً آخر.');
+        } else {
+          toast.error('حدث خطأ في حفظ البطاقة');
+        }
         return;
       }
 
