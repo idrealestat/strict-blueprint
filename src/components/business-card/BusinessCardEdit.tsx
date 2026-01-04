@@ -230,6 +230,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
 
   // Load data from Supabase profiles first, then localStorage
+  // البحث عن بطاقة مرتبطة بالمعرفات (رخصة فال، بطاقة الأحوال، الإيميل، الجوال)
   useEffect(() => {
     const loadProfileData = async () => {
       try {
@@ -243,16 +244,86 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             .eq('user_id', authUser.id)
             .single();
 
-          // جلب حالة النشر والـ slug من business_cards
-          const { data: businessCard } = await supabase
+          // البحث عن بطاقة مرتبطة بهذا المستخدم أو بمعرفاته
+          let businessCard = null;
+          
+          // 1. أولاً نحاول البحث عن بطاقة بنفس user_id
+          const { data: cardByUserId } = await supabase
             .from('business_cards')
-            .select('published, slug')
+            .select('*')
             .eq('user_id', authUser.id)
             .maybeSingle();
+          
+          if (cardByUserId) {
+            businessCard = cardByUserId;
+          } else if (profile) {
+            // 2. البحث بواسطة رخصة فال (الأولوية الأولى)
+            if (profile.fal_license_number) {
+              const { data: cardByFal } = await supabase
+                .from('business_cards')
+                .select('*')
+                .eq('fal_license_number', profile.fal_license_number)
+                .maybeSingle();
+              if (cardByFal) businessCard = cardByFal;
+            }
+            
+            // 3. البحث بواسطة بطاقة الأحوال (الأولوية الثانية)
+            if (!businessCard && profile.national_id) {
+              const { data: cardByNationalId } = await supabase
+                .from('business_cards')
+                .select('*')
+                .eq('national_id', profile.national_id)
+                .maybeSingle();
+              if (cardByNationalId) businessCard = cardByNationalId;
+            }
+            
+            // 4. البحث بواسطة الإيميل
+            if (!businessCard && authUser.email) {
+              const { data: cardByEmail } = await supabase
+                .from('business_cards')
+                .select('*')
+                .eq('email', authUser.email)
+                .maybeSingle();
+              if (cardByEmail) businessCard = cardByEmail;
+            }
+            
+            // 5. البحث بواسطة رقم الجوال
+            if (!businessCard && profile.phone) {
+              const { data: cardByPhone } = await supabase
+                .from('business_cards')
+                .select('*')
+                .eq('phone', profile.phone)
+                .maybeSingle();
+              if (cardByPhone) businessCard = cardByPhone;
+            }
+          }
 
           if (businessCard) {
             setIsPublished(businessCard.published);
             setCurrentSlug(businessCard.slug);
+            
+            // إذا كانت البطاقة مملوكة لمستخدم آخر، نقوم بتحديث الـ user_id
+            if (businessCard.user_id !== authUser.id) {
+              await supabase
+                .from('business_cards')
+                .update({ user_id: authUser.id })
+                .eq('id', businessCard.id);
+            }
+            
+            // تحميل بيانات البطاقة المحفوظة
+            const savedCardData = businessCard.data as Partial<BusinessCardData>;
+            if (savedCardData) {
+              setFormData(prev => ({
+                ...prev,
+                ...savedCardData,
+                // تعبئة الإيميل من حساب المستخدم
+                email: authUser.email || savedCardData.email || prev.email,
+                // تعبئة الجوال من الملف الشخصي
+                primaryPhone: profile?.phone || savedCardData.primaryPhone || prev.primaryPhone,
+              }));
+              setProfileLoaded(true);
+              return;
+            }
           } else {
             // لا يوجد سجل بعد - نُظهر زر النشر (غير منشور افتراضياً)
             setIsPublished(false);
@@ -272,13 +343,17 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             }
             
             // Merge profile data with local data (profile takes priority for certain fields)
+            // تعبئة الإيميل والجوال تلقائياً من حساب المستخدم
             setFormData(prev => ({
               ...prev,
               ...localData,
               userName: profile.full_name || localData.userName || prev.userName,
               companyName: profile.company_name || localData.companyName || prev.companyName,
               websiteUrl: profile.website || localData.websiteUrl || "",
+              // تعبئة الجوال تلقائياً من الملف الشخصي
               primaryPhone: profile.phone || localData.primaryPhone || prev.primaryPhone,
+              // تعبئة الإيميل تلقائياً من حساب المستخدم
+              email: authUser.email || localData.email || prev.email,
               falLicense: profile.fal_license_number || localData.falLicense || "",
               falExpiry: profile.fal_license_expiry || localData.falExpiry || "",
               commercialRegistration: profile.commercial_reg_number || localData.commercialRegistration || "",
@@ -435,6 +510,14 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       }));
 
       // تحديد طريقة الحفظ: تحديث إذا كان السجل موجوداً، إنشاء إذا لم يكن
+      // إضافة المعرفات لربط النطاق بها (رخصة فال، بطاقة الأحوال، الإيميل، الجوال)
+      const identifiers = {
+        fal_license_number: formData.falLicense?.trim() || null,
+        national_id: formData.nationalId?.trim() || null,
+        email: authUser.email || formData.email?.trim() || null,
+        phone: formData.primaryPhone?.trim() || null,
+      };
+
       if (currentCard) {
         // تحديث السجل الموجود
         const { error: updateError } = await supabase
@@ -443,7 +526,9 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             slug: selectedSlug,
             data: cardDataPayload,
             updated_at: new Date().toISOString(),
-            published: isFirstAutoPublish ? true : currentCard.published
+            published: isFirstAutoPublish ? true : currentCard.published,
+            // حفظ المعرفات لاسترداد البطاقة لاحقاً
+            ...identifiers
           })
           .eq('user_id', authUser.id);
 
@@ -457,14 +542,16 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           return;
         }
       } else {
-        // إنشاء سجل جديد
+        // إنشاء سجل جديد مع المعرفات
         const { error: insertError } = await supabase
           .from('business_cards')
           .insert([{
             user_id: authUser.id,
             slug: selectedSlug,
             data: cardDataPayload,
-            published: !!isFirstAutoPublish
+            published: !!isFirstAutoPublish,
+            // حفظ المعرفات لاسترداد البطاقة لاحقاً
+            ...identifiers
           }]);
 
         if (insertError) {
