@@ -78,6 +78,8 @@ const initialData: RegistrationData = {
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+  const [rememberMe, setRememberMe] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [data, setData] = useState<RegistrationData>(initialData);
   const [showPassword, setShowPassword] = useState(false);
@@ -87,6 +89,7 @@ export default function AuthPage() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [tempIdentifier, setTempIdentifier] = useState<string | null>(null);
+  const [loginPhone, setLoginPhone] = useState('');
 
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
 
@@ -230,10 +233,19 @@ export default function AuthPage() {
     e.preventDefault();
     
     const newErrors: Record<string, string> = {};
-    try {
-      emailSchema.parse(data.email);
-    } catch {
-      newErrors.email = 'البريد الإلكتروني غير صالح';
+    
+    if (loginMethod === 'email') {
+      try {
+        emailSchema.parse(data.email);
+      } catch {
+        newErrors.email = 'البريد الإلكتروني غير صالح';
+      }
+    } else {
+      try {
+        phoneSchema.parse(loginPhone.replace(/\s/g, ''));
+      } catch {
+        newErrors.phone = 'رقم الجوال غير صالح';
+      }
     }
     
     try {
@@ -250,13 +262,46 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      const { error } = await signIn(data.email, data.password);
+      // إذا كان الدخول بالجوال، نحتاج للبحث عن الإيميل المرتبط
+      let loginEmail = data.email;
+      
+      if (loginMethod === 'phone') {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('phone', loginPhone)
+          .maybeSingle();
+        
+        if (!profile) {
+          toast({
+            title: 'خطأ في تسجيل الدخول',
+            description: 'رقم الجوال غير مسجل',
+            variant: 'destructive'
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // الحصول على الإيميل من auth.users عبر الـ user_id
+        const { data: authUser } = await supabase.auth.admin?.getUserById?.(profile.user_id) ?? { data: null };
+        if (authUser?.user?.email) {
+          loginEmail = authUser.user.email;
+        } else {
+          // fallback: نستخدم الجوال كـ email (إذا كان مسجل بهذه الطريقة)
+          loginEmail = `${loginPhone}@phone.wasataai.com`;
+        }
+      }
+      
+      const { error } = await signIn(loginEmail, data.password);
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast({
             title: 'خطأ في تسجيل الدخول',
-            description: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+            description: loginMethod === 'phone' 
+              ? 'رقم الجوال أو كلمة المرور غير صحيحة'
+              : 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
             variant: 'destructive'
           });
         } else {
@@ -269,11 +314,17 @@ export default function AuthPage() {
         return;
       }
       
+      // حفظ تذكرني
+      if (rememberMe) {
+        localStorage.setItem('wasata_remember_me', 'true');
+      } else {
+        localStorage.removeItem('wasata_remember_me');
+      }
+      
       toast({
         title: 'مرحباً بك!',
         description: 'تم تسجيل الدخول بنجاح'
       });
-      // Redirect to businesscard edit page after login
       navigate('/app/businesscard/edit');
     } catch (error) {
       toast({
@@ -857,22 +908,72 @@ export default function AuthPage() {
           <CardContent>
             {isLogin ? (
               <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>البريد الإلكتروني أو رقم الجوال</Label>
-                  <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="example@email.com"
-                      value={data.email}
-                      onChange={(e) => updateData('email', e.target.value)}
-                      className="pr-10"
-                      dir="ltr"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                {/* اختيار طريقة الدخول */}
+                <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setLoginMethod('email')}
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                      loginMethod === 'email' 
+                        ? 'bg-background shadow text-foreground' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Mail className="w-4 h-4" />
+                    بريد إلكتروني
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLoginMethod('phone')}
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                      loginMethod === 'phone' 
+                        ? 'bg-background shadow text-foreground' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Phone className="w-4 h-4" />
+                    رقم الجوال
+                  </button>
                 </div>
+
+                {loginMethod === 'email' ? (
+                  <div className="space-y-2">
+                    <Label>البريد الإلكتروني</Label>
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder="example@email.com"
+                        value={data.email}
+                        onChange={(e) => updateData('email', e.target.value)}
+                        className="pr-10"
+                        dir="ltr"
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>رقم الجوال</Label>
+                    <div className="relative">
+                      <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        placeholder="05xxxxxxxx"
+                        value={loginPhone}
+                        onChange={(e) => {
+                          setLoginPhone(e.target.value);
+                          setErrors((prev) => ({ ...prev, phone: '' }));
+                        }}
+                        className="pr-10"
+                        dir="ltr"
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label>كلمة المرور</Label>
@@ -896,6 +997,20 @@ export default function AuthPage() {
                     </button>
                   </div>
                   {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                </div>
+
+                {/* خيار تذكرني */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm cursor-pointer">
+                    تذكرني
+                  </Label>
                 </div>
                 
                 <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
