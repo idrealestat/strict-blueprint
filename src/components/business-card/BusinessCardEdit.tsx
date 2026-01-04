@@ -682,8 +682,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                   }
                 }}
                 className={isPublished 
-                  ? "bg-red-500/20 text-red-200 hover:bg-red-500/40 border border-red-400/50" 
-                  : "bg-green-500/20 text-green-200 hover:bg-green-500/40 border border-green-400/50"
+                  ? "bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/30"
+                  : "bg-primary/15 text-primary hover:bg-primary/25 border border-primary/30"
                 }
               >
                 {isPublished ? (
