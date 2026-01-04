@@ -23,17 +23,29 @@ export function usePublicBusinessCard(slug: string | undefined) {
       setLoading(true);
       setError(null);
 
+      console.log("[usePublicBusinessCard] Fetching for slug:", slug);
+
       const { data, error } = await supabase
         .from("business_cards")
-        .select("data")
+        .select("data, published, slug")
         .eq("slug", slug)
-        .eq("published", true)
         .maybeSingle();
 
       if (!isMounted) return;
 
+      console.log("[usePublicBusinessCard] Response:", { data, error });
+
       if (error) {
+        console.error("[usePublicBusinessCard] Error:", error);
         setError(error.message);
+        setData(null);
+        setLoading(false);
+        return;
+      }
+
+      // التحقق من أن البطاقة منشورة
+      if (!data || data.published !== true) {
+        console.log("[usePublicBusinessCard] Card not found or not published");
         setData(null);
         setLoading(false);
         return;
