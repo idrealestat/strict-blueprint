@@ -982,6 +982,17 @@ export default function AuthPage() {
               </button>
             </div>
             
+            {isLogin && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => navigate('/app/recover')}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  فقدت حسابك؟ <span className="text-primary font-medium">استرداد النطاق</span>
+                </button>
+              </div>
+            )}
+            
             <div className="mt-4 text-center">
               <Button
                 variant="ghost"
