@@ -18,7 +18,11 @@ export type Database = {
         Row: {
           created_at: string
           data: Json
+          email: string | null
+          fal_license_number: string | null
           id: string
+          national_id: string | null
+          phone: string | null
           publish_token_hash: string | null
           published: boolean
           slug: string | null
@@ -28,7 +32,11 @@ export type Database = {
         Insert: {
           created_at?: string
           data?: Json
+          email?: string | null
+          fal_license_number?: string | null
           id?: string
+          national_id?: string | null
+          phone?: string | null
           publish_token_hash?: string | null
           published?: boolean
           slug?: string | null
@@ -38,7 +46,11 @@ export type Database = {
         Update: {
           created_at?: string
           data?: Json
+          email?: string | null
+          fal_license_number?: string | null
           id?: string
+          national_id?: string | null
+          phone?: string | null
           publish_token_hash?: string | null
           published?: boolean
           slug?: string | null
@@ -986,6 +998,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_business_card_ownership: {
+        Args: {
+          card_email: string
+          card_fal_license: string
+          card_national_id: string
+          card_phone: string
+          card_user_id: string
+        }
+        Returns: boolean
+      }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
