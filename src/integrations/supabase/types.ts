@@ -351,6 +351,7 @@ export type Database = {
           properties: Json | null
           status: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           area_code?: string | null
@@ -365,6 +366,7 @@ export type Database = {
           properties?: Json | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           area_code?: string | null
@@ -379,6 +381,7 @@ export type Database = {
           properties?: Json | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -401,6 +404,7 @@ export type Database = {
           status: string | null
           tags: string[] | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           city?: string | null
@@ -420,6 +424,7 @@ export type Database = {
           status?: string | null
           tags?: string[] | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           city?: string | null
@@ -439,6 +444,7 @@ export type Database = {
           status?: string | null
           tags?: string[] | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -458,6 +464,7 @@ export type Database = {
           status: string | null
           total_distance: number | null
           updated_at: string | null
+          user_id: string | null
           waypoints: Json | null
         }
         Insert: {
@@ -475,6 +482,7 @@ export type Database = {
           status?: string | null
           total_distance?: number | null
           updated_at?: string | null
+          user_id?: string | null
           waypoints?: Json | null
         }
         Update: {
@@ -492,6 +500,7 @@ export type Database = {
           status?: string | null
           total_distance?: number | null
           updated_at?: string | null
+          user_id?: string | null
           waypoints?: Json | null
         }
         Relationships: [
