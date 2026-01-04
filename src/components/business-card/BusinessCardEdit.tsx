@@ -37,11 +37,13 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 interface User {
@@ -145,6 +147,9 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   const [isSlugAvailable, setIsSlugAvailable] = useState(false);
   const [isPublished, setIsPublished] = useState<boolean | null>(null);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
+  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
+  const [showFirstPublishSuccess, setShowFirstPublishSuccess] = useState(false);
+  const [firstPublishSlug, setFirstPublishSlug] = useState<string | null>(null);
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -428,19 +433,16 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       setCurrentSlug(selectedSlug);
       if (isFirstAutoPublish) {
         setIsPublished(true);
+        // عرض نافذة النجاح التفصيلية عند أول نشر
+        setFirstPublishSlug(selectedSlug);
+        setShowFirstPublishSuccess(true);
       }
 
       // رسالة مختلفة حسب حالة النشر التلقائي
       if (isFirstAutoPublish) {
-        toast.success(
-          <div className="flex flex-col gap-1">
-            <span className="font-bold">تم حفظ بطاقتك ونشر صفحتك العامة تلقائياً ✨</span>
-            <span className="text-sm opacity-90">رابطك: wasataai.com/{selectedSlug}</span>
-          </div>,
-          { duration: 5000 }
-        );
+        toast.success('تم نشر صفحتك العامة بنجاح! 🎉');
       } else {
-        toast.success("تم حفظ التغييرات والرابط بنجاح!");
+        toast.success("تم حفظ التغييرات بنجاح!");
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -618,7 +620,50 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         </div>
       )}
 
-      {/* Header */}
+      {/* نافذة النجاح التفصيلية عند أول نشر */}
+      <AlertDialog open={showFirstPublishSuccess} onOpenChange={setShowFirstPublishSuccess}>
+        <AlertDialogContent dir="rtl" className="max-w-md">
+          <AlertDialogHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="w-10 h-10 text-green-600" />
+            </div>
+            <AlertDialogTitle className="text-xl">🎉 تهانينا! صفحتك العامة جاهزة</AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-4">
+              <p className="text-base">
+                تم نشر بطاقة أعمالك بنجاح ويمكن لأي شخص زيارتها الآن!
+              </p>
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">رابط صفحتك العامة:</p>
+                <a 
+                  href={`https://wasataai.com/${firstPublishSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary font-bold text-lg hover:underline break-all"
+                >
+                  wasataai.com/{firstPublishSlug}
+                </a>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                يمكنك مشاركة هذا الرابط مع عملائك عبر واتساب أو وسائل التواصل الاجتماعي
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction 
+              className="w-full bg-primary"
+              onClick={() => {
+                navigator.clipboard.writeText(`https://wasataai.com/${firstPublishSlug}`);
+                toast.success('تم نسخ الرابط!');
+              }}
+            >
+              <Share2 className="w-4 h-4 ml-2" />
+              نسخ الرابط
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full mt-0">إغلاق</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] px-4 py-4">
         <div className="flex justify-between items-center">
           <Button
@@ -641,67 +686,115 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             
             {/* زر نشر/إيقاف النشر */}
             {isPublished !== null && (
-              <Button
-                variant="ghost"
-                onClick={async () => {
-                  try {
-                    const { data: { user: authUser } } = await supabase.auth.getUser();
-                    if (!authUser) {
-                      toast.error('يجب تسجيل الدخول أولاً');
-                      return;
-                    }
-                    
-                    const newPublishedState = !isPublished;
-                    
-                    // التحقق من وجود slug قبل النشر
-                    if (newPublishedState && !currentSlug) {
-                      toast.error('يجب حفظ الصفحة أولاً مع اختيار رابط متاح');
-                      return;
-                    }
-                    
-                    const { error } = await supabase
-                      .from('business_cards')
-                      .update({ 
-                        published: newPublishedState,
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('user_id', authUser.id);
-                    
-                    if (error) {
-                      console.error('Error toggling publish:', error);
-                      toast.error('حدث خطأ في تغيير حالة النشر');
-                      return;
-                    }
-                    
-                    setIsPublished(newPublishedState);
-                    
-                    if (newPublishedState) {
-                      toast.success(`تم نشر صفحتك ✨ رابطك: wasataai.com/${currentSlug}`);
-                    } else {
-                      toast.success('تم إيقاف نشر صفحتك');
-                    }
-                  } catch (err) {
-                    console.error('Toggle publish error:', err);
-                    toast.error('حدث خطأ غير متوقع');
-                  }
-                }}
-                className={isPublished 
-                  ? "bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/30"
-                  : "bg-primary/15 text-primary hover:bg-primary/25 border border-primary/30"
-                }
-              >
+              <>
                 {isPublished ? (
-                  <>
-                    <EyeOff className="w-4 h-4 ml-1" />
-                    إيقاف النشر
-                  </>
+                  // زر إيقاف النشر مع تأكيد
+                  <AlertDialog open={showUnpublishConfirm} onOpenChange={setShowUnpublishConfirm}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/30"
+                      >
+                        <EyeOff className="w-4 h-4 ml-1" />
+                        إيقاف النشر
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent dir="rtl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>تأكيد إيقاف النشر</AlertDialogTitle>
+                        <AlertDialogDescription className="text-right">
+                          هل أنت متأكد من إيقاف نشر صفحتك العامة؟
+                          <br />
+                          <span className="text-muted-foreground">لن يتمكن أحد من زيارة صفحتك على الرابط التالي:</span>
+                          <br />
+                          <span className="font-mono text-sm text-primary">wasataai.com/{currentSlug}</span>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-row-reverse gap-2">
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={async () => {
+                            try {
+                              const { data: { user: authUser } } = await supabase.auth.getUser();
+                              if (!authUser) {
+                                toast.error('يجب تسجيل الدخول أولاً');
+                                return;
+                              }
+                              
+                              const { error } = await supabase
+                                .from('business_cards')
+                                .update({ 
+                                  published: false,
+                                  updated_at: new Date().toISOString()
+                                })
+                                .eq('user_id', authUser.id);
+                              
+                              if (error) {
+                                console.error('Error unpublishing:', error);
+                                toast.error('حدث خطأ في إيقاف النشر');
+                                return;
+                              }
+                              
+                              setIsPublished(false);
+                              toast.success('تم إيقاف نشر صفحتك');
+                            } catch (err) {
+                              console.error('Unpublish error:', err);
+                              toast.error('حدث خطأ غير متوقع');
+                            }
+                          }}
+                        >
+                          إيقاف النشر
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 ) : (
-                  <>
+                  // زر النشر بدون تأكيد
+                  <Button
+                    variant="ghost"
+                    onClick={async () => {
+                      try {
+                        const { data: { user: authUser } } = await supabase.auth.getUser();
+                        if (!authUser) {
+                          toast.error('يجب تسجيل الدخول أولاً');
+                          return;
+                        }
+                        
+                        // التحقق من وجود slug قبل النشر
+                        if (!currentSlug) {
+                          toast.error('يجب حفظ الصفحة أولاً مع اختيار رابط متاح');
+                          return;
+                        }
+                        
+                        const { error } = await supabase
+                          .from('business_cards')
+                          .update({ 
+                            published: true,
+                            updated_at: new Date().toISOString()
+                          })
+                          .eq('user_id', authUser.id);
+                        
+                        if (error) {
+                          console.error('Error publishing:', error);
+                          toast.error('حدث خطأ في النشر');
+                          return;
+                        }
+                        
+                        setIsPublished(true);
+                        toast.success(`تم نشر صفحتك ✨ رابطك: wasataai.com/${currentSlug}`);
+                      } catch (err) {
+                        console.error('Publish error:', err);
+                        toast.error('حدث خطأ غير متوقع');
+                      }
+                    }}
+                    className="bg-primary/15 text-primary hover:bg-primary/25 border border-primary/30"
+                  >
                     <Globe className="w-4 h-4 ml-1" />
                     نشر
-                  </>
+                  </Button>
                 )}
-              </Button>
+              </>
             )}
             
             <Button
