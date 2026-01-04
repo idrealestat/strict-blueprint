@@ -280,9 +280,9 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
-                <Routes>
-                  {/* Root redirects to /app/dashboard */}
-                  <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
+              <Routes>
+                  {/* Root - يوجه لـ callback ليفحص الجلسة */}
+                  <Route path="/" element={<Navigate to="/app/auth/callback" replace />} />
                   
                   {/* Auth routes - /app/login, /app/register, /app/recover */}
                   <Route path="/app/login" element={<AuthPage />} />
