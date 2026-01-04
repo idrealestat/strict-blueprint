@@ -1098,6 +1098,56 @@ export default function AuthPage() {
                   </form>
                 )}
               </>
+            ) : magicLinkSent ? (
+              /* واجهة نجاح التسجيل - انتظار تأكيد البريد */
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center space-y-6 py-4"
+              >
+                <div className="mx-auto w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <Mail className="w-10 h-10 text-green-600" />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-green-600">تم التسجيل بنجاح!</h3>
+                  <p className="text-muted-foreground">
+                    تم إرسال رابط تفعيل الحساب إلى بريدك الإلكتروني
+                  </p>
+                  <p className="font-medium text-foreground" dir="ltr">
+                    {data.email}
+                  </p>
+                </div>
+                
+                <div className="bg-muted/50 rounded-lg p-4 text-right space-y-2">
+                  <p className="font-medium">الخطوة التالية:</p>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>افتح بريدك الإلكتروني</li>
+                    <li>ابحث عن رسالة من "وساطة"</li>
+                    <li>اضغط على زر <span className="font-medium text-primary">"Log In"</span> في الرسالة</li>
+                    <li>سيتم تسجيل دخولك تلقائياً</li>
+                  </ol>
+                </div>
+                
+                <div className="pt-2 space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setMagicLinkSent(false);
+                      setIsLogin(true);
+                      setCurrentStep(1);
+                    }}
+                  >
+                    <ArrowLeft className="w-4 h-4 ml-2" />
+                    العودة لتسجيل الدخول
+                  </Button>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    لم يصلك البريد؟ تحقق من مجلد الرسائل غير المرغوب فيها (Spam)
+                  </p>
+                </div>
+              </motion.div>
             ) : (
               <div className="space-y-6">
                 <AnimatePresence mode="wait">
