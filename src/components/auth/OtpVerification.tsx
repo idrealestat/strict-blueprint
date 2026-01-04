@@ -18,6 +18,8 @@ interface OtpVerificationProps {
 export default function OtpVerification({
   type,
   value,
+  identifier,
+  userId,
   isVerified,
   onVerified,
 }: OtpVerificationProps) {
@@ -28,41 +30,26 @@ export default function OtpVerification({
   const [countdown, setCountdown] = useState(0);
   const { toast } = useToast();
 
-  // إرسال OTP باستخدام Supabase Auth المدمج
+  // إرسال OTP عبر وظيفة backend (يرسل بريداً يحتوي 6 أرقام)
   const sendOtp = async () => {
     if (!value) return;
 
     setIsSending(true);
     try {
-      // استخدام Supabase Auth signInWithOtp مباشرة
-      const { error } = await supabase.auth.signInWithOtp({
-        email: value,
-        options: {
-          // لا نريد إنشاء مستخدم جديد تلقائياً
-          shouldCreateUser: false,
-        }
+      const { data, error } = await supabase.functions.invoke('send-email-otp', {
+        body: {
+          email: value,
+          userId,
+          identifier,
+        },
       });
 
-      if (error) {
-        // إذا كان الخطأ بسبب عدم وجود المستخدم، نحاول مع إنشاء مستخدم
-        if (error.message.includes('User not found') || error.message.includes('Signups not allowed')) {
-          // المستخدم غير موجود - نرسل OTP مع إنشاء مستخدم
-          const { error: signupError } = await supabase.auth.signInWithOtp({
-            email: value,
-            options: {
-              shouldCreateUser: true,
-            }
-          });
-          
-          if (signupError) throw signupError;
-        } else {
-          throw error;
-        }
-      }
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
 
       toast({
         title: 'تم الإرسال',
-        description: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني. تحقق من صندوق الوارد',
+        description: 'تم إرسال رمز التحقق (6 أرقام) إلى بريدك الإلكتروني.',
       });
 
       setShowOtpInput(true);
@@ -79,7 +66,6 @@ export default function OtpVerification({
         });
       }, 1000);
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
       toast({
         title: 'خطأ',
         description: error?.message || 'حدث خطأ أثناء إرسال رمز التحقق',
@@ -90,33 +76,34 @@ export default function OtpVerification({
     }
   };
 
-  // التحقق من OTP باستخدام Supabase Auth
+  // التحقق من OTP عبر وظيفة backend
   const verifyOtp = async (codeOverride?: string) => {
     const codeToVerify = (codeOverride ?? otp).trim();
     if (codeToVerify.length !== 6) return;
 
     setIsVerifying(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: value,
-        token: codeToVerify,
-        type: 'email',
+      const { data, error } = await supabase.functions.invoke('verify-otp', {
+        body: {
+          userId,
+          identifier,
+          code: codeToVerify,
+          type,
+        },
       });
 
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
 
-      if (data?.user) {
-        toast({
-          title: 'تم التحقق',
-          description: 'تم تفعيل البريد الإلكتروني بنجاح',
-        });
-        onVerified();
-      }
+      toast({
+        title: 'تم التحقق',
+        description: 'تم تفعيل البريد الإلكتروني بنجاح',
+      });
+      onVerified();
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
       toast({
         title: 'خطأ',
-        description: error.message || 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+        description: error?.message || 'رمز التحقق غير صحيح أو منتهي الصلاحية',
         variant: 'destructive',
       });
     } finally {
