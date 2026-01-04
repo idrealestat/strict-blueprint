@@ -19,7 +19,8 @@ import OtpVerification from '@/components/auth/OtpVerification';
 
 const emailSchema = z.string().email('البريد الإلكتروني غير صالح');
 const passwordSchema = z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-const phoneSchema = z.string().regex(/^(05|5|\+966|966)\d{8}$/, 'رقم الجوال غير صالح');
+// تم تعطيل التحقق من الجوال - نستخدم البريد فقط
+// const phoneSchema = z.string().regex(/^(05|5|\+966|966)\d{8}$/, 'رقم الجوال غير صالح');
 const falLicenseSchema = z.string().min(5, 'رقم رخصة فال غير صالح');
 const nationalIdSchema = z.string().regex(/^\d{10}$/, 'رقم الهوية/الإقامة يجب أن يكون 10 أرقام');
 
@@ -30,7 +31,8 @@ interface RegistrationData {
   email: string;
   password: string;
   confirmPassword: string;
-  phone: string;
+  // تم إلغاء حقل الجوال - نستخدم البريد فقط للتوثيق
+  phone: string; // نبقيه للتوافق لكن لا نطلبه
   
   // الخطوة 2: البيانات الشخصية
   firstName: string;
@@ -87,7 +89,8 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
+  // تم تعطيل التحقق من الجوال - نستخدم البريد فقط
+  // const [phoneVerified, setPhoneVerified] = useState(false);
   const [tempIdentifier, setTempIdentifier] = useState<string | null>(null);
   const [loginPhone, setLoginPhone] = useState('');
 
@@ -175,11 +178,12 @@ export default function AuthPage() {
           newErrors.confirmPassword = 'كلمتا المرور غير متطابقتين';
         }
         
-        try {
-          phoneSchema.parse(data.phone.replace(/\s/g, ''));
-        } catch {
-          newErrors.phone = 'رقم الجوال غير صالح';
-        }
+        // تم تعطيل التحقق من الجوال - نستخدم البريد فقط للتوثيق
+        // try {
+        //   phoneSchema.parse(data.phone.replace(/\s/g, ''));
+        // } catch {
+        //   newErrors.phone = 'رقم الجوال غير صالح';
+        // }
         break;
         
       case 2:
@@ -241,9 +245,10 @@ export default function AuthPage() {
         newErrors.email = 'البريد الإلكتروني غير صالح';
       }
     } else {
-      try {
-        phoneSchema.parse(loginPhone.replace(/\s/g, ''));
-      } catch {
+      // تم تعطيل الدخول بالجوال - نستخدم البريد فقط
+      // نتحقق من صيغة الجوال فقط للتوافق
+      const phoneRegex = /^(05|5|\+966|966)\d{8}$/;
+      if (!phoneRegex.test(loginPhone.replace(/\s/g, ''))) {
         newErrors.phone = 'رقم الجوال غير صالح';
       }
     }
@@ -340,7 +345,7 @@ export default function AuthPage() {
   const handleRegister = async () => {
     if (!validateStep(currentStep)) return;
     
-    // التحقق من تفعيل البريد والجوال
+    // التحقق من تفعيل البريد فقط (تم تعطيل التحقق من الجوال)
     if (!emailVerified) {
       toast({
         title: 'تفعيل البريد مطلوب',
@@ -350,14 +355,8 @@ export default function AuthPage() {
       return;
     }
     
-    if (!phoneVerified) {
-      toast({
-        title: 'تفعيل الجوال مطلوب',
-        description: 'يرجى تفعيل رقم الجوال قبل إكمال التسجيل',
-        variant: 'destructive'
-      });
-      return;
-    }
+    // تم تعطيل التحقق من الجوال - نستخدم البريد فقط للتوثيق
+    // if (!phoneVerified) { ... }
     
     setIsLoading(true);
     
@@ -406,7 +405,8 @@ export default function AuthPage() {
           office_address: data.officeAddress || null,
           website: data.website || null,
           email_verified: emailVerified,
-          phone_verified: phoneVerified,
+          // تم تعطيل التحقق من الجوال
+          phone_verified: false,
         }).eq('user_id', userId);
         
         // 2) تعيين الدور بناءً على نوع الحساب
@@ -509,21 +509,13 @@ export default function AuthPage() {
               {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
             
+            {/* تم إخفاء حقل رقم الجوال - التوثيق عبر البريد فقط */}
+            {/* 
             <div className="space-y-2">
               <Label>رقم الجوال *</Label>
-              <div className="relative">
-                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="tel"
-                  placeholder="05xxxxxxxx"
-                  value={data.phone}
-                  onChange={(e) => updateData('phone', e.target.value)}
-                  className="pr-10"
-                  dir="ltr"
-                />
-              </div>
-              {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+              ...
             </div>
+            */}
             
             <div className="space-y-2">
               <Label>كلمة المرور *</Label>
@@ -821,7 +813,7 @@ export default function AuthPage() {
       <div className="text-center mb-4">
         <CheckCircle className="w-12 h-12 mx-auto text-primary mb-2" />
         <h3 className="font-semibold">تفعيل الحساب</h3>
-        <p className="text-sm text-muted-foreground">قم بتفعيل بريدك الإلكتروني ورقم جوالك</p>
+        <p className="text-sm text-muted-foreground">قم بتفعيل بريدك الإلكتروني لإكمال التسجيل</p>
       </div>
       
       <div className="space-y-4">
@@ -841,20 +833,15 @@ export default function AuthPage() {
           />
         </div>
         
-        <div className="p-4 border rounded-lg space-y-2">
+        {/* تم تعطيل تفعيل الجوال - نستخدم البريد فقط */}
+        <div className="p-4 border rounded-lg bg-muted/30">
           <div className="flex items-center gap-2 mb-2">
-            <Phone className="w-4 h-4 text-primary" />
-            <span className="font-medium">تفعيل رقم الجوال</span>
+            <Mail className="w-4 h-4 text-green-600" />
+            <span className="font-medium text-muted-foreground">التوثيق عبر البريد الإلكتروني فقط</span>
           </div>
-          <p className="text-sm text-muted-foreground" dir="ltr">{data.phone}</p>
-          <OtpVerification
-            type="phone"
-            value={data.phone}
-            identifier={data.phone}
-            userId={createdUserId ?? undefined}
-            isVerified={phoneVerified}
-            onVerified={() => setPhoneVerified(true)}
-          />
+          <p className="text-sm text-muted-foreground">
+            يتم التحقق من هويتك عبر البريد الإلكتروني. لا حاجة لرقم الجوال.
+          </p>
         </div>
       </div>
     </motion.div>
@@ -1049,7 +1036,7 @@ export default function AuthPage() {
                       type="button"
                       onClick={handleRegister}
                       className="flex-1"
-                      disabled={isLoading || !emailVerified || !phoneVerified}
+                      disabled={isLoading || !emailVerified}
                     >
                       {isLoading ? (
                         <div className="flex items-center gap-2">
