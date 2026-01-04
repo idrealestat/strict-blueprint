@@ -356,8 +356,8 @@ const App = () => {
                       PUBLIC ROUTES - Dynamic Slug Pattern ONLY
                       wasataai.com/{slug}/* - MUST BE LAST
                       ============================================ */}
-                  <Route path="/:slug" element={<SlugBusinessCardPage />} />
-                  <Route path="/:slug/platform" element={<SlugPlatformPage />} />
+                  <Route path="/:slug" element={<SlugPlatformPage />} />
+                  <Route path="/:slug/card" element={<SlugBusinessCardPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/offers" element={<SlugOffersPage />} />
                   
