@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { z } from "zod";
 import {
   ArrowRight,
   Save,
@@ -134,6 +135,22 @@ interface BusinessCardData {
   accountType: string;
 }
 
+// Zod validation schema for business card
+const businessCardValidationSchema = z.object({
+  userName: z.string()
+    .trim()
+    .min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" })
+    .max(100, { message: "الاسم يجب أن يكون أقل من 100 حرف" }),
+  primaryPhone: z.string()
+    .trim()
+    .regex(/^05\d{8}$/, { message: "رقم الجوال غير صحيح (مثال: 0512345678)" }),
+  slug: z.string()
+    .trim()
+    .min(3, { message: "الرابط يجب أن يكون 3 أحرف على الأقل" })
+    .max(30, { message: "الرابط يجب أن يكون أقل من 30 حرف" })
+    .regex(/^[a-zA-Z0-9_-]+$/, { message: "الرابط يجب أن يحتوي على أحرف إنجليزية وأرقام فقط" }),
+});
+
 const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNewUser = false }) => {
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -150,6 +167,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [showFirstPublishSuccess, setShowFirstPublishSuccess] = useState(false);
   const [firstPublishSlug, setFirstPublishSlug] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -317,6 +335,33 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   // Handle save - حفظ مزدوج للربط مع منصتي + نشر تلقائي للصفحة العامة
   const handleSave = async () => {
     try {
+      // مسح أخطاء التحقق السابقة
+      setValidationErrors({});
+      
+      // التحقق من اختيار slug متاح (باللون الأخضر)
+      const selectedSlug = isSlugAvailable && formData.userTitle ? String(formData.userTitle).trim() : '';
+      
+      // التحقق من صحة البيانات باستخدام Zod
+      const validationResult = businessCardValidationSchema.safeParse({
+        userName: formData.userName,
+        primaryPhone: formData.primaryPhone,
+        slug: selectedSlug,
+      });
+
+      if (!validationResult.success) {
+        const errors: Record<string, string> = {};
+        validationResult.error.errors.forEach((err) => {
+          const field = err.path[0] as string;
+          errors[field] = err.message;
+        });
+        setValidationErrors(errors);
+        
+        // عرض أول خطأ كـ toast
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        return;
+      }
+
       const dataToSave = JSON.stringify(formData);
       // Check if data size is too large (localStorage limit is ~5MB)
       if (dataToSave.length > 4 * 1024 * 1024) {
@@ -334,15 +379,6 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         title: formData.companyName || 'وسيط عقاري معتمد'
       };
       localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
-
-      // التحقق من اختيار slug متاح (باللون الأخضر)
-      const selectedSlug = isSlugAvailable && formData.userTitle ? String(formData.userTitle).trim() : '';
-      if (!selectedSlug) {
-        setShowError(true);
-        setErrorMessage('اختر اسم رابط (Slug) متاح باللون الأخضر ثم احفظ.');
-        toast.error('اختر اسم رابط (Slug) متاح ثم أعد الحفظ');
-        return;
-      }
 
       // الحصول على user id
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -795,6 +831,18 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                   </Button>
                 )}
               </>
+            )}
+            
+            {/* زر معاينة الصفحة العامة */}
+            {isPublished && currentSlug && (
+              <Button
+                variant="ghost"
+                onClick={() => window.open(`/${currentSlug}`, '_blank')}
+                className="bg-white/10 text-white hover:bg-white/20 border border-white/30"
+              >
+                <Eye className="w-4 h-4 ml-1" />
+                معاينة
+              </Button>
             )}
             
             <Button
