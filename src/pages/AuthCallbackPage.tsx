@@ -1,95 +1,66 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-type CallbackState = 'loading' | 'success' | 'no_session';
+type CallbackState = 'loading' | 'success' | 'expired' | 'no_session';
+
+function hasOtpExpired(): boolean {
+  const full = `${window.location.search}${window.location.hash}`;
+  return full.includes('error_code=otp_expired');
+}
 
 export default function AuthCallbackPage() {
-  const [state, setState] = useState<CallbackState>('loading');
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [state, setState] = useState<CallbackState>('loading');
+
+  const otpExpired = useMemo(() => hasOtpExpired(), []);
 
   useEffect(() => {
-    let isMounted = true;
-    let hasNavigated = false;
+    let mounted = true;
 
-    const navigateTo = (path: string) => {
-      if (isMounted && !hasNavigated) {
-        hasNavigated = true;
-        navigate(path, { replace: true });
-      }
-    };
+    if (otpExpired) {
+      setState('expired');
+      return;
+    }
 
-    // استمع لتغيير حالة المصادقة (يعالج hash من Magic Link تلقائياً)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Callback] onAuthStateChange:', event, session?.user?.email);
-      
-      if (!isMounted) return;
+      if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && session) {
-        setState('success');
-        toast({
-          title: 'تم تسجيل الدخول بنجاح',
-          description: 'جاري تحويلك للوحة التحكم...',
-        });
-        setTimeout(() => navigateTo('/app/businesscard/edit'), 500);
+      if (event === 'SIGNED_IN') {
+        navigate('/app/businesscard/edit', { replace: true });
+      }
+
+      // إذا خرج المستخدم من الجلسة وهو داخل callback، نعرض خيار الرجوع لتسجيل الدخول
+      if (event === 'SIGNED_OUT' && !session) {
+        setState('no_session');
       }
     });
 
-    // تحقق من الجلسة الحالية
-    const checkSession = async () => {
-      try {
-        // انتظر قليلاً ليعالج Supabase الـ hash
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        console.log('[Callback] getSession:', session?.user?.email);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
 
-        if (!isMounted) return;
-
-        if (session) {
-          setState('success');
-          toast({
-            title: 'تم تسجيل الدخول بنجاح',
-            description: 'جاري تحويلك للوحة التحكم...',
-          });
-          setTimeout(() => navigateTo('/app/businesscard/edit'), 500);
-        } else {
-          // لا توجد جلسة - وجّه لصفحة تسجيل الدخول
-          setTimeout(() => {
-            if (isMounted && state === 'loading') {
-              setState('no_session');
-              setTimeout(() => navigateTo('/app/login'), 1000);
-            }
-          }, 2000);
-        }
-      } catch (err) {
-        console.error('[Callback] Error:', err);
-        if (isMounted) {
-          setState('no_session');
-          setTimeout(() => navigateTo('/app/login'), 1000);
-        }
+      if (session) {
+        setState('success');
+        navigate('/app/businesscard/edit', { replace: true });
+      } else {
+        setState('no_session');
       }
-    };
-
-    checkSession();
+    });
 
     return () => {
-      isMounted = false;
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate, otpExpired]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4" dir="rtl">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4" dir="rtl">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md"
       >
@@ -115,21 +86,32 @@ export default function AuthCallbackPage() {
               </div>
             )}
 
+            {state === 'expired' && (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <XCircle className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h1 className="text-xl font-bold mb-2">انتهت صلاحية الرابط</h1>
+                <p className="text-muted-foreground mb-4">انتهت صلاحية الرابط. أعد إرسال رابط الدخول.</p>
+                <Button onClick={() => navigate('/app/login', { replace: true })}>إعادة إرسال الرابط</Button>
+              </div>
+            )}
+
             {state === 'no_session' && (
               <div className="text-center">
                 <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <XCircle className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h1 className="text-xl font-bold mb-2">لم يتم العثور على جلسة</h1>
-                <p className="text-muted-foreground mb-4">جاري التوجيه لتسجيل الدخول...</p>
-                <Button variant="outline" onClick={() => navigate('/app/login')}>
-                  تسجيل الدخول
+                <p className="text-muted-foreground mb-4">إذا فتحت الرابط الآن وتوقفت هنا، جرّب إعادة فتح رابط الدخول من بريدك.</p>
+                <Button variant="outline" onClick={() => navigate('/app/login', { replace: true })}>
+                  العودة لتسجيل الدخول
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+    </main>
   );
 }

@@ -281,9 +281,8 @@ const App = () => {
               <Sonner />
               <BrowserRouter>
               <Routes>
-                  {/* Root - يوجه لـ callback ليفحص الجلسة */}
-                  <Route path="/" element={<Navigate to="/app/auth/callback" replace />} />
-                  
+                  {/* Root - صفحة عامة بدون Redirect */}
+                  <Route path="/" element={<AuthPage />} />
                   {/* Auth routes - /app/login, /app/register, /app/recover */}
                   <Route path="/app/login" element={<AuthPage />} />
                   <Route path="/app/register" element={<AuthPage />} />
