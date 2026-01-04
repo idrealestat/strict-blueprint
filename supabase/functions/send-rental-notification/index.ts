@@ -1,11 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input sanitization
+function sanitizeString(input: unknown, maxLength: number = 200): string {
+  if (typeof input !== 'string') return '';
+  return input.replace(/[<>]/g, '').substring(0, maxLength).trim();
+}
+
+function sanitizeEmail(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const email = input.trim().toLowerCase().substring(0, 254);
+  return emailRegex.test(email) ? email : '';
+}
 
 interface RentalNotificationRequest {
   ownerEmail: string;
@@ -18,7 +34,15 @@ interface RentalNotificationRequest {
   tenantName?: string;
 }
 
-const getEmailContent = (data: RentalNotificationRequest) => {
+const getEmailContent = (data: {
+  ownerName: string;
+  propertyTitle: string;
+  contractEndDate: string;
+  daysRemaining: number;
+  notificationType: string;
+  propertyLocation: string;
+  tenantName?: string;
+}) => {
   const { ownerName, propertyTitle, contractEndDate, daysRemaining, notificationType, propertyLocation, tenantName } = data;
   
   if (notificationType === 'two_months') {
@@ -126,7 +150,54 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const data: RentalNotificationRequest = await req.json();
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ success: false, error: "غير مصرح - يرجى تسجيل الدخول" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(JSON.stringify({ success: false, error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Authenticated user:", user.id);
+
+    const rawData: RentalNotificationRequest = await req.json();
+    
+    // Sanitize input
+    const sanitizedEmail = sanitizeEmail(rawData.ownerEmail);
+    if (!sanitizedEmail) {
+      return new Response(JSON.stringify({ success: false, error: "البريد الإلكتروني غير صالح" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const data = {
+      ownerEmail: sanitizedEmail,
+      ownerName: sanitizeString(rawData.ownerName, 100),
+      propertyTitle: sanitizeString(rawData.propertyTitle, 200),
+      contractEndDate: sanitizeString(rawData.contractEndDate, 20),
+      daysRemaining: Math.min(Math.max(Number(rawData.daysRemaining) || 0, 0), 365),
+      notificationType: ['two_months', 'one_month', 'expired'].includes(rawData.notificationType) 
+        ? rawData.notificationType : 'two_months',
+      propertyLocation: sanitizeString(rawData.propertyLocation, 200),
+      tenantName: rawData.tenantName ? sanitizeString(rawData.tenantName, 100) : undefined,
+    };
+
     console.log("Notification data:", data);
 
     const emailContent = getEmailContent(data);

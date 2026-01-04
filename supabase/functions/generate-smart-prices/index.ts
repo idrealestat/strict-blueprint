@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 // Input validation helper functions
 function sanitizeString(input: unknown, maxLength: number = 100): string {
@@ -130,6 +134,31 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Authenticated user:", user.id);
+
     // Validate content type
     const contentType = req.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
@@ -293,7 +322,7 @@ serve(async (req) => {
       };
     }
 
-    console.log('Price calculation completed successfully');
+    console.log('Price calculation completed successfully for user:', user.id);
 
     return new Response(JSON.stringify({ 
       prices,

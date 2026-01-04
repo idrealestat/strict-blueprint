@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 // Valid voice options for TTS
 const VALID_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
@@ -21,6 +25,37 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ 
+        error: "غير مصرح - يرجى تسجيل الدخول",
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(JSON.stringify({ 
+        error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول",
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Authenticated user:", user.id);
+
     let { text, voice = 'alloy', speed = 1.0 } = await req.json();
     
     // Validate text exists and is a string
@@ -79,7 +114,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Converting text to speech:", text.substring(0, 100));
+    console.log("Converting text to speech for user:", user.id, "text:", text.substring(0, 100));
     console.log("Voice:", voice, "Speed:", speed, "Text length:", text.length);
 
     // استخدام Lovable AI لتوليد الصوت
