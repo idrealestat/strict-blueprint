@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Building2, Mail, Lock, User, Eye, EyeOff, ArrowLeft, Phone, 
-  IdCard, Calendar, MapPin, Globe, Building, UserCheck, Briefcase,
+  Building2, Mail, Lock, Eye, EyeOff, ArrowLeft,
+  IdCard, Calendar, Globe, Building, UserCheck, Briefcase,
   FileText, CheckCircle, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,40 +13,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import LocationPickerMap from '@/components/auth/LocationPickerMap';
-import OtpVerification from '@/components/auth/OtpVerification';
 
 const emailSchema = z.string().email('البريد الإلكتروني غير صالح');
 const passwordSchema = z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-// تم تعطيل التحقق من الجوال - نستخدم البريد فقط
-// const phoneSchema = z.string().regex(/^(05|5|\+966|966)\d{8}$/, 'رقم الجوال غير صالح');
 const falLicenseSchema = z.string().min(5, 'رقم رخصة فال غير صالح');
 const nationalIdSchema = z.string().regex(/^\d{10}$/, 'رقم الهوية/الإقامة يجب أن يكون 10 أرقام');
 
 type AccountType = 'individual' | 'office' | 'company';
 
 interface RegistrationData {
-  // الخطوة 1: بيانات الحساب
   email: string;
   password: string;
   confirmPassword: string;
-  // تم إلغاء حقل الجوال - نستخدم البريد فقط للتوثيق
-  phone: string; // نبقيه للتوافق لكن لا نطلبه
-  
-  // الخطوة 2: البيانات الشخصية
+  phone: string;
   firstName: string;
   secondName: string;
   lastName: string;
   nationalId: string;
   birthDate: string;
-  
-  // الخطوة 3: بيانات الرخصة
   falLicenseNumber: string;
   falLicenseExpiry: string;
   accountType: AccountType;
-  
-  // الخطوة 4: بيانات المنشأة (اختياري)
   commercialRegNumber: string;
   commercialRegExpiry: string;
   companyName: string;
@@ -80,19 +70,13 @@ const initialData: RegistrationData = {
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [loginMethod, setLoginMethod] = useState<'password' | 'magiclink'>('password');
+  const [loginMethod, setLoginMethod] = useState<'password' | 'magiclink'>('magiclink');
   const [rememberMe, setRememberMe] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [data, setData] = useState<RegistrationData>(initialData);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [createdUserId, setCreatedUserId] = useState<string | null>(null);
-  const [emailVerified, setEmailVerified] = useState(false);
-  // تم تعطيل التحقق من الجوال - نستخدم البريد فقط
-  // const [phoneVerified, setPhoneVerified] = useState(false);
-  const [tempIdentifier, setTempIdentifier] = useState<string | null>(null);
-  const [loginPhone, setLoginPhone] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -100,16 +84,18 @@ export default function AuthPage() {
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
 
   const { toast } = useToast();
-  const { signIn, signUp, isAuthenticated, loading } = useAuth();
+  const { signIn, signUp, isAuthenticated, loading, user } = useAuth();
   const navigate = useNavigate();
 
+  // توجيه المستخدم المسجل - مع التحقق من email_confirmed_at
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (!loading && isAuthenticated && user) {
+      // المستخدم مسجل - توجيهه مباشرة
       navigate('/app/businesscard/edit');
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, user]);
 
-  // استرجاع بيانات التسجيل إن وُجدت ولم يكتمل التسجيل
+  // استرجاع بيانات التسجيل المؤقتة
   useEffect(() => {
     try {
       const raw = localStorage.getItem(REGISTER_CACHE_KEY);
@@ -123,17 +109,15 @@ export default function AuthPage() {
 
       if (!parsed?.data) return;
 
-      // إذا كان المستخدم لم يصل لمرحلة النجاح/التحويل، نعيد فتح وضع التسجيل مع نفس البيانات
       setIsLogin(false);
       setData({ ...initialData, ...parsed.data, accountType: (parsed.accountType ?? parsed.data.accountType ?? 'individual') as AccountType });
       setCurrentStep(typeof parsed.currentStep === 'number' ? Math.max(1, parsed.currentStep) : 1);
     } catch {
-      // ignore parse errors
+      // ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // حفظ بيانات التسجيل بشكل مؤقت (debounced) بدون التأثير على التوجيه أو isAuthenticated
+  // حفظ بيانات التسجيل مؤقتاً
   useEffect(() => {
     if (isLogin) return;
 
@@ -148,16 +132,16 @@ export default function AuthPage() {
           })
         );
       } catch {
-        // ignore storage errors
+        // ignore
       }
     }, 400);
 
     return () => window.clearTimeout(id);
-  }, [REGISTER_CACHE_KEY, data, currentStep, isLogin]);
+  }, [data, currentStep, isLogin]);
 
   const getTotalSteps = () => {
-    if (data.accountType === 'individual') return 4;
-    return 5; // للمكاتب والشركات
+    if (data.accountType === 'individual') return 3;
+    return 4;
   };
 
   const validateStep = (step: number): boolean => {
@@ -180,13 +164,6 @@ export default function AuthPage() {
         if (data.password !== data.confirmPassword) {
           newErrors.confirmPassword = 'كلمتا المرور غير متطابقتين';
         }
-        
-        // تم تعطيل التحقق من الجوال - نستخدم البريد فقط للتوثيق
-        // try {
-        //   phoneSchema.parse(data.phone.replace(/\s/g, ''));
-        // } catch {
-        //   newErrors.phone = 'رقم الجوال غير صالح';
-        // }
         break;
         
       case 2:
@@ -236,25 +213,14 @@ export default function AuthPage() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // تسجيل الدخول بـ Magic Link
+  const handleMagicLinkLogin = async () => {
     const newErrors: Record<string, string> = {};
     
-    // التحقق من البريد الإلكتروني
     try {
       emailSchema.parse(data.email);
     } catch {
       newErrors.email = 'البريد الإلكتروني غير صالح';
-    }
-    
-    // التحقق من كلمة المرور فقط إذا كان الدخول بكلمة مرور
-    if (loginMethod === 'password') {
-      try {
-        passwordSchema.parse(data.password);
-      } catch {
-        newErrors.password = 'كلمة المرور مطلوبة';
-      }
     }
     
     if (Object.keys(newErrors).length > 0) {
@@ -265,65 +231,103 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      if (loginMethod === 'magiclink') {
-        // تسجيل الدخول بـ Magic Link
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { error } = await supabase.auth.signInWithOtp({
-          email: data.email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/app/businesscard/edit`,
-          }
-        });
-        
-        if (error) throw error;
-        
-        setMagicLinkSent(true);
-        toast({
-          title: 'تم إرسال رابط الدخول',
-          description: 'تحقق من بريدك الإلكتروني واضغط على الرابط لتسجيل الدخول'
-        });
-      } else {
-        // تسجيل الدخول بكلمة المرور
-        const { error } = await signIn(data.email, data.password);
-        
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: 'خطأ في تسجيل الدخول',
-              description: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-              variant: 'destructive'
-            });
-          } else {
-            toast({
-              title: 'خطأ',
-              description: error.message,
-              variant: 'destructive'
-            });
-          }
-          return;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: data.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app/auth/callback`,
         }
-        
-        // حفظ تذكرني
-        if (rememberMe) {
-          localStorage.setItem('wasata_remember_me', 'true');
-        } else {
-          localStorage.removeItem('wasata_remember_me');
-        }
-        
-        toast({
-          title: 'مرحباً بك!',
-          description: 'تم تسجيل الدخول بنجاح'
-        });
-        navigate('/app/businesscard/edit');
-      }
+      });
+      
+      if (error) throw error;
+      
+      setMagicLinkSent(true);
+      toast({
+        title: 'تم إرسال رابط الدخول',
+        description: 'تحقق من بريدك الإلكتروني واضغط على الرابط لتسجيل الدخول'
+      });
     } catch (error: any) {
       toast({
-        title: 'خطأ غير متوقع',
-        description: error?.message || 'حدث خطأ أثناء المعالجة. يرجى المحاولة مرة أخرى',
+        title: 'خطأ',
+        description: error?.message || 'حدث خطأ أثناء إرسال رابط الدخول',
         variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // تسجيل الدخول بكلمة المرور
+  const handlePasswordLogin = async () => {
+    const newErrors: Record<string, string> = {};
+    
+    try {
+      emailSchema.parse(data.email);
+    } catch {
+      newErrors.email = 'البريد الإلكتروني غير صالح';
+    }
+    
+    try {
+      passwordSchema.parse(data.password);
+    } catch {
+      newErrors.password = 'كلمة المرور مطلوبة';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const { error } = await signIn(data.email, data.password);
+      
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: 'خطأ في تسجيل الدخول',
+            description: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'خطأ',
+            description: error.message,
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
+      
+      if (rememberMe) {
+        localStorage.setItem('wasata_remember_me', 'true');
+      } else {
+        localStorage.removeItem('wasata_remember_me');
+      }
+      
+      toast({
+        title: 'مرحباً بك!',
+        description: 'تم تسجيل الدخول بنجاح'
+      });
+      navigate('/app/businesscard/edit');
+    } catch (error: any) {
+      toast({
+        title: 'خطأ غير متوقع',
+        description: error?.message || 'حدث خطأ أثناء المعالجة',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (loginMethod === 'magiclink') {
+      await handleMagicLinkLogin();
+    } else {
+      await handlePasswordLogin();
     }
   };
 
@@ -346,9 +350,8 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/app/login?reset=true`,
+        redirectTo: `${window.location.origin}/app/reset-password`,
       });
       
       if (error) throw error;
@@ -372,25 +375,22 @@ export default function AuthPage() {
   const handleRegister = async () => {
     if (!validateStep(currentStep)) return;
     
-    // التحقق من تفعيل البريد فقط (تم تعطيل التحقق من الجوال)
-    if (!emailVerified) {
-      toast({
-        title: 'تفعيل البريد مطلوب',
-        description: 'يرجى تفعيل البريد الإلكتروني قبل إكمال التسجيل',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // تم تعطيل التحقق من الجوال - نستخدم البريد فقط للتوثيق
-    // if (!phoneVerified) { ... }
-    
     setIsLoading(true);
     
     try {
       const fullName = `${data.firstName} ${data.secondName} ${data.lastName}`;
       
-      const { data: authData, error } = await signUp(data.email, data.password, fullName);
+      // التسجيل مع إرسال Magic Link للتوثيق
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app/auth/callback`,
+          data: {
+            full_name: fullName
+          }
+        }
+      });
       
       if (error) {
         if (error.message.includes('User already registered')) {
@@ -410,12 +410,11 @@ export default function AuthPage() {
         return;
       }
       
-      // تحديث ملف المستخدم بالبيانات الإضافية وإنشاء بطاقة أعمال وتعيين الدور
+      // تحديث ملف المستخدم بالبيانات الإضافية
       if (authData?.user) {
-        const { supabase } = await import('@/integrations/supabase/client');
         const userId = authData.user.id;
         
-        // 1) تحديث جدول profiles
+        // 1) تحديث profiles
         await supabase.from('profiles').update({
           full_name: fullName,
           phone: data.phone,
@@ -431,28 +430,23 @@ export default function AuthPage() {
           office_lng: data.officeLng,
           office_address: data.officeAddress || null,
           website: data.website || null,
-          email_verified: emailVerified,
-          // تم تعطيل التحقق من الجوال
-          phone_verified: false,
         }).eq('user_id', userId);
         
-        // 2) تعيين الدور بناءً على نوع الحساب
-        // office/company → admin | individual → user | owner يُحدد يدوياً لاحقاً
+        // 2) تعيين الدور
         const userRole = data.accountType === 'individual' ? 'user' : 'admin';
         const { error: roleError } = await supabase.from('user_roles').insert({
           user_id: userId,
           role: userRole,
         });
-        
+        // تجاهل خطأ duplicate
         if (roleError && !roleError.message?.includes('duplicate')) {
-          console.error('Error assigning role:', roleError);
+          console.error('Role insert error:', roleError);
         }
         
-        // 3) إنشاء سجل مبدئي في business_cards بدون slug
-        // slug = NULL - سيختاره المستخدم لاحقاً في /app/businesscard/edit
-        const { error: bcError } = await supabase.from('business_cards').insert({
+        // 3) إنشاء سجل business_cards
+        await supabase.from('business_cards').insert({
           user_id: userId,
-          slug: null, // ❌ لا slug تلقائي - يختاره المستخدم
+          slug: null,
           published: false,
           data: {
             name: fullName,
@@ -462,33 +456,25 @@ export default function AuthPage() {
             title: data.accountType === 'individual' ? 'وسيط عقاري' : 'مكتب عقاري',
           }
         });
-        
-        if (bcError) {
-          console.error('Error creating business card:', bcError);
-        }
-        
-        setCreatedUserId(userId);
       }
-      
-      toast({
-        title: 'تم التسجيل بنجاح!',
-        description: 'مرحباً بك في وساطة'
-      });
 
-      // تنظيف بيانات التسجيل المؤقتة بعد نجاح التسجيل
+      // تنظيف cache
       try {
         localStorage.removeItem(REGISTER_CACHE_KEY);
       } catch {
         // ignore
       }
       
-      // Set flag to show welcome dialog and redirect to businesscard edit page
-      localStorage.setItem('show_welcome_dialog', 'true');
-      navigate('/app/businesscard/edit');
-    } catch (error) {
+      // عرض رسالة التوثيق
+      setMagicLinkSent(true);
+      toast({
+        title: 'تم التسجيل بنجاح!',
+        description: 'تحقق من بريدك الإلكتروني واضغط على الرابط لتفعيل حسابك'
+      });
+    } catch (error: any) {
       toast({
         title: 'خطأ غير متوقع',
-        description: 'حدث خطأ أثناء المعالجة. يرجى المحاولة مرة أخرى',
+        description: error?.message || 'حدث خطأ أثناء المعالجة',
         variant: 'destructive'
       });
     } finally {
@@ -535,14 +521,6 @@ export default function AuthPage() {
               </div>
               {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
-            
-            {/* تم إخفاء حقل رقم الجوال - التوثيق عبر البريد فقط */}
-            {/* 
-            <div className="space-y-2">
-              <Label>رقم الجوال *</Label>
-              ...
-            </div>
-            */}
             
             <div className="space-y-2">
               <Label>كلمة المرور *</Label>
@@ -818,64 +796,55 @@ export default function AuthPage() {
             </motion.div>
           );
         }
-        // للأفراد - خطوة التفعيل
-        return renderVerificationStep();
-        
-      case 5:
-        return renderVerificationStep();
+        return null;
         
       default:
         return null;
     }
   };
 
-  const renderVerificationStep = () => (
-    <motion.div
-      key="verification"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="space-y-6"
-    >
-      <div className="text-center mb-4">
-        <CheckCircle className="w-12 h-12 mx-auto text-primary mb-2" />
-        <h3 className="font-semibold">تفعيل الحساب</h3>
-        <p className="text-sm text-muted-foreground">قم بتفعيل بريدك الإلكتروني لإكمال التسجيل</p>
-      </div>
-      
-      <div className="space-y-4">
-        <div className="p-4 border rounded-lg space-y-2">
-          <div className="flex items-center gap-2 mb-2">
-            <Mail className="w-4 h-4 text-primary" />
-            <span className="font-medium">تفعيل البريد الإلكتروني</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{data.email}</p>
-          <OtpVerification
-            type="email"
-            value={data.email}
-            identifier={data.email}
-            userId={createdUserId ?? undefined}
-            isVerified={emailVerified}
-            onVerified={() => setEmailVerified(true)}
-          />
-        </div>
-        
-        {/* تم تعطيل تفعيل الجوال - نستخدم البريد فقط */}
-        <div className="p-4 border rounded-lg bg-muted/30">
-          <div className="flex items-center gap-2 mb-2">
-            <Mail className="w-4 h-4 text-green-600" />
-            <span className="font-medium text-muted-foreground">التوثيق عبر البريد الإلكتروني فقط</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            يتم التحقق من هويتك عبر البريد الإلكتروني. لا حاجة لرقم الجوال.
-          </p>
-        </div>
-      </div>
-    </motion.div>
-  );
-
   const isLastStep = currentStep === getTotalSteps();
-  const isVerificationStep = (data.accountType === 'individual' && currentStep === 4) || currentStep === 5;
+
+  // رسالة نجاح إرسال Magic Link
+  if (magicLinkSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4" dir="rtl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md"
+        >
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">تحقق من بريدك الإلكتروني</h2>
+              <p className="text-muted-foreground mb-4">
+                تم إرسال رابط {isLogin ? 'تسجيل الدخول' : 'تفعيل الحساب'} إلى<br />
+                <span className="font-medium text-foreground" dir="ltr">{data.email}</span>
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                افتح البريد واضغط على الرابط لإكمال {isLogin ? 'تسجيل الدخول' : 'التسجيل'}
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setMagicLinkSent(false);
+                  if (!isLogin) {
+                    setIsLogin(true);
+                    setCurrentStep(1);
+                  }
+                }}
+              >
+                العودة
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4" dir="rtl">
@@ -1005,156 +974,127 @@ export default function AuthPage() {
                   </form>
                 ) : (
                   <form onSubmit={handleLogin} className="space-y-4">
-                    {/* رسالة نجاح إرسال Magic Link */}
-                    {magicLinkSent ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-center space-y-4 py-6"
+                    {/* اختيار طريقة الدخول */}
+                    <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setLoginMethod('magiclink')}
+                        className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                          loginMethod === 'magiclink' 
+                            ? 'bg-background shadow text-foreground' 
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
                       >
-                        <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                          <Mail className="w-8 h-8 text-green-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">تحقق من بريدك الإلكتروني</h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            تم إرسال رابط تسجيل الدخول إلى<br />
-                            <span className="font-medium text-foreground" dir="ltr">{data.email}</span>
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setMagicLinkSent(false);
-                            setLoginMethod('password');
-                          }}
-                          className="mt-4"
-                        >
-                          العودة لتسجيل الدخول
-                        </Button>
-                      </motion.div>
-                    ) : (
-                      <>
-                        {/* اختيار طريقة الدخول */}
-                        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                        <Mail className="w-4 h-4" />
+                        رابط الدخول
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLoginMethod('password')}
+                        className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                          loginMethod === 'password' 
+                            ? 'bg-background shadow text-foreground' 
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Lock className="w-4 h-4" />
+                        كلمة مرور
+                      </button>
+                    </div>
+
+                    {/* حقل البريد الإلكتروني */}
+                    <div className="space-y-2">
+                      <Label>البريد الإلكتروني</Label>
+                      <div className="relative">
+                        <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="email"
+                          placeholder="example@email.com"
+                          value={data.email}
+                          onChange={(e) => updateData('email', e.target.value)}
+                          className="pr-10"
+                          dir="ltr"
+                          disabled={isLoading}
+                        />
+                      </div>
+                      {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                    </div>
+                    
+                    {/* حقل كلمة المرور */}
+                    {loginMethod === 'password' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>كلمة المرور</Label>
                           <button
                             type="button"
-                            onClick={() => setLoginMethod('password')}
-                            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                              loginMethod === 'password' 
-                                ? 'bg-background shadow text-foreground' 
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-xs text-primary hover:underline"
                           >
-                            <Lock className="w-4 h-4" />
-                            كلمة مرور
+                            نسيت كلمة المرور؟
                           </button>
+                        </div>
+                        <div className="relative">
+                          <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            value={data.password}
+                            onChange={(e) => updateData('password', e.target.value)}
+                            className="pr-10 pl-10"
+                            dir="ltr"
+                            disabled={isLoading}
+                          />
                           <button
                             type="button"
-                            onClick={() => setLoginMethod('magiclink')}
-                            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                              loginMethod === 'magiclink' 
-                                ? 'bg-background shadow text-foreground' 
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                           >
-                            <Mail className="w-4 h-4" />
-                            رابط سحري
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
-
-                        {/* حقل البريد الإلكتروني */}
-                        <div className="space-y-2">
-                          <Label>البريد الإلكتروني</Label>
-                          <div className="relative">
-                            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              type="email"
-                              placeholder="example@email.com"
-                              value={data.email}
-                              onChange={(e) => updateData('email', e.target.value)}
-                              className="pr-10"
-                              dir="ltr"
-                              disabled={isLoading}
-                            />
-                          </div>
-                          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                        </div>
-                        
-                        {/* حقل كلمة المرور - يظهر فقط عند اختيار كلمة المرور */}
-                        {loginMethod === 'password' && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label>كلمة المرور</Label>
-                              <button
-                                type="button"
-                                onClick={() => setShowForgotPassword(true)}
-                                className="text-xs text-primary hover:underline"
-                              >
-                                نسيت كلمة المرور؟
-                              </button>
-                            </div>
-                            <div className="relative">
-                              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="••••••••"
-                                value={data.password}
-                                onChange={(e) => updateData('password', e.target.value)}
-                                className="pr-10 pl-10"
-                                dir="ltr"
-                                disabled={isLoading}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                              >
-                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                            </div>
-                            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                          </div>
-                        )}
-
-                        {/* خيار تذكرني - فقط مع كلمة المرور */}
-                        {loginMethod === 'password' && (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id="rememberMe"
-                              checked={rememberMe}
-                              onChange={(e) => setRememberMe(e.target.checked)}
-                              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor="rememberMe" className="text-sm cursor-pointer">
-                              تذكرني
-                            </Label>
-                          </div>
-                        )}
-
-                        {/* وصف Magic Link */}
-                        {loginMethod === 'magiclink' && (
-                          <p className="text-sm text-muted-foreground text-center">
-                            سيتم إرسال رابط تسجيل دخول آمن إلى بريدك الإلكتروني
-                          </p>
-                        )}
-                        
-                        <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                          {isLoading ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                              <span>جاري المعالجة...</span>
-                            </div>
-                          ) : loginMethod === 'magiclink' ? (
-                            'إرسال رابط الدخول'
-                          ) : (
-                            'تسجيل الدخول'
-                          )}
-                        </Button>
-                      </>
+                        {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                      </div>
                     )}
+
+                    {/* تذكرني */}
+                    {loginMethod === 'password' && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="remember"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <label htmlFor="remember" className="text-sm text-muted-foreground">
+                          تذكرني
+                        </label>
+                      </div>
+                    )}
+                    
+                    <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                          <span>جاري المعالجة...</span>
+                        </div>
+                      ) : loginMethod === 'magiclink' ? (
+                        'إرسال رابط الدخول'
+                      ) : (
+                        'تسجيل الدخول'
+                      )}
+                    </Button>
+                    
+                    <p className="text-center text-sm text-muted-foreground">
+                      ليس لديك حساب؟{' '}
+                      <button
+                        type="button"
+                        onClick={() => setIsLogin(false)}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        إنشاء حساب جديد
+                      </button>
+                    </p>
                   </form>
                 )}
               </>
@@ -1164,26 +1104,25 @@ export default function AuthPage() {
                   {renderStep()}
                 </AnimatePresence>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   {currentStep > 1 && (
                     <Button
                       type="button"
                       variant="outline"
                       onClick={prevStep}
                       className="flex-1"
-                      disabled={isLoading}
                     >
-                      <ChevronRight className="w-4 h-4 ml-1" />
+                      <ChevronRight className="w-4 h-4 ml-2" />
                       السابق
                     </Button>
                   )}
                   
-                  {isVerificationStep ? (
+                  {isLastStep ? (
                     <Button
                       type="button"
                       onClick={handleRegister}
+                      disabled={isLoading}
                       className="flex-1"
-                      disabled={isLoading || !emailVerified}
                     >
                       {isLoading ? (
                         <div className="flex items-center gap-2">
@@ -1192,8 +1131,8 @@ export default function AuthPage() {
                         </div>
                       ) : (
                         <>
-                          إكمال التسجيل
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                          <CheckCircle className="w-4 h-4 ml-2" />
+                          إنشاء الحساب
                         </>
                       )}
                     </Button>
@@ -1202,57 +1141,28 @@ export default function AuthPage() {
                       type="button"
                       onClick={nextStep}
                       className="flex-1"
-                      disabled={isLoading}
                     >
                       التالي
-                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      <ChevronLeft className="w-4 h-4 mr-2" />
                     </Button>
                   )}
                 </div>
+                
+                <p className="text-center text-sm text-muted-foreground">
+                  لديك حساب بالفعل؟{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(true);
+                      setCurrentStep(1);
+                    }}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    تسجيل الدخول
+                  </button>
+                </p>
               </div>
             )}
-            
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrors({});
-                  setCurrentStep(1);
-                  setData(initialData);
-                }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                disabled={isLoading}
-              >
-                {isLogin ? (
-                  <>ليس لديك حساب؟ <span className="text-primary font-medium">سجل الآن</span></>
-                ) : (
-                  <>لديك حساب بالفعل؟ <span className="text-primary font-medium">سجل دخولك</span></>
-                )}
-              </button>
-            </div>
-            
-            {isLogin && (
-              <div className="mt-4 text-center">
-                <button
-                  onClick={() => navigate('/app/recover')}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  فقدت حسابك؟ <span className="text-primary font-medium">استرداد النطاق</span>
-                </button>
-              </div>
-            )}
-            
-            <div className="mt-4 text-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/')}
-                className="text-muted-foreground"
-              >
-                <ArrowLeft className="h-4 w-4 ml-2" />
-                العودة للصفحة الرئيسية
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </motion.div>

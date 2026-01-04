@@ -30,6 +30,8 @@ import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import SlugOffersPage from "./pages/SlugOffersPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
 import AuthPage from "./pages/AuthPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import RecoverDomainPage from "./pages/RecoverDomainPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
 import DomainRequestsListPage from "./pages/DomainRequestsListPage";
@@ -286,6 +288,8 @@ const App = () => {
                   <Route path="/app/login" element={<AuthPage />} />
                   <Route path="/app/register" element={<AuthPage />} />
                   <Route path="/app/recover" element={<RecoverDomainPage />} />
+                  <Route path="/app/auth/callback" element={<AuthCallbackPage />} />
+                  <Route path="/app/reset-password" element={<ResetPasswordPage />} />
                   
                   {/* Legacy auth routes - redirect to new ones */}
                   <Route path="/auth" element={<Navigate to="/app/login" replace />} />
