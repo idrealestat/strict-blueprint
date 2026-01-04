@@ -218,13 +218,33 @@ const handler = async (req: Request): Promise<Response> => {
     const twilioResult = await twilioResponse.json();
 
     if (!twilioResponse.ok) {
-      console.error("TWILIO_ERROR", twilioResult);
+      const twilioCode = twilioResult?.code;
+      const twilioMessage = twilioResult?.message || twilioResult?.error_message || "Twilio error";
+
+      console.error("TWILIO_ERROR", { code: twilioCode, message: twilioMessage, raw: twilioResult });
+
+      // لا نُسقط واجهة المستخدم بـ 500: نُرجع 200 مع success=false ليتم التعامل معها في الواجهة.
+      // Twilio Trial: 21608 = رقم غير مُوثّق
+      if (twilioCode === 21608) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error_code: "TWILIO_UNVERIFIED",
+            error: "تعذر إرسال رمز التفعيل عبر SMS لأن الرقم غير مُوثّق لدى مزود الرسائل (حساب تجريبي).",
+            details: twilioMessage,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       return new Response(
         JSON.stringify({
-          error: "خطأ في إرسال الرسالة النصية",
-          details: twilioResult.message || twilioResult.error_message || "Twilio error",
+          success: false,
+          error_code: "TWILIO_ERROR",
+          error: "خطأ في إرسال الرسالة النصية. حاول لاحقاً أو فعّل حساب الرسائل.",
+          details: twilioMessage,
         }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
