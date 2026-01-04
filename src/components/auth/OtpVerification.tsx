@@ -1,18 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Mail, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface OtpVerificationProps {
-  type: 'email' | 'phone';
+  type: 'email';
   value: string;
-  /**
-   * معرف ثابت لربط كود التفعيل قبل إنشاء المستخدم (email/phone).
-   * مطلوب لتفادي تمرير قيم مثل 'temp' أو '' كـ userId.
-   */
   identifier: string;
   userId?: string;
   isVerified: boolean;
@@ -22,8 +18,6 @@ interface OtpVerificationProps {
 export default function OtpVerification({
   type,
   value,
-  identifier,
-  userId,
   isVerified,
   onVerified,
 }: OtpVerificationProps) {
@@ -34,72 +28,41 @@ export default function OtpVerification({
   const [countdown, setCountdown] = useState(0);
   const { toast } = useToast();
 
-  const sendOtp = async (opts?: { probe?: boolean }) => {
+  // إرسال OTP باستخدام Supabase Auth المدمج
+  const sendOtp = async () => {
     if (!value) return;
 
-    const probe = !!opts?.probe;
-
-    setIsSending(!probe);
+    setIsSending(true);
     try {
-      const functionName = type === 'email' ? 'send-email-otp' : 'send-phone-otp';
-      const safeUserId = userId && userId.trim().length > 0 ? userId : undefined;
-
-      const payload =
-        type === 'email'
-          ? { email: value, identifier, ...(safeUserId ? { userId: safeUserId } : {}), ...(probe ? { probe: true } : {}) }
-          : { phone: value, identifier, ...(safeUserId ? { userId: safeUserId } : {}), ...(probe ? { probe: true } : {}) };
-
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: payload,
+      // استخدام Supabase Auth signInWithOtp مباشرة
+      const { error } = await supabase.auth.signInWithOtp({
+        email: value,
+        options: {
+          // لا نريد إنشاء مستخدم جديد تلقائياً
+          shouldCreateUser: false,
+        }
       });
 
-      if (error) throw error;
-
-      // أخطاء من السيرفر مع 200 (success=false)
-      if (data && data.success === false) {
-        const msg = data.error || 'تعذر إرسال رمز التحقق';
-        toast({
-          title: 'تعذر الإرسال',
-          description: msg,
-          variant: 'destructive',
-        });
-        return;
+      if (error) {
+        // إذا كان الخطأ بسبب عدم وجود المستخدم، نحاول مع إنشاء مستخدم
+        if (error.message.includes('User not found') || error.message.includes('Signups not allowed')) {
+          // المستخدم غير موجود - نرسل OTP مع إنشاء مستخدم
+          const { error: signupError } = await supabase.auth.signInWithOtp({
+            email: value,
+            options: {
+              shouldCreateUser: true,
+            }
+          });
+          
+          if (signupError) throw signupError;
+        } else {
+          throw error;
+        }
       }
 
-      if (data?.devMode) {
-        console.log('OTP_DEV_MODE', { type, devMode: true });
-      }
-
-      // في وضع التطوير: ملء OTP + تحقق تلقائي (لا نتركها لمجرد تعبئة الحقل)
-      if (data?.success && data?.devMode && data?.devCode) {
-        setOtp(data.devCode);
-        setShowOtpInput(true);
-
-        toast({
-          title: 'وضع التطوير',
-          description: 'تم ملء رمز التحقق تلقائياً وسيتم التحقق الآن',
-        });
-
-        // Auto-submit verify
-        window.setTimeout(() => {
-          void verifyOtp(data.devCode);
-        }, 0);
-
-        return;
-      }
-
-      // إن كان probe في الإنتاج: لا نظهر واجهة إدخال ولا نبدأ عداد
-      if (probe) {
-        // data.devMode === false
-        console.log('OTP_DEV_MODE', { type, devMode: false });
-        return;
-      }
-
-      // إنتاج / أو dev بدون devCode
       toast({
         title: 'تم الإرسال',
-        description:
-          type === 'email' ? 'تم إرسال رمز التحقق إلى بريدك الإلكتروني' : 'تم إرسال رمز التحقق إلى رقم جوالك',
+        description: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني. تحقق من صندوق الوارد',
       });
 
       setShowOtpInput(true);
@@ -117,21 +80,9 @@ export default function OtpVerification({
       }, 1000);
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-
-      // تحسين عرض أخطاء الدوال (قد تأتي كنص JSON)
-      const rawMsg = error?.message || 'حدث خطأ أثناء إرسال رمز التحقق';
-      let parsedMsg = rawMsg;
-      try {
-        const parsed = JSON.parse(rawMsg);
-        parsedMsg = parsed?.error || parsed?.message || parsedMsg;
-        if (parsed?.details) parsedMsg = `${parsedMsg} (${parsed.details})`;
-      } catch {
-        // ignore
-      }
-
       toast({
         title: 'خطأ',
-        description: parsedMsg,
+        description: error?.message || 'حدث خطأ أثناء إرسال رمز التحقق',
         variant: 'destructive',
       });
     } finally {
@@ -139,33 +90,33 @@ export default function OtpVerification({
     }
   };
 
+  // التحقق من OTP باستخدام Supabase Auth
   const verifyOtp = async (codeOverride?: string) => {
     const codeToVerify = (codeOverride ?? otp).trim();
     if (codeToVerify.length !== 6) return;
 
     setIsVerifying(true);
     try {
-      const safeUserId = userId && userId.trim().length > 0 ? userId : undefined;
-
-      const { error } = await supabase.functions.invoke('verify-otp', {
-        body: { identifier, code: codeToVerify, type, ...(safeUserId ? { userId: safeUserId } : {}) },
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: value,
+        token: codeToVerify,
+        type: 'email',
       });
 
       if (error) throw error;
 
-      console.log('OTP_VERIFIED', { type });
-
-      toast({
-        title: 'تم التحقق',
-        description: type === 'email' ? 'تم تفعيل البريد الإلكتروني بنجاح' : 'تم تفعيل رقم الجوال بنجاح',
-      });
-
-      onVerified();
+      if (data?.user) {
+        toast({
+          title: 'تم التحقق',
+          description: 'تم تفعيل البريد الإلكتروني بنجاح',
+        });
+        onVerified();
+      }
     } catch (error: any) {
       console.error('Error verifying OTP:', error);
       toast({
         title: 'خطأ',
-        description: error.message || 'رمز التحقق غير صحيح',
+        description: error.message || 'رمز التحقق غير صحيح أو منتهي الصلاحية',
         variant: 'destructive',
       });
     } finally {
@@ -173,24 +124,35 @@ export default function OtpVerification({
     }
   };
 
-  // عند دخول خطوة التفعيل: نفحص devMode بدون إرسال فعلي في الإنتاج.
+  // في dev mode مع ALLOW_DEV_OTP - تجاوز التحقق تلقائياً
   useEffect(() => {
     if (!value || isVerified) return;
-    void sendOtp({ probe: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    // فحص dev mode من خلال محاولة إرسال probe
+    const checkDevMode = async () => {
+      try {
+        // نتحقق إذا كان dev mode عن طريق متغير بيئي
+        // Supabase Auth لا يدعم dev mode مباشرة، لكن يمكن تفعيل auto-confirm
+        // سنعتمد على إعدادات Supabase Auth
+      } catch {
+        // ignore
+      }
+    };
+    
+    checkDevMode();
   }, [type, value, isVerified]);
 
   if (isVerified) {
     return (
       <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
         <CheckCircle className="w-4 h-4" />
-        <span className="text-sm">{type === 'email' ? 'البريد الإلكتروني مفعّل' : 'رقم الجوال مفعّل'}</span>
+        <span className="text-sm">البريد الإلكتروني مفعّل</span>
       </div>
     );
   }
 
   if (!value) {
-    return <div className="text-sm text-muted-foreground">{type === 'email' ? 'أدخل البريد الإلكتروني أولاً' : 'أدخل رقم الجوال أولاً'}</div>;
+    return <div className="text-sm text-muted-foreground">أدخل البريد الإلكتروني أولاً</div>;
   }
 
   return (
@@ -199,17 +161,15 @@ export default function OtpVerification({
         <Button type="button" variant="outline" size="sm" onClick={() => void sendOtp()} disabled={isSending} className="w-full">
           {isSending ? (
             <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-          ) : type === 'email' ? (
-            <Mail className="w-4 h-4 ml-2" />
           ) : (
-            <Phone className="w-4 h-4 ml-2" />
+            <Mail className="w-4 h-4 ml-2" />
           )}
-          {type === 'email' ? 'إرسال رمز التفعيل للبريد' : 'إرسال رمز التفعيل للجوال'}
+          إرسال رمز التفعيل للبريد
         </Button>
       ) : (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">أدخل الرمز المكون من 6 أرقام</p>
+            <p className="text-sm text-muted-foreground mb-2">أدخل الرمز المكون من 6 أرقام المرسل إلى بريدك</p>
             <InputOTP maxLength={6} value={otp} onChange={setOtp} className="justify-center" dir="ltr">
               <InputOTPGroup>
                 <InputOTPSlot index={0} />

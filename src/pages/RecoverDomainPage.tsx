@@ -14,7 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import OtpVerification from '@/components/auth/OtpVerification';
 
-type VerificationMethod = 'email' | 'phone';
+// تم تعطيل التحقق بالجوال - نستخدم البريد فقط
+type VerificationMethod = 'email';
 type IdentityMethod = 'fal_license' | 'national_id';
 
 interface RecoveryState {
@@ -98,12 +99,8 @@ export default function RecoverDomainPage() {
         query = query.eq('national_id', state.nationalId);
       }
 
-      // Also verify contact method matches
-      if (state.verificationMethod === 'email') {
-        query = query.eq('email', state.email);
-      } else {
-        query = query.eq('phone', state.phone);
-      }
+      // التحقق عبر البريد الإلكتروني فقط
+      query = query.eq('email', state.email);
 
       const { data, error } = await query.maybeSingle();
 
@@ -147,9 +144,7 @@ export default function RecoverDomainPage() {
     if (!otpVerified) {
       toast({
         title: 'التحقق مطلوب',
-        description: state.verificationMethod === 'email' 
-          ? 'يرجى تفعيل البريد الإلكتروني أولاً'
-          : 'يرجى تفعيل رقم الجوال أولاً',
+        description: 'يرجى تفعيل البريد الإلكتروني أولاً',
         variant: 'destructive',
       });
       return;
@@ -200,75 +195,30 @@ export default function RecoverDomainPage() {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
-      {/* اختيار طريقة التحقق */}
+      {/* التحقق عبر البريد الإلكتروني فقط */}
       <div className="space-y-3">
-        <Label className="text-base font-medium">طريقة التحقق</Label>
-        <RadioGroup
-          value={state.verificationMethod}
-          onValueChange={(v) => updateState({ verificationMethod: v as VerificationMethod })}
-          className="grid grid-cols-2 gap-3"
-        >
-          <Label
-            htmlFor="email-method"
-            className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-              state.verificationMethod === 'email' 
-                ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <RadioGroupItem value="email" id="email-method" />
-            <Mail className="w-5 h-5 text-primary" />
-            <span>البريد الإلكتروني</span>
-          </Label>
-          <Label
-            htmlFor="phone-method"
-            className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-              state.verificationMethod === 'phone' 
-                ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <RadioGroupItem value="phone" id="phone-method" />
-            <Phone className="w-5 h-5 text-primary" />
-            <span>رقم الجوال</span>
-          </Label>
-        </RadioGroup>
+        <Label className="text-base font-medium">التحقق عبر البريد الإلكتروني</Label>
+        <p className="text-sm text-muted-foreground">
+          سيتم إرسال رمز التحقق إلى بريدك الإلكتروني المسجل
+        </p>
       </div>
 
-      {/* حقل الإدخال حسب طريقة التحقق */}
-      {state.verificationMethod === 'email' ? (
-        <div className="space-y-2">
-          <Label>البريد الإلكتروني المسجل</Label>
-          <div className="relative">
-            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="email"
-              placeholder="example@email.com"
-              value={state.email}
-              onChange={(e) => updateState({ email: e.target.value })}
-              className="pr-10"
-              dir="ltr"
-            />
-          </div>
-          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+      {/* حقل البريد الإلكتروني */}
+      <div className="space-y-2">
+        <Label>البريد الإلكتروني المسجل</Label>
+        <div className="relative">
+          <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="email"
+            placeholder="example@email.com"
+            value={state.email}
+            onChange={(e) => updateState({ email: e.target.value })}
+            className="pr-10"
+            dir="ltr"
+          />
         </div>
-      ) : (
-        <div className="space-y-2">
-          <Label>رقم الجوال المسجل</Label>
-          <div className="relative">
-            <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="tel"
-              placeholder="05xxxxxxxx"
-              value={state.phone}
-              onChange={(e) => updateState({ phone: e.target.value })}
-              className="pr-10"
-              dir="ltr"
-            />
-          </div>
-          {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-        </div>
-      )}
+        {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+      </div>
 
       {/* اختيار طريقة إثبات الهوية */}
       <div className="space-y-3">
@@ -391,14 +341,14 @@ export default function RecoverDomainPage() {
           <Label className="text-base font-medium">تأكيد الهوية</Label>
         </div>
         <p className="text-sm text-muted-foreground">
-          لتأكيد ملكيتك للنطاق، يرجى التحقق من {state.verificationMethod === 'email' ? 'البريد الإلكتروني' : 'رقم الجوال'} المسجل.
+          لتأكيد ملكيتك للنطاق، يرجى التحقق من البريد الإلكتروني المسجل.
         </p>
 
         <div className="p-4 border rounded-lg">
           <OtpVerification
-            type={state.verificationMethod}
-            value={state.verificationMethod === 'email' ? state.email : state.phone}
-            identifier={state.verificationMethod === 'email' ? state.email : state.phone}
+            type="email"
+            value={state.email}
+            identifier={state.email}
             isVerified={otpVerified}
             onVerified={() => setOtpVerified(true)}
           />
