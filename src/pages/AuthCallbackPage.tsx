@@ -18,49 +18,57 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let isMounted = true;
 
-    const handleCallback = async () => {
-      try {
-        // أولاً: حاول تبادل الكود للحصول على الجلسة
-        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        
-        if (error) {
-          // إذا فشل التبادل، تحقق إذا كانت الجلسة موجودة بالفعل
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData.session) {
-            // الجلسة موجودة، نجاح
-            if (isMounted) {
-              setState('success');
-              toast({
-                title: 'تم تسجيل الدخول بنجاح',
-                description: 'جاري تحويلك للوحة التحكم...',
-              });
-              setTimeout(() => {
-                navigate('/app/businesscard/edit', { replace: true });
-              }, 500);
-            }
-            return;
-          }
-          
-          // لا توجد جلسة والتبادل فشل
-          if (isMounted) {
-            setErrorMessage(error.message || 'فشل في تسجيل الدخول');
-            setState('error');
-          }
-          return;
-        }
+    // استمع لتغيير حالة المصادقة أولاً
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Callback] onAuthStateChange:', event, session?.user?.email);
+      
+      if (!isMounted) return;
 
-        // نجح التبادل، توجيه المستخدم
-        if (isMounted) {
+      if (event === 'SIGNED_IN' && session) {
+        setState('success');
+        toast({
+          title: 'تم تسجيل الدخول بنجاح',
+          description: 'جاري تحويلك للوحة التحكم...',
+        });
+        setTimeout(() => {
+          if (isMounted) {
+            navigate('/app/businesscard/edit', { replace: true });
+          }
+        }, 500);
+      }
+    });
+
+    // تحقق من الجلسة الحالية
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        console.log('[Callback] getSession:', session?.user?.email, error);
+
+        if (!isMounted) return;
+
+        if (session) {
           setState('success');
           toast({
-            title: 'تم توثيق بريدك وتسجيل الدخول بنجاح',
+            title: 'تم تسجيل الدخول بنجاح',
             description: 'جاري تحويلك للوحة التحكم...',
           });
           setTimeout(() => {
-            navigate('/app/businesscard/edit', { replace: true });
+            if (isMounted) {
+              navigate('/app/businesscard/edit', { replace: true });
+            }
           }, 500);
+        } else {
+          // انتظر قليلاً لأن Supabase يعالج الـ hash/token من URL تلقائياً
+          setTimeout(() => {
+            if (isMounted && state === 'loading') {
+              setErrorMessage('لم يتم العثور على جلسة نشطة');
+              setState('error');
+            }
+          }, 3000);
         }
       } catch (err: any) {
+        console.error('[Callback] Error:', err);
         if (isMounted) {
           setErrorMessage(err?.message || 'حدث خطأ غير متوقع');
           setState('error');
@@ -68,10 +76,11 @@ export default function AuthCallbackPage() {
       }
     };
 
-    handleCallback();
+    checkSession();
 
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, [navigate, toast]);
 
