@@ -89,7 +89,8 @@ export function useAuth() {
   }, [fetchUserRole]);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    // توجيه Magic Link إلى صفحة callback غير المحمية
+    const redirectUrl = `${window.location.origin}/app/auth/callback`;
     
     const { data, error } = await supabase.auth.signUp({
       email,

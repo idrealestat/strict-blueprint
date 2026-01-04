@@ -7,18 +7,25 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-type CallbackState = 'loading' | 'success' | 'error';
+type CallbackState = 'loading' | 'success' | 'no_session';
 
 export default function AuthCallbackPage() {
   const [state, setState] = useState<CallbackState>('loading');
-  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     let isMounted = true;
+    let hasNavigated = false;
 
-    // استمع لتغيير حالة المصادقة أولاً
+    const navigateTo = (path: string) => {
+      if (isMounted && !hasNavigated) {
+        hasNavigated = true;
+        navigate(path, { replace: true });
+      }
+    };
+
+    // استمع لتغيير حالة المصادقة (يعالج hash من Magic Link تلقائياً)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[Callback] onAuthStateChange:', event, session?.user?.email);
       
@@ -30,20 +37,19 @@ export default function AuthCallbackPage() {
           title: 'تم تسجيل الدخول بنجاح',
           description: 'جاري تحويلك للوحة التحكم...',
         });
-        setTimeout(() => {
-          if (isMounted) {
-            navigate('/app/businesscard/edit', { replace: true });
-          }
-        }, 500);
+        setTimeout(() => navigateTo('/app/businesscard/edit'), 500);
       }
     });
 
     // تحقق من الجلسة الحالية
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // انتظر قليلاً ليعالج Supabase الـ hash
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        console.log('[Callback] getSession:', session?.user?.email, error);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('[Callback] getSession:', session?.user?.email);
 
         if (!isMounted) return;
 
@@ -53,25 +59,21 @@ export default function AuthCallbackPage() {
             title: 'تم تسجيل الدخول بنجاح',
             description: 'جاري تحويلك للوحة التحكم...',
           });
-          setTimeout(() => {
-            if (isMounted) {
-              navigate('/app/businesscard/edit', { replace: true });
-            }
-          }, 500);
+          setTimeout(() => navigateTo('/app/businesscard/edit'), 500);
         } else {
-          // انتظر قليلاً لأن Supabase يعالج الـ hash/token من URL تلقائياً
+          // لا توجد جلسة - وجّه لصفحة تسجيل الدخول
           setTimeout(() => {
             if (isMounted && state === 'loading') {
-              setErrorMessage('لم يتم العثور على جلسة نشطة');
-              setState('error');
+              setState('no_session');
+              setTimeout(() => navigateTo('/app/login'), 1000);
             }
-          }, 3000);
+          }, 2000);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('[Callback] Error:', err);
         if (isMounted) {
-          setErrorMessage(err?.message || 'حدث خطأ غير متوقع');
-          setState('error');
+          setState('no_session');
+          setTimeout(() => navigateTo('/app/login'), 1000);
         }
       }
     };
@@ -98,7 +100,7 @@ export default function AuthCallbackPage() {
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
-                <h1 className="text-xl font-bold mb-2">جاري تسجيل الدخول...</h1>
+                <h1 className="text-xl font-bold mb-2">جاري التحقق من الجلسة...</h1>
                 <p className="text-muted-foreground">يرجى الانتظار</p>
               </div>
             )}
@@ -113,15 +115,15 @@ export default function AuthCallbackPage() {
               </div>
             )}
 
-            {state === 'error' && (
+            {state === 'no_session' && (
               <div className="text-center">
-                <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <XCircle className="w-8 h-8 text-destructive" />
+                <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <XCircle className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h1 className="text-xl font-bold mb-2">تعذر تسجيل الدخول</h1>
-                <p className="text-muted-foreground mb-4">{errorMessage}</p>
+                <h1 className="text-xl font-bold mb-2">لم يتم العثور على جلسة</h1>
+                <p className="text-muted-foreground mb-4">جاري التوجيه لتسجيل الدخول...</p>
                 <Button variant="outline" onClick={() => navigate('/app/login')}>
-                  العودة لتسجيل الدخول
+                  تسجيل الدخول
                 </Button>
               </div>
             )}
