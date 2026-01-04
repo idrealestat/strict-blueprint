@@ -387,25 +387,6 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         return;
       }
 
-      // 1) التحقق من تفرد الـ slug في قاعدة البيانات
-      const { data: existingSlug, error: checkError } = await supabase
-        .from('business_cards')
-        .select('id, user_id, published')
-        .eq('slug', selectedSlug)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking slug:', checkError);
-        toast.error('حدث خطأ في التحقق من الرابط');
-        return;
-      }
-
-      // إذا الـ slug موجود ومملوك لمستخدم آخر
-      if (existingSlug && existingSlug.user_id !== authUser.id) {
-        toast.error('هذا الرابط محجوز لمستخدم آخر. اختر رابطاً مختلفاً.');
-        return;
-      }
-
       // التحقق من اكتمال البيانات الأساسية (الاسم + الهاتف)
       const hasBasicFields = formData.userName?.trim() && formData.primaryPhone?.trim();
       
@@ -415,6 +396,30 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         .select('id, published, slug')
         .eq('user_id', authUser.id)
         .maybeSingle();
+
+      // 1) التحقق من تفرد الـ slug في قاعدة البيانات
+      // نتجاوز التحقق إذا كان المستخدم يحتفظ بنفس الـ slug الخاص به
+      const isKeepingSameSlug = currentCard?.slug === selectedSlug;
+      
+      if (!isKeepingSameSlug) {
+        const { data: existingSlug, error: checkError } = await supabase
+          .from('business_cards')
+          .select('id, user_id, published')
+          .eq('slug', selectedSlug)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('Error checking slug:', checkError);
+          toast.error('حدث خطأ في التحقق من الرابط');
+          return;
+        }
+
+        // إذا الـ slug موجود ومملوك لمستخدم آخر
+        if (existingSlug && existingSlug.user_id !== authUser.id) {
+          toast.error('هذا الرابط محجوز لمستخدم آخر. اختر رابطاً مختلفاً.');
+          return;
+        }
+      }
 
       // تحديد ما إذا كان هذا أول نشر تلقائي
       // النشر التلقائي يحدث فقط إذا:
@@ -429,31 +434,48 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         swapState: localStorage.getItem(`business_card_swap_${user.id}`) === 'true',
       }));
 
-      // استخدام upsert بدلاً من update لإنشاء السجل إذا لم يكن موجوداً
-      const upsertPayload = {
-        user_id: authUser.id,
-        slug: selectedSlug,
-        data: cardDataPayload,
-        updated_at: new Date().toISOString(),
-        published: isFirstAutoPublish ? true : (currentCard?.published ?? false)
-      };
+      // تحديد طريقة الحفظ: تحديث إذا كان السجل موجوداً، إنشاء إذا لم يكن
+      if (currentCard) {
+        // تحديث السجل الموجود
+        const { error: updateError } = await supabase
+          .from('business_cards')
+          .update({
+            slug: selectedSlug,
+            data: cardDataPayload,
+            updated_at: new Date().toISOString(),
+            published: isFirstAutoPublish ? true : currentCard.published
+          })
+          .eq('user_id', authUser.id);
 
-      const { error: upsertError } = await supabase
-        .from('business_cards')
-        .upsert(upsertPayload, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        });
-
-      if (upsertError) {
-        console.error('Error saving business card:', upsertError);
-        // التحقق إذا كان الخطأ بسبب تكرار الـ slug
-        if (upsertError.code === '23505' && upsertError.message?.includes('slug')) {
-          toast.error('هذا الرابط محجوز بالفعل. اختر رابطاً آخر.');
-        } else {
-          toast.error('حدث خطأ في حفظ البطاقة');
+        if (updateError) {
+          console.error('Error updating business card:', updateError);
+          if (updateError.code === '23505' && updateError.message?.includes('slug')) {
+            toast.error('هذا الرابط محجوز بالفعل. اختر رابطاً آخر.');
+          } else {
+            toast.error('حدث خطأ في حفظ البطاقة');
+          }
+          return;
         }
-        return;
+      } else {
+        // إنشاء سجل جديد
+        const { error: insertError } = await supabase
+          .from('business_cards')
+          .insert([{
+            user_id: authUser.id,
+            slug: selectedSlug,
+            data: cardDataPayload,
+            published: !!isFirstAutoPublish
+          }]);
+
+        if (insertError) {
+          console.error('Error creating business card:', insertError);
+          if (insertError.code === '23505' && insertError.message?.includes('slug')) {
+            toast.error('هذا الرابط محجوز بالفعل. اختر رابطاً آخر.');
+          } else {
+            toast.error('حدث خطأ في إنشاء البطاقة');
+          }
+          return;
+        }
       }
 
       // حفظ الـ slug المستخدم للرابط العام
