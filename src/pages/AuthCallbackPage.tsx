@@ -18,81 +18,60 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let isMounted = true;
 
-    const handleSuccess = () => {
-      if (!isMounted) return;
-      setState('success');
-      toast({
-        title: 'تم توثيق بريدك وتسجيل الدخول بنجاح',
-        description: 'جاري تحويلك للوحة التحكم...',
-      });
-      setTimeout(() => {
-        navigate('/app/businesscard/edit', { replace: true });
-      }, 800);
-    };
-
-    const handleError = (message: string) => {
-      if (!isMounted) return;
-      setErrorMessage(message);
-      setState('error');
-    };
-
-    // 1) استمع للأحداث (مهم لأن بعض روابط Magic Link تُنشئ الجلسة عبر حدث SIGNED_IN)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted) return;
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-        handleSuccess();
-      }
-    });
-
-    // 2) حاول التقاط الجلسة / تبادل الكود (PKCE) إن وجد
-    const run = async () => {
+    const handleCallback = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        // أولاً: حاول تبادل الكود للحصول على الجلسة
+        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        
         if (error) {
-          handleError(error.message);
+          // إذا فشل التبادل، تحقق إذا كانت الجلسة موجودة بالفعل
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session) {
+            // الجلسة موجودة، نجاح
+            if (isMounted) {
+              setState('success');
+              toast({
+                title: 'تم تسجيل الدخول بنجاح',
+                description: 'جاري تحويلك للوحة التحكم...',
+              });
+              setTimeout(() => {
+                navigate('/app/businesscard/edit', { replace: true });
+              }, 500);
+            }
+            return;
+          }
+          
+          // لا توجد جلسة والتبادل فشل
+          if (isMounted) {
+            setErrorMessage(error.message || 'فشل في تسجيل الدخول');
+            setState('error');
+          }
           return;
         }
 
-        if (data.session) {
-          handleSuccess();
-          return;
+        // نجح التبادل، توجيه المستخدم
+        if (isMounted) {
+          setState('success');
+          toast({
+            title: 'تم توثيق بريدك وتسجيل الدخول بنجاح',
+            description: 'جاري تحويلك للوحة التحكم...',
+          });
+          setTimeout(() => {
+            navigate('/app/businesscard/edit', { replace: true });
+          }, 500);
         }
-
-        // بعض البيئات ترسل الرابط بصيغة ?code=... (PKCE)
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get('code');
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
-          if (exchangeError) {
-            handleError(exchangeError.message);
-            return;
-          }
-
-          // بعد التبادل، المفترض أن الجلسة أصبحت موجودة
-          const { data: afterData } = await supabase.auth.getSession();
-          if (afterData.session) {
-            handleSuccess();
-            return;
-          }
-        }
-
-        // إذا ما زالت بدون جلسة بعد مهلة قصيرة
-        setTimeout(() => {
-          if (!isMounted) return;
-          handleError('لم نتمكن من إنشاء جلسة من رابط الدخول. يرجى فتح أحدث رسالة والضغط على الرابط مرة أخرى.');
-        }, 1500);
       } catch (err: any) {
-        handleError(err?.message || 'حدث خطأ غير متوقع');
+        if (isMounted) {
+          setErrorMessage(err?.message || 'حدث خطأ غير متوقع');
+          setState('error');
+        }
       }
     };
 
-    run();
+    handleCallback();
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
     };
   }, [navigate, toast]);
 
@@ -110,8 +89,8 @@ export default function AuthCallbackPage() {
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
-                <h1 className="text-xl font-bold mb-2">جاري التحقق...</h1>
-                <p className="text-muted-foreground">يرجى الانتظار بينما نكمل تسجيل الدخول</p>
+                <h1 className="text-xl font-bold mb-2">جاري تسجيل الدخول...</h1>
+                <p className="text-muted-foreground">يرجى الانتظار</p>
               </div>
             )}
 
@@ -121,8 +100,7 @@ export default function AuthCallbackPage() {
                   <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
                 <h1 className="text-xl font-bold mb-2">تم تسجيل الدخول</h1>
-                <p className="text-muted-foreground mb-4">تم توثيق بريدك وتسجيل الدخول بنجاح</p>
-                <p className="text-sm text-muted-foreground">جاري التوجيه...</p>
+                <p className="text-muted-foreground">جاري التوجيه...</p>
               </div>
             )}
 
@@ -133,11 +111,9 @@ export default function AuthCallbackPage() {
                 </div>
                 <h1 className="text-xl font-bold mb-2">تعذر تسجيل الدخول</h1>
                 <p className="text-muted-foreground mb-4">{errorMessage}</p>
-                <div className="flex gap-2 justify-center">
-                  <Button variant="outline" onClick={() => navigate('/app/login')}>
-                    العودة لتسجيل الدخول
-                  </Button>
-                </div>
+                <Button variant="outline" onClick={() => navigate('/app/login')}>
+                  العودة لتسجيل الدخول
+                </Button>
               </div>
             )}
           </CardContent>
