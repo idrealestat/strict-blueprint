@@ -1,11 +1,27 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input sanitization
+function sanitizeString(input: unknown, maxLength: number = 500): string {
+  if (typeof input !== 'string') return '';
+  return input.replace(/[<>]/g, '').substring(0, maxLength).trim();
+}
+
+function sanitizeEmail(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const email = input.trim().toLowerCase().substring(0, 254);
+  return emailRegex.test(email) ? email : '';
+}
 
 interface PropertyEmailRequest {
   recipientEmail: string;
@@ -39,10 +55,66 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { recipientEmail, property, selectedSections }: PropertyEmailRequest = await req.json();
 
-    console.log("Sending property email to:", recipientEmail);
+    // Validate and sanitize email
+    const sanitizedEmail = sanitizeEmail(recipientEmail);
+    if (!sanitizedEmail) {
+      return new Response(JSON.stringify({ error: "البريد الإلكتروني غير صالح" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Sending property email to:", sanitizedEmail, "by user:", user.id);
     console.log("Selected sections:", selectedSections);
+
+    // Sanitize property data
+    const sanitizedProperty = {
+      propertyType: sanitizeString(property?.propertyType, 50),
+      category: sanitizeString(property?.category, 50),
+      purpose: sanitizeString(property?.purpose, 50),
+      area: sanitizeString(property?.area, 20),
+      price: sanitizeString(property?.price, 30),
+      locationDetails: {
+        city: sanitizeString(property?.locationDetails?.city, 100),
+        district: sanitizeString(property?.locationDetails?.district, 100),
+        street: sanitizeString(property?.locationDetails?.street, 200),
+      },
+      bedrooms: sanitizeString(property?.bedrooms, 10),
+      bathrooms: sanitizeString(property?.bathrooms, 10),
+      floors: sanitizeString(property?.floors, 10),
+      ownerName: sanitizeString(property?.ownerName, 100),
+      ownerPhone: sanitizeString(property?.ownerPhone, 20),
+      features: Array.isArray(property?.features) ? property.features.slice(0, 50).map(f => sanitizeString(f, 100)) : [],
+      aiDescription: sanitizeString(property?.aiDescription, 2000),
+      brokerPhone: sanitizeString(property?.brokerPhone, 20),
+    };
 
     // Build email HTML content
     let htmlContent = `
@@ -170,7 +242,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p>تفاصيل العقار</p>
           </div>
           <div class="content">
-            <h2 class="property-title">${property.purpose || ''} ${property.propertyType || ''}</h2>
+            <h2 class="property-title">${sanitizedProperty.purpose || ''} ${sanitizedProperty.propertyType || ''}</h2>
     `;
 
     // Basic Info Section
@@ -182,23 +254,23 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">نوع العقار:</span>
-                <span class="info-value">${property.propertyType || '-'}</span>
+                <span class="info-value">${sanitizedProperty.propertyType || '-'}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">التصنيف:</span>
-                <span class="info-value">${property.category || '-'}</span>
+                <span class="info-value">${sanitizedProperty.category || '-'}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">الغرض:</span>
-                <span class="info-value">${property.purpose || '-'}</span>
+                <span class="info-value">${sanitizedProperty.purpose || '-'}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">المساحة:</span>
-                <span class="info-value">${property.area ? `${property.area} م²` : '-'}</span>
+                <span class="info-value">${sanitizedProperty.area ? `${sanitizedProperty.area} م²` : '-'}</span>
               </div>
               <div class="info-item" style="grid-column: span 2;">
                 <span class="info-label">السعر:</span>
-                <span class="info-value price">${property.price ? `${parseInt(property.price).toLocaleString()} ريال` : 'اتصل للسعر'}</span>
+                <span class="info-value price">${sanitizedProperty.price ? `${parseInt(sanitizedProperty.price).toLocaleString()} ريال` : 'اتصل للسعر'}</span>
               </div>
             </div>
           </div>
@@ -215,16 +287,16 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">المدينة:</span>
-                <span class="info-value">${property.locationDetails?.city || '-'}</span>
+                <span class="info-value">${sanitizedProperty.locationDetails?.city || '-'}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">الحي:</span>
-                <span class="info-value">${property.locationDetails?.district || '-'}</span>
+                <span class="info-value">${sanitizedProperty.locationDetails?.district || '-'}</span>
               </div>
-              ${property.locationDetails?.street ? `
+              ${sanitizedProperty.locationDetails?.street ? `
               <div class="info-item" style="grid-column: span 2;">
                 <span class="info-label">الشارع:</span>
-                <span class="info-value">${property.locationDetails.street}</span>
+                <span class="info-value">${sanitizedProperty.locationDetails.street}</span>
               </div>
               ` : ''}
             </div>
@@ -236,9 +308,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Specs Section
     if (selectedSections.includes('specs')) {
       const specs = [];
-      if (property.bedrooms) specs.push(`🛏️ ${property.bedrooms} غرف`);
-      if (property.bathrooms) specs.push(`🚿 ${property.bathrooms} حمام`);
-      if (property.floors) specs.push(`🏢 ${property.floors} أدوار`);
+      if (sanitizedProperty.bedrooms) specs.push(`🛏️ ${sanitizedProperty.bedrooms} غرف`);
+      if (sanitizedProperty.bathrooms) specs.push(`🚿 ${sanitizedProperty.bathrooms} حمام`);
+      if (sanitizedProperty.floors) specs.push(`🏢 ${sanitizedProperty.floors} أدوار`);
 
       if (specs.length > 0) {
         htmlContent += `
@@ -255,13 +327,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Features Section
-    if (selectedSections.includes('features') && property.features && property.features.length > 0) {
+    if (selectedSections.includes('features') && sanitizedProperty.features && sanitizedProperty.features.length > 0) {
       htmlContent += `
         <div class="section">
           <div class="section-title">✨ المميزات</div>
           <div class="section-content">
             <div class="features">
-              ${property.features.map(f => `<span class="feature-badge">✓ ${f}</span>`).join('')}
+              ${sanitizedProperty.features.map(f => `<span class="feature-badge">✓ ${f}</span>`).join('')}
             </div>
           </div>
         </div>
@@ -269,12 +341,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Description Section
-    if (selectedSections.includes('description') && property.aiDescription) {
+    if (selectedSections.includes('description') && sanitizedProperty.aiDescription) {
       htmlContent += `
         <div class="section">
           <div class="section-title">📝 الوصف</div>
           <div class="section-content">
-            <p class="description">${property.aiDescription}</p>
+            <p class="description">${sanitizedProperty.aiDescription}</p>
           </div>
         </div>
       `;
@@ -282,12 +354,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Owner Section
     if (selectedSections.includes('owner')) {
-      const contactPhone = property.brokerPhone || property.ownerPhone;
+      const contactPhone = sanitizedProperty.brokerPhone || sanitizedProperty.ownerPhone;
       htmlContent += `
         <div class="section">
           <div class="section-title">📞 معلومات التواصل</div>
           <div class="section-content" style="text-align: center;">
-            ${property.ownerName ? `<p><strong>الاسم:</strong> ${property.ownerName}</p>` : ''}
+            ${sanitizedProperty.ownerName ? `<p><strong>الاسم:</strong> ${sanitizedProperty.ownerName}</p>` : ''}
             ${contactPhone ? `
               <p><strong>الجوال:</strong> <span dir="ltr">${contactPhone}</span></p>
               <a href="https://wa.me/${contactPhone.replace(/\D/g, '')}" class="contact-btn">
@@ -319,8 +391,8 @@ const handler = async (req: Request): Promise<Response> => {
       },
       body: JSON.stringify({
         from: "Wasata <onboarding@resend.dev>",
-        to: [recipientEmail],
-        subject: `🏠 تفاصيل عقار: ${property.purpose || ''} ${property.propertyType || ''} - ${property.locationDetails?.city || ''}`,
+        to: [sanitizedEmail],
+        subject: `🏠 تفاصيل عقار: ${sanitizedProperty.purpose || ''} ${sanitizedProperty.propertyType || ''} - ${sanitizedProperty.locationDetails?.city || ''}`,
         html: htmlContent,
       }),
     });

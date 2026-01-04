@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 // Valid MIME types for audio
 const VALID_MIME_TYPES = ['audio/webm', 'audio/wav', 'audio/mp3', 'audio/mpeg', 'audio/ogg', 'audio/m4a'];
@@ -17,6 +21,39 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ 
+        error: "غير مصرح - يرجى تسجيل الدخول",
+        text: "",
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(JSON.stringify({ 
+        error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول",
+        text: "",
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { audioData, mimeType } = await req.json();
     
     // Validate audioData exists and is a string
@@ -70,7 +107,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Processing audio data, length:", audioData.length);
+    console.log("Processing audio data for user:", user.id, "length:", audioData.length);
     console.log("MIME type:", mimeType || "not specified");
 
     // استخدام Lovable AI لتحويل الصوت إلى نص
