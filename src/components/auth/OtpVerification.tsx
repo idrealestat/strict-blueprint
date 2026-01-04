@@ -55,6 +55,17 @@ export default function OtpVerification({
 
       if (error) throw error;
 
+      // أخطاء من السيرفر مع 200 (success=false)
+      if (data && data.success === false) {
+        const msg = data.error || 'تعذر إرسال رمز التحقق';
+        toast({
+          title: 'تعذر الإرسال',
+          description: msg,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       if (data?.devMode) {
         console.log('OTP_DEV_MODE', { type, devMode: true });
       }
@@ -106,9 +117,21 @@ export default function OtpVerification({
       }, 1000);
     } catch (error: any) {
       console.error('Error sending OTP:', error);
+
+      // تحسين عرض أخطاء الدوال (قد تأتي كنص JSON)
+      const rawMsg = error?.message || 'حدث خطأ أثناء إرسال رمز التحقق';
+      let parsedMsg = rawMsg;
+      try {
+        const parsed = JSON.parse(rawMsg);
+        parsedMsg = parsed?.error || parsed?.message || parsedMsg;
+        if (parsed?.details) parsedMsg = `${parsedMsg} (${parsed.details})`;
+      } catch {
+        // ignore
+      }
+
       toast({
         title: 'خطأ',
-        description: error.message || 'حدث خطأ أثناء إرسال رمز التحقق',
+        description: parsedMsg,
         variant: 'destructive',
       });
     } finally {
