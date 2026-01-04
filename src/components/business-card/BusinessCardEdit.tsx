@@ -23,6 +23,7 @@ import {
   UploadCloud,
   Info,
   Map,
+  LogOut,
 } from "lucide-react";
 import OfficeLocationMap from "./OfficeLocationMap";
 import UserTitleSelector from "./UserTitleSelector";
@@ -820,6 +821,17 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             عودة
           </Button>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = '/auth';
+              }}
+              className="text-white hover:bg-white/20"
+            >
+              <LogOut className="w-4 h-4 ml-1" />
+              خروج
+            </Button>
             <Button
               variant="ghost"
               onClick={() => setShowPreview(!showPreview)}
