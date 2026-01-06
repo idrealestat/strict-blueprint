@@ -409,15 +409,22 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
             {baseDomain}/
           </span>
           
-          {/* حقل الإدخال */}
+          {/* حقل الإدخال - مقفل إذا كان منشوراً */}
           <Input
             value={value}
             onChange={handleChange}
             placeholder="اسمك أو اسم شركتك"
-            className="flex-1 border-amber-400 focus:ring-amber-500 focus:border-amber-500 text-left font-medium"
+            className={`flex-1 border-amber-400 focus:ring-amber-500 focus:border-amber-500 text-left font-medium ${isPublished ? 'bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-75' : ''}`}
             dir="ltr"
             maxLength={30}
+            disabled={isPublished === true}
           />
+          {/* رسالة القفل إذا كان منشوراً */}
+          {isPublished === true && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              🔒 مقفل
+            </div>
+          )}
         </div>
         
         {/* رسالة الحالة */}
@@ -434,7 +441,19 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
           </div>
         )}
         
-        {availability === 'available' && !errorMessage && value && (
+        {/* رسالة القفل بعد النشر */}
+        {isPublished === true && value && (
+          <div className="mt-3 p-2 rounded bg-amber-100 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700">
+            <p className="text-sm text-amber-700 dark:text-amber-300 text-right font-medium flex items-center gap-2 justify-end">
+              <span>🔒 الرابط مقفل بعد النشر - لا يمكن تغييره</span>
+            </p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 text-right mt-1">
+              رابطك الدائم: {baseDomain}/{value}
+            </p>
+          </div>
+        )}
+        
+        {availability === 'available' && !errorMessage && value && !isPublished && (
           <div className="mt-3 p-2 rounded bg-emerald-100 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
             <p className="text-sm text-emerald-700 dark:text-emerald-300 text-right font-medium">
               {officialDomainVerified 

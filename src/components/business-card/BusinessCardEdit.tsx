@@ -300,16 +300,19 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           }
 
           if (businessCard) {
+            // ❌ ممنوع نقل الملكية التلقائي - البطاقة يجب أن تكون مملوكة للمستخدم الحالي فقط
+            // إذا كانت البطاقة مملوكة لمستخدم آخر، نتجاهلها (لا ننقل ملكيتها)
+            if (businessCard.user_id !== authUser.id) {
+              console.log('Found card with matching identifiers but owned by another user - ignoring');
+              // لا يوجد سجل للمستخدم الحالي
+              setIsPublished(false);
+              setCurrentSlug(null);
+              setProfileLoaded(true);
+              return;
+            }
+            
             setIsPublished(businessCard.published);
             setCurrentSlug(businessCard.slug);
-            
-            // إذا كانت البطاقة مملوكة لمستخدم آخر، نقوم بتحديث الـ user_id
-            if (businessCard.user_id !== authUser.id) {
-              await supabase
-                .from('business_cards')
-                .update({ user_id: authUser.id })
-                .eq('id', businessCard.id);
-            }
             
             // تحميل بيانات البطاقة المحفوظة
             const savedCardData = businessCard.data as Partial<BusinessCardData>;
@@ -497,12 +500,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         }
       }
 
-      // تحديد ما إذا كان هذا أول نشر تلقائي
-      // النشر التلقائي يحدث فقط إذا:
-      // 1. البطاقة غير منشورة حالياً (published = false) أو لا يوجد سجل
-      // 2. يوجد slug متاح
-      // 3. البيانات الأساسية مكتملة (الاسم + الهاتف)
-      const isFirstAutoPublish = (!currentCard || !currentCard.published) && selectedSlug && hasBasicFields;
+      // ❌ لا نشر تلقائي - يجب استخدام زر النشر المنفصل
+      // حفظ slug لا يغير حالة النشر
 
       // 2) إعداد بيانات الحفظ
       const cardDataPayload = JSON.parse(JSON.stringify({
@@ -520,14 +519,20 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       };
 
       if (currentCard) {
-        // تحديث السجل الموجود
+        // ✅ قفل slug: إذا كانت البطاقة منشورة و slug الجديد مختلف -> رفض
+        if (currentCard.published && currentCard.slug && currentCard.slug !== selectedSlug) {
+          toast.error('لا يمكن تغيير الرابط بعد النشر. الرابط مقفل.');
+          return;
+        }
+        
+        // تحديث السجل الموجود (لا تغيير على published - استخدم زر النشر)
         const { error: updateError } = await supabase
           .from('business_cards')
           .update({
             slug: selectedSlug,
             data: cardDataPayload,
             updated_at: new Date().toISOString(),
-            published: isFirstAutoPublish ? true : currentCard.published,
+            // ❌ لا تغيير تلقائي للنشر - يبقى كما هو
             // حفظ المعرفات لاسترداد البطاقة لاحقاً
             ...identifiers
           })
@@ -543,14 +548,14 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           return;
         }
       } else {
-        // إنشاء سجل جديد مع المعرفات
+        // إنشاء سجل جديد مع المعرفات (غير منشور افتراضياً)
         const { error: insertError } = await supabase
           .from('business_cards')
           .insert([{
             user_id: authUser.id,
             slug: selectedSlug,
             data: cardDataPayload,
-            published: !!isFirstAutoPublish,
+            published: false, // ❌ لا نشر تلقائي - يجب استخدام زر النشر
             // حفظ المعرفات لاسترداد البطاقة لاحقاً
             ...identifiers
           }]);
@@ -575,21 +580,10 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
 
-      // تحديث حالة النشر والـ slug في الـ state
+      // تحديث الـ slug في الـ state
       setCurrentSlug(selectedSlug);
-      if (isFirstAutoPublish) {
-        setIsPublished(true);
-        // عرض نافذة النجاح التفصيلية عند أول نشر
-        setFirstPublishSlug(selectedSlug);
-        setShowFirstPublishSuccess(true);
-      }
 
-      // رسالة مختلفة حسب حالة النشر التلقائي
-      if (isFirstAutoPublish) {
-        toast.success('تم نشر صفحتك العامة بنجاح! 🎉');
-      } else {
-        toast.success("تم حفظ التغييرات بنجاح!");
-      }
+      toast.success("تم حفظ التغييرات بنجاح!");
     } catch (error) {
       console.error('Save error:', error);
       setShowError(true);
