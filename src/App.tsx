@@ -34,10 +34,12 @@ import RecoverDomainPage from "./pages/RecoverDomainPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
 import DomainRequestsListPage from "./pages/DomainRequestsListPage";
 import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
+import OwnerDashboard from "./pages/OwnerDashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
 import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
 import { AuthProvider } from "./context/AuthContext";
+import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
 import RoleGuard from "./components/auth/RoleGuard";
@@ -364,8 +366,9 @@ const App = () => {
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <DashboardProvider>
-            <TooltipProvider>
+          <FeatureFlagsProvider>
+            <DashboardProvider>
+              <TooltipProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
@@ -409,6 +412,14 @@ const App = () => {
                     <BusinessCardGuard>
                       <RoleGuard allowedRoles={['owner']} showAccessDenied>
                         <DomainAdminPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  
+                  <Route path="/app/owner" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <OwnerDashboard />
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />
