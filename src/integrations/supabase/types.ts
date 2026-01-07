@@ -322,6 +322,57 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_flags: {
+        Row: {
+          business_card_add_colleague_enabled: boolean | null
+          created_at: string
+          id: string
+          left_slider_enabled: boolean | null
+          offers_requests_enabled: boolean | null
+          publishing_enabled: boolean | null
+          quick_calculator_enabled: boolean | null
+          right_slider_mediation_course_enabled: boolean | null
+          right_slider_team_management_enabled: boolean | null
+          right_slider_workspace_enabled: boolean | null
+          smart_paths_enabled: boolean | null
+          spatial_intelligence_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          left_slider_enabled?: boolean | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          left_slider_enabled?: boolean | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       forbidden_patterns: {
         Row: {
           created_at: string
@@ -826,6 +877,108 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      slug_firstname_exceptions: {
+        Row: {
+          allowed_city: string | null
+          allowed_email: string | null
+          allowed_plan: string | null
+          allowed_user_id: string | null
+          created_at: string
+          first_name_normalized: string
+          id: string
+          is_enabled: boolean | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          allowed_city?: string | null
+          allowed_email?: string | null
+          allowed_plan?: string | null
+          allowed_user_id?: string | null
+          created_at?: string
+          first_name_normalized: string
+          id?: string
+          is_enabled?: boolean | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allowed_city?: string | null
+          allowed_email?: string | null
+          allowed_plan?: string | null
+          allowed_user_id?: string | null
+          created_at?: string
+          first_name_normalized?: string
+          id?: string
+          is_enabled?: boolean | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      slug_registry: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          owner_user_id: string | null
+          reserve_to_user_id: string | null
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          reserve_to_user_id?: string | null
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          reserve_to_user_id?: string | null
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      slug_rules: {
+        Row: {
+          created_at: string
+          id: string
+          max_slug_length: number | null
+          min_slug_length: number | null
+          reject_first_name_slugs: boolean | null
+          reject_first_name_slugs_strict: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_slug_length?: number | null
+          min_slug_length?: number | null
+          reject_first_name_slugs?: boolean | null
+          reject_first_name_slugs_strict?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_slug_length?: number | null
+          min_slug_length?: number | null
+          reject_first_name_slugs?: boolean | null
+          reject_first_name_slugs_strict?: boolean | null
+          updated_at?: string
         }
         Relationships: []
       }
