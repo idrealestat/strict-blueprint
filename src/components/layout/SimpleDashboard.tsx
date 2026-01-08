@@ -4,12 +4,12 @@
  * Main Dashboard Component
  */
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
-
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,7 @@ import {
   Calculator,
   UserCheck,
   Layers,
+  LucideIcon,
 } from "lucide-react";
 
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
@@ -61,10 +62,24 @@ interface SimpleDashboardProps {
   onNavigate: (page: string) => void;
 }
 
+// تعريف عناصر الخدمات مع ربط Feature Flags
+interface ServiceItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  navigateTo: string;
+  badge?: string;
+  badgeClass?: string;
+  flagKey?: keyof import("@/context/FeatureFlagsContext").FeatureFlags;
+  iconBgClass?: string;
+}
+
 export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardProps) {
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   
   // Get offers for notifications sidebar
   const getOffersForNotifications = () => {
@@ -83,6 +98,116 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
   };
   
   const notificationOffers = getOffersForNotifications();
+
+  // تعريف جميع الخدمات مع ربط الـ Feature Flags
+  const allServices: ServiceItem[] = useMemo(() => [
+    {
+      id: "platform",
+      title: "منصتي",
+      description: "نظام متكامل مع CRM وإحصائيات متقدمة وإدارة العقارات",
+      icon: Component,
+      navigateTo: "dashboard-main-252",
+      badge: "النظام الجديد",
+      badgeClass: "bg-[#D4AF37] text-[#01411C]",
+    },
+    {
+      id: "smart-paths",
+      title: "المسارات الذكية",
+      description: "تجميع العقارات حسب المدينة والحي ونوع العقار",
+      icon: Layers,
+      navigateTo: "my-platform-smart",
+      badge: "📁 مسارات ذكية",
+      badgeClass: "bg-gradient-to-r from-[#01411C] to-[#065f41] text-[#D4AF37]",
+      flagKey: "smart_paths_enabled",
+    },
+    {
+      id: "spatial-intelligence",
+      title: "الذكاء المكاني",
+      description: "اختبر تحليل المواقع العقارية وتقييم الجاذبية",
+      icon: Sparkles,
+      navigateTo: "spatial-intelligence",
+      badge: "🧪 اختبار",
+      badgeClass: "bg-gradient-to-r from-blue-600 to-blue-800 text-white",
+      flagKey: "spatial_intelligence_enabled",
+      iconBgClass: "bg-gradient-to-r from-blue-600 to-blue-800",
+    },
+    {
+      id: "publishing",
+      title: "النشر على المنصات",
+      description: "انشر عقاراتك على منصتك الخاصه وعلى المنصات العقارية من مكان واحد",
+      icon: Globe,
+      navigateTo: "advertising",
+      flagKey: "publishing_enabled",
+    },
+    {
+      id: "customer-management",
+      title: "إدارة العملاء",
+      description: "نظام كانبان متقدم لإدارة العملاء مع السحب والإفلات",
+      icon: Users,
+      navigateTo: "customer-management-72",
+      badge: "جديد",
+      badgeClass: "bg-[#D4AF37] text-[#01411C]",
+    },
+    {
+      id: "offers-requests",
+      title: "العروض والطلبات",
+      description: "تواصل مع الملاك والباحثين عن عقارات وقدم خدماتك",
+      icon: TrendingUp,
+      navigateTo: "marketplace-page",
+      badge: "جديد",
+      badgeClass: "bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] text-[#01411C] animate-pulse",
+      flagKey: "offers_requests_enabled",
+    },
+    {
+      id: "analytics",
+      title: "تحليلات السوق",
+      description: "اكتشف اتجاهات السوق العقاري",
+      icon: TrendingUp,
+      navigateTo: "analytics-dashboard",
+    },
+    {
+      id: "smart-matches",
+      title: "الفرص الذكية",
+      description: "تطابق ذكي بين عروضك وطلباتك مع الوسطاء الآخرين",
+      icon: Sparkles,
+      navigateTo: "smart-matches",
+      badge: "✨ ذكاء اصطناعي",
+      badgeClass: "bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse",
+    },
+    {
+      id: "calendar",
+      title: "التقويم والمواعيد",
+      description: "جدولة المواعيد والمعاينات مع العملاء",
+      icon: Calendar,
+      navigateTo: "calendar-system-complete",
+    },
+    {
+      id: "quick-calculator",
+      title: "حاسبة سريعة",
+      description: "حساب العمولة، المساحة، ومسطح البناء",
+      icon: Calculator,
+      navigateTo: "quick-calculator",
+      flagKey: "quick_calculator_enabled",
+    },
+    {
+      id: "business-card",
+      title: "بطاقة أعمالي الرقمية",
+      description: "بطاقة رقمية احترافية للوسيط العقاري",
+      icon: UserCheck,
+      navigateTo: "business-card-profile",
+      badge: "🔒 محمي",
+      badgeClass: "bg-[#D4AF37] text-[#01411C]",
+      iconBgClass: "bg-gradient-to-r from-[#D4AF37] to-[#f1c40f]",
+    },
+  ], []);
+
+  // فلترة الخدمات حسب Feature Flags
+  const visibleServices = useMemo(() => {
+    return allServices.filter(service => {
+      if (!service.flagKey) return true; // الخدمات بدون flag تظهر دائمًا
+      return flags[service.flagKey] === true;
+    });
+  }, [allServices, flags]);
 
   return (
     <div
@@ -118,16 +243,18 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
               </div>
             </div>
 
-            {/* Left: Left Sidebar Icon + Bell */}
+            {/* Left: Left Sidebar Icon + Bell - Conditional on left_slider_enabled */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setLeftSidebarOpen(true)}
-                className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white"
-              >
-                <PanelLeft className="w-5 h-5" />
-              </Button>
+              {flags.left_slider_enabled && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setLeftSidebarOpen(true)}
+                  className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white"
+                >
+                  <PanelLeft className="w-5 h-5" />
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -195,217 +322,40 @@ export default function SimpleDashboard({ user, onNavigate }: SimpleDashboardPro
           </Card>
         )}
 
-        {/* Services Grid */}
+        {/* Services Grid - Dynamic based on Feature Flags */}
         <Card className="border-2 border-[#D4AF37] bg-white shadow-xl">
           <CardHeader>
             <CardTitle className="text-[#01411C] text-center">الخدمات الرئيسية</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {/* منصتي */}
-              <Card
-                onClick={() => onNavigate("dashboard-main-252")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">النظام الجديد</Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <Component className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">منصتي</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    نظام متكامل مع CRM وإحصائيات متقدمة وإدارة العقارات
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* 🆕 منصتي - المسارات الذكية */}
-              <Card
-                onClick={() => onNavigate("my-platform-smart")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-[#D4AF37] text-xs">
-                      📁 مسارات ذكية
-                    </Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <Layers className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">المسارات الذكية</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    تجميع العقارات حسب المدينة والحي ونوع العقار
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* 🧪 اختبار الذكاء المكاني */}
-              <Card
-                onClick={() => onNavigate("spatial-intelligence")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-gradient-to-r from-blue-600 to-blue-800 text-white text-xs">
-                      🧪 اختبار
-                    </Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-blue-600 to-blue-800">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">الذكاء المكاني</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    اختبر تحليل المواقع العقارية وتقييم الجاذبية
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* النشر على المنصات */}
-              <Card
-                onClick={() => onNavigate("advertising")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <Globe className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">النشر على المنصات</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    انشر عقاراتك على منصتك الخاصه وعلى المنصات العقارية من مكان واحد
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* إدارة العملاء */}
-              <Card
-                onClick={() => onNavigate("customer-management-72")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">جديد</Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41] shadow-lg">
-                    <Users className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">إدارة العملاء</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    نظام كانبان متقدم لإدارة العملاء مع السحب والإفلات
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* العروض والطلبات */}
-              <Card
-                onClick={() => onNavigate("marketplace-page")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] text-[#01411C] text-xs animate-pulse">
-                      جديد
-                    </Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41] shadow-lg">
-                    <TrendingUp className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">العروض والطلبات</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    تواصل مع الملاك والباحثين عن عقارات وقدم خدماتك
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* تحليلات السوق */}
-              <Card
-                onClick={() => onNavigate("analytics-dashboard")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <TrendingUp className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">تحليلات السوق</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    اكتشف اتجاهات السوق العقاري
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* الفرص الذكية */}
-              <Card
-                onClick={() => onNavigate("smart-matches")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs animate-pulse">
-                      ✨ ذكاء اصطناعي
-                    </Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <Sparkles className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">الفرص الذكية</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    تطابق ذكي بين عروضك وطلباتك مع الوسطاء الآخرين
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* التقويم والمواعيد */}
-              <Card
-                onClick={() => onNavigate("calendar-system-complete")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <Calendar className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">التقويم والمواعيد</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    جدولة المواعيد والمعاينات مع العملاء
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* حاسبة سريعة */}
-              <Card
-                onClick={() => onNavigate("quick-calculator")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#01411C] to-[#065f41]">
-                    <Calculator className="w-8 h-8 text-[#D4AF37]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">حاسبة سريعة</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    حساب العمولة، المساحة، ومسطح البناء
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* بطاقة أعمالي الرقمية */}
-              <Card
-                onClick={() => onNavigate("business-card-profile")}
-                className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
-              >
-                <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">🔒 محمي</Badge>
-                  </div>
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] shadow-lg">
-                    <UserCheck className="w-8 h-8 text-[#01411C]" />
-                  </div>
-                  <h3 className="font-bold text-[#01411C] mb-2">بطاقة أعمالي الرقمية</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    بطاقة رقمية احترافية للوسيط العقاري
-                  </p>
-                </CardContent>
-              </Card>
+              {visibleServices.map((service) => {
+                const IconComponent = service.icon;
+                return (
+                  <Card
+                    key={service.id}
+                    onClick={() => onNavigate(service.navigateTo)}
+                    className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full"
+                  >
+                    <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
+                      {service.badge && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className={`text-xs ${service.badgeClass || "bg-[#D4AF37] text-[#01411C]"}`}>
+                            {service.badge}
+                          </Badge>
+                        </div>
+                      )}
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
+                        <IconComponent className={`w-8 h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
+                      </div>
+                      <h3 className="font-bold text-[#01411C] mb-2">{service.title}</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {service.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

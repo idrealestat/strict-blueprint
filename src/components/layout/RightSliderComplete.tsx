@@ -4,7 +4,7 @@
  * القائمة اليمنى للتطبيق - القائمة الرئيسية
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,6 +34,7 @@ import {
   Briefcase,
   LogOut,
   FileText,
+  LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureFlags, FeatureFlags } from "@/context/FeatureFlagsContext";
 
 interface Broker {
   id: number;
@@ -60,8 +62,19 @@ interface Broker {
   premium?: boolean;
 }
 
-// Right Sidebar Menu Items - Main Navigation Items
-const RIGHT_SIDEBAR_ITEMS = [
+// Right Sidebar Menu Items - Main Navigation Items with Feature Flags
+interface SidebarItem {
+  id: string;
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  color: string;
+  description?: string;
+  badge?: string;
+  flagKey?: keyof FeatureFlags;
+}
+
+const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
   {
     id: "dashboard",
     icon: Home,
@@ -82,6 +95,7 @@ const RIGHT_SIDEBAR_ITEMS = [
     label: "دورة الوساطة",
     path: "/course",
     color: "#065f41",
+    flagKey: "right_slider_mediation_course_enabled",
   },
   {
     id: "colleagues",
@@ -89,6 +103,7 @@ const RIGHT_SIDEBAR_ITEMS = [
     label: "إدارة الفريق",
     path: "/colleagues",
     color: "#01411C",
+    flagKey: "right_slider_team_management_enabled",
   },
   {
     id: "workspace",
@@ -96,6 +111,7 @@ const RIGHT_SIDEBAR_ITEMS = [
     label: "مساحة العمل",
     path: "/workspace",
     color: "#065f41",
+    flagKey: "right_slider_workspace_enabled",
   },
   {
     id: "archive",
@@ -246,6 +262,15 @@ export default function RightSliderComplete({
   const navigate = useNavigate();
   const { signOut, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { flags } = useFeatureFlags();
+
+  // Filter menu items based on feature flags
+  const visibleMenuItems = useMemo(() => {
+    return RIGHT_SIDEBAR_ITEMS.filter(item => {
+      if (!item.flagKey) return true;
+      return flags[item.flagKey] === true;
+    });
+  }, [flags]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -482,7 +507,7 @@ export default function RightSliderComplete({
       <h3 className="text-lg font-bold text-[#01411C]">القائمة الرئيسية</h3>
 
       <div className="grid grid-cols-1 gap-3">
-        {RIGHT_SIDEBAR_ITEMS.map((item) => {
+        {visibleMenuItems.map((item) => {
           const IconComponent = item.icon;
           return (
             <div
