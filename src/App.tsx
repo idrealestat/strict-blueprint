@@ -38,6 +38,9 @@ import OwnerDashboard from "./pages/OwnerDashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
 import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
+import SlugOfferPage from "./pages/SlugOfferPage";
+import SlugRequestPage from "./pages/SlugRequestPage";
+import SlugQuotePage from "./pages/SlugQuotePage";
 import { AuthProvider } from "./context/AuthContext";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -455,6 +458,9 @@ const App = () => {
                   <Route path="/:slug/card" element={<SlugBusinessCardPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/offers" element={<SlugOffersPage />} />
+                  <Route path="/:slug/offer" element={<SlugOfferPage />} />
+                  <Route path="/:slug/request" element={<SlugRequestPage />} />
+                  <Route path="/:slug/quote" element={<SlugQuotePage />} />
                   
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
