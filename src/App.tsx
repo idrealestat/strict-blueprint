@@ -461,7 +461,8 @@ const App = () => {
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
-          </DashboardProvider>
+            </DashboardProvider>
+          </FeatureFlagsProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
