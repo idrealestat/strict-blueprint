@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/context/AuthContext';
 
 export interface FeatureFlags {
   publishing_enabled: boolean;
@@ -60,7 +60,7 @@ interface FeatureFlagsProviderProps {
 }
 
 export function FeatureFlagsProvider({ children }: FeatureFlagsProviderProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuthContext();
   const [flags, setFlags] = useState<FeatureFlags>(defaultFlags);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
