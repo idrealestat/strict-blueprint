@@ -43,6 +43,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureFlags, FeatureFlags } from "@/context/FeatureFlagsContext";
+import { useAuthContext } from "@/context/AuthContext";
 
 interface Broker {
   id: number;
@@ -90,6 +91,16 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     color: "#D4AF37",
   },
   {
+    id: "owner-panel",
+    icon: Crown,
+    label: "لوحة تحكم المالك",
+    path: "/owner",
+    color: "#D4AF37",
+    description: "إدارة النظام",
+    badge: "👑",
+    flagKey: "right_slider_owner_panel_enabled",
+  },
+  {
     id: "course",
     icon: BookOpen,
     label: "دورة الوساطة",
@@ -99,7 +110,7 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
   },
   {
     id: "colleagues",
-    icon: Crown,
+    icon: Users,
     label: "إدارة الفريق",
     path: "/colleagues",
     color: "#01411C",

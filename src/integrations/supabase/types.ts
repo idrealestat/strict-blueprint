@@ -59,6 +59,63 @@ export type Database = {
         }
         Relationships: []
       }
+      business_feature_rules: {
+        Row: {
+          account_type: string
+          business_card_add_colleague_enabled: boolean | null
+          created_at: string
+          id: string
+          left_slider_enabled: boolean | null
+          notes: string | null
+          offers_requests_enabled: boolean | null
+          publishing_enabled: boolean | null
+          quick_calculator_enabled: boolean | null
+          right_slider_mediation_course_enabled: boolean | null
+          right_slider_owner_panel_enabled: boolean | null
+          right_slider_team_management_enabled: boolean | null
+          right_slider_workspace_enabled: boolean | null
+          smart_paths_enabled: boolean | null
+          spatial_intelligence_enabled: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          left_slider_enabled?: boolean | null
+          notes?: string | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          left_slider_enabled?: boolean | null
+          notes?: string | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_appointments: {
         Row: {
           appointment_date: string
@@ -332,6 +389,7 @@ export type Database = {
           publishing_enabled: boolean | null
           quick_calculator_enabled: boolean | null
           right_slider_mediation_course_enabled: boolean | null
+          right_slider_owner_panel_enabled: boolean | null
           right_slider_team_management_enabled: boolean | null
           right_slider_workspace_enabled: boolean | null
           smart_paths_enabled: boolean | null
@@ -348,6 +406,7 @@ export type Database = {
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
           right_slider_team_management_enabled?: boolean | null
           right_slider_workspace_enabled?: boolean | null
           smart_paths_enabled?: boolean | null
@@ -364,6 +423,7 @@ export type Database = {
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
           right_slider_team_management_enabled?: boolean | null
           right_slider_workspace_enabled?: boolean | null
           smart_paths_enabled?: boolean | null
@@ -397,6 +457,57 @@ export type Database = {
           is_active?: boolean | null
           pattern?: string
           pattern_type?: string | null
+        }
+        Relationships: []
+      }
+      global_feature_defaults: {
+        Row: {
+          business_card_add_colleague_enabled: boolean | null
+          created_at: string
+          id: string
+          left_slider_enabled: boolean | null
+          offers_requests_enabled: boolean | null
+          publishing_enabled: boolean | null
+          quick_calculator_enabled: boolean | null
+          right_slider_mediation_course_enabled: boolean | null
+          right_slider_owner_panel_enabled: boolean | null
+          right_slider_team_management_enabled: boolean | null
+          right_slider_workspace_enabled: boolean | null
+          smart_paths_enabled: boolean | null
+          spatial_intelligence_enabled: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          left_slider_enabled?: boolean | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          left_slider_enabled?: boolean | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1024,6 +1135,69 @@ export type Database = {
           twilio_message_sid?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_feature_overrides: {
+        Row: {
+          business_card_add_colleague_enabled: boolean | null
+          created_at: string
+          email: string | null
+          fal_license_number: string | null
+          id: string
+          left_slider_enabled: boolean | null
+          notes: string | null
+          offers_requests_enabled: boolean | null
+          publishing_enabled: boolean | null
+          quick_calculator_enabled: boolean | null
+          right_slider_mediation_course_enabled: boolean | null
+          right_slider_owner_panel_enabled: boolean | null
+          right_slider_team_management_enabled: boolean | null
+          right_slider_workspace_enabled: boolean | null
+          smart_paths_enabled: boolean | null
+          spatial_intelligence_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          email?: string | null
+          fal_license_number?: string | null
+          id?: string
+          left_slider_enabled?: boolean | null
+          notes?: string | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_card_add_colleague_enabled?: boolean | null
+          created_at?: string
+          email?: string | null
+          fal_license_number?: string | null
+          id?: string
+          left_slider_enabled?: boolean | null
+          notes?: string | null
+          offers_requests_enabled?: boolean | null
+          publishing_enabled?: boolean | null
+          quick_calculator_enabled?: boolean | null
+          right_slider_mediation_course_enabled?: boolean | null
+          right_slider_owner_panel_enabled?: boolean | null
+          right_slider_team_management_enabled?: boolean | null
+          right_slider_workspace_enabled?: boolean | null
+          smart_paths_enabled?: boolean | null
+          spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
