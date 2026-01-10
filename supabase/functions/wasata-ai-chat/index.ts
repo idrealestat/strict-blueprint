@@ -180,7 +180,7 @@ serve(async (req) => {
   try {
     // ============ AUTHENTICATION CHECK ============
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       console.error('No authorization header provided');
       return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
         status: 401,
@@ -194,16 +194,20 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth error:', authError?.message || 'No user found');
+    // استخدام getClaims بدلاً من getUser
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
+    
+    if (authError || !claimsData?.claims?.sub) {
+      console.error('Auth error:', authError?.message || 'invalid claim: missing sub claim');
       return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log('Authenticated user:', user.id);
+    const userId = claimsData.claims.sub;
+    console.log('Authenticated user:', userId);
     // ============ END AUTHENTICATION CHECK ============
 
     // Validate content type
