@@ -60,13 +60,17 @@ interface LinkedCustomer {
 
 // Inner component that uses auth hooks (must be inside AuthProvider)
 const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
-  const { user, isAuthenticated } = useAuthContext();
+  const { user, isAuthenticated, loading: authLoading } = useAuthContext();
   const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (authLoading) return;
+      
       if (!isAuthenticated || !user) {
         setUserData(null);
+        setIsLoading(false);
         return;
       }
 
@@ -111,11 +115,25 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
           plan: 'مجاني',
           rating: 0,
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchUserData();
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, authLoading]);
+
+  // Show loading while fetching user data
+  if (authLoading || isLoading || !userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#01411C] to-[#065f41]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+          <p className="text-white text-lg">جاري تحميل بياناتك...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BusinessCardEdit 
