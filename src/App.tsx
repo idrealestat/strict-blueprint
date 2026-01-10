@@ -46,7 +46,7 @@ import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
 import RoleGuard from "./components/auth/RoleGuard";
-import { useAuth } from "./hooks/useAuth";
+import { useAuthContext } from "./context/AuthContext";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -60,7 +60,7 @@ interface LinkedCustomer {
 
 // Inner component that uses auth hooks (must be inside AuthProvider)
 const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuthContext();
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
@@ -133,7 +133,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
   const [linkedCustomerForAppointment, setLinkedCustomerForAppointment] = useState<LinkedCustomer | null>(null);
   const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<any>(null);
   
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuthContext();
   const [userData, setUserData] = useState<any>(null);
 
   // جلب بيانات المستخدم من profiles و business_cards
