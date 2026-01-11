@@ -22,19 +22,29 @@ interface TabData {
   isNew?: boolean;
 }
 
+interface BrokerInfo {
+  name?: string;
+  phone?: string;
+  email?: string;
+  licenseNumber?: string;
+  company?: string;
+}
+
 interface TabActionsPanelProps {
   tab: TabData;
   customerName: string;
   customerPhone: string;
+  brokerInfo?: BrokerInfo;
   onRepublish?: (data: any) => void;
   onViewDetails?: (data: any) => void;
 }
 
-export default function TabActionsPanel({ tab, customerName, customerPhone, onRepublish, onViewDetails }: TabActionsPanelProps) {
+export default function TabActionsPanel({ tab, customerName, customerPhone, brokerInfo, onRepublish, onViewDetails }: TabActionsPanelProps) {
   const navigate = useNavigate();
   const [showPdfDialog, setShowPdfDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [includeOwnerInfo, setIncludeOwnerInfo] = useState(true);
+  const [includeBrokerInfo, setIncludeBrokerInfo] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Generate PDF
@@ -98,7 +108,40 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, onRe
         yPosition += lineHeight;
       }
 
-      // Property Info
+      // Broker Info - معلومات الوسيط
+      if (includeBrokerInfo && brokerInfo) {
+        doc.setFontSize(14);
+        doc.setTextColor(1, 65, 28); // Forest green
+        doc.text('معلومات الوسيط', pageWidth - 20, yPosition, { align: 'right' });
+        yPosition += lineHeight;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(60);
+        
+        if (brokerInfo.name) {
+          doc.text(`الاسم: ${brokerInfo.name}`, pageWidth - 20, yPosition, { align: 'right' });
+          yPosition += lineHeight;
+        }
+        if (brokerInfo.phone) {
+          doc.text(`الجوال: ${brokerInfo.phone}`, pageWidth - 20, yPosition, { align: 'right' });
+          yPosition += lineHeight;
+        }
+        if (brokerInfo.email) {
+          doc.text(`البريد: ${brokerInfo.email}`, pageWidth - 20, yPosition, { align: 'right' });
+          yPosition += lineHeight;
+        }
+        if (brokerInfo.licenseNumber) {
+          doc.text(`رقم الترخيص: ${brokerInfo.licenseNumber}`, pageWidth - 20, yPosition, { align: 'right' });
+          yPosition += lineHeight;
+        }
+        if (brokerInfo.company) {
+          doc.text(`الشركة: ${brokerInfo.company}`, pageWidth - 20, yPosition, { align: 'right' });
+          yPosition += lineHeight;
+        }
+        
+        yPosition += lineHeight;
+      }
+
       if (tab.type === 'property_offer' || tab.type === 'property_request') {
         doc.setFontSize(14);
         doc.setTextColor(0);
@@ -261,7 +304,7 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, onRe
               className="flex items-center gap-2 bg-[#01411C] hover:bg-[#065f41]"
             >
               <Send className="w-4 h-4" />
-              نشر مرة أخرى
+              نشر الإعلان
             </Button>
             <Button
               variant="outline"
@@ -494,6 +537,14 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, onRe
               />
               <Label htmlFor="includeOwner">تضمين معلومات المالك/العميل</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="includeBroker"
+                checked={includeBrokerInfo}
+                onCheckedChange={(checked) => setIncludeBrokerInfo(checked === true)}
+              />
+              <Label htmlFor="includeBroker">تضمين معلومات الوسيط</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPdfDialog(false)}>
@@ -643,7 +694,7 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, onRe
               className="bg-[#01411C] hover:bg-[#065f41]"
             >
               <Send className="w-4 h-4 ml-2" />
-              نشر مرة أخرى
+              نشر الإعلان
             </Button>
           </DialogFooter>
         </DialogContent>

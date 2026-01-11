@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -474,7 +475,7 @@ const MediaSlide = ({ customer }: { customer: Customer }) => {
 };
 
 // السلايد التاسع - إعلان منشور (مع التبويبات الديناميكية والدوائر النابضة)
-const PublishedAdsSlide = ({ customer }: { customer: Customer }) => {
+const PublishedAdsSlide = ({ customer, brokerInfo }: { customer: Customer; brokerInfo?: any }) => {
   const [customerTabs, setCustomerTabs] = useState<any[]>([]);
   const [viewedOffers, setViewedOffers] = useState<Set<string>>(new Set());
 
@@ -619,6 +620,7 @@ const PublishedAdsSlide = ({ customer }: { customer: Customer }) => {
                   tab={tab}
                   customerName={customer.name}
                   customerPhone={customer.phone}
+                  brokerInfo={brokerInfo}
                   onRepublish={handleRepublish}
                 />
               </div>
@@ -1296,10 +1298,49 @@ export default function CustomerDetailsWithSlides({
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const [customSlides, setCustomSlides] = useState<CustomSlide[]>([]);
+  const [brokerInfo, setBrokerInfo] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const allSlides = [...DEFAULT_SLIDES, ...customSlides];
   const CurrentIcon = allSlides[currentSlide].icon;
+
+  // جلب بيانات الوسيط الحالي
+  useEffect(() => {
+    const fetchBrokerInfo = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // جلب بيانات البطاقة
+          const { data: card } = await supabase
+            .from('business_cards')
+            .select('data, email, phone, fal_license_number')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          // جلب بيانات الملف الشخصي
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone, company_name, fal_license_number')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          const cardData = card?.data as Record<string, any> || {};
+          
+          setBrokerInfo({
+            name: cardData.name || profile?.full_name || '',
+            phone: card?.phone || profile?.phone || '',
+            email: card?.email || user.email || '',
+            licenseNumber: card?.fal_license_number || profile?.fal_license_number || '',
+            company: cardData.company || profile?.company_name || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching broker info:', error);
+      }
+    };
+    
+    fetchBrokerInfo();
+  }, []);
 
   useEffect(() => {
     if (currentSlide === 8) {
@@ -1482,7 +1523,7 @@ export default function CustomerDetailsWithSlides({
               {currentSlide === 5 && <NotesSlide customer={customer} />}
               {currentSlide === 6 && <TasksSlide customer={customer} />}
               {currentSlide === 7 && <MediaSlide customer={customer} />}
-              {currentSlide === 8 && <PublishedAdsSlide customer={customer} />}
+              {currentSlide === 8 && <PublishedAdsSlide customer={customer} brokerInfo={brokerInfo} />}
               {currentSlide === 9 && <FinancingRequestSlide customer={customer} />}
               {currentSlide === 10 && <PropertyOfferSlide customer={customer} />}
               {currentSlide === 11 && <PropertyRequestSlide customer={customer} />}
