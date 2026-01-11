@@ -3,7 +3,7 @@
  * صفحة إرسال عرض عقاري من العميل مع رفع الصور
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,8 +61,12 @@ interface FormData {
   agreeToTerms: boolean;
 }
 
-export default function PublicOfferForm() {
-  const { brokerId } = useParams<{ brokerId: string }>();
+interface PublicOfferFormProps {
+  brokerInfo?: BrokerInfo;
+}
+
+export default function PublicOfferForm({ brokerInfo }: PublicOfferFormProps = {}) {
+  const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -70,8 +74,40 @@ export default function PublicOfferForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [media, setMedia] = useState<MediaFile[]>([]);
+  const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
   
-  const broker = getMockBroker(brokerId || '1');
+  // جلب بيانات الوسيط من business_card إذا كان slug موجود ولم يتم تمرير brokerInfo
+  useEffect(() => {
+    const fetchBrokerData = async () => {
+      if (slug && !brokerInfo) {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('user_id, id, data')
+          .eq('slug', slug)
+          .eq('published', true)
+          .single();
+        
+        if (data) {
+          const cardData = data.data as Record<string, any>;
+          setFetchedBroker({
+            id: data.id,
+            name: cardData?.userName || 'وسيط عقاري',
+            company: cardData?.companyName || cardData?.company || 'شركة عقارية',
+            phone: cardData?.primaryPhone || cardData?.phone || '',
+            email: cardData?.email || '',
+            location: cardData?.location || cardData?.officeAddress || '',
+            licenseNumber: cardData?.falLicense || '',
+            rating: cardData?.rating || 4.5,
+            verified: cardData?.verified || true,
+          });
+        }
+      }
+    };
+    fetchBrokerData();
+  }, [slug, brokerInfo]);
+  
+  // استخدام البيانات الممررة أو المجلوبة أو الافتراضية
+  const broker = brokerInfo || fetchedBroker || getMockBroker(brokerId || '1');
 
   const [formData, setFormData] = useState<FormData>({
     ownerName: '',
