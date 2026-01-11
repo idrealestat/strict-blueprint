@@ -393,8 +393,73 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
       navigate('/app/platform?action=publish');
       
     } else if (tab.type === 'property_request') {
-      localStorage.setItem('request_to_platform', JSON.stringify(tab.data));
-      toast.success('تم إرسال الطلب إلى قسم الطلبات في منصتي');
+      // حفظ بيانات الطلب لنشره في قسم الطلبات
+      const requestData = {
+        // معلومات العميل
+        clientName: tab.data.clientName || '',
+        clientPhone: tab.data.clientPhone || '',
+        clientIdNumber: tab.data.clientIdNumber || '',
+        clientNationalAddress: tab.data.clientNationalAddress || '',
+        
+        // معلومات الطلب
+        propertyType: tab.data.propertyType || '',
+        purpose: tab.data.purpose || '',
+        preferredCity: tab.data.preferredCity || '',
+        preferredDistricts: tab.data.preferredDistricts || '',
+        
+        // المواصفات
+        minArea: tab.data.minArea || '',
+        maxArea: tab.data.maxArea || '',
+        bedrooms: tab.data.bedrooms || '',
+        bathrooms: tab.data.bathrooms || '',
+        livingRooms: tab.data.livingRooms || '',
+        floors: tab.data.floors || '',
+        furnishing: tab.data.furnishing || '',
+        
+        // الميزانية
+        minBudget: tab.data.minBudget || '',
+        maxBudget: tab.data.maxBudget || '',
+        
+        // خيارات الدفعات
+        paymentPrices: tab.data.paymentPrices || {
+          onePayment: '',
+          twoPayments: '',
+          fourPayments: '',
+          monthly: '',
+        },
+        
+        // الميزات
+        hasPool: tab.data.hasPool || false,
+        hasGarden: tab.data.hasGarden || false,
+        hasElevator: tab.data.hasElevator || false,
+        hasParking: tab.data.hasParking || false,
+        hasMaidRoom: tab.data.hasMaidRoom || false,
+        hasDriverRoom: tab.data.hasDriverRoom || false,
+        
+        // متطلبات إضافية
+        additionalRequirements: tab.data.additionalRequirements || '',
+        urgency: tab.data.urgency || 'normal',
+        
+        // معلومات التتبع
+        source: 'customer_tab',
+        originalTabId: tab.id,
+      };
+      
+      localStorage.setItem('wasata_republish_request', JSON.stringify(requestData));
+      
+      if (onRepublish) {
+        onRepublish(tab.data);
+      }
+      
+      toast.success('جاري إضافة الطلب إلى قسم الطلبات...');
+      
+      // إرسال حدث لإضافة الطلب مباشرة لقسم الطلبات
+      window.dispatchEvent(new CustomEvent('addRequestToRequests', { 
+        detail: requestData 
+      }));
+      
+      // الانتقال لصفحة منصتي
+      navigate('/app/platform?action=requests');
     }
   };
 
@@ -459,26 +524,53 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
         );
       
       case 'property_request':
+        const isRequestPublished = tab.data?.isPublished || tab.isPublished;
+        const publishedRequestId = tab.data?.publishedAdId || tab.publishedAdId;
+        
         return (
-          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPdfDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              تحميل PDF
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleRepublish}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              <Send className="w-4 h-4" />
-              إرسال لقسم الطلبات
-            </Button>
+          <div className="flex flex-col gap-3 mt-4 pt-4 border-t">
+            {/* شارة حالة النشر */}
+            {isRequestPublished && (
+              <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <CheckCircle className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-700 font-medium">تم نشر هذا الطلب في قسم الطلبات</span>
+                {publishedRequestId && (
+                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                    #{publishedRequestId.slice(-6)}
+                  </span>
+                )}
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleRepublish}
+                className={`flex items-center gap-2 ${isRequestPublished ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                <Send className="w-4 h-4" />
+                {isRequestPublished ? 'نشر مرة أخرى' : 'إرسال لقسم الطلبات'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPdfDialog(true)}
+                className="flex items-center gap-2 border-blue-300 text-blue-700"
+              >
+                <Download className="w-4 h-4" />
+                تحميل PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDetailsDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                عرض التفاصيل
+              </Button>
+            </div>
           </div>
         );
       

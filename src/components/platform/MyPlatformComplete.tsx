@@ -488,7 +488,7 @@ export default function MyPlatformComplete({
   // State
   const [activeMainTab, setActiveMainTab] = useState<'platform' | 'offers' | 'requests'>('platform');
   const [offers, setOffers] = useState<HierarchicalOffer[]>(() => loadFromStorage());
-  const [requests] = useState<Request[]>(mockRequests);
+  const [requests, setRequests] = useState<Request[]>(mockRequests);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
@@ -682,6 +682,65 @@ export default function MyPlatformComplete({
     if (action === 'publish') {
       setShowPublishDialog(true);
       // مسح البارامتر من URL بعد فتح النموذج
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (action === 'requests') {
+      // الانتقال لتبويب الطلبات وإضافة الطلب الجديد
+      setActiveMainTab('requests');
+      
+      // التحقق من وجود بيانات طلب محفوظة
+      const savedRequest = localStorage.getItem('wasata_republish_request');
+      if (savedRequest) {
+        try {
+          const requestData = JSON.parse(savedRequest);
+          
+          // إنشاء طلب جديد وإضافته للقائمة
+          const newRequest: Request = {
+            id: `R-${Date.now()}`,
+            title: `طلب ${requestData.propertyType || 'عقار'} ${requestData.purpose || ''}`,
+            customerName: requestData.clientName || 'عميل',
+            customerPhone: requestData.clientPhone || '',
+            propertyType: requestData.propertyType || '',
+            purpose: requestData.purpose === 'للإيجار' ? 'rent' : 'sale',
+            city: requestData.preferredCity || '',
+            district: requestData.preferredDistricts || '',
+            budget: { 
+              min: parseInt(requestData.minBudget) || 0, 
+              max: parseInt(requestData.maxBudget) || 0 
+            },
+            bedrooms: parseInt(requestData.bedrooms) || undefined,
+            status: 'new',
+            createdAt: new Date(),
+            notes: requestData.additionalRequirements || '',
+          };
+          
+          setRequests(prev => [newRequest, ...prev]);
+          
+          // تحديث حالة الطلب الأصلي
+          if (requestData.originalTabId && requestData.source === 'customer_tab') {
+            const { updateOriginalRequestStatus } = require('@/hooks/usePublishedAdsManager');
+            const updated = updateOriginalRequestStatus(requestData.originalTabId, newRequest.id);
+            if (updated) {
+              toast.success('✅ تم تحديث حالة الطلب في بطاقة العميل', {
+                description: 'الطلب الأصلي أصبح مرتبطاً بالطلب المنشور',
+                duration: 4000,
+              });
+            }
+          }
+          
+          toast.success('✅ تم إضافة الطلب إلى قسم الطلبات بنجاح', {
+            description: `طلب ${requestData.propertyType} ${requestData.purpose}`,
+            duration: 5000,
+          });
+          
+          // حذف البيانات المحفوظة
+          localStorage.removeItem('wasata_republish_request');
+        } catch (e) {
+          console.error('Error parsing request data:', e);
+          localStorage.removeItem('wasata_republish_request');
+        }
+      }
+      
+      // مسح البارامتر من URL
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams]);
