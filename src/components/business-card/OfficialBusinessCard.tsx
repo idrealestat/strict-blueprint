@@ -333,29 +333,29 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
               <WasataWatermark />
               
               <div className="relative z-10 p-4 h-full flex flex-col items-center justify-center text-center">
-                {/* Identity Image */}
-                <div className="w-16 h-16 rounded-full border-2 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg mb-3">
+                {/* Identity Image - Bigger */}
+                <div className="w-24 h-24 rounded-full border-3 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg mb-2">
                   {identityImage ? (
                     <img src={identityImage} alt={data.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[#01411C] text-2xl font-bold">{avatarFallback}</span>
+                    <span className="text-[#01411C] text-3xl font-bold">{avatarFallback}</span>
                   )}
                 </div>
 
-                {/* Name & Title */}
-                <h2 className="text-white font-bold text-lg">{data.name}</h2>
-                <p className="text-[#D4AF37] text-sm mb-2">{data.title || 'وسيط عقاري معتمد'}</p>
+                {/* Name & Title - Smaller */}
+                <h2 className="text-white font-bold text-sm">{data.name}</h2>
+                <p className="text-[#D4AF37] text-xs mb-1">{data.title || 'وسيط عقاري معتمد'}</p>
 
-                {/* Platform Link */}
-                <div className="bg-white/10 rounded-lg px-4 py-2 backdrop-blur-sm border border-[#D4AF37]/30">
-                  <div className="flex items-center gap-2 text-[#D4AF37] text-sm font-medium">
-                    <Globe className="w-4 h-4" />
+                {/* Platform Link - Smaller */}
+                <div className="bg-white/10 rounded-lg px-3 py-1 backdrop-blur-sm border border-[#D4AF37]/30">
+                  <div className="flex items-center gap-1 text-[#D4AF37] text-xs font-medium">
+                    <Globe className="w-3 h-3" />
                     <span dir="ltr">{publicUrl}</span>
                   </div>
                 </div>
 
-                {/* Wasata Branding */}
-                <p className="text-white/50 text-xs mt-4">منصة وساطة الذكية للعقارات</p>
+                {/* Wasata Branding - Smaller */}
+                <p className="text-white/50 text-[10px] mt-2">منصة وساطة الذكية للعقارات</p>
               </div>
             </Card>
           </div>
