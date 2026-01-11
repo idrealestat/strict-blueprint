@@ -3,7 +3,7 @@
  * صفحة إرسال عرض عقاري من العميل مع رفع الصور
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,12 +61,8 @@ interface FormData {
   agreeToTerms: boolean;
 }
 
-interface PublicOfferFormProps {
-  brokerInfo?: BrokerInfo;
-}
-
-export default function PublicOfferForm({ brokerInfo }: PublicOfferFormProps = {}) {
-  const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
+export default function PublicOfferForm() {
+  const { brokerId } = useParams<{ brokerId: string }>();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -74,47 +70,8 @@ export default function PublicOfferForm({ brokerInfo }: PublicOfferFormProps = {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [media, setMedia] = useState<MediaFile[]>([]);
-  const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
   
-  const [notFound, setNotFound] = useState(false);
-  const [loading, setLoading] = useState(!brokerInfo && !!slug);
-  
-  // جلب بيانات الوسيط من business_card إذا كان slug موجود ولم يتم تمرير brokerInfo
-  useEffect(() => {
-    const fetchBrokerData = async () => {
-      if (slug && !brokerInfo) {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('business_cards')
-          .select('user_id, id, data')
-          .eq('slug', slug)
-          .eq('published', true)
-          .maybeSingle();
-        
-        if (error || !data) {
-          setNotFound(true);
-        } else {
-          const cardData = data.data as Record<string, any>;
-          setFetchedBroker({
-            id: data.id,
-            name: cardData?.userName || 'وسيط عقاري',
-            company: cardData?.companyName || cardData?.company || 'شركة عقارية',
-            phone: cardData?.primaryPhone || cardData?.phone || '',
-            email: cardData?.email || '',
-            location: cardData?.location || cardData?.officeAddress || '',
-            licenseNumber: cardData?.falLicense || '',
-            rating: cardData?.rating || 4.5,
-            verified: cardData?.verified || true,
-          });
-        }
-        setLoading(false);
-      }
-    };
-    fetchBrokerData();
-  }, [slug, brokerInfo]);
-  
-  // استخدام البيانات الممررة أو المجلوبة أو الافتراضية
-  const broker = brokerInfo || fetchedBroker || getMockBroker(brokerId || '1');
+  const broker = getMockBroker(brokerId || '1');
 
   const [formData, setFormData] = useState<FormData>({
     ownerName: '',
@@ -350,28 +307,6 @@ export default function PublicOfferForm({ brokerInfo }: PublicOfferFormProps = {
       setIsSubmitting(false);
     }
   };
-
-  // حالة التحميل
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <Loader2 className="w-8 h-8 animate-spin text-[#01411C]" />
-      </div>
-    );
-  }
-
-  // حالة عدم العثور
-  if (notFound) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
-        <div className="text-center">
-          <Home className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h2 className="text-xl font-bold text-gray-800 mb-2">غير متاح</h2>
-          <p className="text-gray-600">لم يتم العثور على الصفحة المطلوبة</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isSubmitted) {
     return (
