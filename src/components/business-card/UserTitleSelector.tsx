@@ -21,7 +21,7 @@ interface UserTitleSelectorProps {
 
 interface ValidationResult {
   allowed: boolean;
-  status: 'available' | 'unavailable' | 'pending' | 'error';
+  status: 'available' | 'unavailable' | 'pending' | 'error' | 'owned';
   reason?: string;
   matched_company?: string;
   requires_approval?: boolean;
@@ -29,6 +29,7 @@ interface ValidationResult {
   priority_level?: number;
   alternative_suggestions?: string[];
   official_domain_verified?: boolean;
+  is_current_user_slug?: boolean;
 }
 
 interface DomainSettings {
@@ -47,7 +48,7 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
   accountType
 }) => {
   const [isChecking, setIsChecking] = useState(false);
-  const [availability, setAvailability] = useState<'available' | 'unavailable' | 'pending' | 'error' | null>(null);
+  const [availability, setAvailability] = useState<'available' | 'unavailable' | 'pending' | 'error' | 'owned' | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [matchedCompany, setMatchedCompany] = useState("");
   const [settings, setSettings] = useState<DomainSettings | null>(null);
@@ -259,6 +260,10 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
         } else {
           toast.success("النطاق متاح للاستخدام");
         }
+      } else if (result.status === 'owned') {
+        // النطاق مملوك للمستخدم الحالي
+        onAvailabilityChange?.(true);
+        toast.info("✅ هذا هو رابطك الحالي");
       } else {
         onAvailabilityChange?.(false);
         if (result.status === 'pending' && result.requires_approval) {
@@ -346,6 +351,8 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     switch (availability) {
       case 'available':
         return <div className="w-full h-full rounded-full bg-emerald-500" />;
+      case 'owned':
+        return <Check className="w-5 h-5 text-blue-500" />;
       case 'unavailable':
         return <div className="w-full h-full rounded-full bg-red-500" />;
       case 'pending':
@@ -361,6 +368,8 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     switch (availability) {
       case 'available':
         return 'border-emerald-500 bg-emerald-100 dark:bg-emerald-950/30';
+      case 'owned':
+        return 'border-blue-500 bg-blue-100 dark:bg-blue-950/30';
       case 'unavailable':
         return 'border-red-500 bg-red-100 dark:bg-red-950/30';
       case 'pending':
@@ -376,6 +385,8 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     switch (availability) {
       case 'available':
         return 'text-emerald-600 dark:text-emerald-400';
+      case 'owned':
+        return 'text-blue-600 dark:text-blue-400';
       case 'unavailable':
         return 'text-red-600 dark:text-red-400';
       case 'pending':

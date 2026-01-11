@@ -121,13 +121,14 @@ const COMMON_FIRST_NAMES = [
 
 interface ValidationResult {
   allowed: boolean;
-  status: 'available' | 'unavailable' | 'pending' | 'error';
+  status: 'available' | 'unavailable' | 'pending' | 'error' | 'owned';
   reason?: string;
   matched_company?: string;
   requires_approval?: boolean;
   priority_level?: number;
   alternative_suggestions?: string[];
   official_domain_verified?: boolean;
+  is_current_user_slug?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -153,9 +154,18 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // استخراج معرف المستخدم من JWT
+    let currentUserId: string | null = null;
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      currentUserId = user?.id || null;
+    }
+
     const cleanedTitle = cleanName(userTitle);
     const cleanedTitleWithDashes = cleanNameKeepDashes(userTitle);
-    console.log('Validating domain:', userTitle, 'Cleaned:', cleanedTitle);
+    console.log('Validating domain:', userTitle, 'Cleaned:', cleanedTitle, 'CurrentUser:', currentUserId);
 
     // تحديد مستوى الأولوية
     let hasOfficialDomain = false;
@@ -349,6 +359,21 @@ Deno.serve(async (req) => {
       .eq('slug', cleanedTitleWithDashes);
 
     if (existingCards && existingCards.length > 0) {
+      const existingCard = existingCards[0];
+      
+      // التحقق إذا كان النطاق مملوكاً للمستخدم الحالي
+      if (currentUserId && existingCard.user_id === currentUserId) {
+        return new Response(
+          JSON.stringify({
+            allowed: true,
+            status: 'owned',
+            reason: '✅ هذا هو رابطك الحالي',
+            is_current_user_slug: true
+          } as ValidationResult),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       // إذا كان مالك نطاق رسمي، يمكنه المطالبة بالأولوية
       if (officialDomainVerified && priorityLevel === PRIORITY_LEVELS.OFFICIAL_DOMAIN_OWNER) {
         return new Response(
