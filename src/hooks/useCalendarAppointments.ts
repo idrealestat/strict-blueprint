@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { trackEvent } from './useEventTracker';
+import { triggerCalendarNotification } from '@/utils/notificationTriggers';
 
 export interface CalendarAppointment {
   id: string;
@@ -92,7 +94,7 @@ export function useCalendarAppointments() {
   }, []);
 
   // إضافة موعد جديد
-  const addAppointment = async (apt: Omit<CalendarAppointment, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addAppointment = async (apt: Omit<CalendarAppointment, 'id' | 'createdAt' | 'updatedAt'>, userId?: string) => {
     try {
       const dbData = mapAppointmentToDb(apt);
       
@@ -106,6 +108,26 @@ export function useCalendarAppointments() {
 
       const newApt = mapDbToAppointment(data);
       setAppointments(prev => [...prev, newApt]);
+      
+      // Track event
+      await trackEvent({
+        eventName: 'appointment_create',
+        entityType: 'calendar',
+        entityId: data.id,
+        channel: 'in_app_admin',
+        metadata: { type: apt.appointmentType },
+      });
+      
+      // Trigger notification
+      if (userId) {
+        await triggerCalendarNotification(userId, {
+          customerName: apt.customerName,
+          date: apt.appointmentDate.toISOString().split('T')[0],
+          time: apt.appointmentTime,
+          type: apt.appointmentType,
+        });
+      }
+      
       toast.success('تم إضافة الموعد بنجاح');
       return newApt;
     } catch (err: any) {

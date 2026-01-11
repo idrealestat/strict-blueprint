@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { trackEvent } from './useEventTracker';
+import { triggerCRMNotification } from '@/utils/notificationTriggers';
 import type { Json } from '@/integrations/supabase/types';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -192,6 +193,12 @@ export function useCRMCustomers() {
       channel: 'in_app_admin',
       metadata: { source: input.source },
     });
+    
+    // Trigger notification
+    await triggerCRMNotification(user.id, {
+      customerName: input.name,
+      action: 'new',
+    });
 
     setCustomers(prev => [data, ...prev]);
     toast.success('تم إضافة العميل بنجاح');
@@ -201,9 +208,15 @@ export function useCRMCustomers() {
   // Update customer
   const updateCustomer = useCallback(async (
     id: string, 
-    updates: Partial<CreateCustomerInput>
+    updates: Partial<CreateCustomerInput>,
+    options?: { isStatusChange?: boolean; isFollowupChange?: boolean }
   ): Promise<CRMCustomer | null> => {
+    if (!user) return null;
+    
     const updateData: Record<string, any> = { ...updates };
+    
+    // Get current customer for notification
+    const currentCustomer = customers.find(c => c.id === id);
     
     const { data, error } = await supabase
       .from('crm_customers')
@@ -226,10 +239,31 @@ export function useCRMCustomers() {
       channel: 'in_app_admin',
       metadata: { updatedFields: Object.keys(updates) },
     });
+    
+    // Trigger appropriate notification
+    const customerName = data.name || currentCustomer?.name || 'عميل';
+    
+    if (options?.isStatusChange && updates.status) {
+      await triggerCRMNotification(user.id, {
+        customerName,
+        action: 'moved',
+        column: updates.status,
+      });
+    } else if (options?.isFollowupChange && updates.next_follow_up) {
+      await triggerCRMNotification(user.id, {
+        customerName,
+        action: 'updated',
+      });
+    } else {
+      await triggerCRMNotification(user.id, {
+        customerName,
+        action: 'updated',
+      });
+    }
 
     setCustomers(prev => prev.map(c => c.id === id ? data : c));
     return data;
-  }, []);
+  }, [user, customers]);
 
   // Delete customer
   const deleteCustomer = useCallback(async (id: string): Promise<boolean> => {

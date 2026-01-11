@@ -7,6 +7,7 @@ export function usePublicBusinessCard(slug: string | undefined) {
   const [data, setData] = useState<PublicBusinessCardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -27,7 +28,7 @@ export function usePublicBusinessCard(slug: string | undefined) {
 
       const { data, error } = await supabase
         .from("business_cards")
-        .select("data, published, slug")
+        .select("data, published, slug, user_id")
         .eq("slug", slug)
         .maybeSingle();
 
@@ -39,6 +40,7 @@ export function usePublicBusinessCard(slug: string | undefined) {
         console.error("[usePublicBusinessCard] Error:", error);
         setError(error.message);
         setData(null);
+        setUserId(null);
         setLoading(false);
         return;
       }
@@ -47,11 +49,13 @@ export function usePublicBusinessCard(slug: string | undefined) {
       if (!data || data.published !== true) {
         console.log("[usePublicBusinessCard] Card not found or not published");
         setData(null);
+        setUserId(null);
         setLoading(false);
         return;
       }
 
       setData((data?.data as PublicBusinessCardData) ?? null);
+      setUserId(data?.user_id ?? null);
       setLoading(false);
     };
 
@@ -62,5 +66,5 @@ export function usePublicBusinessCard(slug: string | undefined) {
     };
   }, [slug]);
 
-  return { data, loading, error };
+  return { data, loading, error, userId };
 }

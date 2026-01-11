@@ -7,20 +7,22 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Loader2, CreditCard, Phone, Mail, Globe, MapPin, Building2, BadgeCheck } from "lucide-react";
+import { Loader2, CreditCard, Phone, Mail, Globe, MapPin, Building2, BadgeCheck, MessageCircle, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { usePublicBusinessCard } from "@/hooks/usePublicBusinessCard";
 import { useEventTracker } from "@/hooks/useEventTracker";
+import { triggerOfferInteractionNotification } from "@/utils/notificationTriggers";
+import { toast } from "sonner";
 
 const BASE_DOMAIN = "wasataai.com";
 
 const SlugBusinessCardPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { data, loading } = usePublicBusinessCard(slug);
+  const { data, loading, userId } = usePublicBusinessCard(slug);
   const { trackPageView, trackCardInteraction } = useEventTracker();
 
   // Track page view
@@ -29,6 +31,56 @@ const SlugBusinessCardPage: React.FC = () => {
       trackPageView('business_card', slug, 'public_web');
     }
   }, [slug, data, trackPageView]);
+
+  // Handle CTA with tracking and notification
+  const handleCallClick = async () => {
+    if (slug) {
+      trackCardInteraction(slug, 'call', 'public_web');
+      // Trigger notification
+      if (userId) {
+        await triggerOfferInteractionNotification(userId, {
+          offerTitle: fullName || 'بطاقة الأعمال',
+          interactionType: 'call',
+        });
+      }
+    }
+  };
+
+  const handleEmailClick = async () => {
+    if (slug) {
+      trackCardInteraction(slug, 'email', 'public_web');
+      if (userId) {
+        await triggerOfferInteractionNotification(userId, {
+          offerTitle: fullName || 'بطاقة الأعمال',
+          interactionType: 'whatsapp', // Using whatsapp type for email
+        });
+      }
+    }
+  };
+
+  const handleShareClick = async () => {
+    if (slug) {
+      trackCardInteraction(slug, 'share', 'public_web');
+      const url = `https://${BASE_DOMAIN}/${slug}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: fullName, url });
+        } catch {
+          navigator.clipboard.writeText(url);
+          toast.success('تم نسخ الرابط');
+        }
+      } else {
+        navigator.clipboard.writeText(url);
+        toast.success('تم نسخ الرابط');
+      }
+      if (userId) {
+        await triggerOfferInteractionNotification(userId, {
+          offerTitle: fullName || 'بطاقة الأعمال',
+          interactionType: 'share',
+        });
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -100,9 +152,9 @@ const SlugBusinessCardPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2">
               {phone && (
                   <Button 
-                    asChild 
                     className="gap-2"
-                    onClick={() => slug && trackCardInteraction(slug, 'call', 'public_web')}
+                    onClick={handleCallClick}
+                    asChild
                   >
                     <a href={`tel:${phone}`} aria-label="اتصال">
                       <Phone className="h-4 w-4" />
@@ -113,10 +165,10 @@ const SlugBusinessCardPage: React.FC = () => {
 
                 {email && (
                   <Button 
-                    asChild 
                     variant="outline" 
                     className="gap-2"
-                    onClick={() => slug && trackCardInteraction(slug, 'email', 'public_web')}
+                    onClick={handleEmailClick}
+                    asChild
                   >
                     <a href={`mailto:${email}`} aria-label="إرسال بريد">
                       <Mail className="h-4 w-4" />
@@ -125,11 +177,13 @@ const SlugBusinessCardPage: React.FC = () => {
                   </Button>
                 )}
 
-                <Button asChild variant="secondary" className="gap-2">
-                  <a href={canonicalUrl} aria-label="رابط الصفحة" target="_blank" rel="noopener noreferrer">
-                    <Globe className="h-4 w-4" />
-                    {BASE_DOMAIN}/{slug}
-                  </a>
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={handleShareClick}
+                >
+                  <Share2 className="h-4 w-4" />
+                  مشاركة
                 </Button>
               </div>
             </CardHeader>
