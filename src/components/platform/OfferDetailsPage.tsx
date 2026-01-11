@@ -35,7 +35,8 @@ import {
   Video,
   View,
   ZoomIn,
-  Shield
+  Shield,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,8 +48,9 @@ import { mockCustomers, Customer } from '@/data/mockCustomers';
 import { saveViewingAppointmentToDb } from '@/hooks/useCalendarAppointments';
 import { useViewsSync } from '@/hooks/useViewsSync';
 import { showPushNotification } from '@/hooks/usePushNotifications';
-import { useEventTracker } from '@/hooks/useEventTracker';
+import { useEventTracker, getEventStats } from '@/hooks/useEventTracker';
 import { triggerOfferInteractionNotification } from '@/utils/notificationTriggers';
+import { useSingleOfferPresence } from '@/hooks/useRealtimePresence';
 
 interface Listing {
   id: string;
@@ -785,9 +787,24 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [historicalViews, setHistoricalViews] = useState(0);
   
   // Event tracker for CTA tracking
   const { track } = useEventTracker();
+  
+  // المشاهدين المباشرين باستخدام Supabase Presence
+  const liveViewerCount = useSingleOfferPresence(listing.id);
+  
+  // جلب المشاهدات الإجمالية من قاعدة البيانات
+  useEffect(() => {
+    const fetchHistoricalViews = async () => {
+      const stats = await getEventStats('offer', listing.id, 'public_web');
+      setHistoricalViews(stats.total);
+    };
+    if (listing.id) {
+      fetchHistoricalViews();
+    }
+  }, [listing.id]);
   
   // المودالات
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -1031,6 +1048,23 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
                 </Badge>
                 <Badge className="bg-green-500 text-white text-sm font-bold px-3 py-1">
                   متاح
+                </Badge>
+                {/* شارة المشاهدين المباشرين */}
+                {liveViewerCount > 0 && (
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-bold px-3 py-1 flex items-center gap-1.5 animate-pulse">
+                    <div className="relative">
+                      <Users className="w-4 h-4" />
+                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-white rounded-full" />
+                    </div>
+                    <span>{liveViewerCount}</span>
+                    <span className="text-green-100">يشاهدون الآن</span>
+                  </Badge>
+                )}
+                {/* شارة المشاهدات الإجمالية */}
+                <Badge className="bg-gray-800/80 text-white text-sm px-3 py-1 flex items-center gap-1.5">
+                  <Eye className="w-4 h-4" />
+                  <span>{historicalViews || listing.views || 0}</span>
+                  <span className="text-gray-300">مشاهدة</span>
                 </Badge>
               </div>
 
