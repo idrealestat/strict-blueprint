@@ -175,6 +175,35 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
           doc.text(`السعر: ${Number(data.price).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
           yPosition += lineHeight;
         }
+        
+        // حقول الدفعات للإيجار
+        if (data.purpose === 'للإيجار' && data.paymentPrices) {
+          yPosition += lineHeight;
+          doc.setFontSize(12);
+          doc.setTextColor(1, 65, 28);
+          doc.text('خيارات الدفعات:', pageWidth - 20, yPosition, { align: 'right' });
+          yPosition += lineHeight;
+          
+          doc.setFontSize(11);
+          doc.setTextColor(60);
+          
+          if (data.paymentPrices.onePayment) {
+            doc.text(`دفعة واحدة: ${Number(data.paymentPrices.onePayment).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
+            yPosition += lineHeight;
+          }
+          if (data.paymentPrices.twoPayments) {
+            doc.text(`دفعتين: ${Number(data.paymentPrices.twoPayments).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
+            yPosition += lineHeight;
+          }
+          if (data.paymentPrices.fourPayments) {
+            doc.text(`أربع دفعات: ${Number(data.paymentPrices.fourPayments).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
+            yPosition += lineHeight;
+          }
+          if (data.paymentPrices.monthly) {
+            doc.text(`شهري: ${Number(data.paymentPrices.monthly).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
+            yPosition += lineHeight;
+          }
+        }
         if (data.bedrooms) {
           doc.text(`غرف النوم: ${data.bedrooms}`, pageWidth - 20, yPosition, { align: 'right' });
           yPosition += lineHeight;
@@ -632,6 +661,47 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
                   {tab.data.price && <div><span className="text-gray-500">السعر:</span> <span className="font-medium text-green-600">{Number(tab.data.price).toLocaleString()} ريال</span></div>}
                 </div>
               </div>
+
+              {/* خيارات الدفعات للإيجار */}
+              {tab.data.purpose === 'للإيجار' && tab.data.paymentPrices && (
+                (tab.data.paymentPrices.onePayment || tab.data.paymentPrices.twoPayments || 
+                 tab.data.paymentPrices.fourPayments || tab.data.paymentPrices.monthly) && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
+                  <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                    💳 خيارات الدفعات
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {tab.data.paymentPrices.onePayment && (
+                      <div className="bg-white p-3 rounded-lg text-center border border-amber-200">
+                        <span className="block text-gray-500 text-xs mb-1">دفعة واحدة</span>
+                        <span className="font-bold text-amber-700">{Number(tab.data.paymentPrices.onePayment).toLocaleString()}</span>
+                        <span className="text-xs text-gray-400 block">ريال</span>
+                      </div>
+                    )}
+                    {tab.data.paymentPrices.twoPayments && (
+                      <div className="bg-white p-3 rounded-lg text-center border border-amber-200">
+                        <span className="block text-gray-500 text-xs mb-1">دفعتين</span>
+                        <span className="font-bold text-amber-700">{Number(tab.data.paymentPrices.twoPayments).toLocaleString()}</span>
+                        <span className="text-xs text-gray-400 block">ريال</span>
+                      </div>
+                    )}
+                    {tab.data.paymentPrices.fourPayments && (
+                      <div className="bg-white p-3 rounded-lg text-center border border-amber-200">
+                        <span className="block text-gray-500 text-xs mb-1">أربع دفعات</span>
+                        <span className="font-bold text-amber-700">{Number(tab.data.paymentPrices.fourPayments).toLocaleString()}</span>
+                        <span className="text-xs text-gray-400 block">ريال</span>
+                      </div>
+                    )}
+                    {tab.data.paymentPrices.monthly && (
+                      <div className="bg-white p-3 rounded-lg text-center border border-amber-200">
+                        <span className="block text-gray-500 text-xs mb-1">شهري</span>
+                        <span className="font-bold text-amber-700">{Number(tab.data.paymentPrices.monthly).toLocaleString()}</span>
+                        <span className="text-xs text-gray-400 block">ريال</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
 
               {/* المواصفات */}
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
