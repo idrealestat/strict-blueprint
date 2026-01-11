@@ -65,18 +65,24 @@ export default function PublicPriceQuoteForm({ brokerInfo }: PublicPriceQuoteFor
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
   
+  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(!brokerInfo && !!slug);
+  
   // جلب بيانات الوسيط من business_card إذا كان slug موجود ولم يتم تمرير brokerInfo
   useEffect(() => {
     const fetchBrokerData = async () => {
       if (slug && !brokerInfo) {
-        const { data } = await supabase
+        setLoading(true);
+        const { data, error } = await supabase
           .from('business_cards')
           .select('user_id, id, data')
           .eq('slug', slug)
           .eq('published', true)
-          .single();
+          .maybeSingle();
         
-        if (data) {
+        if (error || !data) {
+          setNotFound(true);
+        } else {
           const cardData = data.data as Record<string, any>;
           setFetchedBroker({
             id: data.id,
@@ -90,6 +96,7 @@ export default function PublicPriceQuoteForm({ brokerInfo }: PublicPriceQuoteFor
             verified: cardData?.verified || true,
           });
         }
+        setLoading(false);
       }
     };
     fetchBrokerData();
@@ -199,6 +206,28 @@ export default function PublicPriceQuoteForm({ brokerInfo }: PublicPriceQuoteFor
       setIsSubmitting(false);
     }
   };
+
+  // حالة التحميل
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+        <Loader2 className="w-8 h-8 animate-spin text-[#01411C]" />
+      </div>
+    );
+  }
+
+  // حالة عدم العثور
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+        <div className="text-center">
+          <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">غير متاح</h2>
+          <p className="text-gray-600">لم يتم العثور على الصفحة المطلوبة</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
