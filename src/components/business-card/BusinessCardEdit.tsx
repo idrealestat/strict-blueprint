@@ -1665,6 +1665,15 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     className="mt-1"
                   />
                 </div>
+                <div>
+                  <Label>الحي</Label>
+                  <Input
+                    value={formData.district}
+                    onChange={(e) => handleInputChange("district", e.target.value)}
+                    className="mt-1"
+                    placeholder="مثال: حي الملقا"
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
