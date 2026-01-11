@@ -177,15 +177,6 @@ export default function SimpleDashboard({
     icon: Calculator,
     navigateTo: "quick-calculator",
     flagKey: "quick_calculator_enabled"
-  }, {
-    id: "business-card",
-    title: "بطاقة أعمالي الرقمية",
-    description: "بطاقة رقمية احترافية للوسيط العقاري",
-    icon: UserCheck,
-    navigateTo: "business-card-profile",
-    badge: "🔒 محمي",
-    badgeClass: "bg-[#D4AF37] text-[#01411C]",
-    iconBgClass: "bg-gradient-to-r from-[#D4AF37] to-[#f1c40f]"
   }], []);
 
   // فلترة الخدمات حسب Feature Flags
