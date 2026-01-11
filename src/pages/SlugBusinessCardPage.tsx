@@ -1,22 +1,17 @@
 /**
  * SlugBusinessCardPage.tsx
  * صفحة البطاقة الرقمية العامة بناءً على الـ slug
- * الوصول عبر: wasataai.com/{slug}
+ * الوصول عبر: wasataai.com/{slug}/card
  */
 
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Loader2, CreditCard, Phone, Mail, Globe, MapPin, Building2, BadgeCheck, MessageCircle, Share2, Home, FileText, Calendar, Search } from "lucide-react";
-import { Link } from "react-router-dom";
-
+import { Loader2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { usePublicBusinessCard } from "@/hooks/usePublicBusinessCard";
 import { useEventTracker } from "@/hooks/useEventTracker";
-import { triggerOfferInteractionNotification } from "@/utils/notificationTriggers";
-import { toast } from "sonner";
+import PublicBusinessCardView from "@/components/business-card/PublicBusinessCardView";
 
 const BASE_DOMAIN = "wasataai.com";
 
@@ -24,7 +19,7 @@ const SlugBusinessCardPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data, loading, userId } = usePublicBusinessCard(slug);
-  const { trackPageView, trackCardInteraction } = useEventTracker();
+  const { trackPageView } = useEventTracker();
 
   // Track page view
   useEffect(() => {
@@ -32,56 +27,6 @@ const SlugBusinessCardPage: React.FC = () => {
       trackPageView('business_card', slug, 'public_web');
     }
   }, [slug, data, trackPageView]);
-
-  // Handle CTA with tracking and notification
-  const handleCallClick = async () => {
-    if (slug) {
-      trackCardInteraction(slug, 'call', 'public_web');
-      // Trigger notification
-      if (userId) {
-        await triggerOfferInteractionNotification(userId, {
-          offerTitle: fullName || 'بطاقة الأعمال',
-          interactionType: 'call',
-        });
-      }
-    }
-  };
-
-  const handleEmailClick = async () => {
-    if (slug) {
-      trackCardInteraction(slug, 'email', 'public_web');
-      if (userId) {
-        await triggerOfferInteractionNotification(userId, {
-          offerTitle: fullName || 'بطاقة الأعمال',
-          interactionType: 'whatsapp', // Using whatsapp type for email
-        });
-      }
-    }
-  };
-
-  const handleShareClick = async () => {
-    if (slug) {
-      trackCardInteraction(slug, 'share', 'public_web');
-      const url = `https://${BASE_DOMAIN}/${slug}`;
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: fullName, url });
-        } catch {
-          navigator.clipboard.writeText(url);
-          toast.success('تم نسخ الرابط');
-        }
-      } else {
-        navigator.clipboard.writeText(url);
-        toast.success('تم نسخ الرابط');
-      }
-      if (userId) {
-        await triggerOfferInteractionNotification(userId, {
-          offerTitle: fullName || 'بطاقة الأعمال',
-          interactionType: 'share',
-        });
-      }
-    }
-  };
 
   if (loading) {
     return (
@@ -113,14 +58,10 @@ const SlugBusinessCardPage: React.FC = () => {
 
   const fullName = (data.userName ?? "").toString().trim();
   const title = (data.companyName ?? data.userTitle ?? "وسيط عقاري معتمد").toString().trim();
-  const phone = (data.primaryPhone ?? data.phone ?? "").toString().trim();
-  const email = (data.email ?? "").toString().trim();
-  const websiteUrl = (data.websiteUrl ?? data.website ?? "").toString().trim();
-  const address = (data.officeAddress ?? data.location ?? "").toString().trim();
 
   const pageTitle = fullName ? `${fullName} | بطاقة أعمال رقمية` : "بطاقة أعمال رقمية";
   const pageDescription = fullName ? `${fullName} - ${title}` : "بطاقة أعمال رقمية";
-  const canonicalUrl = `https://${BASE_DOMAIN}/${slug}`;
+  const canonicalUrl = `https://${BASE_DOMAIN}/${slug}/card`;
 
   return (
     <>
@@ -132,157 +73,14 @@ const SlugBusinessCardPage: React.FC = () => {
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="profile" />
         <meta property="og:url" content={canonicalUrl} />
+        {data.profileImage && (
+          <meta property="og:image" content={data.profileImage} />
+        )}
       </Helmet>
 
-      <main className="min-h-screen bg-background" dir="rtl">
-        <section className="mx-auto max-w-xl px-4 py-10">
-          <Card>
-            <CardHeader className="space-y-2">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight">{fullName || "بطاقة أعمال"}</h1>
-                  <p className="text-muted-foreground mt-1">{title}</p>
-                </div>
-
-                <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <BadgeCheck className="h-4 w-4 text-primary" />
-                  <span>صفحة مشاركة عامة</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-              {phone && (
-                  <Button 
-                    className="gap-2"
-                    onClick={handleCallClick}
-                    asChild
-                  >
-                    <a href={`tel:${phone}`} aria-label="اتصال">
-                      <Phone className="h-4 w-4" />
-                      اتصال
-                    </a>
-                  </Button>
-                )}
-
-                {email && (
-                  <Button 
-                    variant="outline" 
-                    className="gap-2"
-                    onClick={handleEmailClick}
-                    asChild
-                  >
-                    <a href={`mailto:${email}`} aria-label="إرسال بريد">
-                      <Mail className="h-4 w-4" />
-                      بريد
-                    </a>
-                  </Button>
-                )}
-
-                <Button 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={handleShareClick}
-                >
-                  <Share2 className="h-4 w-4" />
-                  مشاركة
-                </Button>
-              </div>
-
-              {/* أزرار الإجراءات الرئيسية */}
-              <div className="grid grid-cols-2 gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
-                  asChild
-                >
-                  <Link to={`/${slug}/offer`}>
-                    <Home className="w-5 h-5 text-primary" />
-                    <span className="text-xs">إرسال عرض</span>
-                  </Link>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
-                  asChild
-                >
-                  <Link to={`/${slug}/request`}>
-                    <Search className="w-5 h-5 text-primary" />
-                    <span className="text-xs">إرسال طلب</span>
-                  </Link>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
-                  asChild
-                >
-                  <Link to={`/${slug}/calendar`}>
-                    <Calendar className="w-5 h-5 text-primary" />
-                    <span className="text-xs">حجز موعد</span>
-                  </Link>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
-                  asChild
-                >
-                  <Link to={`/${slug}/quote`}>
-                    <FileText className="w-5 h-5 text-primary" />
-                    <span className="text-xs">طلب عرض سعر</span>
-                  </Link>
-                </Button>
-              </div>
-            </CardHeader>
-
-            <Separator />
-
-            <CardContent className="pt-6 space-y-4">
-              {(address || websiteUrl) && (
-                <div className="grid gap-3">
-                  {address && (
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">الموقع</p>
-                        <p className="text-sm text-muted-foreground">{address}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {websiteUrl && (
-                    <div className="flex items-start gap-3">
-                      <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">الموقع الإلكتروني</p>
-                        <a
-                          className="text-sm text-primary hover:underline break-all"
-                          href={websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {websiteUrl}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {data.bio && (
-                <section aria-label="نبذة">
-                  <h2 className="text-sm font-semibold mb-2">نبذة</h2>
-                  <p className="text-sm text-muted-foreground leading-7">{String(data.bio)}</p>
-                </section>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      </main>
+      <PublicBusinessCardView data={data} slug={slug} />
     </>
   );
 };
 
 export default SlugBusinessCardPage;
-
