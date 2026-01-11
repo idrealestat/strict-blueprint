@@ -24,6 +24,7 @@ import {
   Info,
   Map,
   LogOut,
+  Star,
 } from "lucide-react";
 import OfficeLocationMap from "./OfficeLocationMap";
 import UserTitleSelector from "./UserTitleSelector";
@@ -107,12 +108,23 @@ interface AddressDetails {
 
 // Display options for printed card
 interface CardDisplaySettings {
-  nameDisplay: 'arabic' | 'arabic-english';
+  // Name options
+  showNameEnglish: boolean;
   nameEnglish: string;
+  
+  // Job title
+  showJobTitle: boolean;
   jobTitle: string;
-  phoneDisplay: 'phone-only' | 'phone-whatsapp';
+  
+  // Rating
+  showRating: boolean;
+  
+  // Phone options
+  showPhone: boolean;
+  showWhatsapp: boolean;
   whatsappNumber: string;
-  primaryNumber: 'phone' | 'whatsapp';
+  
+  // Other fields
   showEmail: boolean;
   showCity: boolean;
   showDistrict: boolean;
@@ -189,12 +201,14 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
 
   // Default display options
   const defaultDisplayOptions: CardDisplaySettings = {
-    nameDisplay: 'arabic',
+    showNameEnglish: false,
     nameEnglish: '',
+    showJobTitle: true,
     jobTitle: 'وسيط ومسوق عقاري',
-    phoneDisplay: 'phone-only',
+    showRating: true,
+    showPhone: true,
+    showWhatsapp: false,
     whatsappNumber: '',
-    primaryNumber: 'phone',
     showEmail: true,
     showCity: true,
     showDistrict: false,
@@ -1224,66 +1238,66 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                   تحكم في ما يظهر على بطاقة الأعمال الرسمية وترتيبه
                 </p>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Name Display Options */}
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-[#01411C] font-medium">
-                    <User className="w-4 h-4" />
-                    طريقة عرض الاسم
-                  </Label>
-                  <div className="flex flex-col gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="nameDisplay"
-                        checked={formData.displayOptions.nameDisplay === 'arabic'}
-                        onChange={() => setFormData(prev => ({
-                          ...prev,
-                          displayOptions: { ...prev.displayOptions, nameDisplay: 'arabic' }
-                        }))}
-                        className="text-[#01411C]"
-                      />
-                      <span className="text-sm">الاسم بالعربي فقط</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="nameDisplay"
-                        checked={formData.displayOptions.nameDisplay === 'arabic-english'}
-                        onChange={() => setFormData(prev => ({
-                          ...prev,
-                          displayOptions: { ...prev.displayOptions, nameDisplay: 'arabic-english' }
-                        }))}
-                        className="text-[#01411C]"
-                      />
-                      <span className="text-sm">الاسم بالعربي + الإنجليزي (الإنجليزي أصغر تحت العربي)</span>
-                    </label>
-                  </div>
-                  
-                  {formData.displayOptions.nameDisplay === 'arabic-english' && (
-                    <div className="mr-6">
-                      <Label className="text-xs">الاسم بالإنجليزي</Label>
-                      <Input
-                        value={formData.displayOptions.nameEnglish}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          displayOptions: { ...prev.displayOptions, nameEnglish: e.target.value }
-                        }))}
-                        placeholder="Your Name in English"
-                        className="mt-1"
-                        dir="ltr"
-                      />
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground bg-blue-50 p-2 rounded-lg border border-blue-200">
+                  💡 جميع المعلومات مقتبسة من بطاقة أعمالك الرقمية. أي تغيير هناك ينعكس هنا تلقائياً.
+                </p>
+
+                {/* Name English Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-[#D4AF37]" />
+                    <div>
+                      <span className="text-sm">عرض الاسم بالإنجليزي</span>
+                      <p className="text-xs text-muted-foreground">يظهر تحت الاسم العربي مباشرة</p>
                     </div>
-                  )}
+                  </div>
+                  <Switch
+                    checked={formData.displayOptions.showNameEnglish}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showNameEnglish: checked }
+                    }))}
+                  />
+                </div>
+                
+                {formData.displayOptions.showNameEnglish && (
+                  <div className="mr-6">
+                    <Label className="text-xs">الاسم بالإنجليزي</Label>
+                    <Input
+                      value={formData.displayOptions.nameEnglish}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        displayOptions: { ...prev.displayOptions, nameEnglish: e.target.value }
+                      }))}
+                      placeholder="Your Name in English"
+                      className="mt-1"
+                      dir="ltr"
+                    />
+                  </div>
+                )}
+
+                {/* Job Title Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#D4AF37]" />
+                    <div>
+                      <span className="text-sm">عرض المسمى الوظيفي</span>
+                      <p className="text-xs text-muted-foreground">{formData.displayOptions.jobTitle || 'وسيط ومسوق عقاري'}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.displayOptions.showJobTitle}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showJobTitle: checked }
+                    }))}
+                  />
                 </div>
 
-                <div className="border-t border-[#D4AF37]/20 pt-4">
-                  {/* Job Title */}
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2 text-[#01411C] font-medium">
-                      <Award className="w-4 h-4" />
-                      المسمى الوظيفي
-                    </Label>
+                {formData.displayOptions.showJobTitle && (
+                  <div className="mr-6">
+                    <Label className="text-xs">تعديل المسمى الوظيفي</Label>
                     <Input
                       value={formData.displayOptions.jobTitle}
                       onChange={(e) => setFormData(prev => ({
@@ -1291,148 +1305,132 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                         displayOptions: { ...prev.displayOptions, jobTitle: e.target.value }
                       }))}
                       placeholder="وسيط ومسوق عقاري"
+                      className="mt-1"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      أمثلة: وسيط عقاري، مدير تنفيذي، مسوق عقاري، وسيط ومسوق عقاري
-                    </p>
                   </div>
+                )}
+
+                {/* Rating Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-[#D4AF37]" />
+                    <span className="text-sm">عرض التقييم</span>
+                  </div>
+                  <Switch
+                    checked={formData.displayOptions.showRating}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showRating: checked }
+                    }))}
+                  />
                 </div>
 
-                <div className="border-t border-[#D4AF37]/20 pt-4">
-                  {/* Phone Display Options */}
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2 text-[#01411C] font-medium">
-                      <Phone className="w-4 h-4" />
-                      أرقام التواصل
-                    </Label>
-                    <div className="flex flex-col gap-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="phoneDisplay"
-                          checked={formData.displayOptions.phoneDisplay === 'phone-only'}
-                          onChange={() => setFormData(prev => ({
-                            ...prev,
-                            displayOptions: { ...prev.displayOptions, phoneDisplay: 'phone-only' }
-                          }))}
-                          className="text-[#01411C]"
-                        />
-                        <span className="text-sm">رقم الجوال فقط</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="phoneDisplay"
-                          checked={formData.displayOptions.phoneDisplay === 'phone-whatsapp'}
-                          onChange={() => setFormData(prev => ({
-                            ...prev,
-                            displayOptions: { ...prev.displayOptions, phoneDisplay: 'phone-whatsapp' }
-                          }))}
-                          className="text-[#01411C]"
-                        />
-                        <span className="text-sm">رقم الجوال + رقم الواتساب</span>
-                      </label>
+                {/* Phone Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#D4AF37]" />
+                    <div>
+                      <span className="text-sm">عرض رقم الجوال</span>
+                      <p className="text-xs text-muted-foreground">{formData.primaryPhone || 'غير محدد'}</p>
                     </div>
-
-                    {formData.displayOptions.phoneDisplay === 'phone-whatsapp' && (
-                      <div className="mr-6 space-y-3">
-                        <div>
-                          <Label className="text-xs">رقم الواتساب</Label>
-                          <Input
-                            value={formData.displayOptions.whatsappNumber}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              displayOptions: { ...prev.displayOptions, whatsappNumber: e.target.value }
-                            }))}
-                            placeholder="05xxxxxxxx"
-                            className="mt-1"
-                            dir="ltr"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label className="text-xs mb-2 block">أيهما الرقم الرئيسي؟</Label>
-                          <div className="flex gap-4">
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="primaryNumber"
-                                checked={formData.displayOptions.primaryNumber === 'phone'}
-                                onChange={() => setFormData(prev => ({
-                                  ...prev,
-                                  displayOptions: { ...prev.displayOptions, primaryNumber: 'phone' }
-                                }))}
-                                className="text-[#01411C]"
-                              />
-                              <span className="text-xs">الجوال</span>
-                            </label>
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="primaryNumber"
-                                checked={formData.displayOptions.primaryNumber === 'whatsapp'}
-                                onChange={() => setFormData(prev => ({
-                                  ...prev,
-                                  displayOptions: { ...prev.displayOptions, primaryNumber: 'whatsapp' }
-                                }))}
-                                className="text-[#01411C]"
-                              />
-                              <span className="text-xs">الواتساب</span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
+                  <Switch
+                    checked={formData.displayOptions.showPhone}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showPhone: checked }
+                    }))}
+                  />
                 </div>
 
-                <div className="border-t border-[#D4AF37]/20 pt-4">
-                  {/* Optional Fields */}
-                  <div className="space-y-3">
-                    <Label className="text-[#01411C] font-medium">الحقول الاختيارية</Label>
-                    
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-sm">عرض البريد الإلكتروني</span>
-                      </div>
-                      <Switch
-                        checked={formData.displayOptions.showEmail}
-                        onCheckedChange={(checked) => setFormData(prev => ({
-                          ...prev,
-                          displayOptions: { ...prev.displayOptions, showEmail: checked }
-                        }))}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-sm">عرض المدينة {formData.location && `(${formData.location})`}</span>
-                      </div>
-                      <Switch
-                        checked={formData.displayOptions.showCity}
-                        onCheckedChange={(checked) => setFormData(prev => ({
-                          ...prev,
-                          displayOptions: { ...prev.displayOptions, showCity: checked }
-                        }))}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="text-sm">عرض الحي {formData.district && `(${formData.district})`}</span>
-                      </div>
-                      <Switch
-                        checked={formData.displayOptions.showDistrict}
-                        onCheckedChange={(checked) => setFormData(prev => ({
-                          ...prev,
-                          displayOptions: { ...prev.displayOptions, showDistrict: checked }
-                        }))}
-                      />
+                {/* WhatsApp Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    <div>
+                      <span className="text-sm">عرض رقم الواتساب</span>
+                      <p className="text-xs text-muted-foreground">{formData.displayOptions.whatsappNumber || 'نفس رقم الجوال'}</p>
                     </div>
                   </div>
+                  <Switch
+                    checked={formData.displayOptions.showWhatsapp}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showWhatsapp: checked }
+                    }))}
+                  />
+                </div>
+
+                {formData.displayOptions.showWhatsapp && (
+                  <div className="mr-6">
+                    <Label className="text-xs">رقم واتساب مختلف (اختياري)</Label>
+                    <Input
+                      value={formData.displayOptions.whatsappNumber}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        displayOptions: { ...prev.displayOptions, whatsappNumber: e.target.value }
+                      }))}
+                      placeholder="اتركه فارغاً لاستخدام رقم الجوال"
+                      className="mt-1"
+                      dir="ltr"
+                    />
+                  </div>
+                )}
+
+                {/* Email Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-[#D4AF37]" />
+                    <div>
+                      <span className="text-sm">عرض البريد الإلكتروني</span>
+                      <p className="text-xs text-muted-foreground">{formData.email || 'غير محدد'}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.displayOptions.showEmail}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showEmail: checked }
+                    }))}
+                  />
+                </div>
+
+                {/* City Toggle */}
+                <div className="flex items-center justify-between py-2 border-b border-[#D4AF37]/20">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#D4AF37]" />
+                    <div>
+                      <span className="text-sm">عرض المدينة</span>
+                      <p className="text-xs text-muted-foreground">{formData.location || 'غير محددة'}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.displayOptions.showCity}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showCity: checked }
+                    }))}
+                  />
+                </div>
+
+                {/* District Toggle */}
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#D4AF37]" />
+                    <div>
+                      <span className="text-sm">عرض الحي</span>
+                      <p className="text-xs text-muted-foreground">{formData.district || 'غير محدد'}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={formData.displayOptions.showDistrict}
+                    onCheckedChange={(checked) => setFormData(prev => ({
+                      ...prev,
+                      displayOptions: { ...prev.displayOptions, showDistrict: checked }
+                    }))}
+                  />
                 </div>
               </CardContent>
             </Card>

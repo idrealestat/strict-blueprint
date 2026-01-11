@@ -190,15 +190,15 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
   }
 
   // Get the job title from display options or fallback
-  const jobTitle = displayOptions.jobTitle || data.title || 'وسيط عقاري معتمد';
+  const jobTitle = displayOptions.showJobTitle 
+    ? (displayOptions.jobTitle || data.title || 'وسيط عقاري معتمد')
+    : null;
   
-  // Get phone numbers
-  const primaryPhone = displayOptions.primaryNumber === 'whatsapp' && data.whatsapp 
-    ? data.whatsapp 
-    : data.phone;
-  const secondaryPhone = displayOptions.phoneDisplay === 'phone-whatsapp' && displayOptions.primaryNumber === 'phone'
-    ? data.whatsapp
-    : (displayOptions.phoneDisplay === 'phone-whatsapp' && displayOptions.primaryNumber === 'whatsapp' ? data.phone : null);
+  // Get phone numbers based on display options
+  const phoneToShow = displayOptions.showPhone ? data.phone : null;
+  const whatsappToShow = displayOptions.showWhatsapp 
+    ? (displayOptions.whatsappNumber || data.phone)
+    : null;
 
   // Location display
   const locationText = [
@@ -288,23 +288,27 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                   {/* Name & Title */}
                   <div className="flex-1">
                     <h2 className="text-[#01411C] font-bold text-lg leading-tight">{data.name}</h2>
-                    {displayOptions.nameDisplay === 'arabic-english' && displayOptions.nameEnglish && (
+                    {displayOptions.showNameEnglish && displayOptions.nameEnglish && (
                       <p className="text-[#01411C]/70 text-xs">{displayOptions.nameEnglish}</p>
                     )}
-                    <p className="text-[#D4AF37] text-sm">{jobTitle}</p>
+                    {jobTitle && (
+                      <p className="text-[#D4AF37] text-sm">{jobTitle}</p>
+                    )}
                     {data.companyName && (
                       <p className="text-[#01411C]/70 text-xs">{data.companyName}</p>
                     )}
                     {/* Rating */}
-                    <div className="flex items-center gap-1 mt-1">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${i <= Math.floor(data.rating) ? 'text-[#D4AF37] fill-current' : 'text-[#01411C]/30'}`}
-                        />
-                      ))}
-                      <span className="text-[#D4AF37] text-xs mr-1">{data.rating}</span>
-                    </div>
+                    {displayOptions.showRating && (
+                      <div className="flex items-center gap-1 mt-1">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${i <= Math.floor(data.rating) ? 'text-[#D4AF37] fill-current' : 'text-[#01411C]/30'}`}
+                          />
+                        ))}
+                        <span className="text-[#D4AF37] text-xs mr-1">{data.rating}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* QR Code - Top Right, Bigger */}
@@ -315,17 +319,23 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
 
                 {/* Bottom Section - Contact Info */}
                 <div className="space-y-1.5 mt-2">
-                  {primaryPhone && (
+                  {phoneToShow && (
                     <div className="flex items-center gap-2 text-[#01411C] text-xs">
                       <Phone className="w-3 h-3 text-[#D4AF37]" />
-                      <span dir="ltr">{primaryPhone}</span>
-                      {secondaryPhone && (
+                      <span dir="ltr">{phoneToShow}</span>
+                      {whatsappToShow && whatsappToShow !== phoneToShow && (
                         <>
                           <span className="text-[#D4AF37]">•</span>
                           <MessageCircle className="w-3 h-3 text-green-600" />
-                          <span dir="ltr">{secondaryPhone}</span>
+                          <span dir="ltr">{whatsappToShow}</span>
                         </>
                       )}
+                    </div>
+                  )}
+                  {!phoneToShow && whatsappToShow && (
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                      <MessageCircle className="w-3 h-3 text-green-600" />
+                      <span dir="ltr">{whatsappToShow}</span>
                     </div>
                   )}
                   {displayOptions.showEmail && data.email && (
@@ -376,13 +386,13 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
 
                   {/* Broker Name */}
                   <h2 className="text-white font-bold text-sm">{data.name}</h2>
-                  {displayOptions.nameDisplay === 'arabic-english' && displayOptions.nameEnglish && (
+                  {displayOptions.showNameEnglish && displayOptions.nameEnglish && (
                     <p className="text-white/70 text-[10px]">{displayOptions.nameEnglish}</p>
                   )}
                   
                   {/* Company/Platform Name */}
                   <p className="text-[#D4AF37] text-xs">
-                    {data.companyName || jobTitle}
+                    {data.companyName || jobTitle || 'وسيط عقاري معتمد'}
                   </p>
                 </div>
 
@@ -398,16 +408,16 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
 
                   {/* Phone Numbers */}
                   <div className="flex items-center gap-2 text-white text-xs">
-                    {primaryPhone && (
+                    {phoneToShow && (
                       <div className="flex items-center gap-1">
                         <Phone className="w-3 h-3 text-[#D4AF37]" />
-                        <span dir="ltr">{primaryPhone}</span>
+                        <span dir="ltr">{phoneToShow}</span>
                       </div>
                     )}
-                    {secondaryPhone && (
+                    {whatsappToShow && whatsappToShow !== phoneToShow && (
                       <div className="flex items-center gap-1">
                         <MessageCircle className="w-3 h-3 text-green-400" />
-                        <span dir="ltr">{secondaryPhone}</span>
+                        <span dir="ltr">{whatsappToShow}</span>
                       </div>
                     )}
                   </div>

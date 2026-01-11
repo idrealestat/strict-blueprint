@@ -5,17 +5,21 @@
 
 // Card display options - خيارات عرض البطاقة
 export interface CardDisplayOptions {
-  // Name display
-  nameDisplay: 'arabic' | 'arabic-english';
+  // Name options
+  showNameEnglish: boolean;
   nameEnglish?: string;
   
   // Job title
+  showJobTitle: boolean;
   jobTitle: string;
   
-  // Phone display
-  phoneDisplay: 'phone-only' | 'phone-whatsapp';
+  // Rating
+  showRating: boolean;
+  
+  // Phone options
+  showPhone: boolean;
+  showWhatsapp: boolean;
   whatsappNumber?: string;
-  primaryNumber: 'phone' | 'whatsapp';
   
   // Optional fields visibility
   showEmail: boolean;
@@ -59,12 +63,14 @@ export interface BusinessCardSourceOfTruth {
 
 // Default display options
 export const defaultDisplayOptions: CardDisplayOptions = {
-  nameDisplay: 'arabic',
+  showNameEnglish: false,
   nameEnglish: '',
+  showJobTitle: true,
   jobTitle: 'وسيط ومسوق عقاري',
-  phoneDisplay: 'phone-only',
+  showRating: true,
+  showPhone: true,
+  showWhatsapp: false,
   whatsappNumber: '',
-  primaryNumber: 'phone',
   showEmail: true,
   showCity: true,
   showDistrict: false,
@@ -94,14 +100,14 @@ export function getAvatarFallback(name: string): string {
 export function generateVCard(data: BusinessCardSourceOfTruth): string {
   const url = `https://wasataai.com/${data.slug}`;
   const displayOptions = data.displayOptions || defaultDisplayOptions;
-  const phone = displayOptions.primaryNumber === 'whatsapp' ? (data.whatsapp || data.phone) : data.phone;
+  const phone = displayOptions.showWhatsapp && data.whatsapp ? data.whatsapp : data.phone;
   
   return `BEGIN:VCARD
 VERSION:3.0
 FN:${data.name}
 N:${data.name};;;
 ORG:${data.companyName || ''}
-TITLE:${displayOptions.jobTitle || 'وسيط عقاري معتمد'}
+TITLE:${displayOptions.showJobTitle ? displayOptions.jobTitle : ''}
 TEL;TYPE=CELL:${phone || ''}
 EMAIL:${data.email || ''}
 ADR;TYPE=WORK:;;${data.city || ''};;;
