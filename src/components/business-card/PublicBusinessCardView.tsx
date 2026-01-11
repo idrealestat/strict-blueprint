@@ -153,8 +153,9 @@ END:VCARD`;
   };
 
   // Share business card
+  const cardLink = `https://${BASE_DOMAIN}/${slug}/card`;
+
   const shareBusinessCard = async () => {
-    const cardLink = `https://${BASE_DOMAIN}/${slug}/card`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -171,8 +172,6 @@ END:VCARD`;
       toast.success("تم نسخ الرابط!");
     }
   };
-
-  const fullUrl = `https://${BASE_DOMAIN}/${slug}`;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16" dir="rtl">
@@ -201,14 +200,14 @@ END:VCARD`;
               <Globe className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
               <span className="text-xs text-white/70">الرابط:</span>
               <span className="text-sm font-medium text-white truncate" dir="ltr">
-                {fullUrl}
+                {cardLink}
               </span>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                navigator.clipboard.writeText(fullUrl);
+                navigator.clipboard.writeText(cardLink);
                 toast.success("تم نسخ الرابط!");
               }}
               className="text-white hover:bg-white/20 px-2 py-1 h-auto flex-shrink-0"
