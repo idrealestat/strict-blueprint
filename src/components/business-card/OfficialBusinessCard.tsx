@@ -332,30 +332,48 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
             <Card className="w-full h-full bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] border-4 border-[#D4AF37] rounded-xl overflow-hidden shadow-2xl">
               <WasataWatermark />
               
-              <div className="relative z-10 p-4 h-full flex flex-col items-center justify-center text-center">
-                {/* Identity Image - Bigger */}
-                <div className="w-24 h-24 rounded-full border-4 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg shadow-[#D4AF37]/30 mb-2 ring-2 ring-[#D4AF37]/50 ring-offset-2 ring-offset-[#01411C]">
-                  {identityImage ? (
-                    <img src={identityImage} alt={data.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[#01411C] text-3xl font-bold">{avatarFallback}</span>
+              <div className="relative z-10 p-4 h-full flex flex-col items-center justify-between text-center">
+                {/* Top Section - Logo, Name, Company */}
+                <div className="flex flex-col items-center pt-2">
+                  {/* Identity Image/Logo */}
+                  <div className="w-20 h-20 rounded-full border-4 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg shadow-[#D4AF37]/30 mb-2 ring-2 ring-[#D4AF37]/50 ring-offset-2 ring-offset-[#01411C]">
+                    {identityImage ? (
+                      <img src={identityImage} alt={data.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[#01411C] text-2xl font-bold">{avatarFallback}</span>
+                    )}
+                  </div>
+
+                  {/* Broker Name */}
+                  <h2 className="text-white font-bold text-sm">{data.name}</h2>
+                  
+                  {/* Company/Platform Name */}
+                  <p className="text-[#D4AF37] text-xs">
+                    {data.companyName || data.title || 'وسيط عقاري معتمد'}
+                  </p>
+                </div>
+
+                {/* Middle Section - Domain & Phone */}
+                <div className="flex flex-col items-center gap-2">
+                  {/* Platform Link */}
+                  <div className="bg-white/10 rounded-lg px-3 py-1 backdrop-blur-sm border border-[#D4AF37]/30">
+                    <div className="flex items-center gap-1 text-[#D4AF37] text-xs font-medium">
+                      <Globe className="w-3 h-3" />
+                      <span dir="ltr">{publicUrl}</span>
+                    </div>
+                  </div>
+
+                  {/* Phone Number */}
+                  {data.phone && (
+                    <div className="flex items-center gap-1 text-white text-xs">
+                      <Phone className="w-3 h-3 text-[#D4AF37]" />
+                      <span dir="ltr">{data.phone}</span>
+                    </div>
                   )}
                 </div>
 
-                {/* Name & Title - Smaller */}
-                <h2 className="text-white font-bold text-sm">{data.name}</h2>
-                <p className="text-[#D4AF37] text-xs mb-1">{data.title || 'وسيط عقاري معتمد'}</p>
-
-                {/* Platform Link - Smaller */}
-                <div className="bg-white/10 rounded-lg px-3 py-1 backdrop-blur-sm border border-[#D4AF37]/30">
-                  <div className="flex items-center gap-1 text-[#D4AF37] text-xs font-medium">
-                    <Globe className="w-3 h-3" />
-                    <span dir="ltr">{publicUrl}</span>
-                  </div>
-                </div>
-
-                {/* Wasata Branding - Smaller */}
-                <p className="text-white/50 text-[10px] mt-2">منصة وساطة الذكية للعقارات</p>
+                {/* Bottom - Wasata Branding */}
+                <p className="text-white/60 text-[10px] pb-1">منصة الوساطة الذكية للعقارات</p>
               </div>
             </Card>
           </div>
