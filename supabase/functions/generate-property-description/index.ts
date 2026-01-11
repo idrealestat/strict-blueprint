@@ -56,6 +56,8 @@ interface PropertyData {
   livingRooms: string;
   councils: string;
   floors: string;
+  floorNumber: string; // رقم الدور (للشقق)
+  cornerType: string; // زاوية / بطن
   furnishing: string;
   propertyAge: string;
   features: string[];
@@ -70,6 +72,12 @@ interface PropertyData {
   acUnits: string;
   balconies: string;
   entrances: string;
+  warehouses: string; // مستودعات
+  curtains: string; // ستائر
+  hasExtraKitchen: boolean; // مطبخ إضافي
+  extraKitchenAppliances: string; // أجهزة المطبخ
+  hasLaundryRoom: boolean; // غرفة غسيل
+  price: string; // السعر
 }
 
 function validateAndSanitizePropertyData(raw: unknown): PropertyData {
@@ -87,6 +95,8 @@ function validateAndSanitizePropertyData(raw: unknown): PropertyData {
     livingRooms: sanitizeString(data.livingRooms, 10),
     councils: sanitizeString(data.councils, 10),
     floors: sanitizeString(data.floors, 10),
+    floorNumber: sanitizeString(data.floorNumber, 10),
+    cornerType: sanitizeString(data.cornerType, 20),
     furnishing: sanitizeString(data.furnishing, 50),
     propertyAge: sanitizeString(data.propertyAge, 10),
     features: sanitizeArray(data.features, 50, 100),
@@ -101,6 +111,12 @@ function validateAndSanitizePropertyData(raw: unknown): PropertyData {
     acUnits: sanitizeString(data.acUnits, 10),
     balconies: sanitizeString(data.balconies, 10),
     entrances: sanitizeString(data.entrances, 20),
+    warehouses: sanitizeString(data.warehouses, 10),
+    curtains: sanitizeString(data.curtains, 10),
+    hasExtraKitchen: data.hasExtraKitchen === true,
+    extraKitchenAppliances: sanitizeString(data.extraKitchenAppliances, 200),
+    hasLaundryRoom: data.hasLaundryRoom === true,
+    price: sanitizeString(data.price, 20),
   };
 }
 
@@ -216,7 +232,7 @@ serve(async (req) => {
         languagePrompt = "اكتب الوصف باللغة العربية";
     }
 
-    // بناء معلومات العقار
+    // بناء معلومات العقار - جميع الحقول
     const propertyInfo = `
 معلومات العقار:
 - نوع العقار: ${propertyData.propertyType || 'غير محدد'}
@@ -225,11 +241,14 @@ serve(async (req) => {
 - المساحة: ${propertyData.area ? `${propertyData.area} متر مربع` : 'غير محدد'}
 - المدينة: ${propertyData.city || 'غير محدد'}
 - الحي: ${propertyData.district || 'غير محدد'}
+${propertyData.price ? `- السعر: ${propertyData.price} ريال` : ''}
 ${propertyData.bedrooms ? `- غرف النوم: ${propertyData.bedrooms}` : ''}
 ${propertyData.bathrooms ? `- دورات المياه: ${propertyData.bathrooms}` : ''}
 ${propertyData.livingRooms ? `- الصالات: ${propertyData.livingRooms}` : ''}
 ${propertyData.councils ? `- المجالس: ${propertyData.councils}` : ''}
 ${propertyData.floors ? `- الأدوار: ${propertyData.floors}` : ''}
+${propertyData.floorNumber ? `- رقم الدور: ${propertyData.floorNumber}` : ''}
+${propertyData.cornerType ? `- الموقع: ${propertyData.cornerType}` : ''}
 ${propertyData.furnishing ? `- التأثيث: ${propertyData.furnishing}` : ''}
 ${propertyData.propertyAge ? `- عمر العقار: ${propertyData.propertyAge} سنوات` : ''}
 ${propertyData.streetWidth ? `- عرض الشارع: ${propertyData.streetWidth} متر` : ''}
@@ -237,6 +256,10 @@ ${propertyData.facade ? `- الواجهة: ${propertyData.facade}` : ''}
 ${propertyData.acUnits ? `- عدد المكيفات: ${propertyData.acUnits}` : ''}
 ${propertyData.balconies ? `- عدد البلكونات: ${propertyData.balconies}` : ''}
 ${propertyData.entrances ? `- المداخل: ${propertyData.entrances}` : ''}
+${propertyData.warehouses ? `- المستودعات: ${propertyData.warehouses}` : ''}
+${propertyData.curtains ? `- الستائر: ${propertyData.curtains}` : ''}
+${propertyData.hasLaundryRoom ? `- غرفة غسيل: نعم` : ''}
+${propertyData.hasExtraKitchen ? `- مطبخ إضافي: نعم${propertyData.extraKitchenAppliances ? ` (${propertyData.extraKitchenAppliances})` : ''}` : ''}
 ${propertyData.features && propertyData.features.length > 0 ? `- المميزات: ${propertyData.features.join('، ')}` : ''}
 ${propertyData.warranties && propertyData.warranties.length > 0 ? `- الضمانات: ${propertyData.warranties.map(w => `${w.type} (${w.duration})`).join('، ')}` : ''}
     `.trim();

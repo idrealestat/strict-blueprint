@@ -52,6 +52,7 @@ import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone } from "@/
 import PublishSuccessActions from "./PublishSuccessActions";
 import AIDescription from "./AIDescription";
 import PropertyMediaUpload, { MediaFile } from "./PropertyMediaUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 // ===================== Types =====================
 
@@ -659,6 +660,14 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     setIsGeneratingPrices(true);
     
     try {
+      // الحصول على توكن المستخدم الحالي
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('يرجى تسجيل الدخول أولاً');
+        setIsGeneratingPrices(false);
+        return;
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-smart-prices`,
         {
@@ -666,7 +675,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             propertyData: {
@@ -2137,20 +2146,27 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               district={propertyData.locationDetails.district}
               propertyType={propertyData.propertyType}
               features={{
+                category: propertyData.category,
                 area: propertyData.area ? parseInt(propertyData.area) : undefined,
                 bedrooms: propertyData.bedrooms ? parseInt(propertyData.bedrooms) : undefined,
                 bathrooms: propertyData.bathrooms ? parseInt(propertyData.bathrooms) : undefined,
                 livingRooms: propertyData.livingRooms ? parseInt(propertyData.livingRooms) : undefined,
                 councils: propertyData.councils ? parseInt(propertyData.councils) : undefined,
                 floors: propertyData.floors ? parseInt(propertyData.floors) : undefined,
+                floorNumber: propertyData.floorNumber ? parseInt(propertyData.floorNumber) : undefined,
+                cornerType: propertyData.cornerType,
                 furnishing: propertyData.furnishing,
                 propertyAge: propertyData.propertyAge ? parseInt(propertyData.propertyAge) : undefined,
                 streetWidth: propertyData.streetWidth ? parseInt(propertyData.streetWidth) : undefined,
                 facade: propertyData.facade,
                 airConditioners: propertyData.acUnits ? parseInt(propertyData.acUnits) : undefined,
                 balconies: propertyData.balconies ? parseInt(propertyData.balconies) : undefined,
-                entrances: propertyData.entrances as 'مدخلين' | 'مدخل واحد' | 'ثلاث مداخل أو أكثر' | undefined,
+                entrances: propertyData.entrances,
+                warehouses: propertyData.warehouses ? parseInt(propertyData.warehouses) : undefined,
+                curtains: propertyData.curtains ? parseInt(propertyData.curtains) : undefined,
                 hasLaundryRoom: propertyData.hasLaundryRoom,
+                hasExtraKitchen: propertyData.hasExtraKitchen,
+                extraKitchenAppliances: propertyData.extraKitchenAppliances,
                 customFeatures: [...propertyData.features, ...propertyData.customFeatures],
                 warranties: propertyData.warranties,
               }}

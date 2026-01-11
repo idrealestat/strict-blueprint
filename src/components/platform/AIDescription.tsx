@@ -109,15 +109,19 @@ export default function AIDescription({
           body: JSON.stringify({
             propertyData: {
               propertyType,
+              category: features?.category || '',
               purpose: purposeMap[mode],
               city,
               district,
+              price: price?.toString() || '',
               area: features?.area?.toString() || '',
               bedrooms: features?.bedrooms?.toString() || '',
               bathrooms: features?.bathrooms?.toString() || '',
               livingRooms: features?.livingRooms?.toString() || '',
               councils: features?.councils?.toString() || '',
               floors: features?.floors?.toString() || '',
+              floorNumber: features?.floorNumber?.toString() || '',
+              cornerType: features?.cornerType || '',
               furnishing: features?.furnishing || '',
               propertyAge: features?.propertyAge?.toString() || '',
               streetWidth: features?.streetWidth?.toString() || '',
@@ -125,6 +129,11 @@ export default function AIDescription({
               acUnits: features?.airConditioners?.toString() || '',
               balconies: features?.balconies?.toString() || '',
               entrances: features?.entrances || '',
+              warehouses: features?.warehouses?.toString() || '',
+              curtains: features?.curtains?.toString() || '',
+              hasLaundryRoom: features?.hasLaundryRoom || false,
+              hasExtraKitchen: features?.hasExtraKitchen || false,
+              extraKitchenAppliances: features?.extraKitchenAppliances || '',
               features: features?.customFeatures || [],
               warranties: features?.warranties || [],
               descriptionStyle: style,
@@ -133,7 +142,7 @@ export default function AIDescription({
               brokerPhone: brokerPhone || '',
               adLicense: adLicense || '',
               generateMultiple: true,
-              generateTitles: true, // طلب توليد عناوين
+              generateTitles: true,
             }
           }),
         }
