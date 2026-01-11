@@ -1,6 +1,7 @@
 /**
  * VisitorsHeatMap.tsx
  * خريطة حرارية لمواقع الزوار مع الذكاء المكاني
+ * يستخدم قاعدة البيانات بدلاً من localStorage
  */
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
+import { useOfferViewsLog } from '@/hooks/useOfferViewsLog';
 import { 
   MapPin, 
   Flame, 
@@ -82,105 +84,94 @@ const VisitorsHeatMap: React.FC<VisitorsHeatMapProps> = ({
   const heatLayerRef = useRef<any>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   
+  const { logs: dbLogs, loading: isLoading, refetch } = useOfferViewsLog();
   const [visitors, setVisitors] = useState<VisitorLocation[]>([]);
   const [stats, setStats] = useState<HeatMapStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'all'>('week');
   const [showMarkers, setShowMarkers] = useState(true);
   const [selectedVisitor, setSelectedVisitor] = useState<VisitorLocation | null>(null);
 
-  // تحميل بيانات الزوار
-  const loadVisitors = () => {
-    setIsLoading(true);
-    try {
-      const viewsLog = JSON.parse(localStorage.getItem('offer_views_log') || '[]');
-      const now = new Date();
+  // Transform DB logs to visitor locations
+  useEffect(() => {
+    if (isLoading) return;
+    
+    const now = new Date();
+    
+    // فلترة حسب الوقت
+    const filtered = dbLogs.filter((log) => {
+      if (!log.created_at) return false;
+      const logDate = new Date(log.created_at);
+      const diffDays = (now.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24);
       
-      // فلترة حسب الوقت
-      const filtered = viewsLog.filter((log: any) => {
-        if (!log.timestamp) return false;
-        const logDate = new Date(log.timestamp);
-        const diffDays = (now.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24);
-        
-        switch (timeFilter) {
-          case 'today': return diffDays <= 1;
-          case 'week': return diffDays <= 7;
-          case 'month': return diffDays <= 30;
-          default: return true;
-        }
-      });
+      switch (timeFilter) {
+        case 'today': return diffDays <= 1;
+        case 'week': return diffDays <= 7;
+        case 'month': return diffDays <= 30;
+        default: return true;
+      }
+    });
 
-      // تحويل إلى مواقع مع إحداثيات
-      const visitorLocations: VisitorLocation[] = filtered.map((log: any, index: number) => {
-        let lat = 24.7136; // الرياض افتراضياً
-        let lng = 46.6753;
-        
-        // محاولة الحصول على الإحداثيات من اسم المدينة
-        if (log.city && SAUDI_CITIES[log.city]) {
-          [lat, lng] = SAUDI_CITIES[log.city];
-          // إضافة بعض التباين العشوائي
-          lat += (Math.random() - 0.5) * 0.1;
-          lng += (Math.random() - 0.5) * 0.1;
-        } else if (log.lat && log.lng) {
-          lat = log.lat;
-          lng = log.lng;
-        } else {
-          // توزيع عشوائي في السعودية
-          lat = 20 + Math.random() * 10;
-          lng = 38 + Math.random() * 15;
-        }
+    // تحويل إلى مواقع مع إحداثيات
+    const visitorLocations: VisitorLocation[] = filtered.map((log, index) => {
+      let lat = 24.7136; // الرياض افتراضياً
+      let lng = 46.6753;
+      
+      // محاولة الحصول على الإحداثيات من اسم المدينة
+      if (log.city && SAUDI_CITIES[log.city]) {
+        [lat, lng] = SAUDI_CITIES[log.city];
+        // إضافة بعض التباين العشوائي
+        lat += (Math.random() - 0.5) * 0.1;
+        lng += (Math.random() - 0.5) * 0.1;
+      } else {
+        // توزيع عشوائي في السعودية
+        lat = 20 + Math.random() * 10;
+        lng = 38 + Math.random() * 15;
+      }
 
-        return {
-          id: `visitor_${index}_${Date.now()}`,
-          lat,
-          lng,
-          city: log.city,
-          country: log.country || 'السعودية',
-          device: log.device || 'غير معروف',
-          browser: log.browser || 'غير معروف',
-          timestamp: log.timestamp,
-          offerId: log.offerId,
-          offerTitle: log.offerTitle,
-          intensity: 1,
-        };
-      });
+      return {
+        id: `visitor_${index}_${Date.now()}`,
+        lat,
+        lng,
+        city: log.city || undefined,
+        country: log.country || 'السعودية',
+        device: log.device || 'غير معروف',
+        browser: log.browser || 'غير معروف',
+        timestamp: log.created_at,
+        offerId: log.offer_id,
+        offerTitle: log.offer_title || undefined,
+        intensity: 1,
+      };
+    });
 
-      setVisitors(visitorLocations);
+    setVisitors(visitorLocations);
 
-      // حساب الإحصائيات
-      const cities = new Set(visitorLocations.map(v => v.city).filter(Boolean));
-      const cityCount: Record<string, number> = {};
-      const deviceCount: Record<string, number> = {};
-      let mobileCount = 0;
+    // حساب الإحصائيات
+    const cities = new Set(visitorLocations.map(v => v.city).filter(Boolean));
+    const cityCount: Record<string, number> = {};
+    const deviceCount: Record<string, number> = {};
+    let mobileCount = 0;
 
-      visitorLocations.forEach(v => {
-        if (v.city) {
-          cityCount[v.city] = (cityCount[v.city] || 0) + 1;
-        }
-        deviceCount[v.device] = (deviceCount[v.device] || 0) + 1;
-        if (v.device.includes('هاتف') || v.device.includes('iPhone') || v.device.includes('Android')) {
-          mobileCount++;
-        }
-      });
+    visitorLocations.forEach(v => {
+      if (v.city) {
+        cityCount[v.city] = (cityCount[v.city] || 0) + 1;
+      }
+      deviceCount[v.device] = (deviceCount[v.device] || 0) + 1;
+      if (v.device.includes('هاتف') || v.device.includes('iPhone') || v.device.includes('Android')) {
+        mobileCount++;
+      }
+    });
 
-      const topCity = Object.entries(cityCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'غير معروف';
-      const topDevice = Object.entries(deviceCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'غير معروف';
+    const topCity = Object.entries(cityCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'غير معروف';
+    const topDevice = Object.entries(deviceCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'غير معروف';
 
-      setStats({
-        totalVisitors: visitorLocations.length,
-        uniqueCities: cities.size,
-        topCity,
-        topDevice,
-        mobilePercentage: visitorLocations.length > 0 ? Math.round((mobileCount / visitorLocations.length) * 100) : 0,
-      });
-
-    } catch (error) {
-      console.error('Error loading visitors:', error);
-      toast.error('خطأ في تحميل بيانات الزوار');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setStats({
+      totalVisitors: visitorLocations.length,
+      uniqueCities: cities.size,
+      topCity,
+      topDevice,
+      mobilePercentage: visitorLocations.length > 0 ? Math.round((mobileCount / visitorLocations.length) * 100) : 0,
+    });
+  }, [dbLogs, isLoading, timeFilter]);
 
   // تهيئة الخريطة
   useEffect(() => {
@@ -209,10 +200,7 @@ const VisitorsHeatMap: React.FC<VisitorsHeatMapProps> = ({
     };
   }, []);
 
-  // تحميل البيانات عند تغيير الفلتر
-  useEffect(() => {
-    loadVisitors();
-  }, [timeFilter]);
+  // تحميل البيانات عند تغيير الفلتر - البيانات تأتي من useEffect أعلاه
 
   // تحديث طبقة الحرارة والعلامات
   useEffect(() => {
@@ -376,7 +364,7 @@ const VisitorsHeatMap: React.FC<VisitorsHeatMapProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={loadVisitors}
+                onClick={() => refetch()}
                 className="h-8"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

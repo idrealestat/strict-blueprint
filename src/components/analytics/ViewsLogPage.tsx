@@ -1,6 +1,7 @@
 /**
  * ViewsLogPage.tsx
  * صفحة سجل المشاهدات التفصيلي مع الفلترة
+ * يستخدم قاعدة البيانات بدلاً من localStorage
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VisitorsHeatMap from './VisitorsHeatMap';
+import { useOfferViewsLog } from '@/hooks/useOfferViewsLog';
 import { 
   Eye, 
   Search, 
@@ -56,8 +58,7 @@ interface ViewsLogPageProps {
 }
 
 const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack, embedded = false }) => {
-  const [logs, setLogs] = useState<ViewLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { logs: dbLogs, loading: isLoading, clearOldLogs, refetch } = useOfferViewsLog();
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
   const [deviceFilter, setDeviceFilter] = useState<'all' | 'mobile' | 'desktop'>('all');
@@ -65,39 +66,24 @@ const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack, embedded = false })
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
 
-  // تحميل السجلات
-  const loadLogs = () => {
-    setIsLoading(true);
-    try {
-      const viewsLog = JSON.parse(localStorage.getItem('offer_views_log') || '[]');
-      const formattedLogs: ViewLog[] = viewsLog.map((log: any, index: number) => ({
-        id: `log_${index}_${log.timestamp}`,
-        offerId: log.offerId || 'unknown',
-        offerTitle: log.offerTitle,
-        city: log.city,
-        country: log.country,
-        device: log.device || 'غير معروف',
-        browser: log.browser || 'غير معروف',
-        os: log.os || 'غير معروف',
-        screenSize: log.screenSize || 'غير معروف',
-        timestamp: log.timestamp,
-        ip: log.ip,
-        interaction: log.interaction,
-        interactionType: log.interactionType,
-      }));
-      
-      setLogs(formattedLogs);
-    } catch (error) {
-      console.error('Error loading logs:', error);
-      toast.error('خطأ في تحميل السجلات');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  // Transform DB logs to ViewLog format
+  const logs: ViewLog[] = useMemo(() => {
+    return dbLogs.map((log, index) => ({
+      id: log.id || `log_${index}`,
+      offerId: log.offer_id || 'unknown',
+      offerTitle: log.offer_title || undefined,
+      city: log.city || undefined,
+      country: log.country || undefined,
+      device: log.device || 'غير معروف',
+      browser: log.browser || 'غير معروف',
+      os: log.os || 'غير معروف',
+      screenSize: (log.metadata as any)?.screenSize || 'غير معروف',
+      timestamp: log.created_at,
+      ip: log.ip_address || undefined,
+      interaction: (log.metadata as any)?.interaction,
+      interactionType: (log.metadata as any)?.interactionType,
+    }));
+  }, [dbLogs]);
 
   // استخراج قائمة العروض للفلترة
   const uniqueOffers = useMemo(() => {
@@ -182,11 +168,10 @@ const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack, embedded = false })
   };
 
   // مسح السجلات
-  const clearLogs = () => {
-    if (confirm('هل أنت متأكد من مسح جميع السجلات؟')) {
-      localStorage.setItem('offer_views_log', '[]');
-      setLogs([]);
-      toast.success('تم مسح السجلات');
+  const clearLogs = async () => {
+    if (confirm('هل أنت متأكد من مسح السجلات القديمة (أقدم من 90 يوم)؟')) {
+      const deleted = await clearOldLogs(90);
+      toast.success(`تم مسح ${deleted} سجل`);
     }
   };
 
@@ -241,7 +226,7 @@ const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack, embedded = false })
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="sm" onClick={loadLogs}>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
 
@@ -415,7 +400,7 @@ const ViewsLogPage: React.FC<ViewsLogPageProps> = ({ onBack, embedded = false })
                     {sortOrder === 'newest' ? 'الأحدث' : 'الأقدم'}
                   </Button>
 
-                  <Button variant="outline" size="sm" onClick={loadLogs}>
+                  <Button variant="outline" size="sm" onClick={() => refetch()}>
                     <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>

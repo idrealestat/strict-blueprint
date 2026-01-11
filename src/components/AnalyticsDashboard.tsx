@@ -1,7 +1,7 @@
 /**
  * AnalyticsDashboard.tsx
  * لوحة التحليلات - 6 مؤشرات ورسوم بيانية مع قسم منصتي
- * تستخدم البيانات الحقيقية من جدول events
+ * تستخدم البيانات الحقيقية من قاعدة البيانات
  */
 
 import { useState, useEffect } from 'react';
@@ -13,6 +13,8 @@ import VisitorsHeatMap from './analytics/VisitorsHeatMap';
 import ViewsLogPage from './analytics/ViewsLogPage';
 import PublicPagesStats from './analytics/PublicPagesStats';
 import { useAnalyticsStats } from '@/hooks/useAnalyticsStats';
+import { useReceivedDocuments } from '@/hooks/useReceivedDocuments';
+import { useCRMCustomers } from '@/hooks/useCRMCustomers';
 
 interface Metric {
   title: string;
@@ -40,79 +42,72 @@ interface DocumentStats {
 const AnalyticsDashboard = () => {
   const [activeTab, setActiveTab] = useState<'market' | 'platform'>('market');
   const { platformStats, loading } = useAnalyticsStats();
+  const { documents, loading: docsLoading } = useReceivedDocuments();
+  const { customers } = useCRMCustomers();
   
   // إحصائيات المستندات المستلمة
   const [requestsStats, setRequestsStats] = useState<DocumentStats>({ total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
   const [offersStats, setOffersStats] = useState<DocumentStats>({ total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
   const [quotesStats, setQuotesStats] = useState<DocumentStats>({ total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
   
-  // تحميل إحصائيات المستندات من localStorage
+  // تحميل إحصائيات المستندات من قاعدة البيانات
   useEffect(() => {
-    const loadDocumentStats = () => {
-      try {
-        // جلب المستندات المستلمة
-        const receivedDocs = JSON.parse(localStorage.getItem('received_documents') || '[]');
-        // جلب مستندات العملاء
-        const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-        
-        // جمع كل المستندات
-        const allDocs: any[] = [...receivedDocs];
-        customers.forEach((customer: any) => {
-          if (customer.documents) {
-            allDocs.push(...customer.documents);
-          }
-        });
-
-        // تصنيف المستندات
-        const requests = allDocs.filter(d => d.type === 'property_request' || d.type === 'request');
-        const offers = allDocs.filter(d => d.type === 'property_offer' || d.type === 'offer');
-        const quotes = allDocs.filter(d => d.type === 'quotation_request' || d.type === 'quotation' || d.type === 'receipt');
-
-        // حساب إحصائيات الطلبات
-        setRequestsStats({
-          total: requests.length,
-          pending: requests.filter(d => !d.status || d.status === 'pending').length,
-          approved: requests.filter(d => d.status === 'approved').length,
-          rejected: requests.filter(d => d.status === 'rejected').length,
-          totalAmount: requests.reduce((sum, d) => sum + (d.total || d.budget || 0), 0)
-        });
-
-        // حساب إحصائيات العروض
-        setOffersStats({
-          total: offers.length,
-          pending: offers.filter(d => !d.status || d.status === 'pending').length,
-          approved: offers.filter(d => d.status === 'approved').length,
-          rejected: offers.filter(d => d.status === 'rejected').length,
-          totalAmount: offers.reduce((sum, d) => sum + (d.total || d.price || 0), 0)
-        });
-
-        // حساب إحصائيات عروض الأسعار
-        setQuotesStats({
-          total: quotes.length,
-          pending: quotes.filter(d => !d.status || d.status === 'pending').length,
-          approved: quotes.filter(d => d.status === 'approved').length,
-          rejected: quotes.filter(d => d.status === 'rejected').length,
-          totalAmount: quotes.reduce((sum, d) => sum + (d.total || 0), 0)
-        });
-      } catch (error) {
-        console.error('Error loading document stats:', error);
-      }
-    };
-
-    loadDocumentStats();
+    if (docsLoading) return;
     
-    // الاستماع لتحديثات المستندات
-    const handleUpdate = () => loadDocumentStats();
-    window.addEventListener('customersUpdated', handleUpdate);
-    window.addEventListener('documentsUpdated', handleUpdate);
-    window.addEventListener('receivedDocumentFromPublic', handleUpdate);
-    
-    return () => {
-      window.removeEventListener('customersUpdated', handleUpdate);
-      window.removeEventListener('documentsUpdated', handleUpdate);
-      window.removeEventListener('receivedDocumentFromPublic', handleUpdate);
-    };
-  }, []);
+    try {
+      // جمع كل المستندات من الـ hook والعملاء
+      const allDocs: any[] = [...documents];
+      customers.forEach((customer: any) => {
+        const metadata = customer.metadata as any;
+        if (metadata?.documents) {
+          allDocs.push(...metadata.documents);
+        }
+      });
+
+      // تصنيف المستندات
+      const requests = allDocs.filter(d => d.document_type === 'property_request' || d.document_type === 'request');
+      const offers = allDocs.filter(d => d.document_type === 'property_offer' || d.document_type === 'offer');
+      const quotes = allDocs.filter(d => d.document_type === 'quotation_request' || d.document_type === 'quotation' || d.document_type === 'receipt');
+
+      // حساب إحصائيات الطلبات
+      setRequestsStats({
+        total: requests.length,
+        pending: requests.filter(d => !d.status || d.status === 'pending').length,
+        approved: requests.filter(d => d.status === 'approved').length,
+        rejected: requests.filter(d => d.status === 'rejected').length,
+        totalAmount: requests.reduce((sum, d) => {
+          const data = d.data as any;
+          return sum + (data?.total || data?.budget || 0);
+        }, 0)
+      });
+
+      // حساب إحصائيات العروض
+      setOffersStats({
+        total: offers.length,
+        pending: offers.filter(d => !d.status || d.status === 'pending').length,
+        approved: offers.filter(d => d.status === 'approved').length,
+        rejected: offers.filter(d => d.status === 'rejected').length,
+        totalAmount: offers.reduce((sum, d) => {
+          const data = d.data as any;
+          return sum + (data?.total || data?.price || 0);
+        }, 0)
+      });
+
+      // حساب إحصائيات عروض الأسعار
+      setQuotesStats({
+        total: quotes.length,
+        pending: quotes.filter(d => !d.status || d.status === 'pending').length,
+        approved: quotes.filter(d => d.status === 'approved').length,
+        rejected: quotes.filter(d => d.status === 'rejected').length,
+        totalAmount: quotes.reduce((sum, d) => {
+          const data = d.data as any;
+          return sum + (data?.total || 0);
+        }, 0)
+      });
+    } catch (error) {
+      console.error('Error loading document stats:', error);
+    }
+  }, [documents, customers, docsLoading]);
   
   const metrics: Metric[] = [
     { title: 'إجمالي الإيرادات', value: '$245,880', change: '+12.5%', color: 'text-green-600', icon: '📈' },
