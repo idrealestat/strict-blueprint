@@ -105,11 +105,11 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
   
-  // رسالة الترحيب المحدثة (بدون "الوعي الوجودي")
+  // رسالة الترحيب المحدثة - اسم المساعد: Wasata AI
   const welcomeMessage: Message = {
     id: 1,
     role: "assistant",
-    content: `حياك الله يا ${userName}! 🏠\n\nأنا وساطه AI، مساعدك العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n\n🏠 **العقارات المؤجرة:**\n• إحصائيات الإيجارات\n• عقود تنتهي قريباً\n• معلومات الملاك\n\n🧮 أقدر أحسب لك:\n• سعر المتر المربع\n• القسط الشهري للتمويل\n• الضريبة والعمولة\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
+    content: `حياك الله يا ${userName}! 🏠\n\nأنا **Wasata AI**، مساعدك العقاري المتخصص.\n\n🏛️ معلوماتي من مصادر رسمية:\n• الهيئة العامة للعقار\n• منصة سكني وإيجار\n• المؤشرات العقارية السعودية\n\n🏠 **العقارات المؤجرة:**\n• إحصائيات الإيجارات\n• عقود تنتهي قريباً\n• معلومات الملاك\n\n🧮 أقدر أحسب لك:\n• سعر المتر المربع\n• القسط الشهري للتمويل\n• الضريبة والعمولة\n\n✨ سم طال عمرك.. كيف أقدر أخدمك اليوم؟`,
     timestamp: new Date(),
     actions: [
       { icon: '👥', text: 'عرض العملاء', action: 'navigate:crm', type: 'navigate' },
