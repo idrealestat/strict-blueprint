@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type Voice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 
@@ -34,11 +35,20 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
 
       console.log('Converting text to speech:', text.substring(0, 50) + '...');
 
+      // IMPORTANT: لازم نرسل توكن المستخدم وليس publishable key
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setError('جلسة غير صالحة - يرجى إعادة تسجيل الدخول');
+        return;
+      }
+
       const response = await fetch(TTS_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ text, voice, speed }),
       });
@@ -50,6 +60,11 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
 
       if (response.status === 402) {
         setError('يرجى إضافة رصيد للاستمرار');
+        return;
+      }
+
+      if (response.status === 401) {
+        setError('جلسة غير صالحة - يرجى إعادة تسجيل الدخول');
         return;
       }
 
@@ -97,7 +112,6 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       setIsLoading(false);
     }
   }, []);
-
   const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
