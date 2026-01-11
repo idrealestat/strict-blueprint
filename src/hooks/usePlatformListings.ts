@@ -300,6 +300,7 @@ export function usePlatformListings(slug?: string) {
         .from('platform_listings')
         .select('*')
         .eq('slug', slug)
+        .is('deleted_at', null) // استبعاد العروض المحذوفة (soft delete)
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -363,15 +364,24 @@ export function usePlatformListings(slug?: string) {
     }
   };
 
-  // حذف عرض
-  const deleteListing = async (id: string) => {
+  // حذف عرض (Soft Delete)
+  const deleteListing = async (id: string, permanent = false) => {
     try {
-      const { error: deleteError } = await supabase
-        .from('platform_listings')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
+      if (permanent) {
+        // حذف نهائي
+        const { error: deleteError } = await supabase
+          .from('platform_listings')
+          .delete()
+          .eq('id', id);
+        if (deleteError) throw deleteError;
+      } else {
+        // Soft delete - تحديث deleted_at فقط
+        const { error: updateError } = await supabase
+          .from('platform_listings')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', id);
+        if (updateError) throw updateError;
+      }
 
       setListings(prev => prev.filter(l => l.id !== id));
       toast.success('تم حذف العرض بنجاح');
