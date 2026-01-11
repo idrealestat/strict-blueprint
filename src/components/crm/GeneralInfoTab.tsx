@@ -41,10 +41,15 @@ import {
   Eye,
   Trash2,
   DollarSign,
+  MessageCircle,
+  Check,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import FinancialDocumentModal from './FinancialDocumentModal';
 import DocumentPreviewModal from './DocumentPreviewModal';
+import ReceivedQuoteResponseModal from './ReceivedQuoteResponseModal';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 
 interface Customer {
@@ -123,6 +128,7 @@ export default function GeneralInfoTab({
   const [showFinancialForm, setShowFinancialForm] = useState(false);
   const [savedDocuments, setSavedDocuments] = useState<any[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
+  const [selectedReceivedDoc, setSelectedReceivedDoc] = useState<any | null>(null);
   const [addressDetails, setAddressDetails] = useState<AddressDetails>({
     city: '',
     district: '',
@@ -777,58 +783,121 @@ export default function GeneralInfoTab({
           {/* عرض المستندات المحفوظة */}
           {savedDocuments.length > 0 ? (
             <div className="space-y-2">
-              {savedDocuments.map((doc) => (
-                <div 
-                  key={doc.id}
-                  className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-[#D4AF37]/50 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      doc.type === 'quotation' ? 'bg-blue-100' : 'bg-green-100'
-                    }`}>
-                      {doc.type === 'quotation' ? (
-                        <FileText className="w-5 h-5 text-blue-600" />
-                      ) : (
-                        <DollarSign className="w-5 h-5 text-green-600" />
+              {savedDocuments.map((doc) => {
+                // تحديد نوع المستند وحالته
+                const isReceivedQuote = doc.type === 'quotation_request' || doc.source === 'public_form';
+                const isApproved = doc.status === 'approved';
+                const isRejected = doc.status === 'rejected';
+                const isPending = !isApproved && !isRejected;
+                
+                return (
+                  <div 
+                    key={doc.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                      isReceivedQuote 
+                        ? isPending 
+                          ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200 hover:border-orange-400'
+                          : isApproved
+                            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
+                            : 'bg-gradient-to-r from-red-50 to-gray-50 border-red-200'
+                        : 'bg-gradient-to-r from-gray-50 to-white border-gray-100 hover:border-[#D4AF37]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        isReceivedQuote
+                          ? isPending ? 'bg-orange-100' : isApproved ? 'bg-green-100' : 'bg-red-100'
+                          : doc.type === 'quotation' ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        {isReceivedQuote ? (
+                          isPending ? (
+                            <Clock className="w-5 h-5 text-orange-600" />
+                          ) : isApproved ? (
+                            <Check className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600" />
+                          )
+                        ) : doc.type === 'quotation' ? (
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <DollarSign className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-800 text-sm">
+                            {isReceivedQuote ? 'طلب عرض سعر مستلم' : doc.typeName}
+                          </p>
+                          {isReceivedQuote && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                isPending 
+                                  ? 'border-orange-400 text-orange-600 bg-orange-50' 
+                                  : isApproved 
+                                    ? 'border-green-400 text-green-600 bg-green-50'
+                                    : 'border-red-400 text-red-600 bg-red-50'
+                              }`}
+                            >
+                              {isPending ? 'بانتظار الرد' : isApproved ? 'تمت الموافقة' : 'مرفوض'}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(doc.createdAt).toLocaleDateString('ar-SA')} 
+                          {doc.total > 0 && ` • ${doc.total?.toLocaleString()} ر.س`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {/* زر الرد للمستندات المستلمة */}
+                      {isReceivedQuote && isPending && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedReceivedDoc(doc)}
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span className="text-xs">رد</span>
+                        </Button>
                       )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800 text-sm">{doc.typeName}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(doc.createdAt).toLocaleDateString('ar-SA')} • {doc.total?.toLocaleString()} ر.س
-                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (isReceivedQuote) {
+                            setSelectedReceivedDoc(doc);
+                          } else {
+                            setSelectedDocument(doc);
+                          }
+                        }}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          // حذف المستند
+                          const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+                          const customerIndex = customers.findIndex((c: any) => c.id === customer.id || c.phone === customer.phone);
+                          if (customerIndex !== -1 && customers[customerIndex].documents) {
+                            customers[customerIndex].documents = customers[customerIndex].documents.filter((d: any) => d.id !== doc.id);
+                            localStorage.setItem('crm_customers', JSON.stringify(customers));
+                            setSavedDocuments(prev => prev.filter(d => d.id !== doc.id));
+                            toast.success('تم حذف المستند');
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedDocument(doc)}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        // حذف المستند
-                        const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-                        const customerIndex = customers.findIndex((c: any) => c.id === customer.id || c.phone === customer.phone);
-                        if (customerIndex !== -1 && customers[customerIndex].documents) {
-                          customers[customerIndex].documents = customers[customerIndex].documents.filter((d: any) => d.id !== doc.id);
-                          localStorage.setItem('crm_customers', JSON.stringify(customers));
-                          setSavedDocuments(prev => prev.filter(d => d.id !== doc.id));
-                          toast.success('تم حذف المستند');
-                        }
-                      }}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -957,6 +1026,29 @@ export default function GeneralInfoTab({
             logoImage: businessCardData.logoUrl || undefined,
           }}
           onClose={() => setSelectedDocument(null)}
+        />
+      )}
+
+      {/* مودال الرد على طلب عرض السعر المستلم */}
+      {selectedReceivedDoc && (
+        <ReceivedQuoteResponseModal
+          document={selectedReceivedDoc}
+          userData={{
+            name: businessCardData.name || 'الوسيط',
+            companyName: businessCardData.companyName || '',
+            falLicense: businessCardData.falLicense || '',
+            phone: businessCardData.phone || '',
+            profileImage: businessCardData.profileImageUrl || undefined,
+            logoImage: businessCardData.logoUrl || undefined,
+          }}
+          onClose={() => setSelectedReceivedDoc(null)}
+          onRespond={(response) => {
+            // تحديث المستند في القائمة
+            setSavedDocuments(prev => 
+              prev.map(d => d.id === selectedReceivedDoc.id ? { ...d, ...response } : d)
+            );
+            setSelectedReceivedDoc(null);
+          }}
         />
       )}
     </div>
