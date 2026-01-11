@@ -4,21 +4,21 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { Download, FileText, Printer, Edit2, Phone, Mail, MapPin, Star, Globe } from 'lucide-react';
+import { Download, FileText, Printer, Edit2, Phone, Mail, MapPin, Star, Globe, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
-import { getIdentityImage, getAvatarFallback, generateVCard } from '@/types/businessCard';
+import { getIdentityImage, getAvatarFallback, generateVCard, defaultDisplayOptions } from '@/types/businessCard';
 import { useQRCode } from '@/hooks/useQRCode';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import saudiWatermark from '@/assets/saudi-handshake-watermark.png';
 
-// Wasata AI Logo as SVG watermark
+// Wasata AI Logo as SVG watermark - positioned lower and bigger
 const WasataWatermark = () => (
-  <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-    <svg viewBox="0 0 200 200" className="w-48 h-48">
+  <div className="absolute inset-0 flex items-end justify-center pb-16 opacity-[0.04] pointer-events-none">
+    <svg viewBox="0 0 200 200" className="w-56 h-56">
       <text x="100" y="100" textAnchor="middle" dominantBaseline="middle" fontSize="24" fontWeight="bold" fill="currentColor">
         وساطة AI
       </text>
@@ -26,13 +26,13 @@ const WasataWatermark = () => (
   </div>
 );
 
-// Saudi Watermark Background for Front Side - Centered & Balanced
+// Saudi Watermark Background for Front Side - positioned lower and bigger
 const SaudiWatermarkBg = () => (
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden pt-8">
+  <div className="absolute inset-0 flex items-end justify-center pointer-events-none overflow-hidden pb-4">
     <img 
       src={saudiWatermark} 
       alt="" 
-      className="w-72 h-52 object-contain opacity-[0.12]"
+      className="w-80 h-60 object-contain opacity-[0.12]"
     />
   </div>
 );
@@ -81,6 +81,9 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
   const avatarFallback = getAvatarFallback(data.name);
   const publicUrl = `wasataai.com/${data.slug}`;
   const vCardData = generateVCard(data);
+  
+  // Get display options with defaults
+  const displayOptions = data.displayOptions || defaultDisplayOptions;
 
   // Handle image download
   const handleDownloadImage = async () => {
@@ -186,6 +189,23 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
     );
   }
 
+  // Get the job title from display options or fallback
+  const jobTitle = displayOptions.jobTitle || data.title || 'وسيط عقاري معتمد';
+  
+  // Get phone numbers
+  const primaryPhone = displayOptions.primaryNumber === 'whatsapp' && data.whatsapp 
+    ? data.whatsapp 
+    : data.phone;
+  const secondaryPhone = displayOptions.phoneDisplay === 'phone-whatsapp' && displayOptions.primaryNumber === 'phone'
+    ? data.whatsapp
+    : (displayOptions.phoneDisplay === 'phone-whatsapp' && displayOptions.primaryNumber === 'whatsapp' ? data.phone : null);
+
+  // Location display
+  const locationText = [
+    displayOptions.showCity && data.city,
+    displayOptions.showDistrict && data.district
+  ].filter(Boolean).join(' - ');
+
   return (
     <div className="space-y-6" dir="rtl">
       {/* Action Buttons */}
@@ -250,7 +270,7 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
             style={{ backfaceVisibility: 'hidden' }}
           >
             <Card className="w-full h-full bg-white border-4 border-[#D4AF37] rounded-xl overflow-hidden shadow-2xl relative">
-              {/* Saudi Watermark Background - Front Only */}
+              {/* Saudi Watermark Background - Front Only - Lower and Bigger */}
               <SaudiWatermarkBg />
               
               <div className="relative z-10 p-4 h-full flex flex-col justify-between">
@@ -268,7 +288,10 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                   {/* Name & Title */}
                   <div className="flex-1">
                     <h2 className="text-[#01411C] font-bold text-lg leading-tight">{data.name}</h2>
-                    <p className="text-[#D4AF37] text-sm">{data.title || 'وسيط عقاري معتمد'}</p>
+                    {displayOptions.nameDisplay === 'arabic-english' && displayOptions.nameEnglish && (
+                      <p className="text-[#01411C]/70 text-xs">{displayOptions.nameEnglish}</p>
+                    )}
+                    <p className="text-[#D4AF37] text-sm">{jobTitle}</p>
                     {data.companyName && (
                       <p className="text-[#01411C]/70 text-xs">{data.companyName}</p>
                     )}
@@ -283,37 +306,47 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                       <span className="text-[#D4AF37] text-xs mr-1">{data.rating}</span>
                     </div>
                   </div>
-
-                  {/* QR Code */}
-                  <div className="w-16 h-16 bg-white rounded-lg p-1 shadow-lg overflow-hidden">
-                    <CardQRCode vCardData={vCardData} />
-                  </div>
                 </div>
 
-                {/* Bottom Section - Contact Info */}
-                <div className="space-y-1.5 mt-2">
-                  {data.phone && (
-                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
-                      <Phone className="w-3 h-3 text-[#D4AF37]" />
-                      <span dir="ltr">{data.phone}</span>
+                {/* Bottom Section - Contact Info & QR */}
+                <div className="flex items-end justify-between mt-2">
+                  {/* Contact Info */}
+                  <div className="space-y-1.5 flex-1">
+                    {primaryPhone && (
+                      <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                        <Phone className="w-3 h-3 text-[#D4AF37]" />
+                        <span dir="ltr">{primaryPhone}</span>
+                        {secondaryPhone && (
+                          <>
+                            <span className="text-[#D4AF37]">•</span>
+                            <MessageCircle className="w-3 h-3 text-green-600" />
+                            <span dir="ltr">{secondaryPhone}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {displayOptions.showEmail && data.email && (
+                      <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                        <Mail className="w-3 h-3 text-[#D4AF37]" />
+                        <span>{data.email}</span>
+                      </div>
+                    )}
+                    {locationText && (
+                      <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                        <MapPin className="w-3 h-3 text-[#D4AF37]" />
+                        <span>{locationText}</span>
+                      </div>
+                    )}
+                    {/* Public URL */}
+                    <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium">
+                      <Globe className="w-3 h-3" />
+                      <span dir="ltr">{publicUrl}</span>
                     </div>
-                  )}
-                  {data.email && (
-                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
-                      <Mail className="w-3 h-3 text-[#D4AF37]" />
-                      <span>{data.email}</span>
-                    </div>
-                  )}
-                  {data.city && (
-                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
-                      <MapPin className="w-3 h-3 text-[#D4AF37]" />
-                      <span>{data.city}</span>
-                    </div>
-                  )}
-                  {/* Public URL */}
-                  <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium">
-                    <Globe className="w-3 h-3" />
-                    <span dir="ltr">{publicUrl}</span>
+                  </div>
+
+                  {/* QR Code - Bottom Left, Bigger */}
+                  <div className="w-20 h-20 bg-white rounded-lg p-1 shadow-lg overflow-hidden border border-[#D4AF37]/30">
+                    <CardQRCode vCardData={vCardData} />
                   </div>
                 </div>
               </div>
@@ -346,10 +379,13 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
 
                   {/* Broker Name */}
                   <h2 className="text-white font-bold text-sm">{data.name}</h2>
+                  {displayOptions.nameDisplay === 'arabic-english' && displayOptions.nameEnglish && (
+                    <p className="text-white/70 text-[10px]">{displayOptions.nameEnglish}</p>
+                  )}
                   
                   {/* Company/Platform Name */}
                   <p className="text-[#D4AF37] text-xs">
-                    {data.companyName || data.title || 'وسيط عقاري معتمد'}
+                    {data.companyName || jobTitle}
                   </p>
                 </div>
 
@@ -363,13 +399,21 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                     </div>
                   </div>
 
-                  {/* Phone Number */}
-                  {data.phone && (
-                    <div className="flex items-center gap-1 text-white text-xs">
-                      <Phone className="w-3 h-3 text-[#D4AF37]" />
-                      <span dir="ltr">{data.phone}</span>
-                    </div>
-                  )}
+                  {/* Phone Numbers */}
+                  <div className="flex items-center gap-2 text-white text-xs">
+                    {primaryPhone && (
+                      <div className="flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-[#D4AF37]" />
+                        <span dir="ltr">{primaryPhone}</span>
+                      </div>
+                    )}
+                    {secondaryPhone && (
+                      <div className="flex items-center gap-1">
+                        <MessageCircle className="w-3 h-3 text-green-400" />
+                        <span dir="ltr">{secondaryPhone}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Bottom - Wasata Branding */}
