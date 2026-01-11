@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
@@ -672,6 +673,18 @@ export default function MyPlatformComplete({
   const [copiedLink, setCopiedLink] = useState(false);
   const [showEditPage, setShowEditPage] = useState(false);
   const [selectedOfferForEdit, setSelectedOfferForEdit] = useState<any>(null);
+
+  // Handle URL parameters (e.g., ?action=publish)
+  const [searchParams] = useSearchParams();
+  
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'publish') {
+      setShowPublishDialog(true);
+      // مسح البارامتر من URL بعد فتح النموذج
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams]);
 
   // PDF Report & Comparison Dialogs
   const [showPDFReport, setShowPDFReport] = useState(false);
