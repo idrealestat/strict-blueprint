@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, RefreshCw, Send, FileText, Loader2, Calendar, Clock, MapPin, Home, Eye } from 'lucide-react';
+import { Download, RefreshCw, Send, FileText, Loader2, Calendar, Clock, MapPin, Home, Eye, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,9 @@ interface TabData {
   data: any;
   createdAt: string;
   isNew?: boolean;
+  isPublished?: boolean;
+  publishedAdId?: string;
+  publishedAt?: string;
 }
 
 interface BrokerInfo {
@@ -399,41 +402,59 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
   const renderActions = () => {
     switch (tab.type) {
       case 'property_offer':
+        const isPublished = tab.data?.isPublished || tab.isPublished;
+        const publishedAdId = tab.data?.publishedAdId || tab.publishedAdId;
+        
         return (
-          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleRepublish}
-              className="flex items-center gap-2 bg-[#01411C] hover:bg-[#065f41]"
-            >
-              <Send className="w-4 h-4" />
-              نشر الإعلان
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPdfDialog(true)}
-              className="flex items-center gap-2 border-[#D4AF37] text-[#01411C]"
-            >
-              <Download className="w-4 h-4" />
-              تحميل PDF
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (onViewDetails) {
-                  onViewDetails(tab.data);
-                } else {
-                  setShowDetailsDialog(true);
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <Eye className="w-4 h-4" />
-              عرض التفاصيل
-            </Button>
+          <div className="flex flex-col gap-3 mt-4 pt-4 border-t">
+            {/* شارة حالة النشر */}
+            {isPublished && (
+              <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-700 font-medium">تم نشر هذا العرض كإعلان</span>
+                {publishedAdId && (
+                  <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                    #{publishedAdId.slice(-6)}
+                  </span>
+                )}
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleRepublish}
+                className={`flex items-center gap-2 ${isPublished ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#01411C] hover:bg-[#065f41]'}`}
+              >
+                <Send className="w-4 h-4" />
+                {isPublished ? 'نشر مرة أخرى' : 'نشر الإعلان'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPdfDialog(true)}
+                className="flex items-center gap-2 border-[#D4AF37] text-[#01411C]"
+              >
+                <Download className="w-4 h-4" />
+                تحميل PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (onViewDetails) {
+                    onViewDetails(tab.data);
+                  } else {
+                    setShowDetailsDialog(true);
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                عرض التفاصيل
+              </Button>
+            </div>
           </div>
         );
       

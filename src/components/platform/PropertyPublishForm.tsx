@@ -48,7 +48,7 @@ import {
   Sparkles as SparklesIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone } from "@/hooks/usePublishedAdsManager";
+import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone, updateOriginalOfferStatus } from "@/hooks/usePublishedAdsManager";
 import PublishSuccessActions from "./PublishSuccessActions";
 import AIDescription from "./AIDescription";
 import PropertyMediaUpload, { MediaFile } from "./PropertyMediaUpload";
@@ -154,6 +154,10 @@ interface PropertyData {
   // 13. الوسائط (صور وفيديو)
   media: MediaFile[];
   tour3DUrl: string;
+  
+  // 14. معلومات التتبع (للعروض المعاد نشرها)
+  source?: string;
+  originalTabId?: string;
 }
 
 interface PropertyPublishFormProps {
@@ -900,6 +904,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         tour3DUrl: propertyData.tour3DUrl,
         publishedAt: new Date().toISOString(),
         status: 'published',
+        // معلومات التتبع
+        source: propertyData.source,
+        originalTabId: propertyData.originalTabId,
       };
 
       const result = await publishAdWithCustomerLink(adData);
@@ -908,6 +915,17 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         setPublishedAd({ ...adData, linkedCustomerId: result.customerId || undefined });
         setShowSuccessActions(true);
         onPublish(propertyData);
+        
+        // تحديث حالة العرض الأصلي في بطاقة العميل
+        if (propertyData.originalTabId && propertyData.source === 'customer_tab') {
+          const updated = updateOriginalOfferStatus(propertyData.originalTabId, adData.id);
+          if (updated) {
+            toast.success('✅ تم تحديث حالة العرض في بطاقة العميل', {
+              description: 'العرض الأصلي أصبح مرتبطاً بالإعلان المنشور',
+              duration: 4000,
+            });
+          }
+        }
         
         window.dispatchEvent(new CustomEvent('analyticsEvent', {
           detail: { eventType: 'property_published', propertyType: propertyData.propertyType, city: propertyData.locationDetails.city }
