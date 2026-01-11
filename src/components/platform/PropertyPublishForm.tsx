@@ -331,11 +331,37 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         }));
         // حذف بيانات إعادة النشر بعد استخدامها
         localStorage.removeItem('wasata_republish_data');
-        toast.success('تم تحميل بيانات العقار للنشر مرة أخرى');
+        
+        // إشعار تفصيلي بنجاح نقل البيانات
+        const mediaCount = parsed.media?.length || 0;
+        const imageCount = parsed.media?.filter((m: any) => m.type === 'image').length || 0;
+        const videoCount = parsed.media?.filter((m: any) => m.type === 'video').length || 0;
+        const has3DTour = parsed.tour3DUrl ? true : false;
+        
+        let successMessage = '✅ تم نقل جميع بيانات العرض بنجاح!';
+        const details: string[] = [];
+        
+        if (parsed.ownerName) details.push(`المالك: ${parsed.ownerName}`);
+        if (parsed.propertyType) details.push(`${parsed.propertyType}`);
+        if (parsed.purpose) details.push(`${parsed.purpose}`);
+        if (imageCount > 0) details.push(`${imageCount} صورة`);
+        if (videoCount > 0) details.push(`${videoCount} فيديو`);
+        if (has3DTour) details.push('جولة 3D');
+        
+        if (details.length > 0) {
+          successMessage = `✅ تم نقل البيانات: ${details.join(' • ')}`;
+        }
+        
+        toast.success(successMessage, {
+          duration: 5000,
+          description: 'راجع البيانات وأكمل النشر',
+        });
+        
         return; // لا تتحقق من المسودة إذا كان هناك بيانات إعادة نشر
       } catch (e) {
         console.error('Error parsing republish data:', e);
         localStorage.removeItem('wasata_republish_data');
+        toast.error('حدث خطأ في تحميل بيانات العرض');
       }
     }
 
