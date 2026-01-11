@@ -36,8 +36,11 @@ import {
   ChevronRight,
   Navigation,
   Loader2,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
+import FinancialDocumentModal from './FinancialDocumentModal';
+import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 
 interface Customer {
   id: string;
@@ -112,6 +115,7 @@ export default function GeneralInfoTab({
   const [documents, setDocuments] = useState<File[]>([]);
   const [showMap, setShowMap] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [showFinancialForm, setShowFinancialForm] = useState(false);
   const [addressDetails, setAddressDetails] = useState<AddressDetails>({
     city: '',
     district: '',
@@ -126,6 +130,9 @@ export default function GeneralInfoTab({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+
+  // جلب بيانات البطاقة للمستندات المالية
+  const { data: businessCardData } = useBusinessCardData();
 
   const customerType = CUSTOMER_TYPES.find(t => t.id === customer.type);
   const interestLevel = INTEREST_LEVELS.find(l => l.id === customer.interestLevel);
@@ -700,6 +707,25 @@ export default function GeneralInfoTab({
         </CardContent>
       </Card>
 
+      {/* إرسال عرض أو طلب - المستندات المالية */}
+      <Card className="border-2 border-[#D4AF37] rounded-xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] py-3">
+          <CardTitle className="flex items-center gap-2 text-[#01411C] text-base">
+            <FileText className="w-5 h-5 text-[#D4AF37]" />
+            المستندات المالية
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 pb-4">
+          <Button
+            onClick={() => setShowFinancialForm(true)}
+            className="w-full bg-gradient-to-r from-[#01411C] to-[#065f41] hover:from-[#065f41] hover:to-[#01411C] text-white gap-2"
+          >
+            <Send className="w-4 h-4" />
+            إرسال عرض أو طلب (سند قبض / عرض سعر)
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* المستندات والملفات */}
       <Card className="border border-gray-200 rounded-xl overflow-hidden">
         <CardContent className="p-4">
@@ -810,6 +836,24 @@ export default function GeneralInfoTab({
           </div>
         </CardContent>
       </Card>
+
+      {/* مودال المستندات المالية */}
+      {showFinancialForm && (
+        <FinancialDocumentModal
+          customerName={customer.name}
+          customerPhone={customer.phone}
+          customerId={customer.id}
+          userData={{
+            name: businessCardData.name || 'الوسيط',
+            companyName: businessCardData.companyName || '',
+            falLicense: businessCardData.falLicense || '',
+            phone: businessCardData.phone || '',
+            profileImage: businessCardData.profileImageUrl || undefined,
+            logoImage: businessCardData.logoUrl || undefined,
+          }}
+          onClose={() => setShowFinancialForm(false)}
+        />
+      )}
     </div>
   );
 }
