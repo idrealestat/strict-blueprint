@@ -683,20 +683,33 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     }
   }, [isRecording]);
 
+  // اهتزاز للموبايل
+  const vibrate = (pattern: number | number[]) => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  };
+
   // Walkie-Talkie: اضغط للتسجيل، افلت للإرسال
   const handleVoiceStart = async () => {
     if (isProcessingVoice || isTranscribing || ttsLoading) return;
     
+    // اهتزاز قصير عند بدء التسجيل
+    vibrate(50);
+    
     try {
       await startRecording();
-      // لا نظهر toast حتى لا يشتت المستخدم
     } catch (error) {
+      vibrate([100, 50, 100]); // اهتزاز مزدوج للخطأ
       toast.error("لم نتمكن من الوصول للميكروفون");
     }
   };
 
   const handleVoiceEnd = async () => {
     if (!isRecording) return;
+    
+    // اهتزاز عند الإفلات
+    vibrate(30);
     
     setIsProcessingVoice(true);
     
@@ -710,11 +723,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       
       if (transcribedText && transcribedText.length > 0) {
         setInputValue(transcribedText);
-        toast.success("✅ تم!", { duration: 1000 });
+        vibrate(20); // اهتزاز خفيف للنجاح
         
         // إرسال تلقائي فوري
         handleSend(transcribedText);
       } else {
+        vibrate([100, 50, 100]); // اهتزاز مزدوج للفشل
         toast.error("لم نستطع فهم الصوت");
       }
     }
