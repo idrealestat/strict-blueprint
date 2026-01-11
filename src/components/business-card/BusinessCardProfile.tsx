@@ -880,10 +880,10 @@ END:VCARD`;
           </Button>
           <Button
             className="h-16 bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] border-2 border-[#01411C] text-[#01411C] font-bold hover:from-[#f1c40f] hover:to-[#D4AF37]"
-            onClick={() => toast.info("مشاركة التقييم - TODO")}
+            onClick={() => toast.info("قييمني - قريباً")}
           >
             <Star className="w-5 h-5 ml-2" />
-            مشاركة التقييم
+            قييمني
           </Button>
         </div>
 
