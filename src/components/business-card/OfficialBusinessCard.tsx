@@ -13,6 +13,7 @@ import { getIdentityImage, getAvatarFallback, generateVCard } from '@/types/busi
 import { useQRCode } from '@/hooks/useQRCode';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import saudiWatermark from '@/assets/saudi-handshake-watermark.png';
 
 // Wasata AI Logo as SVG watermark
 const WasataWatermark = () => (
@@ -22,6 +23,17 @@ const WasataWatermark = () => (
         وساطة AI
       </text>
     </svg>
+  </div>
+);
+
+// Saudi Watermark Background for Front Side
+const SaudiWatermarkBg = () => (
+  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+    <img 
+      src={saudiWatermark} 
+      alt="" 
+      className="w-40 h-40 object-contain opacity-[0.08]"
+    />
   </div>
 );
 
@@ -218,10 +230,10 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
         )}
       </div>
 
-      {/* Flip Card Container */}
+      {/* Flip Card Container - Bigger Size */}
       <div 
         className="relative mx-auto cursor-pointer perspective-1000"
-        style={{ width: '340px', height: '200px' }}
+        style={{ width: '400px', height: '240px' }}
         onClick={() => setIsFlipped(!isFlipped)}
       >
         <div 
@@ -238,7 +250,8 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
             style={{ backfaceVisibility: 'hidden' }}
           >
             <Card className="w-full h-full bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] border-4 border-[#D4AF37] rounded-xl overflow-hidden shadow-2xl">
-              <WasataWatermark />
+              {/* Saudi Watermark Background - Front Only */}
+              <SaudiWatermarkBg />
               
               <div className="relative z-10 p-4 h-full flex flex-col justify-between">
                 {/* Top Section */}
