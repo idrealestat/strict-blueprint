@@ -1,16 +1,18 @@
 /**
  * AnalyticsDashboard.tsx
  * لوحة التحليلات - 6 مؤشرات ورسوم بيانية مع قسم منصتي
+ * تستخدم البيانات الحقيقية من جدول events
  */
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart } from 'lucide-react';
+import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2 } from 'lucide-react';
 import VisitorsHeatMap from './analytics/VisitorsHeatMap';
 import ViewsLogPage from './analytics/ViewsLogPage';
 import PublicPagesStats from './analytics/PublicPagesStats';
+import { useAnalyticsStats } from '@/hooks/useAnalyticsStats';
 
 interface Metric {
   title: string;
@@ -29,6 +31,7 @@ interface Client {
 
 const AnalyticsDashboard = () => {
   const [activeTab, setActiveTab] = useState<'market' | 'platform'>('market');
+  const { platformStats, loading } = useAnalyticsStats();
   
   const metrics: Metric[] = [
     { title: 'إجمالي الإيرادات', value: '$245,880', change: '+12.5%', color: 'text-green-600', icon: '📈' },
@@ -63,30 +66,6 @@ const AnalyticsDashboard = () => {
   };
 
   const maxRevenue = Math.max(...chartData.revenue);
-
-  // حساب إحصائيات منصتي
-  const getPlatformStats = () => {
-    try {
-      const viewsLog = JSON.parse(localStorage.getItem('offer_views_log') || '[]');
-      const now = new Date();
-      const todayViews = viewsLog.filter((log: any) => {
-        const logDate = new Date(log.timestamp);
-        return now.getTime() - logDate.getTime() < 24 * 60 * 60 * 1000;
-      }).length;
-      
-      const cities = new Set(viewsLog.map((v: any) => v.city).filter(Boolean));
-      
-      return {
-        totalViews: viewsLog.length,
-        todayViews,
-        uniqueCities: cities.size,
-      };
-    } catch {
-      return { totalViews: 0, todayViews: 0, uniqueCities: 0 };
-    }
-  };
-
-  const platformStats = getPlatformStats();
 
   return (
     <div className="space-y-6">
@@ -241,49 +220,70 @@ const AnalyticsDashboard = () => {
         {/* تبويب منصتي */}
         <TabsContent value="platform" className="space-y-6 mt-6">
           {/* إحصائيات سريعة للمنصة */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">إجمالي المشاهدات</p>
-                    <p className="text-3xl font-bold text-red-600">{platformStats.totalViews}</p>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="mr-2 text-muted-foreground">جاري تحميل الإحصائيات...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">إجمالي المشاهدات</p>
+                      <p className="text-3xl font-bold text-red-600">{platformStats.totalViews}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                      <Eye className="w-6 h-6 text-red-500" />
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <Eye className="w-6 h-6 text-red-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">مشاهدات اليوم</p>
-                    <p className="text-3xl font-bold text-orange-600">{platformStats.todayViews}</p>
+              <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">مشاهدات اليوم</p>
+                      <p className="text-3xl font-bold text-orange-600">{platformStats.todayViews}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+                      <Flame className="w-6 h-6 text-orange-500" />
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
-                    <Flame className="w-6 h-6 text-orange-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">مدن الزوار</p>
-                    <p className="text-3xl font-bold text-blue-600">{platformStats.uniqueCities}</p>
+              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">مدن الزوار</p>
+                      <p className="text-3xl font-bold text-blue-600">{platformStats.uniqueCities}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Globe className="w-6 h-6 text-blue-500" />
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Globe className="w-6 h-6 text-blue-500" />
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">زوار فريدين</p>
+                      <p className="text-3xl font-bold text-purple-600">{platformStats.uniqueVisitors}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                      <Users className="w-6 h-6 text-purple-500" />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* خريطة الزوار الحرارية */}
           <Card className="border-2 border-gray-200">
