@@ -2,10 +2,12 @@
  * generatePropertyPDF.ts
  * دالة توليد ملف PDF لتفاصيل العقار مع دعم كامل للعربية
  * باستخدام html2canvas لدعم النصوص العربية بشكل صحيح
+ * تم تحسين الأمان بإضافة DOMPurify لمنع هجمات XSS
  */
 
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import DOMPurify from 'dompurify';
 
 interface PropertyData {
   id?: string;
@@ -43,6 +45,23 @@ interface PropertyData {
   title?: string;
 }
 
+/**
+ * تنظيف النص من أي محتوى ضار باستخدام DOMPurify
+ * يزيل جميع علامات HTML ويحافظ على النص فقط
+ */
+const sanitize = (text: string | undefined | null): string => {
+  if (!text) return '';
+  return DOMPurify.sanitize(text, { ALLOWED_TAGS: [] });
+};
+
+/**
+ * تنظيف رقم الهاتف - يسمح فقط بالأرقام والرموز الأساسية
+ */
+const sanitizePhone = (phone: string | undefined | null): string => {
+  if (!phone) return '';
+  return phone.replace(/[^\d+\-\s()]/g, '');
+};
+
 // تحويل الأرقام إلى أرقام عربية
 const toArabicNumerals = (num: string | number): string => {
   const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -77,11 +96,32 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
     overflow: hidden;
   `;
 
+  // تنظيف جميع المدخلات
+  const safeArea = sanitize(property.area);
+  const safePropertyType = sanitize(property.propertyType) || 'عقار';
+  const safeTitle = sanitize(property.title);
+  const safeBedrooms = sanitize(property.bedrooms);
+  const safeBathrooms = sanitize(property.bathrooms);
+  const safeLivingRooms = sanitize(property.livingRooms);
+  const safeFloors = sanitize(property.floors);
+  const safeFloorNumber = sanitize(property.floorNumber);
+  const safeStreetWidth = sanitize(property.streetWidth);
+  const safePropertyAge = sanitize(property.propertyAge);
+  const safeFacade = sanitize(property.facade);
+  const safeFurnishing = sanitize(property.furnishing);
+  const safeCity = sanitize(property.locationDetails?.city);
+  const safeDistrict = sanitize(property.locationDetails?.district);
+  const safeStreet = sanitize(property.locationDetails?.street);
+  const safeAiDescription = sanitize(property.aiDescription);
+  const safeBrokerPhone = sanitizePhone(property.brokerPhone);
+  const safeFeatures = property.features?.map(f => sanitize(f)) || [];
+
   const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
-  const typeAr = property.propertyType || 'عقار';
+  const typeAr = safePropertyType;
   
-  // الصورة الرئيسية
+  // الصورة الرئيسية - تنظيف URL
   const mainImage = property.image || (property.images && property.images.length > 0 ? property.images[0] : null);
+  const safeMainImage = mainImage ? encodeURI(mainImage) : null;
 
   container.innerHTML = `
     <style>
@@ -98,15 +138,15 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
     <!-- عنوان العرض -->
     <div style="background: #f8f9fa; padding: 15px; text-align: center; border-bottom: 3px solid #D4AF37;">
       <h2 style="color: #01411C; font-size: 20px; margin: 0;">
-        عرض ${purposeAr} - ${typeAr} - ${property.area || ''}م²
+        عرض ${purposeAr} - ${typeAr} - ${safeArea || ''}م²
       </h2>
-      ${property.title ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0;">${property.title}</p>` : ''}
+      ${safeTitle ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0;">${safeTitle}</p>` : ''}
     </div>
 
     <!-- الصورة الرئيسية للعقار -->
-    ${mainImage ? `
+    ${safeMainImage ? `
     <div style="padding: 15px; text-align: center;">
-      <img src="${mainImage}" alt="صورة العقار" style="max-width: 100%; max-height: 200px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); object-fit: cover;" crossorigin="anonymous" />
+      <img src="${safeMainImage}" alt="صورة العقار" style="max-width: 100%; max-height: 200px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); object-fit: cover;" crossorigin="anonymous" />
     </div>
     ` : ''}
 
@@ -116,15 +156,15 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
       <!-- بطاقات المعلومات الأساسية -->
       <div style="display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap;">
         <div style="text-align: center; padding: 12px; background: #f0f7f2; border-radius: 10px; min-width: 100px; margin: 5px;">
-          <div style="color: #01411C; font-size: 22px; font-weight: bold;">${property.area ? toArabicNumerals(property.area) : '-'}</div>
+          <div style="color: #01411C; font-size: 22px; font-weight: bold;">${safeArea ? toArabicNumerals(safeArea) : '-'}</div>
           <div style="color: #666; font-size: 11px;">م² المساحة</div>
         </div>
         <div style="text-align: center; padding: 12px; background: #f0f7f2; border-radius: 10px; min-width: 100px; margin: 5px;">
-          <div style="color: #01411C; font-size: 22px; font-weight: bold;">${property.bedrooms ? toArabicNumerals(property.bedrooms) : '-'}</div>
+          <div style="color: #01411C; font-size: 22px; font-weight: bold;">${safeBedrooms ? toArabicNumerals(safeBedrooms) : '-'}</div>
           <div style="color: #666; font-size: 11px;">غرف</div>
         </div>
         <div style="text-align: center; padding: 12px; background: #f0f7f2; border-radius: 10px; min-width: 100px; margin: 5px;">
-          <div style="color: #01411C; font-size: 22px; font-weight: bold;">${property.bathrooms ? toArabicNumerals(property.bathrooms) : '-'}</div>
+          <div style="color: #01411C; font-size: 22px; font-weight: bold;">${safeBathrooms ? toArabicNumerals(safeBathrooms) : '-'}</div>
           <div style="color: #666; font-size: 11px;">حمامات</div>
         </div>
       </div>
@@ -143,14 +183,14 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
           <tr>
             <td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">المدينة:</td>
-            <td style="padding: 6px; background: #fff;">${property.locationDetails?.city || '-'}</td>
+            <td style="padding: 6px; background: #fff;">${safeCity || '-'}</td>
             <td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">الحي:</td>
-            <td style="padding: 6px; background: #fff;">${property.locationDetails?.district || '-'}</td>
+            <td style="padding: 6px; background: #fff;">${safeDistrict || '-'}</td>
           </tr>
-          ${property.locationDetails?.street ? `
+          ${safeStreet ? `
           <tr>
             <td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الشارع:</td>
-            <td colspan="3" style="padding: 6px; background: #fff;">${property.locationDetails.street}</td>
+            <td colspan="3" style="padding: 6px; background: #fff;">${safeStreet}</td>
           </tr>
           ` : ''}
         </table>
@@ -163,37 +203,37 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
         </h3>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
           <tr>
-            ${property.bedrooms ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">غرف النوم:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(property.bedrooms)} غرف</td>` : '<td></td><td></td>'}
-            ${property.bathrooms ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">دورات المياه:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(property.bathrooms)} حمام</td>` : '<td></td><td></td>'}
+            ${safeBedrooms ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">غرف النوم:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(safeBedrooms)} غرف</td>` : '<td></td><td></td>'}
+            ${safeBathrooms ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">دورات المياه:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(safeBathrooms)} حمام</td>` : '<td></td><td></td>'}
           </tr>
           <tr>
-            ${property.livingRooms ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الصالات:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(property.livingRooms)} صالة</td>` : '<td></td><td></td>'}
-            ${property.floors ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">عدد الأدوار:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(property.floors)} دور</td>` : '<td></td><td></td>'}
+            ${safeLivingRooms ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الصالات:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(safeLivingRooms)} صالة</td>` : '<td></td><td></td>'}
+            ${safeFloors ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">عدد الأدوار:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(safeFloors)} دور</td>` : '<td></td><td></td>'}
           </tr>
           <tr>
-            ${property.floorNumber ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">رقم الطابق:</td><td style="padding: 6px; background: #fff;">الطابق ${toArabicNumerals(property.floorNumber)}</td>` : '<td></td><td></td>'}
-            ${property.streetWidth ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">عرض الشارع:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(property.streetWidth)} متر</td>` : '<td></td><td></td>'}
+            ${safeFloorNumber ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">رقم الطابق:</td><td style="padding: 6px; background: #fff;">الطابق ${toArabicNumerals(safeFloorNumber)}</td>` : '<td></td><td></td>'}
+            ${safeStreetWidth ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">عرض الشارع:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(safeStreetWidth)} متر</td>` : '<td></td><td></td>'}
           </tr>
           <tr>
-            ${property.propertyAge ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">عمر العقار:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(property.propertyAge)} سنة</td>` : '<td></td><td></td>'}
-            ${property.facade ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الواجهة:</td><td style="padding: 6px; background: #fff;">${property.facade}</td>` : '<td></td><td></td>'}
+            ${safePropertyAge ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">عمر العقار:</td><td style="padding: 6px; background: #fff;">${toArabicNumerals(safePropertyAge)} سنة</td>` : '<td></td><td></td>'}
+            ${safeFacade ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الواجهة:</td><td style="padding: 6px; background: #fff;">${safeFacade}</td>` : '<td></td><td></td>'}
           </tr>
-          ${property.furnishing ? `
+          ${safeFurnishing ? `
           <tr>
             <td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">التأثيث:</td>
-            <td colspan="3" style="padding: 6px; background: #fff;">${property.furnishing}</td>
+            <td colspan="3" style="padding: 6px; background: #fff;">${safeFurnishing}</td>
           </tr>` : ''}
         </table>
       </div>
 
       <!-- المميزات -->
-      ${property.features && property.features.length > 0 ? `
+      ${safeFeatures.length > 0 ? `
       <div style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           ✨ المميزات الإضافية
         </h3>
         <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-          ${property.features.map(f => `
+          ${safeFeatures.map(f => `
             <span style="background: #f0f7f2; color: #01411C; padding: 5px 10px; border-radius: 15px; font-size: 11px; border: 1px solid #D4AF37;">
               ✓ ${f}
             </span>
@@ -203,19 +243,19 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
       ` : ''}
 
       <!-- الوصف الكامل -->
-      ${property.aiDescription ? `
+      ${safeAiDescription ? `
       <div style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📝 وصف العقار
         </h3>
         <div style="color: #333; line-height: 1.7; text-align: justify; background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 12px;">
-          ${property.aiDescription}
+          ${safeAiDescription}
         </div>
       </div>
       ` : ''}
 
       <!-- معلومات التواصل (الوسيط فقط) -->
-      ${property.brokerPhone ? `
+      ${safeBrokerPhone ? `
       <div style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📞 معلومات التواصل
@@ -224,17 +264,17 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
           <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #01411C;">🏢 الوسيط العقاري:</td>
-              <td style="padding: 8px 0; color: #333; direction: ltr; text-align: right;">${property.brokerPhone}</td>
+              <td style="padding: 8px 0; color: #333; direction: ltr; text-align: right;">${safeBrokerPhone}</td>
             </tr>
           </table>
           
           <!-- أزرار التواصل -->
           <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
             <div style="background: #25D366; color: white; padding: 10px 20px; border-radius: 25px; font-size: 12px; font-weight: bold; text-align: center;">
-              💬 واتساب: ${property.brokerPhone}
+              💬 واتساب: ${safeBrokerPhone}
             </div>
             <div style="background: #01411C; color: white; padding: 10px 20px; border-radius: 25px; font-size: 12px; font-weight: bold; text-align: center;">
-              📞 اتصال: ${property.brokerPhone}
+              📞 اتصال: ${safeBrokerPhone}
             </div>
           </div>
         </div>
