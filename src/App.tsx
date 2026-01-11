@@ -139,7 +139,7 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
 
   return (
     <BusinessCardEdit 
-      onBack={() => navigate(-1)} 
+      onBack={() => navigate('/app/dashboard')} 
       user={userData} 
       isNewUser={isNewUser} 
     />
