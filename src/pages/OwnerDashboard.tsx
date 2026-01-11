@@ -229,7 +229,23 @@ const OwnerDashboard: React.FC = () => {
       if (error) throw error;
 
       setGlobalDefaults(prev => prev ? { ...prev, [key]: value } : null);
-      toast.success('تم تحديث الإعداد العام');
+      
+      // إشعار خاص بميزة البطاقة الرسمية
+      if (key === 'official_business_card_enabled') {
+        if (value) {
+          toast.success('✅ تم تفعيل ميزة البطاقة الرسمية', {
+            description: 'ستظهر الآن في: القائمة اليمنى، صفحة تحرير البطاقة، والصفحة المستقلة',
+            duration: 5000,
+          });
+        } else {
+          toast.warning('⚠️ تم تعطيل ميزة البطاقة الرسمية', {
+            description: 'ستختفي من: القائمة اليمنى، صفحة تحرير البطاقة، والصفحة المستقلة',
+            duration: 5000,
+          });
+        }
+      } else {
+        toast.success('تم تحديث الإعداد العام');
+      }
     } catch (error: any) {
       toast.error(error.message || 'حدث خطأ');
     }
