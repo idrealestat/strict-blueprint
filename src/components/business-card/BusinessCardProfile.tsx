@@ -715,87 +715,95 @@ END:VCARD`;
             <CardTitle className="text-lg text-[#01411C]">🎯 خدماتي</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* My Platform - First Button */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#b8941f] text-[#01411C] hover:opacity-90 col-span-2 md:col-span-4"
-                onClick={() => {
-                  const slug = getSlug();
-                  window.open(`${PLATFORM_BASE_URL}/${slug}`, '_blank');
-                }}
-              >
-                <Home className="w-6 h-6" />
-                <span className="text-sm font-bold">منصتي</span>
-              </Button>
+            {/* زر منصتي - عرض كامل */}
+            <Button
+              variant="outline"
+              className="w-full h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#b8941f] text-[#01411C] hover:opacity-90 mb-3"
+              onClick={() => {
+                const slug = getSlug();
+                window.open(`${PLATFORM_BASE_URL}/${slug}`, '_blank');
+              }}
+            >
+              <Home className="w-6 h-6" />
+              <span className="text-sm font-bold">منصتي</span>
+            </Button>
 
-              {/* Website */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => window.open(formData.domain, "_blank")}
-                disabled={!formData.domain}
-              >
-                <Globe className="w-5 h-5" />
-                <span className="text-xs">الموقع</span>
-              </Button>
+            {/* الأزرار المرنة - تتوزع تلقائياً */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {/* Website - يظهر فقط إذا تم تعبئته */}
+              {formData.domain && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  onClick={() => window.open(formData.domain, "_blank")}
+                >
+                  <Globe className="w-5 h-5" />
+                  <span className="text-xs">الموقع</span>
+                </Button>
+              )}
 
-              {/* Google Maps */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => window.open(formData.googleMapsLocation, "_blank")}
-                disabled={!formData.googleMapsLocation}
-              >
-                <MapPin className="w-5 h-5" />
-                <span className="text-xs">خرائط جوجل</span>
-              </Button>
+              {/* Google Maps - يظهر فقط إذا تم تعبئته */}
+              {formData.googleMapsLocation && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  onClick={() => window.open(formData.googleMapsLocation, "_blank")}
+                >
+                  <MapPin className="w-5 h-5" />
+                  <span className="text-xs">خرائط جوجل</span>
+                </Button>
+              )}
 
-              {/* Direct Call */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => window.open(`tel:${formData.primaryPhone}`)}
-              >
-                <Phone className="w-5 h-5" />
-                <span className="text-xs">اتصال مباشر</span>
-              </Button>
+              {/* Direct Call - يظهر فقط إذا تم تعبئته */}
+              {formData.primaryPhone && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  onClick={() => window.open(`tel:${formData.primaryPhone}`)}
+                >
+                  <Phone className="w-5 h-5" />
+                  <span className="text-xs">اتصال مباشر</span>
+                </Button>
+              )}
 
-              {/* WhatsApp */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => window.open(`https://wa.me/${formData.primaryPhone.replace(/\D/g, "")}`)}
-              >
-                <MessageSquare className="w-5 h-5" />
-                <span className="text-xs">واتساب</span>
-              </Button>
+              {/* WhatsApp - يظهر فقط إذا تم تعبئته */}
+              {formData.primaryPhone && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  onClick={() => window.open(`https://wa.me/${formData.primaryPhone.replace(/\D/g, "")}`)}
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  <span className="text-xs">واتساب</span>
+                </Button>
+              )}
 
-              {/* Email */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={() => window.open(`mailto:${formData.email}`)}
-                disabled={!formData.email}
-              >
-                <Mail className="w-5 h-5" />
-                <span className="text-xs">إيميل</span>
-              </Button>
+              {/* Email - يظهر فقط إذا تم تعبئته */}
+              {formData.email && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  onClick={() => window.open(`mailto:${formData.email}`)}
+                >
+                  <Mail className="w-5 h-5" />
+                  <span className="text-xs">إيميل</span>
+                </Button>
+              )}
 
-              {/* Download vCard */}
+              {/* Download vCard - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={handleDownloadVCard}
               >
                 <Download className="w-5 h-5" />
                 <span className="text-xs">تحميل بطاقة</span>
               </Button>
 
-              {/* Send Offer */}
+              {/* Send Offer - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={() => {
                   const slug = getSlug();
                   const link = `${PLATFORM_BASE_URL}/${slug}/offer`;
@@ -808,10 +816,10 @@ END:VCARD`;
                 <span className="text-xs">إرسال عرض</span>
               </Button>
 
-              {/* Send Request */}
+              {/* Send Request - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={() => {
                   const slug = getSlug();
                   const link = `${PLATFORM_BASE_URL}/${slug}/request`;
@@ -824,10 +832,10 @@ END:VCARD`;
                 <span className="text-xs">إرسال طلب</span>
               </Button>
 
-              {/* Price Quote */}
+              {/* Price Quote - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={() => {
                   const slug = getSlug();
                   const link = `${PLATFORM_BASE_URL}/${slug}/quote`;
@@ -840,10 +848,10 @@ END:VCARD`;
                 <span className="text-xs">عرض سعر</span>
               </Button>
 
-              {/* Appointment */}
+              {/* Appointment - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={() => {
                   const slug = getSlug();
                   const link = `${PLATFORM_BASE_URL}/${slug}/calendar`;
@@ -856,20 +864,20 @@ END:VCARD`;
                 <span className="text-xs">إنشاء موعد</span>
               </Button>
 
-              {/* Finance Calculator */}
+              {/* Finance Calculator - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={() => toast.info("حاسبة تمويل - قريباً")}
               >
                 <Calculator className="w-5 h-5" />
                 <span className="text-xs">حاسبة تمويل</span>
               </Button>
 
-              {/* Rate Me - قييمني */}
+              {/* Rate Me - قييمني - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90 min-w-[80px]"
                 onClick={() => toast.info("قييمني - قريباً")}
               >
                 <Star className="w-5 h-5" />

@@ -463,24 +463,25 @@ END:VCARD`;
             <CardTitle className="text-lg text-[#01411C]">🎯 خدماتي</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* My Platform - First Button */}
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#b8941f] text-[#01411C] hover:opacity-90 col-span-2 md:col-span-4"
-                asChild
-              >
-                <Link to={`/${slug}`}>
-                  <Home className="w-6 h-6" />
-                  <span className="text-sm font-bold">منصتي</span>
-                </Link>
-              </Button>
+            {/* زر منصتي - عرض كامل */}
+            <Button
+              variant="outline"
+              className="w-full h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#b8941f] text-[#01411C] hover:opacity-90 mb-3"
+              asChild
+            >
+              <Link to={`/${slug}`}>
+                <Home className="w-6 h-6" />
+                <span className="text-sm font-bold">منصتي</span>
+              </Link>
+            </Button>
 
-              {/* Website */}
+            {/* الأزرار المرنة - تتوزع تلقائياً */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {/* Website - يظهر فقط إذا تم تعبئته */}
               {domain && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                   asChild
                 >
                   <a href={domain.startsWith('http') ? domain : `https://${domain}`} target="_blank" rel="noopener noreferrer">
@@ -490,11 +491,11 @@ END:VCARD`;
                 </Button>
               )}
 
-              {/* Google Maps */}
+              {/* Google Maps - يظهر فقط إذا تم تعبئته */}
               {googleMapsLocation && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                   asChild
                 >
                   <a href={googleMapsLocation} target="_blank" rel="noopener noreferrer">
@@ -504,11 +505,11 @@ END:VCARD`;
                 </Button>
               )}
 
-              {/* Direct Call */}
+              {/* Direct Call - يظهر فقط إذا تم تعبئته */}
               {phone && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                   asChild
                 >
                   <a href={`tel:${phone}`}>
@@ -518,11 +519,11 @@ END:VCARD`;
                 </Button>
               )}
 
-              {/* WhatsApp */}
+              {/* WhatsApp - يظهر فقط إذا تم تعبئته */}
               {phone && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                   asChild
                 >
                   <a href={`https://wa.me/${phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
@@ -532,11 +533,11 @@ END:VCARD`;
                 </Button>
               )}
 
-              {/* Email */}
+              {/* Email - يظهر فقط إذا تم تعبئته */}
               {email && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                   asChild
                 >
                   <a href={`mailto:${email}`}>
@@ -546,20 +547,20 @@ END:VCARD`;
                 </Button>
               )}
 
-              {/* Download vCard */}
+              {/* Download vCard - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={handleDownloadVCard}
               >
                 <Download className="w-5 h-5" />
                 <span className="text-xs">تحميل بطاقة</span>
               </Button>
 
-              {/* Send Offer */}
+              {/* Send Offer - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 asChild
               >
                 <Link to={`/${slug}/offer`}>
@@ -568,10 +569,10 @@ END:VCARD`;
                 </Link>
               </Button>
 
-              {/* Send Request */}
+              {/* Send Request - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 asChild
               >
                 <Link to={`/${slug}/request`}>
@@ -580,10 +581,10 @@ END:VCARD`;
                 </Link>
               </Button>
 
-              {/* Price Quote */}
+              {/* Price Quote - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 asChild
               >
                 <Link to={`/${slug}/quote`}>
@@ -592,10 +593,10 @@ END:VCARD`;
                 </Link>
               </Button>
 
-              {/* Appointment */}
+              {/* Appointment - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 asChild
               >
                 <Link to={`/${slug}/calendar`}>
@@ -604,20 +605,20 @@ END:VCARD`;
                 </Link>
               </Button>
 
-              {/* Finance Calculator */}
+              {/* Finance Calculator - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
                 onClick={() => toast.info("حاسبة تمويل - قريباً")}
               >
                 <Calculator className="w-5 h-5" />
                 <span className="text-xs">حاسبة تمويل</span>
               </Button>
 
-              {/* Rate Me - قييمني */}
+              {/* Rate Me - قييمني - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90"
+                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90 min-w-[80px]"
                 onClick={() => toast.info("قييمني - قريباً")}
               >
                 <Star className="w-5 h-5" />
