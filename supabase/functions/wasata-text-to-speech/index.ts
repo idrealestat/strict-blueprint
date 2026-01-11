@@ -145,11 +145,11 @@ serve(async (req) => {
           text,
           model_id: "eleven_turbo_v2_5", // أسرع - latency منخفض
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.3,
+            stability: 0.4,
+            similarity_boost: 0.7,
+            style: 0.2,
             use_speaker_boost: true,
-            speed: 1.0,
+            speed: 1.15, // سرعة أعلى قليلاً
           },
         }),
       }
