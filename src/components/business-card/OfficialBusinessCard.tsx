@@ -26,9 +26,9 @@ const WasataWatermark = () => (
   </div>
 );
 
-// Saudi Watermark Background for Front Side - positioned lower
+// Saudi Watermark Background for Front Side - positioned much lower
 const SaudiWatermarkBg = () => (
-  <div className="absolute inset-0 flex items-end justify-center pointer-events-none overflow-hidden pb-2">
+  <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none overflow-hidden" style={{ bottom: '-20px' }}>
     <img 
       src={saudiWatermark} 
       alt="" 
