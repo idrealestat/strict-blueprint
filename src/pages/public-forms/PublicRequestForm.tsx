@@ -1,9 +1,10 @@
 /**
  * PublicRequestForm.tsx
- * صفحة إرسال طلب عقار من العميل
+ * صفحة إرسال طلب عقار من العميل - نموذج شامل مع أقسام ملونة
+ * يحفظ البيانات في قاعدة البيانات مع الإشعارات والدوائر النابضة
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +12,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Send, Loader2, CheckCircle, Search, User, Phone, MapPin, DollarSign } from 'lucide-react';
+import { 
+  Send, Loader2, CheckCircle, Search, User, Phone, MapPin, DollarSign,
+  CreditCard, Building, Home, Calendar, Ruler, BedDouble, Bath
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
+import { createNotification } from '@/utils/notificationTriggers';
+import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
+// Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
   id: brokerId,
   name: 'أحمد محمد',
@@ -27,25 +35,99 @@ const getMockBroker = (brokerId: string): BrokerInfo => ({
   verified: true,
 });
 
-const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب"];
+const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب", "مستودع", "استراحة"];
 const purposes = ["للشراء", "للإيجار"];
-const cities = ["الرياض", "جدة", "مكة", "المدينة", "الدمام", "الخبر", "تبوك", "أبها", "الطائف"];
+const cities = ["الرياض", "جدة", "مكة", "المدينة", "الدمام", "الخبر", "تبوك", "أبها", "الطائف", "نجران", "القصيم", "حائل"];
+const furnishingOptions = ["مفروشة بالكامل", "شبه مفروشة", "مطبخ مؤثث", "غير مؤثث", "لا يهم"];
+
+// ===================== Section Wrapper Component =====================
+interface SectionProps {
+  title: string;
+  icon: React.ReactNode;
+  color: 'green' | 'blue' | 'amber' | 'purple' | 'rose' | 'cyan' | 'orange';
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
+  const colorClasses = {
+    green: 'bg-green-50 border-green-200',
+    blue: 'bg-blue-50 border-blue-200',
+    amber: 'bg-amber-50 border-amber-200',
+    purple: 'bg-purple-50 border-purple-200',
+    rose: 'bg-rose-50 border-rose-200',
+    cyan: 'bg-cyan-50 border-cyan-200',
+    orange: 'bg-orange-50 border-orange-200',
+  };
+  
+  const headerColors = {
+    green: 'text-green-800 border-green-300',
+    blue: 'text-blue-800 border-blue-300',
+    amber: 'text-amber-800 border-amber-300',
+    purple: 'text-purple-800 border-purple-300',
+    rose: 'text-rose-800 border-rose-300',
+    cyan: 'text-cyan-800 border-cyan-300',
+    orange: 'text-orange-800 border-orange-300',
+  };
+
+  return (
+    <div className={`rounded-xl border-2 ${colorClasses[color]} p-4`}>
+      <h3 className={`font-bold flex items-center gap-2 pb-2 mb-4 border-b ${headerColors[color]}`}>
+        {icon}
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+};
 
 interface FormData {
+  // معلومات العميل
   clientName: string;
   clientPhone: string;
   clientIdNumber: string;
+  clientNationalAddress: string;
+  clientCity: string;
+  
+  // معلومات العقار المطلوب
   propertyType: string;
   purpose: string;
   preferredCity: string;
   preferredDistricts: string;
+  
+  // المساحة والمواصفات
   minArea: string;
   maxArea: string;
+  bedrooms: string;
+  bathrooms: string;
+  livingRooms: string;
+  floors: string;
+  furnishing: string;
+  
+  // الميزانية
   minBudget: string;
   maxBudget: string;
-  bedrooms: string;
+  
+  // خيارات الدفعات للإيجار
+  paymentPrices: {
+    onePayment: string;
+    twoPayments: string;
+    fourPayments: string;
+    monthly: string;
+  };
+  
+  // الميزات المطلوبة
+  hasPool: boolean;
+  hasGarden: boolean;
+  hasElevator: boolean;
+  hasParking: boolean;
+  hasMaidRoom: boolean;
+  hasDriverRoom: boolean;
+  
+  // متطلبات إضافية
   additionalRequirements: string;
   urgency: string;
+  
+  // موافقة
   agreeToTerms: boolean;
 }
 
@@ -53,22 +135,74 @@ export default function PublicRequestForm() {
   const { brokerId } = useParams<{ brokerId: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
-  const broker = getMockBroker(brokerId || '1');
+  const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerId || '1'));
+
+  // تحميل بيانات الوسيط من قاعدة البيانات
+  useEffect(() => {
+    const loadBrokerData = async () => {
+      if (!brokerId) return;
+      
+      try {
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('data, user_id')
+          .eq('slug', brokerId)
+          .eq('published', true)
+          .single();
+
+        if (businessCard?.data) {
+          const cardData = businessCard.data as Record<string, any>;
+          setBroker({
+            id: brokerId,
+            name: cardData.name || 'وسيط عقاري',
+            company: cardData.company || '',
+            phone: cardData.phone || '',
+            email: cardData.email || '',
+            location: cardData.city || '',
+            licenseNumber: cardData.falLicenseNumber || '',
+            rating: 4.8,
+            verified: true,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading broker data:', error);
+      }
+    };
+    
+    loadBrokerData();
+  }, [brokerId]);
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
     clientPhone: '',
     clientIdNumber: '',
+    clientNationalAddress: '',
+    clientCity: '',
     propertyType: '',
     purpose: '',
     preferredCity: '',
     preferredDistricts: '',
     minArea: '',
     maxArea: '',
+    bedrooms: '',
+    bathrooms: '',
+    livingRooms: '',
+    floors: '',
+    furnishing: '',
     minBudget: '',
     maxBudget: '',
-    bedrooms: '',
+    paymentPrices: {
+      onePayment: '',
+      twoPayments: '',
+      fourPayments: '',
+      monthly: '',
+    },
+    hasPool: false,
+    hasGarden: false,
+    hasElevator: false,
+    hasParking: false,
+    hasMaidRoom: false,
+    hasDriverRoom: false,
     additionalRequirements: '',
     urgency: 'normal',
     agreeToTerms: false,
@@ -78,9 +212,20 @@ export default function PublicRequestForm() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const updatePaymentPrice = (field: keyof FormData['paymentPrices'], value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      paymentPrices: { ...prev.paymentPrices, [field]: value }
+    }));
+  };
+
   const handleSubmit = async () => {
-    if (!formData.clientName || !formData.clientPhone || !formData.propertyType || !formData.purpose) {
-      toast.error('يرجى تعبئة الحقول المطلوبة');
+    if (!formData.clientName || !formData.clientPhone) {
+      toast.error('يرجى إدخال الاسم ورقم الجوال');
+      return;
+    }
+    if (!formData.propertyType || !formData.purpose) {
+      toast.error('يرجى تحديد نوع العقار والغرض');
       return;
     }
     if (!formData.agreeToTerms) {
@@ -91,66 +236,195 @@ export default function PublicRequestForm() {
     setIsSubmitting(true);
 
     try {
+      // إنشاء بيانات الطلب
+      const requestId = `request_${Date.now()}`;
       const submissionData = {
-        id: `request_${Date.now()}`,
+        id: requestId,
         type: 'property_request',
         brokerId: broker.id,
         brokerName: broker.name,
         ...formData,
         submittedAt: new Date().toISOString(),
         status: 'pending',
+        isNew: true,
+        isViewed: false,
       };
 
-      // Save submission
+      // 1. الحصول على معرف الوسيط من business_cards
+      const { data: businessCard } = await supabase
+        .from('business_cards')
+        .select('user_id, data')
+        .eq('slug', brokerId)
+        .eq('published', true)
+        .single();
+
+      const brokerUserId = businessCard?.user_id;
+
+      if (brokerUserId) {
+        // 2. البحث عن العميل برقم الجوال
+        const { data: existingCustomer } = await supabase
+          .from('crm_customers')
+          .select('*')
+          .eq('user_id', brokerUserId)
+          .or(`phone.eq.${formData.clientPhone},whatsapp.eq.${formData.clientPhone}`)
+          .maybeSingle();
+
+        let customerId: string;
+        let isNewCustomer = false;
+
+        if (existingCustomer) {
+          // 3a. العميل موجود - تحديث بياناته وإضافة الطلب
+          customerId = existingCustomer.id;
+          
+          const updates: Record<string, any> = {
+            last_contact: new Date().toISOString().split('T')[0],
+          };
+          
+          if (!existingCustomer.name || existingCustomer.name === 'غير معروف') {
+            updates.name = formData.clientName;
+          }
+          
+          // إضافة الطلب للـ metadata
+          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
+          const existingRequests = currentMetadata.property_requests || [];
+          
+          updates.metadata = {
+            ...currentMetadata,
+            property_requests: [...existingRequests, submissionData],
+            hasUnreadRequest: true,
+            lastRequestAt: new Date().toISOString(),
+          };
+          
+          await supabase
+            .from('crm_customers')
+            .update(updates)
+            .eq('id', customerId);
+
+        } else {
+          // 3b. العميل غير موجود - إنشاء بطاقة جديدة
+          isNewCustomer = true;
+          
+          const { data: newCustomer, error: createError } = await supabase
+            .from('crm_customers')
+            .insert([{
+              user_id: brokerUserId,
+              name: formData.clientName,
+              phone: formData.clientPhone,
+              status: 'جديد',
+              priority: 'عالي',
+              property_type: formData.purpose === 'للشراء' ? 'buyer' : 'renter',
+              source: 'نموذج طلب عقاري',
+              location: formData.preferredCity || null,
+              budget: formData.maxBudget ? `${formData.minBudget || 0} - ${formData.maxBudget}` : null,
+              notes: `طلب عقاري: ${formData.propertyType} ${formData.purpose}`,
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                idNumber: formData.clientIdNumber,
+                nationalAddress: formData.clientNationalAddress,
+                property_requests: [submissionData],
+                hasUnreadRequest: true,
+                isNewCard: true,
+                lastRequestAt: new Date().toISOString(),
+              } as Record<string, any>,
+            }])
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating customer:', createError);
+          } else if (newCustomer) {
+            customerId = newCustomer.id;
+          }
+        }
+
+        // 4. إنشاء إشعار في قاعدة البيانات
+        await createNotification({
+          userId: brokerUserId,
+          title: '🔍 طلب عقاري جديد',
+          message: `استلمت طلب من ${formData.clientName} - ${formData.propertyType} ${formData.purpose}`,
+          notificationType: 'request',
+          category: 'incoming',
+          priority: 'high',
+          relatedEntityType: 'request_form',
+          relatedEntityId: requestId,
+          metadata: {
+            clientName: formData.clientName,
+            clientPhone: formData.clientPhone,
+            propertyType: formData.propertyType,
+            purpose: formData.purpose,
+            city: formData.preferredCity,
+            customerId: customerId!,
+            isNewCustomer,
+            isPulsing: true,
+          },
+        });
+
+        // 5. تتبع الدوائر النابضة
+        markAsNew('offer', requestId);
+        if (customerId!) {
+          markAsNew('customer', customerId!);
+        }
+        markAsNew('tab', 'property-request');
+      }
+
+      // 6. حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
       existingSubmissions.push(submissionData);
       localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
 
-      // Create notification
-      const notification = {
-        id: `notif_${Date.now()}`,
-        type: 'new_request',
-        title: 'طلب عقار جديد',
-        message: `تم استلام طلب عقار جديد من ${formData.clientName}`,
+      // 7. تحديث localStorage للعملاء
+      const localCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+      const existingLocalCustomer = localCustomers.find((c: any) => c.phone === formData.clientPhone);
+      
+      const tabData = {
+        id: `tab_${Date.now()}`,
+        name: 'طلب عقار',
+        type: 'property_request',
         data: submissionData,
-        isRead: false,
+        isNew: true,
+        isViewed: false,
         createdAt: new Date().toISOString(),
       };
-      
-      const notifications = JSON.parse(localStorage.getItem('broker_notifications') || '[]');
-      notifications.unshift(notification);
-      localStorage.setItem('broker_notifications', JSON.stringify(notifications));
 
-      // Add/update customer in CRM
-      const customerData = {
-        id: `cust_${Date.now()}`,
-        name: formData.clientName,
-        phone: formData.clientPhone,
-        idNumber: formData.clientIdNumber,
-        type: 'buyer',
-        source: 'public_form',
-        status: 'new',
-        createdAt: new Date().toISOString(),
-        tabs: [{
-          id: `tab_${Date.now()}`,
-          name: 'طلب عقار',
-          type: 'property_request',
-          data: submissionData,
-          createdAt: new Date().toISOString(),
-        }],
-      };
-
-      const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-      const existingCustomer = customers.find((c: any) => c.phone === formData.clientPhone);
-      
-      if (existingCustomer) {
-        existingCustomer.tabs = existingCustomer.tabs || [];
-        existingCustomer.tabs.push(customerData.tabs[0]);
-        localStorage.setItem('crm_customers', JSON.stringify(customers));
+      if (existingLocalCustomer) {
+        existingLocalCustomer.tabs = existingLocalCustomer.tabs || [];
+        existingLocalCustomer.tabs.push(tabData);
+        existingLocalCustomer.hasUnreadRequest = true;
+        existingLocalCustomer.name = formData.clientName;
+        existingLocalCustomer.idNumber = formData.clientIdNumber;
+        existingLocalCustomer.nationalAddress = formData.clientNationalAddress;
       } else {
-        customers.push(customerData);
-        localStorage.setItem('crm_customers', JSON.stringify(customers));
+        localCustomers.push({
+          id: `cust_${Date.now()}`,
+          name: formData.clientName,
+          phone: formData.clientPhone,
+          idNumber: formData.clientIdNumber,
+          nationalAddress: formData.clientNationalAddress,
+          type: formData.purpose === 'للشراء' ? 'buyer' : 'renter',
+          source: 'public_form',
+          status: 'new',
+          hasUnreadRequest: true,
+          isNewCard: true,
+          createdAt: new Date().toISOString(),
+          tabs: [tabData],
+        });
       }
+      localStorage.setItem('crm_customers', JSON.stringify(localCustomers));
+
+      // 8. إرسال حدث لتحديث واجهة المستخدم
+      window.dispatchEvent(new CustomEvent('addNotification', {
+        detail: {
+          title: '🔍 طلب عقاري جديد',
+          message: `تم استلام طلب من ${formData.clientName}`,
+          type: 'success',
+          category: 'customer',
+          isPulsing: true,
+        }
+      }));
+
+      window.dispatchEvent(new CustomEvent('newRequestReceived', {
+        detail: submissionData
+      }));
 
       setIsSubmitted(true);
       toast.success('تم إرسال الطلب بنجاح');
@@ -187,13 +461,9 @@ export default function PublicRequestForm() {
   return (
     <PublicFormLayout broker={broker} title="إرسال طلب عقار">
       <div className="p-6 space-y-6">
-        {/* معلومات العميل */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <User className="w-5 h-5 text-[#D4AF37]" />
-            معلوماتك
-          </h3>
-          
+        
+        {/* القسم 1: معلومات العميل */}
+        <Section title="معلوماتك" icon={<User className="w-5 h-5" />} color="green">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>الاسم الكامل *</Label>
@@ -201,6 +471,7 @@ export default function PublicRequestForm() {
                 value={formData.clientName}
                 onChange={(e) => updateField('clientName', e.target.value)}
                 placeholder="أدخل اسمك الكامل"
+                className="bg-white"
               />
             </div>
             <div>
@@ -210,31 +481,50 @@ export default function PublicRequestForm() {
                 onChange={(e) => updateField('clientPhone', e.target.value)}
                 placeholder="05xxxxxxxx"
                 dir="ltr"
+                className="bg-white"
               />
             </div>
-            <div className="md:col-span-2">
+            <div>
               <Label>رقم الهوية (اختياري)</Label>
               <Input
                 value={formData.clientIdNumber}
                 onChange={(e) => updateField('clientIdNumber', e.target.value)}
                 placeholder="رقم الهوية الوطنية"
+                className="bg-white"
               />
             </div>
+            <div>
+              <Label>العنوان الوطني (اختياري)</Label>
+              <Input
+                value={formData.clientNationalAddress}
+                onChange={(e) => updateField('clientNationalAddress', e.target.value)}
+                placeholder="العنوان الوطني"
+                className="bg-white"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label>المدينة</Label>
+              <Select value={formData.clientCity} onValueChange={(v) => updateField('clientCity', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="اختر مدينتك" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map(city => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        </Section>
 
-        {/* متطلبات العقار */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <Search className="w-5 h-5 text-[#D4AF37]" />
-            متطلبات العقار المطلوب
-          </h3>
-
+        {/* القسم 2: متطلبات العقار */}
+        <Section title="متطلبات العقار المطلوب" icon={<Search className="w-5 h-5" />} color="blue">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>نوع العقار *</Label>
               <Select value={formData.propertyType} onValueChange={(v) => updateField('propertyType', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر نوع العقار" />
                 </SelectTrigger>
                 <SelectContent>
@@ -247,7 +537,7 @@ export default function PublicRequestForm() {
             <div>
               <Label>الغرض *</Label>
               <Select value={formData.purpose} onValueChange={(v) => updateField('purpose', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="للشراء / للإيجار" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,7 +550,7 @@ export default function PublicRequestForm() {
             <div>
               <Label>المدينة المفضلة</Label>
               <Select value={formData.preferredCity} onValueChange={(v) => updateField('preferredCity', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر المدينة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -276,26 +566,26 @@ export default function PublicRequestForm() {
                 value={formData.preferredDistricts}
                 onChange={(e) => updateField('preferredDistricts', e.target.value)}
                 placeholder="حي النخيل، حي الياسمين..."
+                className="bg-white"
               />
             </div>
           </div>
-        </div>
+        </Section>
 
-        {/* المساحة والميزانية */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <DollarSign className="w-5 h-5 text-[#D4AF37]" />
-            المساحة والميزانية
-          </h3>
-
+        {/* القسم 3: المواصفات التفصيلية */}
+        <Section title="المواصفات المطلوبة" icon={<Building className="w-5 h-5" />} color="purple">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <Label>الحد الأدنى للمساحة</Label>
+              <Label className="flex items-center gap-1">
+                <Ruler className="w-4 h-4" />
+                الحد الأدنى للمساحة
+              </Label>
               <Input
                 type="number"
                 value={formData.minArea}
                 onChange={(e) => updateField('minArea', e.target.value)}
                 placeholder="م²"
+                className="bg-white"
               />
             </div>
             <div>
@@ -305,8 +595,74 @@ export default function PublicRequestForm() {
                 value={formData.maxArea}
                 onChange={(e) => updateField('maxArea', e.target.value)}
                 placeholder="م²"
+                className="bg-white"
               />
             </div>
+            <div>
+              <Label className="flex items-center gap-1">
+                <BedDouble className="w-4 h-4" />
+                غرف النوم
+              </Label>
+              <Input
+                type="number"
+                value={formData.bedrooms}
+                onChange={(e) => updateField('bedrooms', e.target.value)}
+                placeholder="العدد"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1">
+                <Bath className="w-4 h-4" />
+                دورات المياه
+              </Label>
+              <Input
+                type="number"
+                value={formData.bathrooms}
+                onChange={(e) => updateField('bathrooms', e.target.value)}
+                placeholder="العدد"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>الصالات</Label>
+              <Input
+                type="number"
+                value={formData.livingRooms}
+                onChange={(e) => updateField('livingRooms', e.target.value)}
+                placeholder="العدد"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>الأدوار</Label>
+              <Input
+                type="number"
+                value={formData.floors}
+                onChange={(e) => updateField('floors', e.target.value)}
+                placeholder="العدد"
+                className="bg-white"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label>الأثاث</Label>
+              <Select value={formData.furnishing} onValueChange={(v) => updateField('furnishing', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="حالة الأثاث المطلوبة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {furnishingOptions.map(opt => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Section>
+
+        {/* القسم 4: الميزانية */}
+        <Section title="الميزانية" icon={<DollarSign className="w-5 h-5" />} color="amber">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>الحد الأدنى للميزانية</Label>
               <Input
@@ -314,6 +670,7 @@ export default function PublicRequestForm() {
                 value={formData.minBudget}
                 onChange={(e) => updateField('minBudget', e.target.value)}
                 placeholder="ريال"
+                className="bg-white"
               />
             </div>
             <div>
@@ -323,49 +680,150 @@ export default function PublicRequestForm() {
                 value={formData.maxBudget}
                 onChange={(e) => updateField('maxBudget', e.target.value)}
                 placeholder="ريال"
+                className="bg-white"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>عدد الغرف المطلوب</Label>
-              <Input
-                type="number"
-                value={formData.bedrooms}
-                onChange={(e) => updateField('bedrooms', e.target.value)}
-                placeholder="عدد غرف النوم"
-              />
+          {/* خيارات الدفعات للإيجار */}
+          {formData.purpose === 'للإيجار' && (
+            <div className="mt-4 p-4 bg-amber-100 rounded-lg border border-amber-300">
+              <h4 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                خيارات الدفعات المناسبة لك
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <Label className="text-xs text-amber-700">دفعة واحدة</Label>
+                  <Input
+                    type="number"
+                    value={formData.paymentPrices.onePayment}
+                    onChange={(e) => updatePaymentPrice('onePayment', e.target.value)}
+                    placeholder="ريال"
+                    className="bg-white text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-amber-700">دفعتين</Label>
+                  <Input
+                    type="number"
+                    value={formData.paymentPrices.twoPayments}
+                    onChange={(e) => updatePaymentPrice('twoPayments', e.target.value)}
+                    placeholder="ريال"
+                    className="bg-white text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-amber-700">4 دفعات</Label>
+                  <Input
+                    type="number"
+                    value={formData.paymentPrices.fourPayments}
+                    onChange={(e) => updatePaymentPrice('fourPayments', e.target.value)}
+                    placeholder="ريال"
+                    className="bg-white text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-amber-700">شهري</Label>
+                  <Input
+                    type="number"
+                    value={formData.paymentPrices.monthly}
+                    onChange={(e) => updatePaymentPrice('monthly', e.target.value)}
+                    placeholder="ريال"
+                    className="bg-white text-sm"
+                  />
+                </div>
+              </div>
             </div>
+          )}
+        </Section>
+
+        {/* القسم 5: الميزات المطلوبة */}
+        <Section title="ميزات مطلوبة" icon={<Home className="w-5 h-5" />} color="cyan">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasPool"
+                checked={formData.hasPool}
+                onCheckedChange={(checked) => updateField('hasPool', checked === true)}
+              />
+              <Label htmlFor="hasPool" className="cursor-pointer">🏊 مسبح</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasGarden"
+                checked={formData.hasGarden}
+                onCheckedChange={(checked) => updateField('hasGarden', checked === true)}
+              />
+              <Label htmlFor="hasGarden" className="cursor-pointer">🌳 حديقة</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasElevator"
+                checked={formData.hasElevator}
+                onCheckedChange={(checked) => updateField('hasElevator', checked === true)}
+              />
+              <Label htmlFor="hasElevator" className="cursor-pointer">🛗 مصعد</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasParking"
+                checked={formData.hasParking}
+                onCheckedChange={(checked) => updateField('hasParking', checked === true)}
+              />
+              <Label htmlFor="hasParking" className="cursor-pointer">🚗 موقف سيارات</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasMaidRoom"
+                checked={formData.hasMaidRoom}
+                onCheckedChange={(checked) => updateField('hasMaidRoom', checked === true)}
+              />
+              <Label htmlFor="hasMaidRoom" className="cursor-pointer">🏠 غرفة خادمة</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasDriverRoom"
+                checked={formData.hasDriverRoom}
+                onCheckedChange={(checked) => updateField('hasDriverRoom', checked === true)}
+              />
+              <Label htmlFor="hasDriverRoom" className="cursor-pointer">🚐 غرفة سائق</Label>
+            </div>
+          </div>
+        </Section>
+
+        {/* القسم 6: متطلبات إضافية */}
+        <Section title="متطلبات إضافية" icon={<Calendar className="w-5 h-5" />} color="orange">
+          <div className="space-y-4">
             <div>
               <Label>درجة الاستعجال</Label>
               <Select value={formData.urgency} onValueChange={(v) => updateField('urgency', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="urgent">عاجل جداً</SelectItem>
-                  <SelectItem value="soon">قريباً (خلال شهر)</SelectItem>
-                  <SelectItem value="normal">عادي (خلال 3 أشهر)</SelectItem>
-                  <SelectItem value="exploring">أتصفح فقط</SelectItem>
+                  <SelectItem value="urgent">🔴 عاجل جداً</SelectItem>
+                  <SelectItem value="soon">🟠 قريباً (خلال شهر)</SelectItem>
+                  <SelectItem value="normal">🟡 عادي (خلال 3 أشهر)</SelectItem>
+                  <SelectItem value="exploring">🟢 أتصفح فقط</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>متطلبات إضافية</Label>
+              <Textarea
+                value={formData.additionalRequirements}
+                onChange={(e) => updateField('additionalRequirements', e.target.value)}
+                placeholder="أي متطلبات خاصة مثل: قريب من مدرسة، إطلالة بحرية، شارعين..."
+                rows={4}
+                className="bg-white"
+              />
+            </div>
           </div>
-
-          <div>
-            <Label>متطلبات إضافية</Label>
-            <Textarea
-              value={formData.additionalRequirements}
-              onChange={(e) => updateField('additionalRequirements', e.target.value)}
-              placeholder="أي متطلبات خاصة مثل: مسبح، حديقة، قريب من مدرسة..."
-              rows={4}
-            />
-          </div>
-        </div>
+        </Section>
 
         {/* الموافقة */}
-        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border">
           <Checkbox
             id="terms"
             checked={formData.agreeToTerms}

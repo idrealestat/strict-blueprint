@@ -201,6 +201,45 @@ export function updateOriginalOfferStatus(originalTabId: string, publishedAdId: 
   }
 }
 
+// تحديث حالة تبويب الطلب الأصلي في بطاقة العميل
+export function updateOriginalRequestStatus(originalTabId: string, publishedRequestId: string): boolean {
+  if (!originalTabId) return false;
+  
+  try {
+    const customers = getAllCustomers();
+    let updated = false;
+    
+    // البحث في جميع العملاء عن التبويب الأصلي
+    for (const customer of customers) {
+      if (customer.tabs) {
+        const tabIndex = customer.tabs.findIndex((t: any) => t.id === originalTabId);
+        if (tabIndex !== -1) {
+          // تحديث حالة التبويب
+          customer.tabs[tabIndex].isPublished = true;
+          customer.tabs[tabIndex].publishedAdId = publishedRequestId;
+          customer.tabs[tabIndex].publishedAt = new Date().toISOString();
+          customer.tabs[tabIndex].status = 'published';
+          updated = true;
+          break;
+        }
+      }
+    }
+    
+    if (updated) {
+      saveCustomers(customers);
+      // إرسال حدث لتحديث واجهة المستخدم
+      window.dispatchEvent(new CustomEvent('requestStatusUpdated', { 
+        detail: { originalTabId, publishedRequestId, status: 'published' } 
+      }));
+    }
+    
+    return updated;
+  } catch (error) {
+    console.error('Error updating original request status:', error);
+    return false;
+  }
+}
+
 // Create new customer from ad data
 export function createCustomerFromAd(ad: PublishedAdData): LinkedCustomer {
   const newCustomer: LinkedCustomer = {
