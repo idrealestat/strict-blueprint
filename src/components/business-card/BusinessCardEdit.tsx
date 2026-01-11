@@ -181,7 +181,8 @@ const businessCardValidationSchema = z.object({
 });
 
 const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNewUser = false }) => {
-  const { flags } = useFeatureFlags();
+  const { flags, loading: flagsLoading } = useFeatureFlags();
+  const showOfficialCard = !flagsLoading && flags.official_business_card_enabled !== false;
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -1208,8 +1209,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       {/* Tabs */}
       <div className="px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full bg-gray-100 ${flags.official_business_card_enabled ? 'grid-cols-6' : 'grid-cols-5'}`}>
-            {flags.official_business_card_enabled && (
+          <TabsList className={`grid w-full bg-gray-100 ${showOfficialCard ? 'grid-cols-6' : 'grid-cols-5'}`}>
+            {showOfficialCard && (
               <TabsTrigger value="card" className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]">
                 البطاقة
               </TabsTrigger>
@@ -1232,7 +1233,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           </TabsList>
 
           {/* Card Display Options Tab - Only show if feature is enabled */}
-          {flags.official_business_card_enabled && (
+          {showOfficialCard && (
           <TabsContent value="card" className="mt-4 space-y-4">
             <Card className="border-2 border-[#D4AF37]/30">
               <CardHeader className="pb-2">
