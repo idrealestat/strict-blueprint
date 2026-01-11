@@ -27,11 +27,20 @@ export function useWasataAI(): UseWasataAIReturn {
     try {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wasata-ai-chat`;
 
+      // IMPORTANT: يجب إرسال توكن المستخدم (وليس publishable key)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setError('جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى');
+        return;
+      }
+
       const response = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ messages, userName }),
       });
@@ -43,6 +52,12 @@ export function useWasataAI(): UseWasataAIReturn {
 
       if (response.status === 402) {
         setError('يرجى إضافة رصيد للاستمرار في استخدام وساطه AI');
+        return;
+      }
+
+      if (response.status === 401) {
+        // التوكن انتهى/غير صالح
+        setError('جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى');
         return;
       }
 
