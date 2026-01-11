@@ -161,7 +161,7 @@ const SlugOfferPage = () => {
           setNotFound(true);
         } else {
           setBusinessCard(data as BusinessCardData);
-          // Track page view
+          // Track form page view (not offer_view - this is a form to submit an offer to broker)
           trackPageView('offer_form', data.id, 'public_web');
         }
       } catch (error) {
@@ -172,7 +172,7 @@ const SlugOfferPage = () => {
     };
 
     fetchBusinessCard();
-  }, [slug]);
+  }, [slug, trackPageView]);
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -304,13 +304,18 @@ const SlugOfferPage = () => {
 
     setIsSubmitting(true);
     
-    // Track offer submission
+    // Track property offer form submission (property owner submitting offer to broker)
     track({
-      eventName: 'offer_submitted',
+      eventName: 'property_offer_submit',
       channel: 'public_web',
       entityType: 'offer_form',
       entityId: businessCard?.id,
-      metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
+      metadata: { 
+        propertyType: formData.propertyType, 
+        city: formData.city, 
+        purpose: formData.purpose,
+        ownerName: formData.ownerName
+      }
     });
     
     // إنشاء إشعار للوسيط

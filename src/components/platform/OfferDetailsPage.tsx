@@ -47,6 +47,8 @@ import { mockCustomers, Customer } from '@/data/mockCustomers';
 import { saveViewingAppointmentToDb } from '@/hooks/useCalendarAppointments';
 import { useViewsSync } from '@/hooks/useViewsSync';
 import { showPushNotification } from '@/hooks/usePushNotifications';
+import { useEventTracker } from '@/hooks/useEventTracker';
+import { triggerOfferInteractionNotification } from '@/utils/notificationTriggers';
 
 interface Listing {
   id: string;
@@ -115,6 +117,8 @@ interface OfferDetailsPageProps {
   onClose: () => void;
   allListings?: Listing[];
   brokerPhone?: string;
+  userId?: string; // for notifications
+  trackingChannel?: 'public_web' | 'in_app_preview';
 }
 
 // ============ مودال جدولة المعاينة ============
@@ -769,10 +773,21 @@ const PayDepositModal: React.FC<{
 };
 
 // ============ الصفحة الرئيسية ============
-const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, onClose, allListings = [], brokerPhone }) => {
+const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ 
+  listing, 
+  isOpen, 
+  onClose, 
+  allListings = [], 
+  brokerPhone,
+  userId,
+  trackingChannel = 'public_web'
+}) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Event tracker for CTA tracking
+  const { track } = useEventTracker();
   
   // المودالات
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -824,6 +839,28 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
 
   const handleCall = () => {
     const phone = listing.ownerPhone || brokerPhone || '0500000000';
+    
+    // Track call CTA click
+    track({
+      eventName: 'offer_call',
+      channel: trackingChannel,
+      entityType: 'offer',
+      entityId: listing.id,
+      metadata: {
+        offerTitle: listing.title,
+        city: listing.city,
+        district: listing.district,
+      }
+    });
+    
+    // Trigger notification for broker (only for public_web)
+    if (trackingChannel === 'public_web' && userId) {
+      triggerOfferInteractionNotification(userId, {
+        interactionType: 'call',
+        offerTitle: listing.title,
+      });
+    }
+    
     window.open(`tel:${phone}`, '_self');
     toast({ title: 'جاري الاتصال...', description: phone });
   };
@@ -831,6 +868,28 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
   const handleWhatsApp = () => {
     const phone = listing.ownerPhone || brokerPhone || '0500000000';
     const message = `مرحباً، أنا مهتم بالعقار: ${listing.title}`;
+    
+    // Track whatsapp CTA click
+    track({
+      eventName: 'offer_whatsapp',
+      channel: trackingChannel,
+      entityType: 'offer',
+      entityId: listing.id,
+      metadata: {
+        offerTitle: listing.title,
+        city: listing.city,
+        district: listing.district,
+      }
+    });
+    
+    // Trigger notification for broker (only for public_web)
+    if (trackingChannel === 'public_web' && userId) {
+      triggerOfferInteractionNotification(userId, {
+        interactionType: 'whatsapp',
+        offerTitle: listing.title,
+      });
+    }
+    
     window.open(`https://wa.me/966${phone.replace(/^0/, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -840,6 +899,27 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({ listing, isOpen, on
       text: `${listing.title} - ${formatPrice(listing.price)}`,
       url: window.location.href
     };
+    
+    // Track share CTA click
+    track({
+      eventName: 'offer_share',
+      channel: trackingChannel,
+      entityType: 'offer',
+      entityId: listing.id,
+      metadata: {
+        offerTitle: listing.title,
+        city: listing.city,
+        district: listing.district,
+      }
+    });
+    
+    // Trigger notification for broker (only for public_web)
+    if (trackingChannel === 'public_web' && userId) {
+      triggerOfferInteractionNotification(userId, {
+        interactionType: 'share',
+        offerTitle: listing.title,
+      });
+    }
     
     try {
       if (navigator.share) {
