@@ -158,7 +158,19 @@ const SlugCalendarPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PublicAppointmentForm />
+              <PublicAppointmentForm 
+                brokerInfo={{
+                  id: businessCard.id,
+                  name: cardData.userName || 'وسيط عقاري',
+                  company: cardData.companyName || cardData.company || '',
+                  phone: cardData.primaryPhone || cardData.phone || '',
+                  email: cardData.email || '',
+                  location: cardData.location || cardData.officeAddress || '',
+                  licenseNumber: cardData.falLicense || '',
+                  rating: cardData.rating || 4.5,
+                  verified: cardData.verified !== false,
+                }}
+              />
             </CardContent>
           </Card>
         </main>
