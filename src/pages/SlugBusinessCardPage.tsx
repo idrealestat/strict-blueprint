@@ -4,7 +4,7 @@
  * الوصول عبر: wasataai.com/{slug}
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Loader2, CreditCard, Phone, Mail, Globe, MapPin, Building2, BadgeCheck } from "lucide-react";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { usePublicBusinessCard } from "@/hooks/usePublicBusinessCard";
+import { useEventTracker } from "@/hooks/useEventTracker";
 
 const BASE_DOMAIN = "wasataai.com";
 
@@ -20,6 +21,14 @@ const SlugBusinessCardPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data, loading } = usePublicBusinessCard(slug);
+  const { trackPageView, trackCardInteraction } = useEventTracker();
+
+  // Track page view
+  useEffect(() => {
+    if (slug && data) {
+      trackPageView('business_card', slug, 'public_web');
+    }
+  }, [slug, data, trackPageView]);
 
   if (loading) {
     return (
@@ -89,8 +98,12 @@ const SlugBusinessCardPage: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {phone && (
-                  <Button asChild className="gap-2">
+              {phone && (
+                  <Button 
+                    asChild 
+                    className="gap-2"
+                    onClick={() => slug && trackCardInteraction(slug, 'call', 'public_web')}
+                  >
                     <a href={`tel:${phone}`} aria-label="اتصال">
                       <Phone className="h-4 w-4" />
                       اتصال
@@ -99,7 +112,12 @@ const SlugBusinessCardPage: React.FC = () => {
                 )}
 
                 {email && (
-                  <Button asChild variant="outline" className="gap-2">
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => slug && trackCardInteraction(slug, 'email', 'public_web')}
+                  >
                     <a href={`mailto:${email}`} aria-label="إرسال بريد">
                       <Mail className="h-4 w-4" />
                       بريد

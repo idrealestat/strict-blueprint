@@ -1,9 +1,10 @@
 /**
  * PublicPagesStats.tsx
  * إحصائيات تفصيلية للزيارات والمشاهدات لكل صفحة من الصفحات العامة
+ * تستخدم البيانات الحقيقية من جدول events
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -18,104 +19,22 @@ import {
   TrendingDown,
   Users,
   Globe,
-  Clock
+  Loader2
 } from 'lucide-react';
+import { useAnalyticsStats } from '@/hooks/useAnalyticsStats';
 
-interface PageStats {
-  pageName: string;
-  pageKey: string;
-  icon: React.ReactNode;
-  totalViews: number;
-  todayViews: number;
-  weekViews: number;
-  monthViews: number;
-  uniqueVisitors: number;
-  avgTimeOnPage: string;
-  bounceRate: number;
-  trend: 'up' | 'down' | 'stable';
-  trendValue: number;
-}
-
-interface ViewLog {
-  pageType: string;
-  timestamp: string;
-  city?: string;
-  device?: string;
-  browser?: string;
-  viewerId?: string;
-}
+// Map page keys to icons
+const pageIcons: Record<string, React.ReactNode> = {
+  platform: <Building2 className="w-5 h-5" />,
+  business_card: <CreditCard className="w-5 h-5" />,
+  calendar: <Calendar className="w-5 h-5" />,
+  offer: <FileText className="w-5 h-5" />,
+  request: <Send className="w-5 h-5" />,
+  quote: <DollarSign className="w-5 h-5" />,
+};
 
 const PublicPagesStats: React.FC = () => {
-  const [pagesStats, setPagesStats] = useState<PageStats[]>([]);
-
-  useEffect(() => {
-    loadStats();
-    
-    const interval = setInterval(loadStats, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadStats = () => {
-    try {
-      // جلب سجل المشاهدات من localStorage
-      const viewsLog: ViewLog[] = JSON.parse(localStorage.getItem('public_pages_views_log') || '[]');
-      
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const weekStart = todayStart - (7 * 24 * 60 * 60 * 1000);
-      const monthStart = todayStart - (30 * 24 * 60 * 60 * 1000);
-
-      const pageTypes = [
-        { key: 'platform', name: 'المنصة العامة', icon: <Building2 className="w-5 h-5" /> },
-        { key: 'businesscard', name: 'بطاقة الأعمال', icon: <CreditCard className="w-5 h-5" /> },
-        { key: 'calendar', name: 'حجز المواعيد', icon: <Calendar className="w-5 h-5" /> },
-        { key: 'offer', name: 'نموذج العروض', icon: <FileText className="w-5 h-5" /> },
-        { key: 'request', name: 'نموذج الطلبات', icon: <Send className="w-5 h-5" /> },
-        { key: 'quote', name: 'عروض الأسعار', icon: <DollarSign className="w-5 h-5" /> },
-      ];
-
-      const stats: PageStats[] = pageTypes.map(page => {
-        const pageViews = viewsLog.filter(v => v.pageType === page.key);
-        const todayViews = pageViews.filter(v => new Date(v.timestamp).getTime() >= todayStart);
-        const weekViews = pageViews.filter(v => new Date(v.timestamp).getTime() >= weekStart);
-        const monthViews = pageViews.filter(v => new Date(v.timestamp).getTime() >= monthStart);
-        
-        // حساب الزوار الفريدين
-        const uniqueIds = new Set(pageViews.map(v => v.viewerId || v.timestamp));
-        
-        // حساب الاتجاه (مقارنة اليوم بالأمس)
-        const yesterdayStart = todayStart - (24 * 60 * 60 * 1000);
-        const yesterdayViews = pageViews.filter(v => {
-          const time = new Date(v.timestamp).getTime();
-          return time >= yesterdayStart && time < todayStart;
-        });
-        
-        const trendValue = todayViews.length - yesterdayViews.length;
-        let trend: 'up' | 'down' | 'stable' = 'stable';
-        if (trendValue > 0) trend = 'up';
-        if (trendValue < 0) trend = 'down';
-
-        return {
-          pageName: page.name,
-          pageKey: page.key,
-          icon: page.icon,
-          totalViews: pageViews.length,
-          todayViews: todayViews.length,
-          weekViews: weekViews.length,
-          monthViews: monthViews.length,
-          uniqueVisitors: uniqueIds.size,
-          avgTimeOnPage: '2:30', // يمكن حسابها لاحقاً
-          bounceRate: Math.random() * 30 + 20, // نسبة تقريبية
-          trend,
-          trendValue: Math.abs(trendValue),
-        };
-      });
-
-      setPagesStats(stats);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
+  const { pagesStats, loading } = useAnalyticsStats();
 
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-500" />;
@@ -128,6 +47,15 @@ const PublicPagesStats: React.FC = () => {
     if (trend === 'down') return 'text-red-600 bg-red-100 dark:bg-red-900/30';
     return 'text-gray-600 bg-gray-100 dark:bg-gray-800';
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="mr-2 text-muted-foreground">جاري تحميل الإحصائيات...</span>
+      </div>
+    );
+  }
 
   // إجمالي الإحصائيات
   const totalStats = {
@@ -215,7 +143,7 @@ const PublicPagesStats: React.FC = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          {page.icon}
+                          {pageIcons[page.pageKey] || <FileText className="w-5 h-5" />}
                         </div>
                         <span className="font-medium">{page.pageName}</span>
                       </div>
