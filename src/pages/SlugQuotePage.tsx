@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
+import { useEventTracker } from '@/hooks/useEventTracker';
 import { ArrowRight, Loader2, Send, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ interface BusinessCardData {
 const SlugQuotePage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { trackPageView, track } = useEventTracker();
   const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -69,6 +71,8 @@ const SlugQuotePage = () => {
           setNotFound(true);
         } else {
           setBusinessCard(data as BusinessCardData);
+          // Track page view
+          trackPageView('quote_form', data.id, 'public_web');
         }
       } catch (error) {
         setNotFound(true);
@@ -95,6 +99,16 @@ const SlugQuotePage = () => {
     }
 
     setIsSubmitting(true);
+    
+    // Track quote request
+    track({
+      eventName: 'quote_requested',
+      channel: 'public_web',
+      entityType: 'quote_form',
+      entityId: businessCard?.id,
+      metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
+    });
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast.success('تم إرسال طلب عرض السعر بنجاح!');
     setIsSubmitting(false);

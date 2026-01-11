@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
+import { useEventTracker } from '@/hooks/useEventTracker';
 import { ArrowRight, Loader2, Send, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ interface BusinessCardData {
 const SlugRequestPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { trackPageView, track } = useEventTracker();
   const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -73,6 +75,8 @@ const SlugRequestPage = () => {
           setNotFound(true);
         } else {
           setBusinessCard(data as BusinessCardData);
+          // Track page view
+          trackPageView('request_form', data.id, 'public_web');
         }
       } catch (error) {
         setNotFound(true);
@@ -99,6 +103,16 @@ const SlugRequestPage = () => {
     }
 
     setIsSubmitting(true);
+    
+    // Track request submission
+    track({
+      eventName: 'request_submitted',
+      channel: 'public_web',
+      entityType: 'request_form',
+      entityId: businessCard?.id,
+      metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
+    });
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast.success('تم إرسال الطلب بنجاح!');
     setIsSubmitting(false);
