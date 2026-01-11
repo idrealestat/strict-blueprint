@@ -80,22 +80,25 @@ interface FormData {
   agreeToTerms: boolean;
 }
 
-export default function PublicAppointmentForm() {
+interface PublicAppointmentFormProps {
+  brokerInfo?: BrokerInfo;
+}
+
+export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentFormProps = {}) {
   const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [brokerUserId, setBrokerUserId] = useState<string | null>(null);
+  const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
   const { track, trackPageView } = useEventTracker();
   
-  const broker = getMockBroker(brokerId || '1');
-  
-  // جلب user_id من business_card إذا كان slug موجود
+  // جلب بيانات الوسيط من business_card إذا كان slug موجود ولم يتم تمرير brokerInfo
   useEffect(() => {
-    const fetchBrokerUserId = async () => {
-      if (slug) {
+    const fetchBrokerData = async () => {
+      if (slug && !brokerInfo) {
         const { data } = await supabase
           .from('business_cards')
-          .select('user_id, id')
+          .select('user_id, id, data')
           .eq('slug', slug)
           .eq('published', true)
           .single();
@@ -104,11 +107,30 @@ export default function PublicAppointmentForm() {
           setBrokerUserId(data.user_id);
           // Track page view
           trackPageView('calendar', data.id, 'public_web');
+          
+          // استخراج بيانات الوسيط من البطاقة
+          const cardData = data.data as Record<string, any>;
+          setFetchedBroker({
+            id: data.id,
+            name: cardData?.userName || 'وسيط عقاري',
+            company: cardData?.companyName || cardData?.company || 'شركة عقارية',
+            phone: cardData?.primaryPhone || cardData?.phone || '',
+            email: cardData?.email || '',
+            location: cardData?.location || cardData?.officeAddress || '',
+            licenseNumber: cardData?.falLicense || '',
+            rating: cardData?.rating || 4.5,
+            verified: cardData?.verified || true,
+          });
         }
+      } else if (brokerInfo) {
+        setBrokerUserId(brokerInfo.id);
       }
     };
-    fetchBrokerUserId();
-  }, [slug, trackPageView]);
+    fetchBrokerData();
+  }, [slug, brokerInfo, trackPageView]);
+  
+  // استخدام البيانات الممررة أو المجلوبة أو الافتراضية
+  const broker = brokerInfo || fetchedBroker || getMockBroker(brokerId || '1');
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
