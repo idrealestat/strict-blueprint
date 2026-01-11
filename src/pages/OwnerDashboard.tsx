@@ -800,12 +800,24 @@ const OwnerDashboard: React.FC = () => {
                       </h4>
                       <div className="space-y-1 border rounded-lg p-2">
                         {FEATURE_CATEGORIES.business_card.map(key => (
-                          <FeatureToggleRow
-                            key={key}
-                            flagKey={key}
-                            value={globalDefaults[key] as boolean}
-                            onChange={(v) => handleGlobalChange(key, v as boolean)}
-                          />
+                          <div key={key}>
+                            <FeatureToggleRow
+                              flagKey={key}
+                              value={globalDefaults[key] as boolean}
+                              onChange={(v) => handleGlobalChange(key, v as boolean)}
+                            />
+                            {/* Info note for official_business_card_enabled */}
+                            {key === 'official_business_card_enabled' && (
+                              <div className="mx-3 mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+                                <p className="font-medium mb-1">📍 أماكن ظهور/إخفاء هذه الميزة:</p>
+                                <ul className="list-disc mr-4 space-y-0.5">
+                                  <li>القائمة اليمنى: معاينة البطاقة الرسمية المصغرة</li>
+                                  <li>صفحة تحرير البطاقة: تبويب "البطاقة" لإعدادات الطباعة</li>
+                                  <li>صفحة البطاقة الرسمية المستقلة</li>
+                                </ul>
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
