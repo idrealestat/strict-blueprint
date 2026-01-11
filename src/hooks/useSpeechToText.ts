@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useSessionErrorHandler } from './useSessionErrorHandler';
 
 interface UseSpeechToTextReturn {
   isTranscribing: boolean;
@@ -9,6 +10,7 @@ interface UseSpeechToTextReturn {
 export function useSpeechToText(): UseSpeechToTextReturn {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { handleSessionError, getAccessToken, checkResponseStatus } = useSessionErrorHandler();
 
   const transcribe = useCallback(async (audioData: string, mimeType: string): Promise<string | null> => {
     setIsTranscribing(true);
@@ -19,14 +21,27 @@ export function useSpeechToText(): UseSpeechToTextReturn {
 
       console.log('Sending audio for transcription...');
 
+      // IMPORTANT: لازم نرسل توكن المستخدم وليس publishable key
+      const accessToken = await getAccessToken();
+
+      if (!accessToken) {
+        await handleSessionError();
+        return null;
+      }
+
       const response = await fetch(STT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ audioData, mimeType }),
       });
+
+      // معالجة موحدة لخطأ 401
+      if (await checkResponseStatus(response.status)) {
+        return null;
+      }
 
       if (response.status === 429) {
         setError('تم تجاوز حد الطلبات، يرجى المحاولة لاحقاً');
@@ -58,7 +73,7 @@ export function useSpeechToText(): UseSpeechToTextReturn {
     } finally {
       setIsTranscribing(false);
     }
-  }, []);
+  }, [getAccessToken, handleSessionError, checkResponseStatus]);
 
   return {
     isTranscribing,

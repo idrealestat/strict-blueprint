@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSessionErrorHandler } from './useSessionErrorHandler';
 
 type Voice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 
@@ -19,6 +19,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const { handleSessionError, getAccessToken, checkResponseStatus } = useSessionErrorHandler();
 
   const speak = useCallback(async (text: string, voice: Voice = 'alloy', speed: number = 1.0): Promise<void> => {
     // إيقاف أي صوت سابق
@@ -36,11 +37,10 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       console.log('Converting text to speech:', text.substring(0, 50) + '...');
 
       // IMPORTANT: لازم نرسل توكن المستخدم وليس publishable key
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
+      const accessToken = await getAccessToken();
 
       if (!accessToken) {
-        setError('جلسة غير صالحة - يرجى إعادة تسجيل الدخول');
+        await handleSessionError();
         return;
       }
 
@@ -53,18 +53,21 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         body: JSON.stringify({ text, voice, speed }),
       });
 
+      // معالجة موحدة لخطأ 401
+      if (await checkResponseStatus(response.status)) {
+        setIsLoading(false);
+        return;
+      }
+
       if (response.status === 429) {
         setError('تم تجاوز حد الطلبات، يرجى المحاولة لاحقاً');
+        setIsLoading(false);
         return;
       }
 
       if (response.status === 402) {
         setError('يرجى إضافة رصيد للاستمرار');
-        return;
-      }
-
-      if (response.status === 401) {
-        setError('جلسة غير صالحة - يرجى إعادة تسجيل الدخول');
+        setIsLoading(false);
         return;
       }
 
@@ -111,7 +114,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       setError(e instanceof Error ? e.message : 'خطأ في توليد الصوت');
       setIsLoading(false);
     }
-  }, []);
+  }, [getAccessToken, handleSessionError, checkResponseStatus]);
   const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();

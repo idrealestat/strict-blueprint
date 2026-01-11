@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSessionErrorHandler } from './useSessionErrorHandler';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,6 +16,7 @@ interface UseWasataAIReturn {
 export function useWasataAI(): UseWasataAIReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { handleSessionError, getAccessToken, checkResponseStatus } = useSessionErrorHandler();
 
   const sendMessage = useCallback(async (
     messages: Message[],
@@ -28,11 +30,10 @@ export function useWasataAI(): UseWasataAIReturn {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wasata-ai-chat`;
 
       // IMPORTANT: يجب إرسال توكن المستخدم (وليس publishable key)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
+      const accessToken = await getAccessToken();
 
       if (!accessToken) {
-        setError('جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى');
+        await handleSessionError();
         return;
       }
 
@@ -45,19 +46,18 @@ export function useWasataAI(): UseWasataAIReturn {
         body: JSON.stringify({ messages, userName }),
       });
 
+      // معالجة موحدة لخطأ 401
+      if (await checkResponseStatus(response.status)) {
+        return;
+      }
+
       if (response.status === 429) {
         setError('تم تجاوز حد الطلبات، يرجى المحاولة لاحقاً');
         return;
       }
 
       if (response.status === 402) {
-        setError('يرجى إضافة رصيد للاستمرار في استخدام وساطه AI');
-        return;
-      }
-
-      if (response.status === 401) {
-        // التوكن انتهى/غير صالح
-        setError('جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى');
+        setError('يرجى إضافة رصيد للاستمرار في استخدام Wasata AI');
         return;
       }
 
@@ -124,7 +124,7 @@ export function useWasataAI(): UseWasataAIReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [getAccessToken, handleSessionError, checkResponseStatus]);
 
   return {
     isLoading,
