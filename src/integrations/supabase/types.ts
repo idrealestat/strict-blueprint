@@ -23,6 +23,7 @@ export type Database = {
           id: string
           national_id: string | null
           phone: string | null
+          privacy_settings: Json | null
           publish_token_hash: string | null
           published: boolean
           slug: string | null
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           national_id?: string | null
           phone?: string | null
+          privacy_settings?: Json | null
           publish_token_hash?: string | null
           published?: boolean
           slug?: string | null
@@ -51,6 +53,7 @@ export type Database = {
           id?: string
           national_id?: string | null
           phone?: string | null
+          privacy_settings?: Json | null
           publish_token_hash?: string | null
           published?: boolean
           slug?: string | null
