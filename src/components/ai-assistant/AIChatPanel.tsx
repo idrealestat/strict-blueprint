@@ -10,6 +10,8 @@ import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { useChatHistory } from "@/hooks/useChatHistory";
 import { processLocalCommand } from "@/utils/wasataLocalCommands";
 import { triggerNotification } from "@/hooks/useNotificationSystem";
+import { AudioProcessingOverlay } from "./AudioProcessingOverlay";
+import { ConversationHistoryPanel } from "./ConversationHistoryPanel";
 interface Message {
   id: number;
   role: "user" | "assistant";
@@ -99,11 +101,17 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const { isRecording, recordingDuration, startRecording, stopRecording, cancelRecording } = useVoiceRecorder();
   const { isTranscribing, transcribe } = useSpeechToText();
   const { isSpeaking, isLoading: ttsLoading, speak, stop: stopSpeaking } = useTextToSpeech();
-  const { conversationId, createConversation, saveMessage, clearHistory } = useChatHistory();
+  const { conversationId, createConversation, loadConversation, saveMessage, clearHistory } = useChatHistory();
   
-  // إعدادات الصوت
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  // إعدادات الصوت - تحميل من localStorage
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    const saved = localStorage.getItem('wasata_ai_auto_speak');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
+  
+  // لوحة سجل المحادثات
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   // رسالة الترحيب المحدثة - اسم المساعد: Wasata AI
   const welcomeMessage: Message = {
@@ -661,13 +669,29 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     }
   };
 
-  // تبديل الرد الصوتي التلقائي
+  // تبديل الرد الصوتي التلقائي - حفظ في localStorage
   const toggleAutoSpeak = () => {
     if (isSpeaking) {
       stopSpeaking();
     }
-    setAutoSpeak(!autoSpeak);
-    toast.info(autoSpeak ? "تم إيقاف الرد الصوتي" : "تم تفعيل الرد الصوتي");
+    const newValue = !autoSpeak;
+    setAutoSpeak(newValue);
+    localStorage.setItem('wasata_ai_auto_speak', String(newValue));
+    toast.info(newValue ? "تم تفعيل الرد الصوتي 🔊" : "تم إيقاف الرد الصوتي 🔇");
+  };
+
+  // معالجة اختيار محادثة من السجل
+  const handleSelectConversation = async (convId: string) => {
+    await loadConversation(convId);
+    toast.success("تم تحميل المحادثة السابقة");
+  };
+
+  // بدء محادثة جديدة
+  const handleNewConversation = async () => {
+    clearHistory();
+    setMessages([welcomeMessage]);
+    await createConversation(userName || 'guest');
+    toast.success("تم بدء محادثة جديدة");
   };
 
   // تشغيل رسالة معينة
@@ -712,8 +736,27 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col border-2 border-[#D4AF37]">
-      {/* رأس وساطه AI */}
+    <div className="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col border-2 border-[#D4AF37] relative">
+      {/* شاشة معالجة الصوت */}
+      <AnimatePresence>
+        <AudioProcessingOverlay
+          isTranscribing={isTranscribing}
+          isTTSLoading={ttsLoading}
+          isRecording={isRecording}
+          recordingDuration={recordingDuration}
+        />
+      </AnimatePresence>
+
+      {/* لوحة سجل المحادثات */}
+      <ConversationHistoryPanel
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelectConversation={handleSelectConversation}
+        onNewConversation={handleNewConversation}
+        currentConversationId={conversationId}
+      />
+
+      {/* رأس Wasata AI */}
       <div className="p-4 bg-gradient-to-r from-[#01411C] to-[#065f41] border-b border-[#D4AF37]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -724,7 +767,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#01411C] animate-pulse"></div>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">وساطه AI</h3>
+              <h3 className="text-lg font-bold text-white">Wasata AI</h3>
             <p className="text-[#D4AF37] text-xs flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                 مساعدك العقاري الذكي - {userName}
@@ -732,6 +775,14 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* زر سجل المحادثات */}
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
+              title="المحادثات السابقة"
+            >
+              <History className="w-4 h-4" />
+            </button>
             {/* زر الرد الصوتي التلقائي */}
             <button
               onClick={toggleAutoSpeak}

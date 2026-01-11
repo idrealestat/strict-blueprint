@@ -1,5 +1,7 @@
 export { AIChatPanel } from './AIChatPanel';
 export { AIFloatingButton } from './AIFloatingButton';
+export { AudioProcessingOverlay } from './AudioProcessingOverlay';
+export { ConversationHistoryPanel } from './ConversationHistoryPanel';
 export { 
   WasataAI_GlobalStates,
   WasataAI_ProEngine,
