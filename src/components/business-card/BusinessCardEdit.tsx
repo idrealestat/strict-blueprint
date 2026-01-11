@@ -464,8 +464,12 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       // مسح أخطاء التحقق السابقة
       setValidationErrors({});
       
-      // التحقق من اختيار slug متاح (باللون الأخضر)
-      const selectedSlug = isSlugAvailable && formData.userTitle ? String(formData.userTitle).trim() : '';
+      // تحديد الـ slug المستخدم:
+      // 1. إذا كان المستخدم يحتفظ بنفس الـ slug الحالي المنشور
+      // 2. أو إذا اختار slug جديد متاح
+      const userTitleSlug = formData.userTitle ? String(formData.userTitle).trim() : '';
+      const isKeepingCurrentSlug = currentSlug && userTitleSlug === currentSlug;
+      const selectedSlug = (isKeepingCurrentSlug || isSlugAvailable) ? userTitleSlug : '';
       
       // التحقق من صحة البيانات باستخدام Zod
       const validationResult = businessCardValidationSchema.safeParse({
