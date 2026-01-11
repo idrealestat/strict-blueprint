@@ -643,6 +643,9 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   // حالة لتتبع ما إذا كنا ننتظر معالجة الصوت
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   
+  // حالة لإظهار زر الووكي توكي الكبير
+  const [showWalkieTalkie, setShowWalkieTalkie] = useState(false);
+  
   // ref لمنع الإفلات المزدوج
   const isStoppingRef = useRef(false);
 
@@ -690,6 +693,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     vibrate(30);
     
     setIsProcessingVoice(true);
+    setShowWalkieTalkie(false); // إخفاء الووكي توكي
     
     try {
       const audioResult = await stopRecording();
@@ -787,13 +791,18 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
   return (
     <div className="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col border-2 border-[#D4AF37] relative">
-      {/* شاشة معالجة الصوت */}
+      {/* شاشة معالجة الصوت / زر الووكي توكي */}
       <AnimatePresence>
         <AudioProcessingOverlay
           isTranscribing={isTranscribing}
           isTTSLoading={ttsLoading}
           isRecording={isRecording}
           recordingDuration={recordingDuration}
+          audioLevel={audioLevel}
+          onVoiceStart={handleVoiceStart}
+          onVoiceEnd={handleVoiceEnd}
+          isProcessingVoice={isProcessingVoice}
+          showWalkieTalkie={showWalkieTalkie}
         />
       </AnimatePresence>
 
@@ -1077,36 +1086,19 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             )}
 
             <div className="flex gap-2 items-stretch">
-              {/* Voice Button - Walkie Talkie Style */}
+              {/* Voice Button - يفتح الووكي توكي الكبير */}
               <button
-                onMouseDown={handleVoiceStart}
-                onMouseUp={handleVoiceEnd}
-                onMouseLeave={(e) => { if (isRecording) handleVoiceEnd(e); }}
-                onTouchStart={handleVoiceStart}
-                onTouchEnd={handleVoiceEnd}
-                onTouchCancel={(e) => { if (isRecording) handleVoiceEnd(e); }}
-                onContextMenu={(e) => e.preventDefault()} // منع القائمة المنبثقة
-                disabled={isTranscribing || ttsLoading || isProcessingVoice}
-                style={{ touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
+                onClick={() => setShowWalkieTalkie(true)}
+                disabled={isTranscribing || ttsLoading || isProcessingVoice || isRecording}
                 className={`px-4 py-3 rounded-xl transition-all duration-150 border flex items-center justify-center flex-shrink-0 select-none cursor-pointer ${
-                  isRecording 
-                    ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white border-red-600 scale-110 shadow-lg' 
-                    : isTranscribing || ttsLoading || isProcessingVoice
+                  isTranscribing || ttsLoading || isProcessingVoice
                     ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
                     : 'bg-gradient-to-r from-[#01411C] to-[#065f41] text-white border-[#D4AF37] hover:scale-105 active:scale-110'
                 }`}
-                title="اضغط مع الاستمرار للتحدث 🎤"
+                title="افتح الووكي توكي للتحدث 🎤"
               >
                 {isTranscribing || ttsLoading || isProcessingVoice ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isRecording ? (
-                  <motion.div
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ repeat: Infinity, duration: 0.4 }}
-                    className="flex items-center gap-1"
-                  >
-                    <Mic className="w-5 h-5" />
-                  </motion.div>
                 ) : (
                   <Mic className="w-5 h-5" />
                 )}
