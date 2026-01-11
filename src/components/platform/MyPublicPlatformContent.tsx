@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link } from 'lucide-react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
@@ -18,6 +18,7 @@ import PlatformStats from './PlatformStats';
 import { toast } from 'sonner';
 import { usePlatformListings, usePublicPlatformListings } from '@/hooks/usePlatformListings';
 import { useEventTracker } from '@/hooks/useEventTracker';
+import { useRealtimePresence } from '@/hooks/useRealtimePresence';
 
 interface Listing {
   id: string;
@@ -163,6 +164,12 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   // Event Tracker - لتتبع الأحداث
   const { track, trackPageView } = useEventTracker();
   
+  // الحصول على IDs العروض للمشاهدين المباشرين
+  const offerIds = useMemo(() => allListings.map(l => l.id), [allListings]);
+  
+  // المشاهدين المباشرين باستخدام Supabase Presence
+  const { liveViewers, getLiveViewers, trackViewing } = useRealtimePresence(offerIds);
+  
   // مفتاح التخزين - نفس المفتاح المستخدم في بطاقة الأعمال
   const STORAGE_KEY = `business_card_${userId}`;
   const SWAP_KEY = `business_card_swap_${userId}`;
@@ -191,6 +198,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       trackPageView('platform', currentSlug, trackingChannel);
     }
   }, [currentSlug, trackingChannel, trackPageView]);
+
 
   // استخراج جميع العروض المسطحة من التسلسل الهرمي
   const flattenListings = (hierarchy: CityGroup[]): Listing[] => {
@@ -499,6 +507,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         },
       });
       
+      // تسجيل الحضور للمشاهدين المباشرين
+      trackViewing(listing.id, { city: listing.city });
+      
       // إطلاق حدث لتحديث الإحصائيات في الصفحات الأخرى (للتوافقية)
       window.dispatchEvent(new CustomEvent('offerViewed', { detail: { offerId: listing.id } }));
       
@@ -513,6 +524,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       }
       return `${price} ريال/شهرياً`;
     };
+
+    // عدد المشاهدين المباشرين لهذا العرض
+    const liveViewerCount = getLiveViewers(listing.id);
 
     return (
       <div 
@@ -529,6 +543,17 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           {listing.imageCount > 1 && (
             <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1">
               📷 {listing.imageCount}
+            </div>
+          )}
+          {/* شارة المشاهدين المباشرين */}
+          {liveViewerCount > 0 && (
+            <div className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1.5 shadow-lg animate-pulse">
+              <div className="relative">
+                <Eye className="w-3 h-3" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-white rounded-full" />
+              </div>
+              <span className="font-bold">{liveViewerCount}</span>
+              <span className="text-green-100 hidden sm:inline">يشاهدون الآن</span>
             </div>
           )}
           {/* أزرار الفيديو و 3D */}
