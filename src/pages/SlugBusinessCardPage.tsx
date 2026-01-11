@@ -7,7 +7,8 @@
 import React, { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Loader2, CreditCard, Phone, Mail, Globe, MapPin, Building2, BadgeCheck, MessageCircle, Share2 } from "lucide-react";
+import { Loader2, CreditCard, Phone, Mail, Globe, MapPin, Building2, BadgeCheck, MessageCircle, Share2, Home, FileText, Calendar, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -184,6 +185,53 @@ const SlugBusinessCardPage: React.FC = () => {
                 >
                   <Share2 className="h-4 w-4" />
                   مشاركة
+                </Button>
+              </div>
+
+              {/* أزرار الإجراءات الرئيسية */}
+              <div className="grid grid-cols-2 gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
+                  asChild
+                >
+                  <Link to={`/${slug}/offer`}>
+                    <Home className="w-5 h-5 text-primary" />
+                    <span className="text-xs">إرسال عرض</span>
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
+                  asChild
+                >
+                  <Link to={`/${slug}/request`}>
+                    <Search className="w-5 h-5 text-primary" />
+                    <span className="text-xs">إرسال طلب</span>
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
+                  asChild
+                >
+                  <Link to={`/${slug}/calendar`}>
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="text-xs">حجز موعد</span>
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col items-center gap-1 border-primary/30 hover:bg-primary/5"
+                  asChild
+                >
+                  <Link to={`/${slug}/quote`}>
+                    <FileText className="w-5 h-5 text-primary" />
+                    <span className="text-xs">طلب عرض سعر</span>
+                  </Link>
                 </Button>
               </div>
             </CardHeader>
