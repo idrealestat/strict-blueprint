@@ -99,7 +99,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const userName = getUserName();
   const { isLoading: aiLoading, error: aiError, sendMessage } = useWasataAI();
   const { isRecording, recordingDuration, startRecording, stopRecording, cancelRecording, audioLevel } = useVoiceRecorder({
-    silenceTimeout: 1500, // إيقاف بعد 1.5 ثانية صمت
+    silenceTimeout: 2000, // 2 ثانية صمت قبل الإيقاف التلقائي
     silenceThreshold: 0.02,
     maxDuration: 30,
     autoStopOnSilence: true,
@@ -113,7 +113,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     const saved = localStorage.getItem('wasata_ai_auto_speak');
     return saved !== null ? saved === 'true' : true;
   });
-  const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
+  
+  // اختيار نوع الصوت (رجل/امرأة) - تحميل من localStorage
+  const [voiceGender, setVoiceGender] = useState<'male' | 'female'>(() => {
+    const saved = localStorage.getItem('wasata_ai_voice_gender');
+    return (saved as 'male' | 'female') || 'male'; // افتراضياً صوت رجل
+  });
   
   // لوحة سجل المحادثات
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -485,7 +490,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     
     if (cleanText.length > 10) {
       try {
-        await speak(cleanText, selectedVoice, 1.0);
+        // استخدام الصوت المختار (male/female)
+        await speak(cleanText, voiceGender as any, 1.0);
       } catch (error) {
         console.error('TTS error:', error);
       }
@@ -830,6 +836,19 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               title="المحادثات السابقة"
             >
               <History className="w-4 h-4" />
+            </button>
+            {/* زر اختيار الصوت (رجل/امرأة) */}
+            <button
+              onClick={() => {
+                const newGender = voiceGender === 'male' ? 'female' : 'male';
+                setVoiceGender(newGender);
+                localStorage.setItem('wasata_ai_voice_gender', newGender);
+                toast.info(newGender === 'male' ? '🧔 صوت رجل' : '👩 صوت امرأة');
+              }}
+              className="p-2 rounded-full transition-all bg-white/20 text-white hover:bg-white/30 flex items-center gap-1"
+              title={voiceGender === 'male' ? 'تغيير إلى صوت امرأة' : 'تغيير إلى صوت رجل'}
+            >
+              <span className="text-sm">{voiceGender === 'male' ? '🧔' : '👩'}</span>
             </button>
             {/* زر الرد الصوتي التلقائي */}
             <button
