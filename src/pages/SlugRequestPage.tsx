@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventTracker } from '@/hooks/useEventTracker';
+import { triggerRequestNotification } from '@/utils/notificationTriggers';
 import { ArrowRight, Loader2, Send, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,6 +113,15 @@ const SlugRequestPage = () => {
       entityId: businessCard?.id,
       metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
     });
+    
+    // إنشاء إشعار للوسيط
+    if (businessCard?.user_id) {
+      await triggerRequestNotification(businessCard.user_id, {
+        clientName: formData.clientName,
+        propertyType: formData.propertyType,
+        city: formData.city,
+      });
+    }
     
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast.success('تم إرسال الطلب بنجاح!');

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventTracker } from '@/hooks/useEventTracker';
+import { triggerQuoteNotification } from '@/utils/notificationTriggers';
 import { ArrowRight, Loader2, Send, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,6 +109,14 @@ const SlugQuotePage = () => {
       entityId: businessCard?.id,
       metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
     });
+    
+    // إنشاء إشعار للوسيط
+    if (businessCard?.user_id) {
+      await triggerQuoteNotification(businessCard.user_id, {
+        clientName: formData.clientName,
+        propertyType: formData.propertyType,
+      });
+    }
     
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast.success('تم إرسال طلب عرض السعر بنجاح!');
