@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, RefreshCw, Send, FileText, Loader2, Calendar, Clock, MapPin, Home } from 'lucide-react';
+import { Download, RefreshCw, Send, FileText, Loader2, Calendar, Clock, MapPin, Home, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
@@ -27,11 +27,13 @@ interface TabActionsPanelProps {
   customerName: string;
   customerPhone: string;
   onRepublish?: (data: any) => void;
+  onViewDetails?: (data: any) => void;
 }
 
-export default function TabActionsPanel({ tab, customerName, customerPhone, onRepublish }: TabActionsPanelProps) {
+export default function TabActionsPanel({ tab, customerName, customerPhone, onRepublish, onViewDetails }: TabActionsPanelProps) {
   const navigate = useNavigate();
   const [showPdfDialog, setShowPdfDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [includeOwnerInfo, setIncludeOwnerInfo] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -253,22 +255,37 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, onRe
         return (
           <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPdfDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              تحميل PDF
-            </Button>
-            <Button
               variant="default"
               size="sm"
               onClick={handleRepublish}
               className="flex items-center gap-2 bg-[#01411C] hover:bg-[#065f41]"
             >
-              <RefreshCw className="w-4 h-4" />
-              إعادة نشر
+              <Send className="w-4 h-4" />
+              نشر مرة أخرى
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPdfDialog(true)}
+              className="flex items-center gap-2 border-[#D4AF37] text-[#01411C]"
+            >
+              <Download className="w-4 h-4" />
+              تحميل PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (onViewDetails) {
+                  onViewDetails(tab.data);
+                } else {
+                  setShowDetailsDialog(true);
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              عرض التفاصيل
             </Button>
           </div>
         );
@@ -498,6 +515,135 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, onRe
                   تحميل
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Dialog - عرض تفاصيل العرض */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Home className="w-5 h-5 text-[#01411C]" />
+              تفاصيل العرض العقاري
+            </DialogTitle>
+          </DialogHeader>
+          
+          {tab.data && (
+            <div className="space-y-6 py-4">
+              {/* معلومات المالك */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  معلومات المالك
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">الاسم:</span> <span className="font-medium">{tab.data.ownerName || '-'}</span></div>
+                  <div><span className="text-gray-500">الجوال:</span> <span className="font-medium">{tab.data.ownerPhone || '-'}</span></div>
+                  {tab.data.ownerIdNumber && (
+                    <div><span className="text-gray-500">رقم الهوية:</span> <span className="font-medium">{tab.data.ownerIdNumber}</span></div>
+                  )}
+                  {tab.data.ownerCity && (
+                    <div><span className="text-gray-500">المدينة:</span> <span className="font-medium">{tab.data.ownerCity}</span></div>
+                  )}
+                </div>
+              </div>
+
+              {/* معلومات الصك */}
+              {(tab.data.deedNumber || tab.data.deedDate) && (
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-4 border border-amber-200">
+                  <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    معلومات الصك
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {tab.data.deedNumber && <div><span className="text-gray-500">رقم الصك:</span> <span className="font-medium">{tab.data.deedNumber}</span></div>}
+                    {tab.data.deedDate && <div><span className="text-gray-500">تاريخ الصك:</span> <span className="font-medium">{tab.data.deedDate}</span></div>}
+                    {tab.data.deedCity && <div><span className="text-gray-500">مدينة الصك:</span> <span className="font-medium">{tab.data.deedCity}</span></div>}
+                  </div>
+                </div>
+              )}
+
+              {/* معلومات العقار */}
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
+                <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  معلومات العقار
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                  <div><span className="text-gray-500">نوع العقار:</span> <span className="font-medium">{tab.data.propertyType || '-'}</span></div>
+                  <div><span className="text-gray-500">الغرض:</span> <span className="font-medium">{tab.data.purpose || '-'}</span></div>
+                  <div><span className="text-gray-500">المدينة:</span> <span className="font-medium">{tab.data.city || '-'}</span></div>
+                  <div><span className="text-gray-500">الحي:</span> <span className="font-medium">{tab.data.district || '-'}</span></div>
+                  {tab.data.street && <div><span className="text-gray-500">الشارع:</span> <span className="font-medium">{tab.data.street}</span></div>}
+                  {tab.data.area && <div><span className="text-gray-500">المساحة:</span> <span className="font-medium">{tab.data.area} م²</span></div>}
+                  {tab.data.price && <div><span className="text-gray-500">السعر:</span> <span className="font-medium text-green-600">{Number(tab.data.price).toLocaleString()} ريال</span></div>}
+                </div>
+              </div>
+
+              {/* المواصفات */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                <h4 className="font-bold text-purple-800 mb-3">المواصفات</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  {tab.data.bedrooms && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">غرف النوم</span><span className="font-bold text-purple-700">{tab.data.bedrooms}</span></div>}
+                  {tab.data.bathrooms && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">دورات المياه</span><span className="font-bold text-purple-700">{tab.data.bathrooms}</span></div>}
+                  {tab.data.livingRooms && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">صالات</span><span className="font-bold text-purple-700">{tab.data.livingRooms}</span></div>}
+                  {tab.data.floors && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">الأدوار</span><span className="font-bold text-purple-700">{tab.data.floors}</span></div>}
+                  {tab.data.propertyAge && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">عمر العقار</span><span className="font-bold text-purple-700">{tab.data.propertyAge} سنة</span></div>}
+                  {tab.data.facade && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">الواجهة</span><span className="font-bold text-purple-700">{tab.data.facade}</span></div>}
+                  {tab.data.furnishing && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">التأثيث</span><span className="font-bold text-purple-700">{tab.data.furnishing}</span></div>}
+                  {tab.data.streetWidth && <div className="bg-white p-2 rounded-lg text-center"><span className="block text-gray-500">عرض الشارع</span><span className="font-bold text-purple-700">{tab.data.streetWidth} م</span></div>}
+                </div>
+              </div>
+
+              {/* الصور */}
+              {tab.data.media && tab.data.media.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <h4 className="font-bold text-gray-800 mb-3">الصور والوسائط ({tab.data.media.length})</h4>
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                    {tab.data.media.map((m: any, i: number) => (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                        {m.type === 'video' ? (
+                          <video src={m.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={m.url} alt={`صورة ${i + 1}`} className="w-full h-full object-cover" />
+                        )}
+                        {m.isMain && (
+                          <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-2 py-0.5 rounded">رئيسية</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* الوصف */}
+              {tab.data.description && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <h4 className="font-bold text-gray-800 mb-2">الوصف</h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">{tab.data.description}</p>
+                </div>
+              )}
+
+              {/* تاريخ الاستلام */}
+              <div className="text-center text-sm text-gray-500 pt-4 border-t">
+                <Clock className="w-4 h-4 inline-block ml-1" />
+                تم الاستلام: {new Date(tab.data.submittedAt || tab.createdAt).toLocaleString('ar-SA')}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+              إغلاق
+            </Button>
+            <Button 
+              onClick={handleRepublish}
+              className="bg-[#01411C] hover:bg-[#065f41]"
+            >
+              <Send className="w-4 h-4 ml-2" />
+              نشر مرة أخرى
             </Button>
           </DialogFooter>
         </DialogContent>
