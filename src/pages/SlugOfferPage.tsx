@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventTracker } from '@/hooks/useEventTracker';
+import { triggerOfferNotification } from '@/utils/notificationTriggers';
 import {
   ArrowRight, Loader2, Send, Upload, Home, MapPin, User, Phone,
   CreditCard, FileText, Building, X, Image as ImageIcon, Video, Star,
@@ -311,6 +312,15 @@ const SlugOfferPage = () => {
       entityId: businessCard?.id,
       metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
     });
+    
+    // إنشاء إشعار للوسيط
+    if (businessCard?.user_id) {
+      await triggerOfferNotification(businessCard.user_id, {
+        ownerName: formData.ownerName,
+        propertyType: formData.propertyType,
+        city: formData.city,
+      });
+    }
     
     // Simulate submission - in real app, save to database
     await new Promise(resolve => setTimeout(resolve, 1500));
