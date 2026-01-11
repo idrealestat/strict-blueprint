@@ -45,10 +45,12 @@ import {
   Trash2,
   ExternalLink,
   Info,
+  Sparkles as SparklesIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone } from "@/hooks/usePublishedAdsManager";
 import PublishSuccessActions from "./PublishSuccessActions";
+import AIDescription from "./AIDescription";
 import PropertyMediaUpload, { MediaFile } from "./PropertyMediaUpload";
 
 // ===================== Types =====================
@@ -2125,27 +2127,46 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               </div>
             </div>
 
-            <Button
-              onClick={generateAIDescription}
-              disabled={isGeneratingDescription || !propertyData.propertyType}
-              className="w-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white"
-            >
-              {isGeneratingDescription ? (
-                <>
-                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                  جاري التوليد...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 ml-2" />
-                  توليد الوصف
-                </>
-              )}
-            </Button>
+            {/* زر توليد الوصف الذكي الجديد */}
+            <AIDescription
+              mode={propertyData.purpose === 'للبيع' ? 'sale' : 'rent'}
+              city={propertyData.locationDetails.city}
+              district={propertyData.locationDetails.district}
+              propertyType={propertyData.propertyType}
+              features={{
+                area: propertyData.area ? parseInt(propertyData.area) : undefined,
+                bedrooms: propertyData.bedrooms ? parseInt(propertyData.bedrooms) : undefined,
+                bathrooms: propertyData.bathrooms ? parseInt(propertyData.bathrooms) : undefined,
+                livingRooms: propertyData.livingRooms ? parseInt(propertyData.livingRooms) : undefined,
+                councils: propertyData.councils ? parseInt(propertyData.councils) : undefined,
+                floors: propertyData.floors ? parseInt(propertyData.floors) : undefined,
+                furnishing: propertyData.furnishing,
+                propertyAge: propertyData.propertyAge ? parseInt(propertyData.propertyAge) : undefined,
+                streetWidth: propertyData.streetWidth ? parseInt(propertyData.streetWidth) : undefined,
+                facade: propertyData.facade,
+                airConditioners: propertyData.acUnits ? parseInt(propertyData.acUnits) : undefined,
+                balconies: propertyData.balconies ? parseInt(propertyData.balconies) : undefined,
+                entrances: propertyData.entrances as 'مدخلين' | 'مدخل واحد' | 'ثلاث مداخل أو أكثر' | undefined,
+                hasLaundryRoom: propertyData.hasLaundryRoom,
+                customFeatures: [...propertyData.features, ...propertyData.customFeatures],
+                warranties: propertyData.warranties,
+              }}
+              price={propertyData.price ? parseInt(propertyData.price) : undefined}
+              currentDescription={propertyData.aiDescription}
+              onDescriptionSelect={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
+              style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر'}
+              length={propertyData.descriptionLength as 'قصير' | 'متوسط' | 'طويل'}
+              language={propertyData.descriptionLanguage as 'عربي' | 'انجليزي' | 'عربي انجليزي'}
+              brokerPhone={propertyData.brokerPhone}
+              adLicense={propertyData.adLicense}
+            />
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-[#01411C]">الوصف</Label>
+                <Label className="text-[#01411C] flex items-center gap-2">
+                  <SparklesIcon className="w-4 h-4 text-[#D4AF37]" />
+                  الوصف
+                </Label>
                 {propertyData.aiDescription && (
                   <div className="flex gap-2">
                     <Button
@@ -2155,17 +2176,10 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                         navigator.clipboard.writeText(propertyData.aiDescription);
                         toast.success('تم نسخ الوصف');
                       }}
+                      className="text-[#01411C] hover:text-[#D4AF37]"
                     >
                       <Copy className="w-3 h-3 ml-1" />
                       نسخ
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={generateAIDescription}
-                    >
-                      <RefreshCw className="w-3 h-3 ml-1" />
-                      إعادة
                     </Button>
                   </div>
                 )}
@@ -2173,8 +2187,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               <Textarea
                 value={propertyData.aiDescription}
                 onChange={(e) => setPropertyData(prev => ({ ...prev, aiDescription: e.target.value }))}
-                placeholder="اضغط على زر التوليد لإنشاء وصف تلقائي للعقار..."
-                className="border-[#D4AF37] min-h-[150px]"
+                placeholder="اضغط على زر التوليد لإنشاء وصف تلقائي للعقار باستخدام الذكاء الاصطناعي..."
+                className="border-[#D4AF37] min-h-[150px] bg-[#f0fdf4]/50"
               />
             </div>
           </CardContent>
