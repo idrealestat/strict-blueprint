@@ -823,29 +823,29 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               <p className="text-base">
                 تم نشر بطاقة أعمالك بنجاح ويمكن لأي شخص زيارتها الآن!
               </p>
-              <div className="bg-muted p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">رابط صفحتك العامة:</p>
-                <a 
-                  href={`https://wasataai.com/${firstPublishSlug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary font-bold text-lg hover:underline break-all"
-                >
-                  wasataai.com/{firstPublishSlug}
-                </a>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                يمكنك مشاركة هذا الرابط مع عملائك عبر واتساب أو وسائل التواصل الاجتماعي
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <AlertDialogAction 
-              className="w-full bg-primary"
-              onClick={() => {
-                navigator.clipboard.writeText(`https://wasataai.com/${firstPublishSlug}`);
-                toast.success('تم نسخ الرابط!');
-              }}
+               <div className="bg-muted p-4 rounded-lg">
+                 <p className="text-sm text-muted-foreground mb-2">رابط بطاقة أعمالك العامة:</p>
+                 <a 
+                   href={`https://wasataai.com/${firstPublishSlug}/card`}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="text-primary font-bold text-lg hover:underline break-all"
+                 >
+                   wasataai.com/{firstPublishSlug}/card
+                 </a>
+               </div>
+               <p className="text-sm text-muted-foreground">
+                 يمكنك مشاركة هذا الرابط مع عملائك عبر واتساب أو وسائل التواصل الاجتماعي
+               </p>
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+             <AlertDialogAction 
+               className="w-full bg-primary"
+               onClick={() => {
+                 navigator.clipboard.writeText(`https://wasataai.com/${firstPublishSlug}/card`);
+                 toast.success('تم نسخ الرابط!');
+               }}
             >
               <Share2 className="w-4 h-4 ml-2" />
               نسخ الرابط

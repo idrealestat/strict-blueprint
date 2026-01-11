@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { getPublicPlatformSlug } from "@/utils/publicPlatform";
+import { supabase } from "@/integrations/supabase/client";
 
 interface User {
   id: string;
@@ -266,25 +267,54 @@ END:VCARD`;
 
   const PLATFORM_BASE_URL = 'https://wasataai.com';
 
-  // Get slug (الأولوية للـ slug المنشور للمنصة العامة)
+  // slug يجب أن يأتي من قاعدة البيانات (business_cards.slug). نستخدم localStorage فقط كـ fallback.
+  const [dbSlug, setDbSlug] = useState<string>('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSlug = async () => {
+      try {
+        const { data: row } = await supabase
+          .from('business_cards')
+          .select('slug')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const slugFromDb = String(row?.slug ?? '').trim().toLowerCase();
+        if (!cancelled && slugFromDb) {
+          setDbSlug(slugFromDb);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchSlug();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id]);
+
+  // Get slug (الأولوية للـ slug من DB)
   const getSlug = () => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     let fromSaved: any = undefined;
     if (savedData) {
       try {
         const data = JSON.parse(savedData);
-        fromSaved = data.userTitle || data.slug;
+        fromSaved = data.slug;
       } catch (e) {}
     }
 
     // لا نسمح أبداً بإظهار رقم مثل /1 كرابط عام
-    return getPublicPlatformSlug([fromSaved]);
+    return getPublicPlatformSlug([dbSlug, fromSaved]);
   };
 
   // Share business card
   const shareBusinessCard = async () => {
     const slug = getSlug();
-    const cardLink = `${PLATFORM_BASE_URL}/${slug}/businesscard`;
+    const cardLink = `${PLATFORM_BASE_URL}/${slug}/card`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -384,25 +414,25 @@ END:VCARD`;
           </Button>
         </div>
 
-        {/* Current Slug Display with Copy Button */}
+        {/* Current Card Link Display with Copy Button */}
         {(() => {
           const currentSlug = getSlug();
-          const fullUrl = `${PLATFORM_BASE_URL}/${currentSlug}`;
+          const cardUrl = `${PLATFORM_BASE_URL}/${currentSlug}/card`;
           return (
             <div className="relative z-10 mx-4 mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Link className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
-                  <span className="text-xs text-white/70">رابطك العام:</span>
+                  <span className="text-xs text-white/70">رابط بطاقتك:</span>
                   <span className="text-sm font-medium text-white truncate" dir="ltr">
-                    {fullUrl}
+                    {cardUrl}
                   </span>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    navigator.clipboard.writeText(fullUrl);
+                    navigator.clipboard.writeText(cardUrl);
                     toast.success("تم نسخ الرابط!");
                   }}
                   className="text-white hover:bg-white/20 px-2 py-1 h-auto flex-shrink-0"
