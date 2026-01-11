@@ -2,9 +2,11 @@
 
 export interface PropertyFeatures {
   // المدخل والموقع
-  entrances?: 'مدخلين' | 'مدخل واحد' | 'ثلاث مداخل أو أكثر';
+  entrances?: 'مدخلين' | 'مدخل واحد' | 'ثلاث مداخل أو أكثر' | string;
   position?: 'زاوية' | 'بطن';
+  cornerType?: string; // زاوية / بطن
   level?: 'أرضي' | 'علوي';
+  floorNumber?: number; // رقم الدور
   hasAnnex?: boolean; // ملحق
   
   // غرف إضافية ومميزات حديثة
@@ -21,6 +23,7 @@ export interface PropertyFeatures {
   livingRooms?: number;
   councils?: number;
   storageRooms?: number; // مستودعات
+  warehouses?: number; // مستودعات
   balconies?: number; // بلكونات
   curtains?: number; // ستائر
   airConditioners?: number; // مكيفات
@@ -40,6 +43,8 @@ export interface PropertyFeatures {
   hasBuiltInKitchen?: boolean; // مطبخ راكب
   kitchenWithAppliances?: boolean; // مطبخ بالأجهزة
   kitchenAppliances?: string[]; // قائمة الأجهزة
+  hasExtraKitchen?: boolean; // مطبخ إضافي
+  extraKitchenAppliances?: string; // أجهزة المطبخ الإضافي
   
   // مميزات إضافية
   area?: number;
@@ -47,6 +52,7 @@ export interface PropertyFeatures {
   streetWidth?: number;
   facade?: string;
   furnishing?: string;
+  category?: string;
   customFeatures?: string[];
   warranties?: { type: string; duration: string }[];
 }
