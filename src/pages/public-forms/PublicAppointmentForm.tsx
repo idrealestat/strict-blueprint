@@ -3,7 +3,7 @@
  * صفحة إنشاء موعد من العميل
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Send, Loader2, CheckCircle, Calendar, User, Clock, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { useEventTracker } from '@/hooks/useEventTracker';
+import { triggerCalendarNotification } from '@/utils/notificationTriggers';
 
 const getMockBroker = (brokerId: string): BrokerInfo => ({
   id: brokerId,
@@ -78,11 +81,34 @@ interface FormData {
 }
 
 export default function PublicAppointmentForm() {
-  const { brokerId } = useParams<{ brokerId: string }>();
+  const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [brokerUserId, setBrokerUserId] = useState<string | null>(null);
+  const { track, trackPageView } = useEventTracker();
   
   const broker = getMockBroker(brokerId || '1');
+  
+  // جلب user_id من business_card إذا كان slug موجود
+  useEffect(() => {
+    const fetchBrokerUserId = async () => {
+      if (slug) {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('user_id, id')
+          .eq('slug', slug)
+          .eq('published', true)
+          .single();
+        
+        if (data) {
+          setBrokerUserId(data.user_id);
+          // Track page view
+          trackPageView('calendar', data.id, 'public_web');
+        }
+      }
+    };
+    fetchBrokerUserId();
+  }, [slug, trackPageView]);
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
@@ -208,6 +234,30 @@ export default function PublicAppointmentForm() {
       newItems.appointments = newItems.appointments || [];
       newItems.appointments.push(appointmentId);
       localStorage.setItem('wasata_new_items', JSON.stringify(newItems));
+
+      // Track event and create DB notification
+      track({
+        eventName: 'appointment_create',
+        channel: 'public_web',
+        entityType: 'calendar',
+        entityId: appointmentId,
+        metadata: {
+          customerName: formData.clientName,
+          appointmentType: formData.appointmentType,
+          date: formData.preferredDate,
+          time: formData.preferredTime,
+        },
+      });
+      
+      // إنشاء إشعار للوسيط في قاعدة البيانات
+      if (brokerUserId) {
+        await triggerCalendarNotification(brokerUserId, {
+          customerName: formData.clientName,
+          date: formData.preferredDate,
+          time: formData.preferredTime,
+          type: formData.appointmentType,
+        });
+      }
 
       setIsSubmitted(true);
       toast.success('تم إرسال طلب الموعد بنجاح');

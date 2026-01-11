@@ -1,6 +1,10 @@
 /**
  * MyPublicPlatformContent.tsx
  * صفحة المنصة العامة - عرض العروض بشكل هرمي مع بطاقة الوسيط
+ * 
+ * هذا المكون يُستخدم في سياقين:
+ * 1. in_app_preview: داخل منصتي (المالك يشاهد) - لا يؤثر على الإحصائيات العامة
+ * 2. public_web: الزائر يشاهد المنصة العامة - يُسجل في الإحصائيات
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -13,6 +17,7 @@ import PlatformSearchFilter from './PlatformSearchFilter';
 import PlatformStats from './PlatformStats';
 import { toast } from 'sonner';
 import { usePlatformListings, usePublicPlatformListings } from '@/hooks/usePlatformListings';
+import { useEventTracker } from '@/hooks/useEventTracker';
 
 interface Listing {
   id: string;
@@ -155,12 +160,18 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     bedrooms: ''
   });
   
+  // Event Tracker - لتتبع الأحداث
+  const { track, trackPageView } = useEventTracker();
+  
   // مفتاح التخزين - نفس المفتاح المستخدم في بطاقة الأعمال
   const STORAGE_KEY = `business_card_${userId}`;
   const SWAP_KEY = `business_card_swap_${userId}`;
 
   // تحديد وضع الصفحة العامة للزائر (ليس نفس متصفح/جهاز المالك)
   const isPublicViewer = userId === 'public';
+  
+  // تحديد القناة: in_app_preview للمالك، public_web للزائر
+  const trackingChannel = isPublicViewer ? 'public_web' : 'in_app_preview';
 
   // slug المستخدم للمنصة العامة
   const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
@@ -173,6 +184,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     loading: publicDbLoading,
     error: publicDbError,
   } = usePublicPlatformListings(isPublicViewer ? currentSlug : undefined);
+  
+  // تتبع مشاهدة صفحة المنصة (مرة واحدة عند التحميل)
+  useEffect(() => {
+    if (currentSlug && currentSlug !== 'default') {
+      trackPageView('platform', currentSlug, trackingChannel);
+    }
+  }, [currentSlug, trackingChannel, trackPageView]);
 
   // استخراج جميع العروض المسطحة من التسلسل الهرمي
   const flattenListings = (hierarchy: CityGroup[]): Listing[] => {
@@ -464,70 +482,26 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       setShowDetails(true);
     };
 
-    // تسجيل المشاهدة عند فتح التفاصيل
+    // تسجيل المشاهدة عند فتح التفاصيل - يستخدم نظام الأحداث الموحد
     const handleViewDetailsWithTracking = async () => {
-      // زيادة عدد المشاهدات في localStorage
-      try {
-        const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-        const adIndex = publishedAds.findIndex((ad: any) => ad.id === listing.id);
-        if (adIndex !== -1) {
-          publishedAds[adIndex].views = (publishedAds[adIndex].views || 0) + 1;
-          localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
-          
-          // جمع معلومات الزائر
-          const ua = navigator.userAgent;
-          let browser = 'غير معروف';
-          if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
-          else if (ua.includes('Firefox')) browser = 'Firefox';
-          else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
-          else if (ua.includes('Edg')) browser = 'Edge';
-          
-          let os = 'غير معروف';
-          if (ua.includes('Windows')) os = 'Windows';
-          else if (ua.includes('Mac')) os = 'macOS';
-          else if (ua.includes('Android')) os = 'Android';
-          else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-          
-          let device = 'كمبيوتر';
-          if (/iPhone|iPad|iPod/.test(ua)) device = 'iPhone/iPad';
-          else if (/Android/.test(ua)) device = /Mobile/.test(ua) ? 'هاتف أندرويد' : 'تابلت';
-          
-          // محاولة الحصول على الموقع
-          let locationInfo: { city?: string; country?: string; ip?: string } = {};
-          try {
-            const response = await fetch('https://ipapi.co/json/');
-            if (response.ok) {
-              const data = await response.json();
-              locationInfo = { ip: data.ip, city: data.city, country: data.country_name };
-            }
-          } catch (e) { /* تجاهل */ }
-          
-          const viewerInfo = {
-            ...locationInfo,
-            device,
-            browser,
-            os,
-            screenSize: `${window.screen.width}x${window.screen.height}`,
-            timestamp: new Date().toISOString(),
-            offerId: listing.id,
-            offerTitle: listing.title,
-          };
-          
-          // إطلاق حدث لتحديث الإحصائيات في الصفحات الأخرى
-          window.dispatchEvent(new CustomEvent('offerViewed', { detail: { offerId: listing.id } }));
-          
-          // إطلاق حدث مفصل للإشعارات
-          window.dispatchEvent(new CustomEvent('offerViewedWithDetails', { 
-            detail: { 
-              offerId: listing.id, 
-              offerTitle: listing.title,
-              viewerInfo 
-            } 
-          }));
-        }
-      } catch (error) {
-        console.error('Error tracking view:', error);
-      }
+      // تسجيل الحدث في قاعدة البيانات باستخدام القناة المناسبة
+      track({
+        eventName: 'offer_view',
+        channel: trackingChannel,
+        entityType: 'offer',
+        entityId: listing.id,
+        metadata: {
+          offerTitle: listing.title,
+          city: listing.city,
+          district: listing.district,
+          propertyType: listing.propertyType,
+          price: listing.price,
+        },
+      });
+      
+      // إطلاق حدث لتحديث الإحصائيات في الصفحات الأخرى (للتوافقية)
+      window.dispatchEvent(new CustomEvent('offerViewed', { detail: { offerId: listing.id } }));
+      
       handleViewDetails();
     };
 
