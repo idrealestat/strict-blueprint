@@ -35,6 +35,43 @@ interface OfferStats {
   quoteRequests: number;
 }
 
+// Enhanced analytics interfaces
+interface OfferRanking {
+  offerId: string;
+  offerTitle: string;
+  views: number;
+  city?: string;
+  district?: string;
+}
+
+interface DailyViewTrend {
+  date: string;
+  views: number;
+  uniqueVisitors: number;
+}
+
+interface FunnelStats {
+  offerViews: number;
+  ctaClicks: number;
+  requestsSubmitted: number;
+  conversionRate: number;
+}
+
+interface CityBreakdown {
+  city: string;
+  views: number;
+  percentage: number;
+}
+
+interface BusinessCardEngagement {
+  totalViews: number;
+  calls: number;
+  whatsappClicks: number;
+  shares: number;
+  emails: number;
+  saveContacts: number;
+}
+
 export function useAnalyticsStats() {
   const { user } = useAuthContext();
   const [pagesStats, setPagesStats] = useState<PageStats[]>([]);
@@ -284,6 +321,274 @@ export function useAnalyticsStats() {
     }
   }, []);
 
+  // جلب أعلى وأقل العروض مشاهدة (آخر 7 أيام)
+  const getTopAndLowestOffers = useCallback(async (): Promise<{ top: OfferRanking[]; lowest: OfferRanking[] }> => {
+    if (!user) return { top: [], lowest: [] };
+
+    try {
+      const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // جلب جميع أحداث offer_view للأسبوع
+      const { data: viewEvents } = await supabase
+        .from('events')
+        .select('entity_id, metadata')
+        .eq('user_id', user.id)
+        .eq('event_name', 'offer_view')
+        .eq('channel', 'public_web')
+        .gte('created_at', weekStart);
+
+      // تجميع حسب العرض
+      const offerCounts: { [key: string]: { views: number; title: string; city?: string; district?: string } } = {};
+      viewEvents?.forEach((e: any) => {
+        const offerId = e.entity_id;
+        if (!offerId) return;
+        if (!offerCounts[offerId]) {
+          offerCounts[offerId] = { 
+            views: 0, 
+            title: e.metadata?.offerTitle || 'عرض',
+            city: e.metadata?.city,
+            district: e.metadata?.district
+          };
+        }
+        offerCounts[offerId].views++;
+      });
+
+      const rankings: OfferRanking[] = Object.entries(offerCounts).map(([offerId, data]) => ({
+        offerId,
+        offerTitle: data.title,
+        views: data.views,
+        city: data.city,
+        district: data.district
+      }));
+
+      // ترتيب تنازلي للأعلى
+      const sorted = [...rankings].sort((a, b) => b.views - a.views);
+      const top = sorted.slice(0, 5);
+      const lowest = sorted.length > 5 ? sorted.slice(-5).reverse() : [];
+
+      return { top, lowest };
+    } catch (error) {
+      console.error('[Analytics] Error fetching top/lowest offers:', error);
+      return { top: [], lowest: [] };
+    }
+  }, [user]);
+
+  // جلب ترند المشاهدات اليومي (آخر 7 أيام)
+  const getDailyViewsTrend = useCallback(async (): Promise<DailyViewTrend[]> => {
+    if (!user) return [];
+
+    try {
+      const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: viewEvents } = await supabase
+        .from('events')
+        .select('created_at, viewer_id')
+        .eq('user_id', user.id)
+        .eq('channel', 'public_web')
+        .in('event_name', ['page_view', 'offer_view'])
+        .gte('created_at', weekStart);
+
+      // تجميع حسب اليوم
+      const dailyCounts: { [key: string]: { views: number; visitors: Set<string> } } = {};
+      viewEvents?.forEach((e: any) => {
+        const date = new Date(e.created_at).toISOString().split('T')[0];
+        if (!dailyCounts[date]) {
+          dailyCounts[date] = { views: 0, visitors: new Set() };
+        }
+        dailyCounts[date].views++;
+        if (e.viewer_id) dailyCounts[date].visitors.add(e.viewer_id);
+      });
+
+      // تحويل لمصفوفة مرتبة
+      return Object.entries(dailyCounts)
+        .map(([date, data]) => ({
+          date,
+          views: data.views,
+          uniqueVisitors: data.visitors.size
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    } catch (error) {
+      console.error('[Analytics] Error fetching daily trend:', error);
+      return [];
+    }
+  }, [user]);
+
+  // جلب إحصائيات القمع (offer_view -> CTA -> request/quote)
+  const getFunnelStats = useCallback(async (): Promise<FunnelStats> => {
+    if (!user) return { offerViews: 0, ctaClicks: 0, requestsSubmitted: 0, conversionRate: 0 };
+
+    try {
+      const [
+        { count: offerViews },
+        { count: callClicks },
+        { count: whatsappClicks },
+        { count: shareClicks },
+        { count: requests },
+        { count: quotes },
+        { count: appointments }
+      ] = await Promise.all([
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('event_name', 'offer_view')
+          .eq('channel', 'public_web'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .in('event_name', ['offer_call', 'click_call', 'card_call'])
+          .eq('channel', 'public_web'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .in('event_name', ['offer_whatsapp', 'click_whatsapp', 'card_whatsapp'])
+          .eq('channel', 'public_web'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .in('event_name', ['offer_share', 'click_share', 'card_share'])
+          .eq('channel', 'public_web'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('event_name', 'request_submit')
+          .eq('channel', 'public_web'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('event_name', 'quote_submit')
+          .eq('channel', 'public_web'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('event_name', 'calendar_created')
+          .eq('channel', 'public_web'),
+      ]);
+
+      const totalCTA = (callClicks || 0) + (whatsappClicks || 0) + (shareClicks || 0);
+      const totalConversions = (requests || 0) + (quotes || 0) + (appointments || 0);
+      const conversionRate = (offerViews || 0) > 0 ? (totalConversions / (offerViews || 1)) * 100 : 0;
+
+      return {
+        offerViews: offerViews || 0,
+        ctaClicks: totalCTA,
+        requestsSubmitted: totalConversions,
+        conversionRate: Math.round(conversionRate * 100) / 100
+      };
+    } catch (error) {
+      console.error('[Analytics] Error fetching funnel stats:', error);
+      return { offerViews: 0, ctaClicks: 0, requestsSubmitted: 0, conversionRate: 0 };
+    }
+  }, [user]);
+
+  // جلب توزيع المدن
+  const getCityBreakdown = useCallback(async (): Promise<CityBreakdown[]> => {
+    if (!user) return [];
+
+    try {
+      const { data: events } = await supabase
+        .from('events')
+        .select('metadata')
+        .eq('user_id', user.id)
+        .eq('channel', 'public_web')
+        .not('metadata', 'is', null);
+
+      const cityCounts: { [key: string]: number } = {};
+      let total = 0;
+
+      events?.forEach((e: any) => {
+        const city = e.metadata?.city;
+        if (city) {
+          cityCounts[city] = (cityCounts[city] || 0) + 1;
+          total++;
+        }
+      });
+
+      return Object.entries(cityCounts)
+        .map(([city, views]) => ({
+          city,
+          views,
+          percentage: total > 0 ? Math.round((views / total) * 100) : 0
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10);
+    } catch (error) {
+      console.error('[Analytics] Error fetching city breakdown:', error);
+      return [];
+    }
+  }, [user]);
+
+  // جلب إحصائيات بطاقة الأعمال
+  const getBusinessCardEngagement = useCallback(async (): Promise<BusinessCardEngagement> => {
+    if (!user) return { totalViews: 0, calls: 0, whatsappClicks: 0, shares: 0, emails: 0, saveContacts: 0 };
+
+    try {
+      const [
+        { count: views },
+        { count: calls },
+        { count: whatsapp },
+        { count: shares },
+        { count: emails },
+        { count: saves }
+      ] = await Promise.all([
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('entity_type', 'business_card')
+          .in('event_name', ['page_view', 'card_view']),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('entity_type', 'business_card')
+          .eq('event_name', 'card_call'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('entity_type', 'business_card')
+          .eq('event_name', 'card_whatsapp'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('entity_type', 'business_card')
+          .eq('event_name', 'card_share'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('entity_type', 'business_card')
+          .eq('event_name', 'card_email'),
+        supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('entity_type', 'business_card')
+          .eq('event_name', 'card_save_contact'),
+      ]);
+
+      return {
+        totalViews: views || 0,
+        calls: calls || 0,
+        whatsappClicks: whatsapp || 0,
+        shares: shares || 0,
+        emails: emails || 0,
+        saveContacts: saves || 0
+      };
+    } catch (error) {
+      console.error('[Analytics] Error fetching business card engagement:', error);
+      return { totalViews: 0, calls: 0, whatsappClicks: 0, shares: 0, emails: 0, saveContacts: 0 };
+    }
+  }, [user]);
+
   // تحميل البيانات
   useEffect(() => {
     if (user) {
@@ -310,6 +615,12 @@ export function useAnalyticsStats() {
     platformStats,
     loading,
     getOfferStats,
+    // Enhanced analytics functions
+    getTopAndLowestOffers,
+    getDailyViewsTrend,
+    getFunnelStats,
+    getCityBreakdown,
+    getBusinessCardEngagement,
     refetch: () => {
       fetchPagesStats();
       fetchPlatformStats();
