@@ -293,6 +293,63 @@ export function clearAllData(): void {
 }
 
 /**
+ * مسح البيانات الحساسة (PII) فقط - يُستخدم عند تسجيل الخروج
+ * يحافظ على التفضيلات غير الحساسة مثل الثيم والإعدادات
+ * SECURITY: This function clears sensitive customer/personal data on logout
+ * to prevent data exposure on shared devices
+ */
+export function clearSensitiveData(): void {
+  // بيانات العملاء الحساسة
+  const sensitiveKeys = [
+    LOCAL_STORAGE_KEYS.customers,
+    LOCAL_STORAGE_KEYS.crmCustomers,
+    LOCAL_STORAGE_KEYS.appointments,
+    LOCAL_STORAGE_KEYS.calendarAppointments,
+    LOCAL_STORAGE_KEYS.offerViewsLog,
+    LOCAL_STORAGE_KEYS.callLogs,
+    LOCAL_STORAGE_KEYS.platformComplete,
+    LOCAL_STORAGE_KEYS.publishedAdsList,
+    LOCAL_STORAGE_KEYS.publishedAds,
+    LOCAL_STORAGE_KEYS.platformAds,
+    'received_documents',
+    'client_submissions',
+    'linked_customers',
+  ];
+  
+  // مسح المفاتيح الحساسة المعروفة
+  sensitiveKeys.forEach(key => {
+    localStorage.removeItem(key);
+  });
+  
+  // مسح بطاقات الأعمال المؤقتة
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key) {
+      // مسح بيانات بطاقات الأعمال وبيانات الترحيب ومفاتيح CRM
+      if (
+        key.startsWith(LOCAL_STORAGE_KEYS.businessCardPrefix) ||
+        key.startsWith(LOCAL_STORAGE_KEYS.businessCardSwapPrefix) ||
+        key.startsWith('welcome_shown_') ||
+        key.startsWith('crm_migrated_') ||
+        key.includes('wasata_business_card') ||
+        key.includes('_documents') ||
+        key.includes('_customers')
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+  }
+  
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+  
+  // مسح sessionStorage أيضاً
+  sessionStorage.clear();
+  
+  console.log('[Security] Sensitive data cleared on logout');
+}
+
+/**
  * مسح البيانات القديمة (أقدم من عدد أيام معين)
  */
 export function clearOldData(daysOld: number = 30): { cleared: number; keys: string[] } {

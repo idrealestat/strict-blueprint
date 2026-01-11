@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { clearSensitiveData } from '@/utils/localDataManager';
 
 export type AppRole = 'owner' | 'admin' | 'user';
 
@@ -114,6 +115,9 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    // Clear sensitive PII data from localStorage on logout
+    clearSensitiveData();
+    
     const { error } = await supabase.auth.signOut();
     setRole(null);
     return { error };
