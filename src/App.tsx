@@ -368,8 +368,8 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
     case "calendar-system-complete":
       return <><CalendarAppointments onBack={handleBack} linkedCustomer={linkedCustomerForAppointment} /><AIFloatingButton /></>;
     case "owner":
-      // Redirect to owner dashboard via navigate
-      window.location.href = '/owner';
+      // Redirect to owner dashboard
+      window.location.href = '/app/owner';
       return null;
     case "dashboard":
     default:
@@ -410,6 +410,9 @@ const App = () => {
                   {/* Legacy auth routes */}
                   <Route path="/auth" element={<Navigate to="/app/login" replace />} />
                   <Route path="/login" element={<Navigate to="/app/login" replace />} />
+                  
+                  {/* Redirect legacy owner route */}
+                  <Route path="/owner" element={<Navigate to="/app/owner" replace />} />
                   
                   {/* businesscard/edit - محمي فقط بـ ProtectedRoute */}
                   <Route path="/app/businesscard/edit" element={
