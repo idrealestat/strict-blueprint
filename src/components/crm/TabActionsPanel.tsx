@@ -296,24 +296,99 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
   // Handle republish - navigate to publish form with auto-fill
   const handleRepublish = () => {
     if (tab.type === 'property_offer') {
-      // Store data for auto-fill
-      localStorage.setItem('republish_data', JSON.stringify({
-        ...tab.data,
+      // تحويل البيانات لتتوافق مع نموذج النشر
+      const republishData = {
+        // معلومات المالك
+        ownerName: tab.data.ownerName || '',
+        ownerPhone: tab.data.ownerPhone || '',
+        ownerIdNumber: tab.data.ownerIdNumber || '',
+        ownerNationalAddress: tab.data.ownerNationalAddress || '',
+        ownerCity: tab.data.ownerCity || '',
+        
+        // معلومات الصك
+        deedNumber: tab.data.deedNumber || '',
+        deedDate: tab.data.deedDate || '',
+        deedCity: tab.data.deedCity || '',
+        
+        // معلومات العقار
+        propertyType: tab.data.propertyType || '',
+        purpose: tab.data.purpose || '',
+        area: tab.data.area || '',
+        price: tab.data.price || '',
+        
+        // خيارات الدفعات
+        paymentPrices: tab.data.paymentPrices || {
+          onePayment: '',
+          twoPayments: '',
+          fourPayments: '',
+          monthly: '',
+        },
+        
+        // الموقع
+        locationDetails: {
+          city: tab.data.city || '',
+          district: tab.data.district || '',
+          street: tab.data.street || '',
+          buildingNumber: '',
+          postalCode: '',
+          additionalNumber: '',
+          latitude: 24.7136,
+          longitude: 46.6753,
+        },
+        
+        // المواصفات
+        floors: tab.data.floors || '',
+        floorNumber: tab.data.floorNumber || '',
+        bedrooms: tab.data.bedrooms || '',
+        bathrooms: tab.data.bathrooms || '',
+        livingRooms: tab.data.livingRooms || '',
+        councils: tab.data.councils || '',
+        streetWidth: tab.data.streetWidth || '',
+        facade: tab.data.facade || '',
+        furnishing: tab.data.furnishing || '',
+        propertyAge: tab.data.propertyAge || '',
+        
+        // معلومات إضافية
+        entrances: tab.data.entrances || '',
+        warehouses: tab.data.warehouses || '',
+        hasLaundryRoom: tab.data.hasLaundryRoom || false,
+        balconies: tab.data.balconies || '',
+        acUnits: tab.data.acUnits || '',
+        hasExtraKitchen: tab.data.hasExtraKitchen || false,
+        
+        // الضمانات
+        warranties: tab.data.warranties || [],
+        
+        // الوسائط - الصور والفيديو ورابط الجولة 3D
+        media: tab.data.media || [],
+        tour3DUrl: tab.data.tour3dUrl || tab.data.tour3DUrl || '',
+        
+        // الوصف
+        aiDescription: tab.data.description || '',
+        
+        // مصدر البيانات
         source: 'customer_tab',
         originalTabId: tab.id,
-      }));
+      };
+      
+      // حفظ البيانات بالاسم الصحيح الذي يبحث عنه PropertyPublishForm
+      localStorage.setItem('wasata_republish_data', JSON.stringify(republishData));
       
       // Trigger republish callback if provided
       if (onRepublish) {
         onRepublish(tab.data);
       }
       
-      toast.success('تم تجهيز البيانات للنشر - انتقل إلى منصتي لإكمال النشر');
+      toast.success('جاري الانتقال إلى صفحة النشر...');
       
       // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('republishOffer', { 
         detail: tab.data 
       }));
+      
+      // الانتقال تلقائياً لصفحة منصتي مع فتح نموذج النشر
+      navigate('/app/platform?action=publish');
+      
     } else if (tab.type === 'property_request') {
       localStorage.setItem('request_to_platform', JSON.stringify(tab.data));
       toast.success('تم إرسال الطلب إلى قسم الطلبات في منصتي');
