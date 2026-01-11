@@ -264,7 +264,7 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
-  const PLATFORM_BASE_URL = 'https://wasataai.com';
+  const PLATFORM_BASE_URL = window.location.origin;
 
   // Get slug (الأولوية للـ slug المنشور للمنصة العامة)
   const getSlug = () => {
