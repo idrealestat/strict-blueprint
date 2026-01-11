@@ -475,154 +475,145 @@ END:VCARD`;
               </Link>
             </Button>
 
-            {/* الأزرار المرنة - تتوزع تلقائياً */}
-            <div className="flex flex-wrap justify-center gap-3">
-              {/* Website - يظهر فقط إذا تم تعبئته */}
+            {/* السطر الأول: الموقع، خرائط جوجل، اتصال، واتساب، تحميل بطاقة */}
+            <div className="flex flex-wrap justify-center gap-2 mb-3">
               {domain && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  className="flex-1 min-w-[60px] max-w-[120px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                   asChild
                 >
                   <a href={domain.startsWith('http') ? domain : `https://${domain}`} target="_blank" rel="noopener noreferrer">
                     <Globe className="w-5 h-5" />
-                    <span className="text-xs">الموقع</span>
+                    <span className="text-[10px]">الموقع</span>
                   </a>
                 </Button>
               )}
 
-              {/* Google Maps - يظهر فقط إذا تم تعبئته */}
               {googleMapsLocation && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  className="flex-1 min-w-[60px] max-w-[120px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                   asChild
                 >
                   <a href={googleMapsLocation} target="_blank" rel="noopener noreferrer">
                     <MapPin className="w-5 h-5" />
-                    <span className="text-xs">خرائط جوجل</span>
+                    <span className="text-[10px]">خرائط جوجل</span>
                   </a>
                 </Button>
               )}
 
-              {/* Direct Call - يظهر فقط إذا تم تعبئته */}
               {phone && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  className="flex-1 min-w-[60px] max-w-[120px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                   asChild
                 >
                   <a href={`tel:${phone}`}>
                     <Phone className="w-5 h-5" />
-                    <span className="text-xs">اتصال مباشر</span>
+                    <span className="text-[10px]">اتصال مباشر</span>
                   </a>
                 </Button>
               )}
 
-              {/* WhatsApp - يظهر فقط إذا تم تعبئته */}
               {phone && (
                 <Button
                   variant="outline"
-                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                  className="flex-1 min-w-[60px] max-w-[120px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                   asChild
                 >
                   <a href={`https://wa.me/${phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
                     <MessageSquare className="w-5 h-5" />
-                    <span className="text-xs">واتساب</span>
+                    <span className="text-[10px]">واتساب</span>
                   </a>
                 </Button>
               )}
 
-              {/* Email - يظهر فقط إذا تم تعبئته */}
-              {email && (
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
-                  asChild
-                >
-                  <a href={`mailto:${email}`}>
-                    <Mail className="w-5 h-5" />
-                    <span className="text-xs">إيميل</span>
-                  </a>
-                </Button>
-              )}
-
-              {/* Download vCard - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[120px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={handleDownloadVCard}
               >
                 <Download className="w-5 h-5" />
-                <span className="text-xs">تحميل بطاقة</span>
+                <span className="text-[10px]">تحميل بطاقة</span>
               </Button>
+            </div>
 
-              {/* Send Offer - دائماً ظاهر */}
+            {/* السطر الثاني: إيميل، إرسال عرض، إرسال طلب، عرض سعر، موعد، حاسبة، قييمني */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {email && (
+                <Button
+                  variant="outline"
+                  className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  asChild
+                >
+                  <a href={`mailto:${email}`}>
+                    <Mail className="w-4 h-4" />
+                    <span className="text-[10px]">إيميل</span>
+                  </a>
+                </Button>
+              )}
+
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 asChild
               >
                 <Link to={`/${slug}/offer`}>
-                  <Home className="w-5 h-5" />
-                  <span className="text-xs">إرسال عرض</span>
+                  <Home className="w-4 h-4" />
+                  <span className="text-[10px]">إرسال عرض</span>
                 </Link>
               </Button>
 
-              {/* Send Request - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 asChild
               >
                 <Link to={`/${slug}/request`}>
-                  <Search className="w-5 h-5" />
-                  <span className="text-xs">إرسال طلب</span>
+                  <Search className="w-4 h-4" />
+                  <span className="text-[10px]">إرسال طلب</span>
                 </Link>
               </Button>
 
-              {/* Price Quote - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 asChild
               >
                 <Link to={`/${slug}/quote`}>
-                  <FileText className="w-5 h-5" />
-                  <span className="text-xs">عرض سعر</span>
+                  <FileText className="w-4 h-4" />
+                  <span className="text-[10px]">عرض سعر</span>
                 </Link>
               </Button>
 
-              {/* Appointment - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 asChild
               >
                 <Link to={`/${slug}/calendar`}>
-                  <Calendar className="w-5 h-5" />
-                  <span className="text-xs">حجز موعد</span>
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-[10px]">حجز موعد</span>
                 </Link>
               </Button>
 
-              {/* Finance Calculator - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
                 onClick={() => toast.info("حاسبة تمويل - قريباً")}
               >
-                <Calculator className="w-5 h-5" />
-                <span className="text-xs">حاسبة تمويل</span>
+                <Calculator className="w-4 h-4" />
+                <span className="text-[10px]">حاسبة تمويل</span>
               </Button>
 
-              {/* Rate Me - قييمني - دائماً ظاهر */}
               <Button
                 variant="outline"
-                className="h-auto py-3 px-6 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90 min-w-[80px]"
+                className="flex-1 min-w-[60px] max-w-[100px] h-auto py-2 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90"
                 onClick={() => toast.info("قييمني - قريباً")}
               >
-                <Star className="w-5 h-5" />
-                <span className="text-xs">قييمني</span>
+                <Star className="w-4 h-4" />
+                <span className="text-[10px]">قييمني</span>
               </Button>
             </div>
           </CardContent>
