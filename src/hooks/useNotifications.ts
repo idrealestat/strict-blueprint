@@ -3,6 +3,7 @@
  * نظام الإشعارات الموحد - Unified Notifications System
  * 
  * يجمع جميع مصادر الإشعارات في مكان واحد ويخزنها في قاعدة البيانات
+ * مع دعم إشعارات Push للمتصفح والجوال
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import type { Tables } from '@/integrations/supabase/types';
 import type { Json } from '@/integrations/supabase/types';
+import { showPushNotification } from './usePushNotifications';
 
 // Use the database type directly
 export type Notification = Tables<'notifications'>;
@@ -199,7 +201,7 @@ export function useNotifications() {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const newNotif = payload.new as Notification;
           setNotifications(prev => [newNotif, ...prev]);
           setUnreadCount(prev => prev + 1);
@@ -211,6 +213,26 @@ export function useNotifications() {
             audio.play().catch(() => {});
           } catch (e) {
             // Ignore audio errors
+          }
+
+          // إرسال إشعار Push للمتصفح/الجوال
+          // يعمل حتى لو كان المستخدم خارج التطبيق
+          try {
+            await showPushNotification(
+              newNotif.title,
+              newNotif.message,
+              {
+                type: newNotif.notification_type,
+                notificationId: newNotif.id,
+                entityType: newNotif.related_entity_type,
+                entityId: newNotif.related_entity_id,
+                actionUrl: newNotif.action_url,
+                priority: newNotif.priority,
+                metadata: newNotif.metadata,
+              }
+            );
+          } catch (pushError) {
+            console.log('[Notifications] Push notification not available:', pushError);
           }
         }
       )
