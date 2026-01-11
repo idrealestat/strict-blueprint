@@ -32,7 +32,7 @@ const SaudiWatermarkBg = () => (
     <img 
       src={saudiWatermark} 
       alt="" 
-      className="w-48 h-32 object-contain opacity-[0.12]"
+      className="w-64 h-44 object-contain opacity-[0.12]"
     />
   </div>
 );
@@ -267,17 +267,17 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                   
                   {/* Name & Title */}
                   <div className="flex-1">
-                    <h2 className="text-white font-bold text-lg leading-tight">{data.name}</h2>
+                    <h2 className="text-[#01411C] font-bold text-lg leading-tight">{data.name}</h2>
                     <p className="text-[#D4AF37] text-sm">{data.title || 'وسيط عقاري معتمد'}</p>
                     {data.companyName && (
-                      <p className="text-white/70 text-xs">{data.companyName}</p>
+                      <p className="text-[#01411C]/70 text-xs">{data.companyName}</p>
                     )}
                     {/* Rating */}
                     <div className="flex items-center gap-1 mt-1">
                       {[1, 2, 3, 4, 5].map((i) => (
                         <Star
                           key={i}
-                          className={`w-3 h-3 ${i <= Math.floor(data.rating) ? 'text-[#D4AF37] fill-current' : 'text-white/30'}`}
+                          className={`w-3 h-3 ${i <= Math.floor(data.rating) ? 'text-[#D4AF37] fill-current' : 'text-[#01411C]/30'}`}
                         />
                       ))}
                       <span className="text-[#D4AF37] text-xs mr-1">{data.rating}</span>
@@ -293,19 +293,19 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                 {/* Bottom Section - Contact Info */}
                 <div className="space-y-1.5 mt-2">
                   {data.phone && (
-                    <div className="flex items-center gap-2 text-white/90 text-xs">
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
                       <Phone className="w-3 h-3 text-[#D4AF37]" />
                       <span dir="ltr">{data.phone}</span>
                     </div>
                   )}
                   {data.email && (
-                    <div className="flex items-center gap-2 text-white/90 text-xs">
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
                       <Mail className="w-3 h-3 text-[#D4AF37]" />
                       <span>{data.email}</span>
                     </div>
                   )}
                   {data.city && (
-                    <div className="flex items-center gap-2 text-white/90 text-xs">
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
                       <MapPin className="w-3 h-3 text-[#D4AF37]" />
                       <span>{data.city}</span>
                     </div>
