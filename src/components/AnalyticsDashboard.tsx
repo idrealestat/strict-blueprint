@@ -4,11 +4,11 @@
  * تستخدم البيانات الحقيقية من جدول events
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2, FileText, Send, DollarSign, CheckCircle, Clock, XCircle, Inbox, Package } from 'lucide-react';
 import VisitorsHeatMap from './analytics/VisitorsHeatMap';
 import ViewsLogPage from './analytics/ViewsLogPage';
 import PublicPagesStats from './analytics/PublicPagesStats';
@@ -29,9 +29,90 @@ interface Client {
   status: string;
 }
 
+interface DocumentStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  totalAmount: number;
+}
+
 const AnalyticsDashboard = () => {
   const [activeTab, setActiveTab] = useState<'market' | 'platform'>('market');
   const { platformStats, loading } = useAnalyticsStats();
+  
+  // إحصائيات المستندات المستلمة
+  const [requestsStats, setRequestsStats] = useState<DocumentStats>({ total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
+  const [offersStats, setOffersStats] = useState<DocumentStats>({ total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
+  const [quotesStats, setQuotesStats] = useState<DocumentStats>({ total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
+  
+  // تحميل إحصائيات المستندات من localStorage
+  useEffect(() => {
+    const loadDocumentStats = () => {
+      try {
+        // جلب المستندات المستلمة
+        const receivedDocs = JSON.parse(localStorage.getItem('received_documents') || '[]');
+        // جلب مستندات العملاء
+        const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+        
+        // جمع كل المستندات
+        const allDocs: any[] = [...receivedDocs];
+        customers.forEach((customer: any) => {
+          if (customer.documents) {
+            allDocs.push(...customer.documents);
+          }
+        });
+
+        // تصنيف المستندات
+        const requests = allDocs.filter(d => d.type === 'property_request' || d.type === 'request');
+        const offers = allDocs.filter(d => d.type === 'property_offer' || d.type === 'offer');
+        const quotes = allDocs.filter(d => d.type === 'quotation_request' || d.type === 'quotation' || d.type === 'receipt');
+
+        // حساب إحصائيات الطلبات
+        setRequestsStats({
+          total: requests.length,
+          pending: requests.filter(d => !d.status || d.status === 'pending').length,
+          approved: requests.filter(d => d.status === 'approved').length,
+          rejected: requests.filter(d => d.status === 'rejected').length,
+          totalAmount: requests.reduce((sum, d) => sum + (d.total || d.budget || 0), 0)
+        });
+
+        // حساب إحصائيات العروض
+        setOffersStats({
+          total: offers.length,
+          pending: offers.filter(d => !d.status || d.status === 'pending').length,
+          approved: offers.filter(d => d.status === 'approved').length,
+          rejected: offers.filter(d => d.status === 'rejected').length,
+          totalAmount: offers.reduce((sum, d) => sum + (d.total || d.price || 0), 0)
+        });
+
+        // حساب إحصائيات عروض الأسعار
+        setQuotesStats({
+          total: quotes.length,
+          pending: quotes.filter(d => !d.status || d.status === 'pending').length,
+          approved: quotes.filter(d => d.status === 'approved').length,
+          rejected: quotes.filter(d => d.status === 'rejected').length,
+          totalAmount: quotes.reduce((sum, d) => sum + (d.total || 0), 0)
+        });
+      } catch (error) {
+        console.error('Error loading document stats:', error);
+      }
+    };
+
+    loadDocumentStats();
+    
+    // الاستماع لتحديثات المستندات
+    const handleUpdate = () => loadDocumentStats();
+    window.addEventListener('customersUpdated', handleUpdate);
+    window.addEventListener('documentsUpdated', handleUpdate);
+    window.addEventListener('receivedDocumentFromPublic', handleUpdate);
+    
+    return () => {
+      window.removeEventListener('customersUpdated', handleUpdate);
+      window.removeEventListener('documentsUpdated', handleUpdate);
+      window.removeEventListener('receivedDocumentFromPublic', handleUpdate);
+    };
+  }, []);
   
   const metrics: Metric[] = [
     { title: 'إجمالي الإيرادات', value: '$245,880', change: '+12.5%', color: 'text-green-600', icon: '📈' },
@@ -159,6 +240,116 @@ const AnalyticsDashboard = () => {
                 <span className="text-sm text-gray-600 dark:text-gray-300">العملاء</span>
               </div>
             </div>
+          </div>
+          
+          {/* إحصائيات الطلبات والعروض وعروض الأسعار المستلمة */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* إحصائيات الطلبات المستلمة */}
+            <Card className="border-2 border-blue-200 dark:border-blue-800 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Send className="w-5 h-5" />
+                  الطلبات المستلمة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">الإجمالي</span>
+                  <span className="text-2xl font-bold text-blue-600">{requestsStats.total}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 text-center">
+                    <Clock className="w-4 h-4 text-orange-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">معلقة</span>
+                    <p className="font-bold text-orange-600">{requestsStats.pending}</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
+                    <CheckCircle className="w-4 h-4 text-green-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">مقبولة</span>
+                    <p className="font-bold text-green-600">{requestsStats.approved}</p>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
+                    <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">مرفوضة</span>
+                    <p className="font-bold text-red-600">{requestsStats.rejected}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* إحصائيات العروض المستلمة */}
+            <Card className="border-2 border-purple-200 dark:border-purple-800 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Package className="w-5 h-5" />
+                  العروض المستلمة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">الإجمالي</span>
+                  <span className="text-2xl font-bold text-purple-600">{offersStats.total}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 text-center">
+                    <Clock className="w-4 h-4 text-orange-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">معلقة</span>
+                    <p className="font-bold text-orange-600">{offersStats.pending}</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
+                    <CheckCircle className="w-4 h-4 text-green-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">مقبولة</span>
+                    <p className="font-bold text-green-600">{offersStats.approved}</p>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
+                    <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">مرفوضة</span>
+                    <p className="font-bold text-red-600">{offersStats.rejected}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* إحصائيات عروض الأسعار المستلمة */}
+            <Card className="border-2 border-amber-200 dark:border-amber-800 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white py-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <DollarSign className="w-5 h-5" />
+                  عروض الأسعار المستلمة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">الإجمالي</span>
+                  <span className="text-2xl font-bold text-amber-600">{quotesStats.total}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 text-center">
+                    <Clock className="w-4 h-4 text-orange-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">معلقة</span>
+                    <p className="font-bold text-orange-600">{quotesStats.pending}</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
+                    <CheckCircle className="w-4 h-4 text-green-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">مقبولة</span>
+                    <p className="font-bold text-green-600">{quotesStats.approved}</p>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
+                    <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
+                    <span className="text-xs text-muted-foreground">مرفوضة</span>
+                    <p className="font-bold text-red-600">{quotesStats.rejected}</p>
+                  </div>
+                </div>
+                {quotesStats.totalAmount > 0 && (
+                  <div className="pt-2 border-t border-dashed">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">إجمالي المبالغ</span>
+                      <span className="font-bold text-green-600">{quotesStats.totalAmount.toLocaleString()} ر.س</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
           
           {/* الجدول */}
