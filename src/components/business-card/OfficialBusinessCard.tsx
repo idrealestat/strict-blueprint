@@ -26,13 +26,13 @@ const WasataWatermark = () => (
   </div>
 );
 
-// Saudi Watermark Background for Front Side
+// Saudi Watermark Background for Front Side - Full Coverage
 const SaudiWatermarkBg = () => (
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+  <div className="absolute inset-0 pointer-events-none overflow-hidden">
     <img 
       src={saudiWatermark} 
       alt="" 
-      className="w-40 h-40 object-contain opacity-[0.08]"
+      className="w-full h-full object-cover opacity-[0.15]"
     />
   </div>
 );
@@ -249,7 +249,7 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
             className="absolute inset-0 w-full h-full backface-hidden"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <Card className="w-full h-full bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] border-4 border-[#D4AF37] rounded-xl overflow-hidden shadow-2xl">
+            <Card className="w-full h-full bg-white border-4 border-[#D4AF37] rounded-xl overflow-hidden shadow-2xl relative">
               {/* Saudi Watermark Background - Front Only */}
               <SaudiWatermarkBg />
               
