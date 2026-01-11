@@ -4,17 +4,19 @@
  * مع معاينة احترافية وحفظ في المستندات
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Plus, Trash2, FileText, DollarSign, Download, Send, Phone, Mail,
-  ArrowRight, Star, Edit2
+  ArrowRight, Star, Edit2, Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface UserData {
   name: string;
@@ -55,6 +57,8 @@ export default function FinancialDocumentModal({
   const [showPreview, setShowPreview] = useState(false);
   const [showSendMenu, setShowSendMenu] = useState(false);
   const [swapped, setSwapped] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // الحسابات التلقائية
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
@@ -169,6 +173,45 @@ export default function FinancialDocumentModal({
     saveDocument();
   };
 
+  // تحميل PDF
+  const downloadPDF = async () => {
+    if (!previewRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    try {
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      const docName = docType === 'quotation' ? 'عرض_سعر' : 'سند_قبض';
+      const fileName = `${docName}_${customerName.replace(/\s/g, '_')}_${new Date().toLocaleDateString('ar-SA').replace(/\//g, '-')}.pdf`;
+      
+      pdf.save(fileName);
+      toast.success('تم تحميل المستند بصيغة PDF');
+      saveDocument();
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('حدث خطأ أثناء إنشاء PDF');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   // شاشة اختيار نوع المستند
   if (!docType) {
     return (
@@ -225,6 +268,8 @@ export default function FinancialDocumentModal({
           className="bg-white rounded-2xl max-w-md w-full overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* محتوى المستند للتصوير PDF */}
+          <div ref={previewRef} className="bg-white">
           {/* رأس بطاقة الأعمال */}
           <div className="relative">
             {/* التدرج اللوني */}
@@ -355,25 +400,38 @@ export default function FinancialDocumentModal({
               </div>
             </div>
           </div>
+          </div> {/* نهاية previewRef */}
 
           {/* الأزرار */}
-          <div className="p-4 bg-gray-50 border-t flex gap-2 relative">
+          <div className="p-4 bg-gray-50 border-t flex flex-wrap gap-2 relative">
             <Button 
               variant="outline" 
-              className="flex-1 gap-2"
+              className="flex-1 min-w-[80px] gap-2"
               onClick={() => setShowPreview(false)}
             >
               <Edit2 className="w-4 h-4" />
               تعديل
             </Button>
             <Button 
-              className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 min-w-[80px] gap-2 bg-blue-600 hover:bg-blue-700"
+              onClick={downloadPDF}
+              disabled={isGeneratingPDF}
+            >
+              {isGeneratingPDF ? (
+                <span className="animate-spin">⏳</span>
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              تحميل PDF
+            </Button>
+            <Button 
+              className="flex-1 min-w-[80px] gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={() => {
                 saveDocument();
                 toast.success('تم حفظ المستند');
               }}
             >
-              <Download className="w-4 h-4" />
+              <Printer className="w-4 h-4" />
               حفظ
             </Button>
             <div className="relative flex-1">

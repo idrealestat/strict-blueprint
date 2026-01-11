@@ -37,9 +37,14 @@ import {
   Navigation,
   Loader2,
   Send,
+  Download,
+  Eye,
+  Trash2,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import FinancialDocumentModal from './FinancialDocumentModal';
+import DocumentPreviewModal from './DocumentPreviewModal';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 
 interface Customer {
@@ -116,6 +121,8 @@ export default function GeneralInfoTab({
   const [showMap, setShowMap] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showFinancialForm, setShowFinancialForm] = useState(false);
+  const [savedDocuments, setSavedDocuments] = useState<any[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
   const [addressDetails, setAddressDetails] = useState<AddressDetails>({
     city: '',
     district: '',
@@ -133,6 +140,31 @@ export default function GeneralInfoTab({
 
   // جلب بيانات البطاقة للمستندات المالية
   const { data: businessCardData } = useBusinessCardData();
+
+  // تحميل المستندات المحفوظة
+  useEffect(() => {
+    const loadSavedDocuments = () => {
+      const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+      const currentCustomer = customers.find((c: any) => c.id === customer.id || c.phone === customer.phone);
+      if (currentCustomer?.documents) {
+        setSavedDocuments(currentCustomer.documents);
+      }
+    };
+    
+    loadSavedDocuments();
+
+    // الاستماع لحدث إضافة مستند جديد
+    const handleDocumentAdded = (event: CustomEvent) => {
+      if (event.detail.customerId === customer.id) {
+        setSavedDocuments(prev => [...prev, event.detail.document]);
+      }
+    };
+
+    window.addEventListener('customerDocumentAdded', handleDocumentAdded as EventListener);
+    return () => {
+      window.removeEventListener('customerDocumentAdded', handleDocumentAdded as EventListener);
+    };
+  }, [customer.id, customer.phone]);
 
   const customerType = CUSTOMER_TYPES.find(t => t.id === customer.type);
   const interestLevel = INTEREST_LEVELS.find(l => l.id === customer.interestLevel);
@@ -732,19 +764,80 @@ export default function GeneralInfoTab({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-amber-600" />
-              <span className="text-sm font-medium text-gray-700">المستندات والملفات (0)</span>
+              <span className="text-sm font-medium text-gray-700">
+                المستندات والملفات ({savedDocuments.length})
+              </span>
             </div>
             <Button variant="ghost" size="sm" className="text-emerald-600 gap-1">
               <Upload className="w-4 h-4" />
               رفع مستند
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1 text-gray-600">
-              <Upload className="w-4 h-4" />
-              رفع PDF, Word, Excel
-            </Button>
-          </div>
+          
+          {/* عرض المستندات المحفوظة */}
+          {savedDocuments.length > 0 ? (
+            <div className="space-y-2">
+              {savedDocuments.map((doc) => (
+                <div 
+                  key={doc.id}
+                  className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:border-[#D4AF37]/50 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      doc.type === 'quotation' ? 'bg-blue-100' : 'bg-green-100'
+                    }`}>
+                      {doc.type === 'quotation' ? (
+                        <FileText className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <DollarSign className="w-5 h-5 text-green-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800 text-sm">{doc.typeName}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(doc.createdAt).toLocaleDateString('ar-SA')} • {doc.total?.toLocaleString()} ر.س
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedDocument(doc)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // حذف المستند
+                        const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+                        const customerIndex = customers.findIndex((c: any) => c.id === customer.id || c.phone === customer.phone);
+                        if (customerIndex !== -1 && customers[customerIndex].documents) {
+                          customers[customerIndex].documents = customers[customerIndex].documents.filter((d: any) => d.id !== doc.id);
+                          localStorage.setItem('crm_customers', JSON.stringify(customers));
+                          setSavedDocuments(prev => prev.filter(d => d.id !== doc.id));
+                          toast.success('تم حذف المستند');
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1 text-gray-600">
+                <Upload className="w-4 h-4" />
+                رفع PDF, Word, Excel
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -852,6 +945,18 @@ export default function GeneralInfoTab({
             logoImage: businessCardData.logoUrl || undefined,
           }}
           onClose={() => setShowFinancialForm(false)}
+        />
+      )}
+
+      {/* مودال معاينة المستند المحفوظ */}
+      {selectedDocument && (
+        <DocumentPreviewModal
+          document={selectedDocument}
+          userData={{
+            profileImage: businessCardData.profileImageUrl || undefined,
+            logoImage: businessCardData.logoUrl || undefined,
+          }}
+          onClose={() => setSelectedDocument(null)}
         />
       )}
     </div>
