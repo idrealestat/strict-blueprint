@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,14 +10,20 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-// Valid voice options for TTS
-const VALID_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+// ElevenLabs Voice IDs - Arabic-friendly voices
+const VOICE_MAP: Record<string, string> = {
+  'alloy': 'EXAVITQu4vr4xnSDxMaL',    // Sarah - عربي جيد
+  'echo': 'JBFqnCBsd6RMkjVDRZzb',     // George
+  'fable': 'N2lVS1w4EtoT3dr4eOWO',    // Callum
+  'onyx': 'onwK4e9ZLuTAKqWW03F9',     // Daniel
+  'nova': 'XrExE9yKIg1WjnnlVkGX',     // Matilda - صوت أنثوي
+  'shimmer': 'pFZP5JQG7iQjIQuC4Bku',  // Lily
+};
 
-// Speed range (OpenAI TTS valid range)
-const MIN_SPEED = 0.25;
-const MAX_SPEED = 4.0;
+// Valid voice options
+const VALID_VOICES = Object.keys(VOICE_MAP);
 
-// Maximum text length (OpenAI TTS limit)
+// Maximum text length
 const MAX_TEXT_LENGTH = 4096;
 
 serve(async (req) => {
@@ -25,7 +32,7 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check (signing keys compatible)
+    // Authentication check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       console.error("Missing/invalid Authorization header");
@@ -105,51 +112,60 @@ serve(async (req) => {
       voice = voice.toLowerCase();
     }
 
-    // Validate and sanitize speed parameter
-    if (typeof speed !== 'number' || isNaN(speed) || speed < MIN_SPEED || speed > MAX_SPEED) {
-      console.log(`Invalid speed "${speed}", defaulting to 1.0`);
-      speed = 1.0;
-    }
+    // Get ElevenLabs voice ID
+    const voiceId = VOICE_MAP[voice];
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!ELEVENLABS_API_KEY) {
+      throw new Error("ELEVENLABS_API_KEY is not configured");
     }
 
     console.log("Converting text to speech for user:", userId, "text:", text.substring(0, 100));
-    console.log("Voice:", voice, "Speed:", speed, "Text length:", text.length);
+    console.log("Voice:", voice, "VoiceId:", voiceId, "Text length:", text.length);
 
-    // استخدام Lovable AI لتوليد الصوت
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "tts-1",
-        input: text,
-        voice: voice,
-        response_format: "mp3",
-        speed: speed,
-      }),
-    });
+    // Use ElevenLabs TTS API
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2", // Best for Arabic
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.3,
+            use_speaker_boost: true,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("TTS API error:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "تم تجاوز حد الطلبات" }), {
+        return new Response(JSON.stringify({ 
+          error: "تم تجاوز حد الطلبات، يرجى المحاولة لاحقاً",
+          success: false 
+        }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "يرجى إضافة رصيد للاستمرار" }), {
-          status: 402,
+      if (response.status === 401) {
+        return new Response(JSON.stringify({ 
+          error: "خطأ في مفتاح API",
+          success: false 
+        }), {
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -157,20 +173,11 @@ serve(async (req) => {
       throw new Error(`فشل في توليد الصوت: ${response.status}`);
     }
 
-    // تحويل الاستجابة إلى base64
+    // Convert response to base64
     const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    // تحويل إلى base64
-    let binaryString = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    const base64Audio = btoa(binaryString);
+    const base64Audio = base64Encode(arrayBuffer);
 
-    console.log("Audio generated successfully, size:", uint8Array.length);
+    console.log("Audio generated successfully, size:", arrayBuffer.byteLength);
 
     return new Response(JSON.stringify({ 
       audioContent: base64Audio,
