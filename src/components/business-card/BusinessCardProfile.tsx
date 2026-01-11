@@ -284,7 +284,7 @@ END:VCARD`;
   // Share business card
   const shareBusinessCard = async () => {
     const slug = getSlug();
-    const cardLink = `${PLATFORM_BASE_URL}/${slug}/businesscard`;
+    const cardLink = `${PLATFORM_BASE_URL}/${slug}/card`;
     if (navigator.share) {
       try {
         await navigator.share({
