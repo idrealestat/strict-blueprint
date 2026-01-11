@@ -132,34 +132,37 @@ interface FormData {
 }
 
 export default function PublicRequestForm() {
-  const { brokerId } = useParams<{ brokerId: string }>();
+  // دعم كلا المعاملين: slug (من الصفحة العامة) و brokerId (قديم)
+  const { slug, brokerId } = useParams<{ slug?: string; brokerId?: string }>();
+  const brokerSlug = slug || brokerId;
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerId || '1'));
+  const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerSlug || '1'));
 
   // تحميل بيانات الوسيط من قاعدة البيانات
   useEffect(() => {
     const loadBrokerData = async () => {
-      if (!brokerId) return;
+      if (!brokerSlug) return;
       
       try {
         const { data: businessCard } = await supabase
           .from('business_cards')
           .select('data, user_id')
-          .eq('slug', brokerId)
+          .eq('slug', brokerSlug)
           .eq('published', true)
           .single();
 
         if (businessCard?.data) {
           const cardData = businessCard.data as Record<string, any>;
           setBroker({
-            id: brokerId,
-            name: cardData.name || 'وسيط عقاري',
-            company: cardData.company || '',
-            phone: cardData.phone || '',
+            id: brokerSlug,
+            name: cardData.name || cardData.userName || 'وسيط عقاري',
+            company: cardData.company || cardData.companyName || '',
+            phone: cardData.phone || cardData.primaryPhone || '',
             email: cardData.email || '',
-            location: cardData.city || '',
-            licenseNumber: cardData.falLicenseNumber || '',
+            location: cardData.city || cardData.location || '',
+            licenseNumber: cardData.falLicenseNumber || cardData.falLicense || '',
             rating: 4.8,
             verified: true,
           });
@@ -170,7 +173,7 @@ export default function PublicRequestForm() {
     };
     
     loadBrokerData();
-  }, [brokerId]);
+  }, [brokerSlug]);
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
@@ -254,7 +257,7 @@ export default function PublicRequestForm() {
       const { data: businessCard } = await supabase
         .from('business_cards')
         .select('user_id, data')
-        .eq('slug', brokerId)
+        .eq('slug', brokerSlug)
         .eq('published', true)
         .single();
 
