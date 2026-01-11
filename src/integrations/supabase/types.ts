@@ -1171,6 +1171,45 @@ export type Database = {
         }
         Relationships: []
       }
+      settings_change_log: {
+        Row: {
+          change_type: string
+          changed_by_user_id: string
+          created_at: string
+          feature_key: string
+          id: string
+          new_value: boolean
+          notes: string | null
+          old_value: boolean | null
+          target_account_type: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          change_type: string
+          changed_by_user_id: string
+          created_at?: string
+          feature_key: string
+          id?: string
+          new_value: boolean
+          notes?: string | null
+          old_value?: boolean | null
+          target_account_type?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          change_type?: string
+          changed_by_user_id?: string
+          created_at?: string
+          feature_key?: string
+          id?: string
+          new_value?: boolean
+          notes?: string | null
+          old_value?: boolean | null
+          target_account_type?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       slug_firstname_exceptions: {
         Row: {
           allowed_city: string | null

@@ -22,7 +22,7 @@ import {
   Shield, Check, X, Clock, Search, RefreshCw, Users, Settings,
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
-  ToggleLeft, ToggleRight
+  ToggleLeft, ToggleRight, History
 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -130,6 +130,10 @@ const OwnerDashboard: React.FC = () => {
   const [exceptions, setExceptions] = useState<FirstNameException[]>([]);
   const [newException, setNewException] = useState({ name: "", notes: "" });
   
+  // Settings Change Log
+  const [changeLog, setChangeLog] = useState<any[]>([]);
+  const [logLoading, setLogLoading] = useState(false);
+  
   // Dialogs
   const [approveDialog, setApproveDialog] = useState<{ open: boolean; request: DomainRequest | null }>({ open: false, request: null });
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; request: DomainRequest | null; reason: string }>({ open: false, request: null, reason: "" });
@@ -216,9 +220,109 @@ const OwnerDashboard: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  // جلب سجل التغييرات
+  const fetchChangeLog = async () => {
+    setLogLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('settings_change_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      setChangeLog(data || []);
+    } catch (error) {
+      console.error('Failed to fetch change log:', error);
+    } finally {
+      setLogLoading(false);
+    }
+  };
+
   // ============ LAYER 1: GLOBAL DEFAULTS ============
+  // وصف أماكن ظهور/إخفاء كل ميزة
+  const FEATURE_LOCATIONS: Record<string, { enable: string; disable: string }> = {
+    official_business_card_enabled: {
+      enable: 'ستظهر الآن في: القائمة اليمنى، صفحة تحرير البطاقة، والصفحة المستقلة',
+      disable: 'ستختفي من: القائمة اليمنى، صفحة تحرير البطاقة، والصفحة المستقلة',
+    },
+    publishing_enabled: {
+      enable: 'ستظهر الآن أزرار النشر في صفحات العروض والمنصة',
+      disable: 'ستختفي أزرار النشر من صفحات العروض والمنصة',
+    },
+    smart_paths_enabled: {
+      enable: 'ستظهر خيارات المسارات الذكية في منصتي',
+      disable: 'ستختفي خيارات المسارات الذكية من منصتي',
+    },
+    spatial_intelligence_enabled: {
+      enable: 'سيظهر الذكاء المكاني في صفحات العروض والخريطة',
+      disable: 'سيختفي الذكاء المكاني من صفحات العروض والخريطة',
+    },
+    offers_requests_enabled: {
+      enable: 'ستظهر أقسام العروض والطلبات في لوحة التحكم',
+      disable: 'ستختفي أقسام العروض والطلبات من لوحة التحكم',
+    },
+    quick_calculator_enabled: {
+      enable: 'ستظهر الحاسبة السريعة في لوحة التحكم',
+      disable: 'ستختفي الحاسبة السريعة من لوحة التحكم',
+    },
+    left_slider_enabled: {
+      enable: 'ستظهر القائمة اليسرى في لوحة التحكم',
+      disable: 'ستختفي القائمة اليسرى من لوحة التحكم',
+    },
+    right_slider_mediation_course_enabled: {
+      enable: 'ستظهر دورة الوساطة في القائمة اليمنى',
+      disable: 'ستختفي دورة الوساطة من القائمة اليمنى',
+    },
+    right_slider_team_management_enabled: {
+      enable: 'ستظهر إدارة الفريق في القائمة اليمنى',
+      disable: 'ستختفي إدارة الفريق من القائمة اليمنى',
+    },
+    right_slider_workspace_enabled: {
+      enable: 'ستظهر مساحة العمل في القائمة اليمنى',
+      disable: 'ستختفي مساحة العمل من القائمة اليمنى',
+    },
+    right_slider_owner_panel_enabled: {
+      enable: 'ستظهر لوحة تحكم المالك في القائمة اليمنى',
+      disable: 'ستختفي لوحة تحكم المالك من القائمة اليمنى',
+    },
+    business_card_add_colleague_enabled: {
+      enable: 'سيظهر زر إضافة زميل في البطاقة الرقمية',
+      disable: 'سيختفي زر إضافة زميل من البطاقة الرقمية',
+    },
+  };
+
+  // تسجيل التغيير في سجل التتبع
+  const logSettingChange = async (
+    changeType: 'global_default' | 'user_override' | 'business_rule',
+    featureKey: string,
+    oldValue: boolean | null,
+    newValue: boolean,
+    targetUserId?: string,
+    targetAccountType?: string
+  ) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from('settings_change_log').insert({
+        changed_by_user_id: user.id,
+        change_type: changeType,
+        feature_key: featureKey,
+        old_value: oldValue,
+        new_value: newValue,
+        target_user_id: targetUserId || null,
+        target_account_type: targetAccountType || null,
+      });
+    } catch (error) {
+      console.error('Failed to log setting change:', error);
+    }
+  };
+
   const handleGlobalChange = async (key: string, value: boolean) => {
     if (!globalDefaults) return;
+    
+    const oldValue = globalDefaults[key] as boolean;
     
     try {
       const { error } = await supabase
@@ -230,21 +334,27 @@ const OwnerDashboard: React.FC = () => {
 
       setGlobalDefaults(prev => prev ? { ...prev, [key]: value } : null);
       
-      // إشعار خاص بميزة البطاقة الرسمية
-      if (key === 'official_business_card_enabled') {
+      // تسجيل التغيير
+      await logSettingChange('global_default', key, oldValue, value);
+      
+      // إشعار مخصص لكل ميزة
+      const featureLabel = FEATURE_FLAG_LABELS[key as keyof FeatureFlags] || key;
+      const location = FEATURE_LOCATIONS[key];
+      
+      if (location) {
         if (value) {
-          toast.success('✅ تم تفعيل ميزة البطاقة الرسمية', {
-            description: 'ستظهر الآن في: القائمة اليمنى، صفحة تحرير البطاقة، والصفحة المستقلة',
+          toast.success(`✅ تم تفعيل: ${featureLabel}`, {
+            description: location.enable,
             duration: 5000,
           });
         } else {
-          toast.warning('⚠️ تم تعطيل ميزة البطاقة الرسمية', {
-            description: 'ستختفي من: القائمة اليمنى، صفحة تحرير البطاقة، والصفحة المستقلة',
+          toast.warning(`⚠️ تم تعطيل: ${featureLabel}`, {
+            description: location.disable,
             duration: 5000,
           });
         }
       } else {
-        toast.success('تم تحديث الإعداد العام');
+        toast.success(value ? `✅ تم تفعيل: ${featureLabel}` : `⚠️ تم تعطيل: ${featureLabel}`);
       }
     } catch (error: any) {
       toast.error(error.message || 'حدث خطأ');
@@ -735,6 +845,14 @@ const OwnerDashboard: React.FC = () => {
             <TabsTrigger value="exceptions" className="flex items-center gap-1 text-xs">
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">استثناءات</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="changelog" 
+              className="flex items-center gap-1 text-xs"
+              onClick={() => fetchChangeLog()}
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">سجل التغييرات</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1269,6 +1387,92 @@ const OwnerDashboard: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+          {/* =============== TAB: CHANGE LOG =============== */}
+          <TabsContent value="changelog">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="w-5 h-5 text-[#01411C]" />
+                  سجل تغييرات الإعدادات
+                </CardTitle>
+                <CardDescription>
+                  تتبع جميع التغييرات التي تمت على إعدادات الميزات
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {logLoading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                    <p className="text-gray-500 mt-2">جاري تحميل السجل...</p>
+                  </div>
+                ) : changeLog.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لا توجد تغييرات مسجلة حتى الآن</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {changeLog.map((log) => (
+                      <div 
+                        key={log.id} 
+                        className={`p-3 rounded-lg border ${
+                          log.new_value ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {log.new_value ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <X className="w-4 h-4 text-amber-600" />
+                            )}
+                            <span className="font-medium">
+                              {FEATURE_FLAG_LABELS[log.feature_key as keyof FeatureFlags] || log.feature_key}
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {log.change_type === 'global_default' && 'إعداد عام'}
+                            {log.change_type === 'user_override' && 'استثناء مستخدم'}
+                            {log.change_type === 'business_rule' && 'قاعدة أعمال'}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-600 flex items-center justify-between">
+                          <span>
+                            {log.old_value !== null ? (
+                              <span className={log.old_value ? 'text-green-600' : 'text-red-600'}>
+                                {log.old_value ? 'مفعّل' : 'معطّل'}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                            {' '}→{' '}
+                            <span className={log.new_value ? 'text-green-600' : 'text-red-600'}>
+                              {log.new_value ? 'مفعّل' : 'معطّل'}
+                            </span>
+                          </span>
+                          <span className="text-gray-400">
+                            {new Date(log.created_at).toLocaleString('ar-SA', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        {log.target_account_type && (
+                          <div className="mt-1 text-xs text-gray-500">
+                            نوع الحساب: {log.target_account_type}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
       {/* Approve Request Dialog */}
       <Dialog open={approveDialog.open} onOpenChange={(v) => !v && setApproveDialog({ open: false, request: null })}>
