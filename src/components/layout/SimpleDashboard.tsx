@@ -4,7 +4,7 @@
  * Main Dashboard Component
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import NotificationsSidebar from "../NotificationsSidebar";
@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Menu, Bell, PanelLeft, Building2, Globe, Users, Star, Phone, Calendar, MessageSquare, Component, TrendingUp, Sparkles, Calculator, UserCheck, Layers, LucideIcon } from "lucide-react";
+import { Menu, Bell, PanelLeft, Building2, Globe, Users, Star, Phone, Calendar, MessageSquare, Component, TrendingUp, Sparkles, Calculator, Layers, LucideIcon, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
 export interface User {
   id: string;
@@ -52,6 +54,7 @@ interface ServiceItem {
   flagKey?: keyof import("@/context/FeatureFlagsContext").FeatureFlags;
   iconBgClass?: string;
 }
+
 export default function SimpleDashboard({
   user,
   onNavigate
@@ -59,10 +62,31 @@ export default function SimpleDashboard({
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const {
     flags,
     loading: flagsLoading
   } = useFeatureFlags();
+
+  // رسالة الترحيب - تظهر فقط عند أول تسجيل دخول
+  useEffect(() => {
+    if (user) {
+      const sessionKey = `welcome_shown_${user.id}`;
+      const hasShownWelcome = sessionStorage.getItem(sessionKey);
+      
+      if (!hasShownWelcome) {
+        setShowWelcome(true);
+        sessionStorage.setItem(sessionKey, 'true');
+        
+        // إخفاء الترحيب بعد 4 ثوانٍ
+        const timer = setTimeout(() => {
+          setShowWelcome(false);
+        }, 4000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user]);
 
   // Get offers for notifications sidebar
   const getOffersForNotifications = () => {
@@ -160,16 +184,8 @@ export default function SimpleDashboard({
     icon: Calculator,
     navigateTo: "quick-calculator",
     flagKey: "quick_calculator_enabled"
-  }, {
-    id: "business-card",
-    title: "بطاقة أعمالي الرقمية",
-    description: "بطاقة رقمية احترافية للوسيط العقاري",
-    icon: UserCheck,
-    navigateTo: "business-card-profile",
-    badge: "🔒 محمي",
-    badgeClass: "bg-[#D4AF37] text-[#01411C]",
-    iconBgClass: "bg-gradient-to-r from-[#D4AF37] to-[#f1c40f]"
   }], []);
+  // ملاحظة: تم إزالة بطاقة أعمالي الرقمية لأنها موجودة في Right Slider
 
   // فلترة الخدمات حسب Feature Flags
   const visibleServices = useMemo(() => {
@@ -218,43 +234,80 @@ export default function SimpleDashboard({
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
+        {/* رسالة الترحيب المتحركة */}
+        <AnimatePresence>
+          {showWelcome && user && (
+            <motion.div
+              initial={{ opacity: 0, y: -50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 0.95 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="fixed inset-x-4 top-20 z-50 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-lg"
+            >
+              <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] shadow-2xl overflow-hidden">
+                <CardContent className="p-6 relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowWelcome(false)}
+                    className="absolute top-2 left-2 text-white/70 hover:text-white hover:bg-white/10"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-16 h-16 border-4 border-[#D4AF37] shadow-lg">
+                      <AvatarFallback className="bg-[#D4AF37] text-[#01411C] text-xl font-bold">
+                        {user.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 text-white">
+                      <motion.h1 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-xl md:text-2xl font-bold"
+                      >
+                        مرحباً، {user.name} 👋
+                      </motion.h1>
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-sm text-white/80 mt-1"
+                      >
+                        {user.companyName || 'أهلاً بك في وساطة AI'}
+                      </motion.p>
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                        className="flex items-center gap-1 mt-2"
+                      >
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <Star 
+                            key={star} 
+                            className={`w-4 h-4 ${star <= (user.rating || 4) ? "text-[#D4AF37] fill-current" : "text-white/30"}`} 
+                          />
+                        ))}
+                        <span className="text-xs text-white/70 mr-1">({user.rating || 4.0})</span>
+                      </motion.div>
+                    </div>
+                  </div>
+                  {/* شريط تقدم */}
+                  <motion.div 
+                    initial={{ scaleX: 1 }}
+                    animate={{ scaleX: 0 }}
+                    transition={{ duration: 4, ease: "linear" }}
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-[#D4AF37] origin-left"
+                  />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* 1. شريط الأخبار العاجلة - 8 أخبار */}
         <NewsBar />
-
-
-        {/* Profile Card */}
-        {user && <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-white to-[#f0fdf4] shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
-                {/* الصورة */}
-                <Avatar className="w-16 h-16 border-4 border-[#D4AF37] shadow-lg flex-shrink-0">
-                  <AvatarFallback className="bg-[#01411C] text-white text-xl font-bold">
-                    {user.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-
-                {/* الاسم والشركة */}
-                <div className="flex-1">
-                  <h1 className="text-xl md:text-2xl font-bold text-[#01411C] text-right">
-                    مرحباً، {user.name}
-                  </h1>
-                  {user.companyName && <p className="text-sm md:text-base text-gray-600 text-right">
-                      {user.companyName}
-                    </p>}
-                </div>
-
-                {/* النجوم */}
-                <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-4 h-4 ${star <= (user.rating || 4) ? "text-[#D4AF37] fill-current" : "text-gray-300"}`} />)}
-                  </div>
-                  <span className="text-xs md:text-sm text-gray-600">
-                    ({user.rating || 4.0})
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>}
 
         {/* Services Grid - Dynamic based on Feature Flags */}
         <Card className="border-2 border-[#D4AF37] bg-white shadow-xl">
