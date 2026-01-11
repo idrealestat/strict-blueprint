@@ -683,44 +683,43 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     }
   }, [isRecording]);
 
-  // Voice recording handler - تسجيل الصوت وتحويله إلى نص
-  const handleVoiceToggle = async () => {
-    if (isRecording) {
-      // إيقاف التسجيل يدوياً
-      setIsProcessingVoice(true);
-      toast.info("🔄 جاري تحليل الصوت...");
+  // Walkie-Talkie: اضغط للتسجيل، افلت للإرسال
+  const handleVoiceStart = async () => {
+    if (isProcessingVoice || isTranscribing || ttsLoading) return;
+    
+    try {
+      await startRecording();
+      // لا نظهر toast حتى لا يشتت المستخدم
+    } catch (error) {
+      toast.error("لم نتمكن من الوصول للميكروفون");
+    }
+  };
+
+  const handleVoiceEnd = async () => {
+    if (!isRecording) return;
+    
+    setIsProcessingVoice(true);
+    
+    const audioResult = await stopRecording();
+    
+    if (audioResult) {
+      const { base64, mimeType } = audioResult;
       
-      const audioResult = await stopRecording();
+      // تحويل الصوت إلى نص
+      const transcribedText = await transcribe(base64, mimeType);
       
-      if (audioResult) {
-        const { base64, mimeType } = audioResult;
+      if (transcribedText && transcribedText.length > 0) {
+        setInputValue(transcribedText);
+        toast.success("✅ تم!", { duration: 1000 });
         
-        // تحويل الصوت إلى نص
-        const transcribedText = await transcribe(base64, mimeType);
-        
-        if (transcribedText && transcribedText.length > 0) {
-          setInputValue(transcribedText);
-          toast.success("✅ تم تحويل الصوت!");
-          
-          // إرسال تلقائي فوري
-          handleSend(transcribedText);
-        } else {
-          toast.error("لم نستطع فهم الصوت، يرجى المحاولة مرة أخرى");
-        }
-      }
-      
-      setIsProcessingVoice(false);
-    } else {
-      // بدء التسجيل
-      try {
-        await startRecording();
-        toast.info("🎤 تحدث الآن... سيتوقف تلقائياً عند الصمت", {
-          duration: 3000,
-        });
-      } catch (error) {
-        toast.error("لم نتمكن من الوصول للميكروفون");
+        // إرسال تلقائي فوري
+        handleSend(transcribedText);
+      } else {
+        toast.error("لم نستطع فهم الصوت");
       }
     }
+    
+    setIsProcessingVoice(false);
   };
 
   // تبديل الرد الصوتي التلقائي - حفظ في localStorage
@@ -1039,51 +1038,32 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
           {/* إدخال الرسالة */}
           <div className="relative">
-            {/* شريط التسجيل مع مستوى الصوت */}
+            {/* شريط التسجيل - Walkie Talkie */}
             {isRecording && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute -top-14 left-0 right-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl px-4 py-2 flex items-center justify-between"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute -top-16 left-0 right-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl px-4 py-3 flex items-center justify-center gap-3 shadow-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-                    {/* مؤشر مستوى الصوت */}
-                    <motion.div
-                      className="absolute -inset-1 bg-red-500/30 rounded-full"
-                      animate={{ scale: 1 + audioLevel * 2 }}
-                      transition={{ duration: 0.1 }}
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm text-red-600 font-medium">🎤 تحدث الآن...</span>
-                    <span className="text-[10px] text-red-500/70">سيتوقف تلقائياً عند الصمت</span>
-                  </div>
-                  <span className="text-sm font-mono text-red-600 bg-red-500/10 px-2 py-1 rounded">
-                    {formatDuration(recordingDuration)}
-                  </span>
-                  {/* شريط مستوى الصوت */}
-                  <div className="flex items-center gap-0.5 h-4">
-                    {[...Array(5)].map((_, i) => (
+                  {/* مؤشر مستوى الصوت */}
+                  <div className="flex items-center gap-0.5 h-6">
+                    {[...Array(7)].map((_, i) => (
                       <motion.div
                         key={i}
-                        className="w-1 bg-red-500 rounded-full"
+                        className="w-1 bg-white rounded-full"
                         animate={{ 
-                          height: audioLevel > i * 0.2 ? 4 + audioLevel * 12 : 4,
-                          backgroundColor: audioLevel > 0.5 ? '#ef4444' : '#f97316'
+                          height: audioLevel > i * 0.14 ? 8 + audioLevel * 16 : 6,
                         }}
-                        transition={{ duration: 0.1 }}
+                        transition={{ duration: 0.05 }}
                       />
                     ))}
                   </div>
+                  <span className="text-white font-bold text-lg">🎤 تحدث...</span>
+                  <span className="text-white/80 font-mono bg-white/20 px-2 py-1 rounded">
+                    {formatDuration(recordingDuration)}
+                  </span>
                 </div>
-                <button
-                  onClick={cancelRecording}
-                  className="text-xs text-red-500 hover:text-red-700 px-3 py-1 rounded-lg hover:bg-red-500/10 border border-red-500/30"
-                >
-                  ✕ إلغاء
-                </button>
               </motion.div>
             )}
 
@@ -1095,30 +1075,39 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                 className="absolute -top-12 left-0 right-0 bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/30 rounded-xl px-4 py-2 flex items-center justify-center gap-3"
               >
                 <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                <span className="text-sm text-blue-600 font-medium">🔄 جاري تحليل الصوت...</span>
+                <span className="text-sm text-blue-600 font-medium">🔄 جاري التحليل...</span>
               </motion.div>
             )}
 
             <div className="flex gap-2 items-stretch">
-              {/* Voice Button */}
+              {/* Voice Button - Walkie Talkie Style */}
               <button
-                onClick={handleVoiceToggle}
+                onMouseDown={handleVoiceStart}
+                onMouseUp={handleVoiceEnd}
+                onMouseLeave={handleVoiceEnd}
+                onTouchStart={handleVoiceStart}
+                onTouchEnd={handleVoiceEnd}
                 disabled={isTranscribing || ttsLoading || isProcessingVoice}
-                className={`px-3 py-2 rounded-xl transition-all duration-300 border flex items-center justify-center flex-shrink-0 ${
+                className={`px-4 py-2 rounded-xl transition-all duration-150 border flex items-center justify-center flex-shrink-0 select-none ${
                   isRecording 
-                    ? 'bg-red-500 text-white border-red-600 animate-pulse' 
+                    ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white border-red-600 scale-110 shadow-lg' 
                     : isTranscribing || ttsLoading || isProcessingVoice
                     ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
-                    : 'bg-white text-[#01411C] border-[#01411C]/30 hover:bg-[#01411C] hover:text-white'
+                    : 'bg-gradient-to-r from-[#01411C] to-[#065f41] text-white border-[#D4AF37] hover:scale-105 active:scale-95'
                 }`}
-                title={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
+                title="اضغط مع الاستمرار للتحدث"
               >
                 {isTranscribing || ttsLoading || isProcessingVoice ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : isRecording ? (
-                  <MicOff className="w-4 h-4" />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.5 }}
+                  >
+                    <Mic className="w-5 h-5" />
+                  </motion.div>
                 ) : (
-                  <Mic className="w-4 h-4" />
+                  <Mic className="w-5 h-5" />
                 )}
               </button>
 
