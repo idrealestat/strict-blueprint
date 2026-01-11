@@ -120,6 +120,10 @@ interface Customer {
   createdAt: string;
   lastContact?: string;
   nextFollowUp?: string;
+  hasUnreadPublishedAd?: boolean;
+  hasUnreadOffer?: boolean;
+  isNewCard?: boolean;
+  metadata?: Record<string, any>;
 }
 
 interface Column {

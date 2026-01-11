@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -51,6 +51,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import TabActionsPanel from './TabActionsPanel';
+import PulsingDot from '@/components/ui/PulsingDot';
+import { markAsViewed, isNew } from '@/hooks/usePublishedAdsManager';
 
 // واجهة العميل
 interface Customer {
@@ -65,6 +67,8 @@ interface Customer {
   dealsCount?: number;
   dealValue?: number;
   hasUnreadPublishedAd?: boolean;
+  hasUnreadOffer?: boolean;
+  metadata?: Record<string, any>;
 }
 
 // 15 سلايد - 8 موجودة + 7 من التوثيق
@@ -469,21 +473,96 @@ const MediaSlide = ({ customer }: { customer: Customer }) => {
   );
 };
 
-// السلايد التاسع - إعلان منشور (مع التبويبات الديناميكية)
+// السلايد التاسع - إعلان منشور (مع التبويبات الديناميكية والدوائر النابضة)
 const PublishedAdsSlide = ({ customer }: { customer: Customer }) => {
   const [customerTabs, setCustomerTabs] = useState<any[]>([]);
+  const [viewedOffers, setViewedOffers] = useState<Set<string>>(new Set());
 
+  // تحميل العروض من localStorage وقاعدة البيانات
   useEffect(() => {
-    // Load customer tabs from localStorage
+    const loadTabs = () => {
+      // من localStorage
+      const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+      const foundCustomer = customers.find((c: any) => c.phone === customer.phone || c.id === customer.id);
+      let tabs: any[] = [];
+      
+      if (foundCustomer?.tabs) {
+        tabs = foundCustomer.tabs.filter((t: any) => t.type === 'property_offer' || t.type === 'published_ad');
+      }
+      
+      // من metadata إذا كانت موجودة
+      if (customer.metadata?.property_offers) {
+        const dbOffers = customer.metadata.property_offers.map((offer: any) => ({
+          id: offer.id || `tab_${Date.now()}`,
+          name: 'عرض عقاري',
+          type: 'property_offer',
+          data: offer,
+          isNew: !offer.isViewed,
+          createdAt: offer.submittedAt || new Date().toISOString(),
+        }));
+        
+        // دمج العروض بدون تكرار
+        const existingIds = new Set(tabs.map((t: any) => t.data?.id || t.id));
+        dbOffers.forEach((offer: any) => {
+          if (!existingIds.has(offer.data?.id || offer.id)) {
+            tabs.push(offer);
+          }
+        });
+      }
+      
+      setCustomerTabs(tabs);
+    };
+    
+    loadTabs();
+    
+    // الاستماع للتحديثات
+    const handleNewOffer = () => loadTabs();
+    window.addEventListener('newOfferReceived', handleNewOffer);
+    window.addEventListener('itemViewed', handleNewOffer);
+    
+    return () => {
+      window.removeEventListener('newOfferReceived', handleNewOffer);
+      window.removeEventListener('itemViewed', handleNewOffer);
+    };
+  }, [customer]);
+
+  // تحديد العرض كمقروء عند فتحه
+  const markOfferAsViewed = useCallback((tabId: string, offerId: string) => {
+    // إزالة الدائرة الحمراء من العرض
+    markAsViewed('offer', offerId);
+    
+    // تحديث localStorage
     const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-    const foundCustomer = customers.find((c: any) => c.phone === customer.phone || c.id === customer.id);
-    if (foundCustomer?.tabs) {
-      setCustomerTabs(foundCustomer.tabs.filter((t: any) => t.type === 'property_offer' || t.type === 'published_ad'));
+    const customerIndex = customers.findIndex((c: any) => c.phone === customer.phone || c.id === customer.id);
+    
+    if (customerIndex !== -1) {
+      const tabIndex = customers[customerIndex].tabs?.findIndex((t: any) => t.id === tabId);
+      if (tabIndex !== -1 && tabIndex !== undefined) {
+        customers[customerIndex].tabs[tabIndex].isNew = false;
+        customers[customerIndex].tabs[tabIndex].isViewed = true;
+        
+        // التحقق من وجود عروض غير مقروءة أخرى
+        const hasUnreadOffers = customers[customerIndex].tabs?.some((t: any) => 
+          (t.type === 'property_offer' || t.type === 'published_ad') && t.isNew
+        );
+        
+        if (!hasUnreadOffers) {
+          customers[customerIndex].hasUnreadPublishedAd = false;
+          customers[customerIndex].hasUnreadOffer = false;
+        }
+        
+        localStorage.setItem('crm_customers', JSON.stringify(customers));
+      }
     }
+    
+    // تحديث الحالة المحلية
+    setViewedOffers(prev => new Set([...prev, tabId]));
+    setCustomerTabs(prev => prev.map(tab => 
+      tab.id === tabId ? { ...tab, isNew: false, isViewed: true } : tab
+    ));
   }, [customer]);
 
   const handleRepublish = (data: any) => {
-    // Store data for auto-fill in publish form
     localStorage.setItem('republish_data', JSON.stringify(data));
     window.dispatchEvent(new CustomEvent('republishOffer', { detail: data }));
   };
@@ -491,40 +570,60 @@ const PublishedAdsSlide = ({ customer }: { customer: Customer }) => {
   return (
     <div className="space-y-4 p-6">
       <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-6 border-2 border-cyan-200">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 relative">
           <Send className="w-8 h-8 text-cyan-600" />
           <div>
             <h3 className="text-xl font-bold text-cyan-900">العروض العقارية</h3>
             <p className="text-sm text-cyan-700">عروض العميل المستلمة والمنشورة</p>
           </div>
+          {/* دائرة نابضة على عنوان التبويب */}
+          {customerTabs.some(t => t.isNew && !viewedOffers.has(t.id)) && (
+            <PulsingDot show={true} position="top-left" size="md" />
+          )}
         </div>
       </div>
 
       {customerTabs.length > 0 ? (
         <div className="space-y-4">
-          {customerTabs.map((tab: any) => (
-            <div key={tab.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 relative">
-              {tab.isNew && (
-                <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-              )}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-500">
-                  {new Date(tab.createdAt).toLocaleDateString('ar-SA')}
-                </span>
-                <span className="px-2 py-1 bg-cyan-100 text-cyan-800 rounded text-xs">
-                  {tab.type === 'property_offer' ? 'عرض عقاري' : 'إعلان منشور'}
-                </span>
+          {customerTabs.map((tab: any) => {
+            const showDot = tab.isNew && !viewedOffers.has(tab.id);
+            
+            return (
+              <div 
+                key={tab.id} 
+                className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 relative cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => {
+                  if (showDot) {
+                    markOfferAsViewed(tab.id, tab.data?.id || tab.id);
+                  }
+                }}
+              >
+                {/* الدائرة الحمراء النابضة */}
+                <PulsingDot show={showDot} position="top-right" size="md" />
+                
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-gray-500">
+                    {new Date(tab.createdAt).toLocaleDateString('ar-SA')}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {showDot && (
+                      <Badge className="bg-red-100 text-red-700 text-xs">جديد</Badge>
+                    )}
+                    <span className="px-2 py-1 bg-cyan-100 text-cyan-800 rounded text-xs">
+                      {tab.type === 'property_offer' ? 'عرض عقاري' : 'إعلان منشور'}
+                    </span>
+                  </div>
+                </div>
+                
+                <TabActionsPanel 
+                  tab={tab}
+                  customerName={customer.name}
+                  customerPhone={customer.phone}
+                  onRepublish={handleRepublish}
+                />
               </div>
-              
-              {/* Tab Content with Actions */}
-              <TabActionsPanel 
-                tab={tab}
-                customerName={customer.name}
-                customerPhone={customer.phone}
-                onRepublish={handleRepublish}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
