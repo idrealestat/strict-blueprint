@@ -10,17 +10,29 @@ import { Button } from '@/components/ui/button';
 import OfficialBusinessCard from '@/components/business-card/OfficialBusinessCard';
 import { useFeatureFlags } from '@/context/FeatureFlagsContext';
 
-export default function OfficialBusinessCardPage() {
+type OfficialBusinessCardPageProps = {
+  /**
+   * رجوع للواجهة السابقة داخل لوحة التحكم (sub-routing via App.tsx state).
+   * إذا لم يتم تمريره، سنستخدم الانتقال إلى /app/dashboard كخيار احتياطي.
+   */
+  onBack?: () => void;
+};
+
+export default function OfficialBusinessCardPage({ onBack }: OfficialBusinessCardPageProps) {
   const navigate = useNavigate();
   const { flags, loading } = useFeatureFlags();
 
   /**
    * ⚠️ زر "رجوع" (مقفل/مهم):
-   * هذا الزر يجب أن ينقلك دائماً إلى الواجهة الرئيسية (/app/dashboard)
-   * لأن navigate(-1) قد يفشل إذا كانت الصفحة فُتحت مباشرة أو بدون سجل تنقّل.
+   * هذا الزر يجب أن يُعيدك فعلياً إلى الواجهة الرئيسية داخل التطبيق.
+   * ملاحظة مهمة: هذه الصفحة تُعرض داخل /app/dashboard عن طريق state داخلي (currentPage)
+   * لذلك تغيير الـ URL وحده لا يكفي.
    * الرجاء عدم تعديل هذا السلوك إلا بعد الرجوع لصاحب المشروع.
    */
-  const handleBackToDashboard = () => navigate('/app/dashboard');
+  const handleBackToDashboard = () => {
+    if (onBack) return onBack();
+    navigate('/app/dashboard');
+  };
 
   // If feature is disabled, show message and redirect option
   if (!loading && !flags.official_business_card_enabled) {
