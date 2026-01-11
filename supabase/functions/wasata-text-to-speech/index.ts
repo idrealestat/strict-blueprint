@@ -10,17 +10,22 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-// الصوت الافتراضي المطلوب
-const DEFAULT_VOICE_ID = 'QRq5hPRAKf5ZhSlTBH6r';
+// أصوات ElevenLabs - ذكر وأنثى
+const VOICE_IDS = {
+  male: 'yXEnnEln9armDCyhkXcA',     // صوت رجل (افتراضي)
+  female: 'QRq5hPRAKf5ZhSlTBH6r',   // صوت امرأة
+};
 
-// ElevenLabs Voice IDs - Arabic-friendly voices
+// ElevenLabs Voice IDs - Arabic-friendly voices (للتوافق مع الأسماء القديمة)
 const VOICE_MAP: Record<string, string> = {
-  'alloy': 'QRq5hPRAKf5ZhSlTBH6r',    // الصوت المطلوب
+  'alloy': 'yXEnnEln9armDCyhkXcA',    // صوت رجل (افتراضي)
   'echo': 'JBFqnCBsd6RMkjVDRZzb',     // George
   'fable': 'N2lVS1w4EtoT3dr4eOWO',    // Callum
   'onyx': 'onwK4e9ZLuTAKqWW03F9',     // Daniel
-  'nova': 'XrExE9yKIg1WjnnlVkGX',     // Matilda - صوت أنثوي
+  'nova': 'QRq5hPRAKf5ZhSlTBH6r',     // صوت امرأة
   'shimmer': 'pFZP5JQG7iQjIQuC4Bku',  // Lily
+  'male': 'yXEnnEln9armDCyhkXcA',     // صوت رجل
+  'female': 'QRq5hPRAKf5ZhSlTBH6r',   // صوت امرأة
 };
 
 // Valid voice options

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useSessionErrorHandler } from './useSessionErrorHandler';
 
-type Voice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+type Voice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' | 'male' | 'female';
 
 interface UseTextToSpeechReturn {
   isSpeaking: boolean;
@@ -21,7 +21,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
   const audioContextRef = useRef<AudioContext | null>(null);
   const { handleSessionError, getAccessToken, checkResponseStatus } = useSessionErrorHandler();
 
-  const speak = useCallback(async (text: string, voice: Voice = 'alloy', speed: number = 1.0): Promise<void> => {
+  const speak = useCallback(async (text: string, voice: Voice = 'male', speed: number = 1.0): Promise<void> => {
     // إيقاف أي صوت سابق
     if (audioRef.current) {
       audioRef.current.pause();
