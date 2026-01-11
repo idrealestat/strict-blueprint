@@ -572,7 +572,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     ));
   };
 
-  const interestLevel = INTEREST_LEVEL_LABELS[customer.interestLevel || 'moderate'];
+  const interestLevel = INTEREST_LEVEL_LABELS[customer.interestLevel || 'moderate'] || INTEREST_LEVEL_LABELS['moderate'];
 
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
