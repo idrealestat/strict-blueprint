@@ -37,6 +37,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -180,6 +181,7 @@ const businessCardValidationSchema = z.object({
 });
 
 const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNewUser = false }) => {
+  const { flags } = useFeatureFlags();
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -1206,10 +1208,12 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       {/* Tabs */}
       <div className="px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-6 w-full bg-gray-100">
-            <TabsTrigger value="card" className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]">
-              البطاقة
-            </TabsTrigger>
+          <TabsList className={`grid w-full bg-gray-100 ${flags.official_business_card_enabled ? 'grid-cols-6' : 'grid-cols-5'}`}>
+            {flags.official_business_card_enabled && (
+              <TabsTrigger value="card" className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]">
+                البطاقة
+              </TabsTrigger>
+            )}
             <TabsTrigger value="basic" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               الأساسية
             </TabsTrigger>
@@ -1227,7 +1231,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             </TabsTrigger>
           </TabsList>
 
-          {/* Card Display Options Tab */}
+          {/* Card Display Options Tab - Only show if feature is enabled */}
+          {flags.official_business_card_enabled && (
           <TabsContent value="card" className="mt-4 space-y-4">
             <Card className="border-2 border-[#D4AF37]/30">
               <CardHeader className="pb-2">
@@ -1435,6 +1440,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* Basic Info Tab */}
           <TabsContent value="basic" className="mt-4 space-y-4">

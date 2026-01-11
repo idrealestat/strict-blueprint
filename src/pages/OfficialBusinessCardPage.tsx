@@ -5,12 +5,35 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, CreditCard, Share2 } from 'lucide-react';
+import { ArrowRight, CreditCard, Share2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OfficialBusinessCard from '@/components/business-card/OfficialBusinessCard';
+import { useFeatureFlags } from '@/context/FeatureFlagsContext';
 
 export default function OfficialBusinessCardPage() {
   const navigate = useNavigate();
+  const { flags, loading } = useFeatureFlags();
+
+  // If feature is disabled, show message and redirect option
+  if (!loading && !flags.official_business_card_enabled) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center" dir="rtl">
+        <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200 max-w-md text-center">
+          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">الميزة غير متاحة</h2>
+          <p className="text-gray-600 mb-6">
+            تم إيقاف ميزة البطاقة الرسمية للطباعة. يرجى التواصل مع المسؤول لتفعيلها.
+          </p>
+          <Button
+            onClick={() => navigate('/app/businesscard/profile')}
+            className="bg-[#01411C] hover:bg-[#01411C]/90"
+          >
+            العودة للبطاقة الرقمية
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" dir="rtl">
