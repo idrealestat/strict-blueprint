@@ -71,6 +71,9 @@ interface FormData {
   deedDate: string;
   deedCity: string;
   
+  // رابط الجولة ثلاثية الأبعاد
+  tour3dUrl: string;
+  
   // معلومات العقار الأساسية
   propertyType: string;
   purpose: string;
@@ -103,6 +106,9 @@ interface FormData {
   hasGarden: boolean;
   hasElevator: boolean;
   hasParking: boolean;
+  
+  // المميزات الإضافية المخصصة
+  customFeatures: string;
   
   // الوصف
   description: string;
@@ -175,6 +181,7 @@ export default function PublicOfferForm() {
     deedNumber: '',
     deedDate: '',
     deedCity: '',
+    tour3dUrl: '',
     propertyType: '',
     purpose: '',
     city: '',
@@ -202,6 +209,7 @@ export default function PublicOfferForm() {
     hasGarden: false,
     hasElevator: false,
     hasParking: false,
+    customFeatures: '',
     description: '',
     agreeToTerms: false,
   });
@@ -529,6 +537,105 @@ export default function PublicOfferForm() {
           </div>
         </Section>
 
+        {/* ===== 3. صور وفيديوهات العقار ورابط 3D ===== */}
+        <Section title="صور وفيديوهات العقار" icon={<ImageIcon className="w-5 h-5" />} color="orange">
+          {/* رابط الجولة ثلاثية الأبعاد */}
+          <div className="mb-4">
+            <Label className="text-orange-800">رابط الجولة الافتراضية 3D (اختياري)</Label>
+            <Input
+              value={formData.tour3dUrl}
+              onChange={(e) => updateField('tour3dUrl', e.target.value)}
+              placeholder="https://..."
+              dir="ltr"
+              className="border-orange-200 focus:border-orange-400"
+            />
+          </div>
+
+          {/* منطقة رفع الملفات */}
+          <div 
+            className="flex flex-col items-center justify-center border-2 border-dashed border-orange-300 rounded-lg p-6 bg-orange-50/50 hover:bg-orange-100/50 transition-colors cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            {isUploading ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+                <p className="text-orange-700 font-semibold">جاري الرفع... {uploadProgress}%</p>
+                <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-orange-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-10 h-10 text-orange-500 mb-2" />
+                <p className="text-orange-700 font-semibold">اضغط لرفع الصور والفيديوهات</p>
+                <p className="text-gray-500 text-sm">PNG, JPG, MP4 - حتى 10MB للصور و 50MB للفيديو</p>
+              </>
+            )}
+          </div>
+
+          {media.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
+              {media.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`relative aspect-square rounded-lg overflow-hidden group ${item.isMain ? 'ring-2 ring-orange-500 ring-offset-2' : ''}`}
+                >
+                  {item.type === 'image' ? (
+                    <img src={item.url} alt={`Property ${index + 1}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="relative w-full h-full bg-black">
+                      <video src={item.url} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <Video className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                    {item.type === 'image' && !item.isMain && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setAsMain(item.id); }}
+                        className="p-1.5 bg-white rounded-lg"
+                        title="تعيين كصورة رئيسية"
+                      >
+                        <Star className="w-4 h-4 text-orange-500" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeMedia(item.id); }}
+                      className="p-1.5 bg-white rounded-lg"
+                      title="حذف"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                  {item.isMain && (
+                    <div className="absolute top-1 right-1 bg-orange-500 text-white px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
+                      <Star className="w-3 h-3 fill-current" /> رئيسية
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {media.length > 0 && (
+            <p className="text-sm text-gray-500 mt-2">
+              تم رفع {media.filter(m => m.type === 'image').length} صورة و {media.filter(m => m.type === 'video').length} فيديو
+            </p>
+          )}
+        </Section>
+
         {/* ===== 3. معلومات العقار الأساسية ===== */}
         <Section title="معلومات العقار" icon={<Home className="w-5 h-5" />} color="amber">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -807,6 +914,18 @@ export default function PublicOfferForm() {
               />
             </div>
           </div>
+          
+          {/* حقل المميزات الإضافية المخصصة */}
+          <div className="mt-4">
+            <Label className="text-cyan-800">مميزات إضافية أخرى</Label>
+            <Textarea
+              value={formData.customFeatures}
+              onChange={(e) => updateField('customFeatures', e.target.value)}
+              placeholder="أضف أي مميزات إضافية للعقار... (مثال: مصاعد، مطبخ راقي، تشطيبات فاخرة، إطلالة مميزة...)"
+              rows={3}
+              className="border-cyan-200 focus:border-cyan-400 mt-1"
+            />
+          </div>
         </Section>
 
         {/* ===== 6. الضمانات والكفالات ===== */}
@@ -856,92 +975,6 @@ export default function PublicOfferForm() {
               إضافة ضمان
             </Button>
           </div>
-        </Section>
-
-        {/* ===== 7. صور وفيديوهات العقار ===== */}
-        <Section title="صور وفيديوهات العقار" icon={<ImageIcon className="w-5 h-5" />} color="orange">
-          <div 
-            className="flex flex-col items-center justify-center border-2 border-dashed border-orange-300 rounded-lg p-6 bg-orange-50/50 hover:bg-orange-100/50 transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            
-            {isUploading ? (
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
-                <p className="text-orange-700 font-semibold">جاري الرفع... {uploadProgress}%</p>
-                <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                </div>
-              </div>
-            ) : (
-              <>
-                <Upload className="w-10 h-10 text-orange-500 mb-2" />
-                <p className="text-orange-700 font-semibold">اضغط لرفع الصور والفيديوهات</p>
-                <p className="text-gray-500 text-sm">PNG, JPG, MP4 - حتى 10MB للصور و 50MB للفيديو</p>
-              </>
-            )}
-          </div>
-
-          {media.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
-              {media.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`relative aspect-square rounded-lg overflow-hidden group ${item.isMain ? 'ring-2 ring-orange-500 ring-offset-2' : ''}`}
-                >
-                  {item.type === 'image' ? (
-                    <img src={item.url} alt={`Property ${index + 1}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="relative w-full h-full bg-black">
-                      <video src={item.url} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <Video className="w-8 h-8 text-white" />
-                      </div>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                    {item.type === 'image' && !item.isMain && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setAsMain(item.id); }}
-                        className="p-1.5 bg-white rounded-lg"
-                        title="تعيين كصورة رئيسية"
-                      >
-                        <Star className="w-4 h-4 text-orange-500" />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); removeMedia(item.id); }}
-                      className="p-1.5 bg-white rounded-lg"
-                      title="حذف"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  </div>
-                  {item.isMain && (
-                    <div className="absolute top-1 right-1 bg-orange-500 text-white px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
-                      <Star className="w-3 h-3 fill-current" /> رئيسية
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {media.length > 0 && (
-            <p className="text-sm text-gray-500 mt-2">
-              تم رفع {media.filter(m => m.type === 'image').length} صورة و {media.filter(m => m.type === 'video').length} فيديو
-            </p>
-          )}
         </Section>
 
         {/* ===== 8. وصف إضافي ===== */}
