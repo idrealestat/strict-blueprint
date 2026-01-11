@@ -200,17 +200,33 @@ serve(async (req) => {
 
     // استخدام getClaims بدلاً من getUser
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
+    let userId: string;
     
-    if (authError || !claimsData?.claims?.sub) {
-      console.error('Auth error:', authError?.message || 'invalid claim: missing sub claim');
-      return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }), {
+    try {
+      const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
+      
+      if (authError || !claimsData?.claims?.sub) {
+        console.error('Auth error:', authError?.message || 'invalid claim: missing sub claim');
+        return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      userId = claimsData.claims.sub;
+    } catch (jwtError) {
+      // Handle JWT expiration or other JWT errors
+      console.error('JWT validation error:', jwtError);
+      const errorMessage = jwtError instanceof Error ? jwtError.message : 'Unknown JWT error';
+      const isExpired = errorMessage.toLowerCase().includes('expired');
+      
+      return new Response(JSON.stringify({ 
+        error: isExpired ? "انتهت صلاحية الجلسة - يرجى تسجيل الدخول مرة أخرى" : "جلسة غير صالحة" 
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const userId = claimsData.claims.sub;
     console.log('Authenticated user:', userId);
     // ============ END AUTHENTICATION CHECK ============
 
