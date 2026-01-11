@@ -13,8 +13,10 @@ import {
   Download,
   Home,
   Search,
+  Calculator,
   FileText,
   Share2,
+  Star,
   Building,
   Calendar,
   Copy
@@ -114,6 +116,8 @@ const PublicBusinessCardView: React.FC<PublicBusinessCardViewProps> = ({ data, s
   const workingHours = data.workingHours || {};
   const socialMedia = data.socialMedia || {};
 
+  const PLATFORM_BASE_URL = `https://${BASE_DOMAIN}`;
+
   // Get badge level based on deals and experience
   const getBadgeLevel = () => {
     const deals = achievements.totalDeals;
@@ -153,7 +157,7 @@ END:VCARD`;
   };
 
   // Share business card
-  const cardLink = `https://${BASE_DOMAIN}/${slug}/card`;
+  const cardLink = `${PLATFORM_BASE_URL}/${slug}/card`;
 
   const shareBusinessCard = async () => {
     if (navigator.share) {
@@ -399,7 +403,7 @@ END:VCARD`;
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-sm font-medium text-gray-700 mb-2">🏅 الجوائز</p>
                   <div className="flex flex-wrap gap-2">
-                    {achievements.awards.map((award, i) => (
+                    {achievements.awards.map((award: string, i: number) => (
                       <span key={i} className="px-2 py-1 bg-yellow-50 text-yellow-800 rounded-full text-xs">
                         {award}
                       </span>
@@ -413,7 +417,7 @@ END:VCARD`;
                 <div className="mt-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">📜 الشهادات</p>
                   <div className="flex flex-wrap gap-2">
-                    {achievements.certifications.map((cert, i) => (
+                    {achievements.certifications.map((cert: string, i: number) => (
                       <span key={i} className="px-2 py-1 bg-blue-50 text-blue-800 rounded-full text-xs">
                         {cert}
                       </span>
@@ -453,10 +457,10 @@ END:VCARD`;
           </Card>
         )}
 
-        {/* Action Buttons Card */}
+        {/* Action Buttons Card - نفس ترتيب BusinessCardProfile */}
         <Card className="border-2 border-[#D4AF37] shadow-lg">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-[#01411C]">🎯 الخدمات</CardTitle>
+            <CardTitle className="text-lg text-[#01411C]">🎯 خدماتي</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -471,6 +475,34 @@ END:VCARD`;
                   <span className="text-sm font-bold">منصتي</span>
                 </Link>
               </Button>
+
+              {/* Website */}
+              {domain && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  asChild
+                >
+                  <a href={domain.startsWith('http') ? domain : `https://${domain}`} target="_blank" rel="noopener noreferrer">
+                    <Globe className="w-5 h-5" />
+                    <span className="text-xs">الموقع</span>
+                  </a>
+                </Button>
+              )}
+
+              {/* Google Maps */}
+              {googleMapsLocation && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+                  asChild
+                >
+                  <a href={googleMapsLocation} target="_blank" rel="noopener noreferrer">
+                    <MapPin className="w-5 h-5" />
+                    <span className="text-xs">خرائط جوجل</span>
+                  </a>
+                </Button>
+              )}
 
               {/* Direct Call */}
               {phone && (
@@ -572,89 +604,80 @@ END:VCARD`;
                 </Link>
               </Button>
 
-              {/* Share */}
+              {/* Finance Calculator */}
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                onClick={shareBusinessCard}
+                onClick={() => toast.info("حاسبة تمويل - قريباً")}
               >
-                <Share2 className="w-5 h-5" />
-                <span className="text-xs">مشاركة</span>
+                <Calculator className="w-5 h-5" />
+                <span className="text-xs">حاسبة تمويل</span>
               </Button>
-
-              {/* Google Maps */}
-              {googleMapsLocation && (
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                  asChild
-                >
-                  <a href={googleMapsLocation} target="_blank" rel="noopener noreferrer">
-                    <MapPin className="w-5 h-5" />
-                    <span className="text-xs">خرائط جوجل</span>
-                  </a>
-                </Button>
-              )}
-
-              {/* Website */}
-              {domain && (
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#01411C] to-[#065f41] text-white hover:opacity-90"
-                  asChild
-                >
-                  <a href={domain.startsWith('http') ? domain : `https://${domain}`} target="_blank" rel="noopener noreferrer">
-                    <Globe className="w-5 h-5" />
-                    <span className="text-xs">الموقع</span>
-                  </a>
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Share Buttons - نفس ترتيب BusinessCardProfile */}
+        <div className="grid grid-cols-2 gap-4">
+          <Button
+            className="h-16 bg-gradient-to-br from-[#01411C] to-[#065f41] border-2 border-[#D4AF37] text-white hover:from-[#065f41] hover:to-[#01411C]"
+            onClick={shareBusinessCard}
+          >
+            <Share2 className="w-5 h-5 ml-2" />
+            مشاركة البطاقة
+          </Button>
+          <Button
+            className="h-16 bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] border-2 border-[#01411C] text-[#01411C] font-bold hover:from-[#f1c40f] hover:to-[#D4AF37]"
+            onClick={() => toast.info("مشاركة التقييم - قريباً")}
+          >
+            <Star className="w-5 h-5 ml-2" />
+            مشاركة التقييم
+          </Button>
+        </div>
 
         {/* Social Media Links */}
         {socialMedia && Object.values(socialMedia).some(v => v) && (
           <Card className="border-2 border-[#D4AF37] shadow-lg">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-[#01411C]">📱 وسائل التواصل</CardTitle>
+              <CardTitle className="text-lg text-[#01411C]">📱 تابعني على</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap justify-center gap-3">
+                {socialMedia.tiktok && (
+                  <a href={socialMedia.tiktok} target="_blank" rel="noopener noreferrer" 
+                     className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
+                    ⚫
+                  </a>
+                )}
                 {socialMedia.twitter && (
                   <a href={socialMedia.twitter} target="_blank" rel="noopener noreferrer" 
-                     className="w-12 h-12 rounded-full bg-[#1DA1F2] text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
-                    𝕏
+                     className="w-12 h-12 rounded-full bg-gray-200 text-gray-800 flex items-center justify-center text-xl hover:scale-110 transition-transform">
+                    🐦
                   </a>
                 )}
                 {socialMedia.instagram && (
                   <a href={socialMedia.instagram} target="_blank" rel="noopener noreferrer" 
-                     className="w-12 h-12 rounded-full bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
+                     className="w-12 h-12 rounded-full text-white flex items-center justify-center text-xl hover:scale-110 transition-transform"
+                     style={{ background: "linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)" }}>
                     📸
-                  </a>
-                )}
-                {socialMedia.tiktok && (
-                  <a href={socialMedia.tiktok} target="_blank" rel="noopener noreferrer" 
-                     className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
-                    🎵
                   </a>
                 )}
                 {socialMedia.snapchat && (
                   <a href={socialMedia.snapchat} target="_blank" rel="noopener noreferrer" 
-                     className="w-12 h-12 rounded-full bg-[#FFFC00] text-black flex items-center justify-center text-xl hover:scale-110 transition-transform">
+                     className="w-12 h-12 rounded-full bg-yellow-400 text-black flex items-center justify-center text-xl hover:scale-110 transition-transform">
                     👻
                   </a>
                 )}
                 {socialMedia.youtube && (
                   <a href={socialMedia.youtube} target="_blank" rel="noopener noreferrer" 
-                     className="w-12 h-12 rounded-full bg-[#FF0000] text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
+                     className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
                     ▶️
                   </a>
                 )}
                 {socialMedia.facebook && (
                   <a href={socialMedia.facebook} target="_blank" rel="noopener noreferrer" 
-                     className="w-12 h-12 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
-                    f
+                     className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl hover:scale-110 transition-transform">
+                    📘
                   </a>
                 )}
               </div>
