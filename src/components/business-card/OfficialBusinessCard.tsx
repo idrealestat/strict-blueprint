@@ -274,7 +274,7 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
               <SaudiWatermarkBg />
               
               <div className="relative z-10 p-4 h-full flex flex-col justify-between">
-                {/* Top Section */}
+                {/* Top Section - Profile & Info */}
                 <div className="flex items-start gap-3">
                   {/* Identity Image */}
                   <div className="w-14 h-14 rounded-full border-2 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg">
@@ -306,47 +306,44 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                       <span className="text-[#D4AF37] text-xs mr-1">{data.rating}</span>
                     </div>
                   </div>
-                </div>
 
-                {/* Bottom Section - Contact Info & QR */}
-                <div className="flex items-end justify-between mt-2">
-                  {/* Contact Info */}
-                  <div className="space-y-1.5 flex-1">
-                    {primaryPhone && (
-                      <div className="flex items-center gap-2 text-[#01411C] text-xs">
-                        <Phone className="w-3 h-3 text-[#D4AF37]" />
-                        <span dir="ltr">{primaryPhone}</span>
-                        {secondaryPhone && (
-                          <>
-                            <span className="text-[#D4AF37]">•</span>
-                            <MessageCircle className="w-3 h-3 text-green-600" />
-                            <span dir="ltr">{secondaryPhone}</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {displayOptions.showEmail && data.email && (
-                      <div className="flex items-center gap-2 text-[#01411C] text-xs">
-                        <Mail className="w-3 h-3 text-[#D4AF37]" />
-                        <span>{data.email}</span>
-                      </div>
-                    )}
-                    {locationText && (
-                      <div className="flex items-center gap-2 text-[#01411C] text-xs">
-                        <MapPin className="w-3 h-3 text-[#D4AF37]" />
-                        <span>{locationText}</span>
-                      </div>
-                    )}
-                    {/* Public URL */}
-                    <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium">
-                      <Globe className="w-3 h-3" />
-                      <span dir="ltr">{publicUrl}</span>
-                    </div>
-                  </div>
-
-                  {/* QR Code - Bottom Left, Bigger */}
+                  {/* QR Code - Top Right, Bigger */}
                   <div className="w-20 h-20 bg-white rounded-lg p-1 shadow-lg overflow-hidden border border-[#D4AF37]/30">
                     <CardQRCode vCardData={vCardData} />
+                  </div>
+                </div>
+
+                {/* Bottom Section - Contact Info */}
+                <div className="space-y-1.5 mt-2">
+                  {primaryPhone && (
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                      <Phone className="w-3 h-3 text-[#D4AF37]" />
+                      <span dir="ltr">{primaryPhone}</span>
+                      {secondaryPhone && (
+                        <>
+                          <span className="text-[#D4AF37]">•</span>
+                          <MessageCircle className="w-3 h-3 text-green-600" />
+                          <span dir="ltr">{secondaryPhone}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {displayOptions.showEmail && data.email && (
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                      <Mail className="w-3 h-3 text-[#D4AF37]" />
+                      <span>{data.email}</span>
+                    </div>
+                  )}
+                  {locationText && (
+                    <div className="flex items-center gap-2 text-[#01411C] text-xs">
+                      <MapPin className="w-3 h-3 text-[#D4AF37]" />
+                      <span>{locationText}</span>
+                    </div>
+                  )}
+                  {/* Public URL */}
+                  <div className="flex items-center gap-2 text-[#D4AF37] text-xs font-medium">
+                    <Globe className="w-3 h-3" />
+                    <span dir="ltr">{publicUrl}</span>
                   </div>
                 </div>
               </div>
