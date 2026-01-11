@@ -1,6 +1,6 @@
 /**
  * PublicOfferForm.tsx
- * صفحة إرسال عرض عقاري من العميل مع رفع الصور
+ * صفحة إرسال عرض عقاري من العميل - نموذج شامل مع أقسام ملونة
  */
 
 import { useState, useRef, useCallback } from 'react';
@@ -11,12 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Send, Loader2, CheckCircle, Upload, Home, MapPin, User, Phone, CreditCard, FileText, Building, X, Image as ImageIcon, Video, Star } from 'lucide-react';
+import { 
+  Send, Loader2, CheckCircle, Upload, Home, MapPin, User, Phone, 
+  FileText, Building, X, Image as ImageIcon, Video, Star, Shield,
+  CreditCard, Calendar, Plus, Trash2, Ruler, DoorOpen, Car, Droplets
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 
-// Mock broker data - will be fetched by broker ID
+// Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
   id: brokerId,
   name: 'أحمد محمد',
@@ -32,6 +36,14 @@ const getMockBroker = (brokerId: string): BrokerInfo => ({
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب", "مستودع", "استراحة"];
 const purposes = ["للبيع", "للإيجار"];
 const cities = ["الرياض", "جدة", "مكة", "المدينة", "الدمام", "الخبر", "تبوك", "أبها", "الطائف"];
+const furnishingOptions = ["مفروشة بالكامل", "شبه مفروشة", "مطبخ مؤثث", "غير مؤثث"];
+const facadeOptions = ["شمالية", "جنوبية", "شرقية", "غربية", "شمالية شرقية", "شمالية غربية", "جنوبية شرقية", "جنوبية غربية"];
+const entranceOptions = ["مدخل", "مدخلين", "ثلاث مداخل أو أكثر"];
+const warrantyTypes = [
+  "ضمان التكييف", "الهيكل الإنشائي", "العيوب الخفية", "الكهرباء", "السباكة",
+  "شبابيك الألمنيوم", "الأبواب", "الأدوات الصحية", "الصنابير", "السخانات",
+  "مقابس الكهرباء", "الأنوار", "العوازل"
+];
 
 interface MediaFile {
   id: string;
@@ -41,25 +53,105 @@ interface MediaFile {
   fileName: string;
 }
 
+interface Warranty {
+  type: string;
+  duration: string;
+}
+
 interface FormData {
   // معلومات المالك
   ownerName: string;
   ownerPhone: string;
   ownerIdNumber: string;
   ownerNationalAddress: string;
-  // معلومات العقار
+  ownerCity: string;
+  
+  // معلومات الصك
+  deedNumber: string;
+  deedDate: string;
+  deedCity: string;
+  
+  // معلومات العقار الأساسية
   propertyType: string;
   purpose: string;
   city: string;
   district: string;
+  street: string;
   area: string;
   price: string;
+  
+  // المواصفات التفصيلية
+  floors: string;
+  floorNumber: string;
   bedrooms: string;
   bathrooms: string;
+  livingRooms: string;
+  councils: string;
+  streetWidth: string;
+  facade: string;
+  furnishing: string;
+  propertyAge: string;
+  
+  // معلومات إضافية
+  entrances: string;
+  warehouses: string;
+  hasLaundryRoom: boolean;
+  balconies: string;
+  acUnits: string;
+  hasExtraKitchen: boolean;
+  hasPool: boolean;
+  hasGarden: boolean;
+  hasElevator: boolean;
+  hasParking: boolean;
+  
+  // الوصف
   description: string;
+  
   // موافقة
   agreeToTerms: boolean;
 }
+
+// ===================== Section Wrapper Component =====================
+interface SectionProps {
+  title: string;
+  icon: React.ReactNode;
+  color: 'green' | 'blue' | 'amber' | 'purple' | 'rose' | 'cyan' | 'orange';
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
+  const colorClasses = {
+    green: 'bg-green-50 border-green-200',
+    blue: 'bg-blue-50 border-blue-200',
+    amber: 'bg-amber-50 border-amber-200',
+    purple: 'bg-purple-50 border-purple-200',
+    rose: 'bg-rose-50 border-rose-200',
+    cyan: 'bg-cyan-50 border-cyan-200',
+    orange: 'bg-orange-50 border-orange-200',
+  };
+  
+  const headerColors = {
+    green: 'bg-green-100 text-green-800 border-green-300',
+    blue: 'bg-blue-100 text-blue-800 border-blue-300',
+    amber: 'bg-amber-100 text-amber-800 border-amber-300',
+    purple: 'bg-purple-100 text-purple-800 border-purple-300',
+    rose: 'bg-rose-100 text-rose-800 border-rose-300',
+    cyan: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+    orange: 'bg-orange-100 text-orange-800 border-orange-300',
+  };
+
+  return (
+    <div className={`rounded-xl border-2 overflow-hidden ${colorClasses[color]}`}>
+      <div className={`px-4 py-3 border-b-2 flex items-center gap-2 font-bold ${headerColors[color]}`}>
+        {icon}
+        {title}
+      </div>
+      <div className="p-4">
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export default function PublicOfferForm() {
   const { brokerId } = useParams<{ brokerId: string }>();
@@ -70,6 +162,7 @@ export default function PublicOfferForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [media, setMedia] = useState<MediaFile[]>([]);
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
   
   const broker = getMockBroker(brokerId || '1');
 
@@ -78,20 +171,60 @@ export default function PublicOfferForm() {
     ownerPhone: '',
     ownerIdNumber: '',
     ownerNationalAddress: '',
+    ownerCity: '',
+    deedNumber: '',
+    deedDate: '',
+    deedCity: '',
     propertyType: '',
     purpose: '',
     city: '',
     district: '',
+    street: '',
     area: '',
     price: '',
+    floors: '',
+    floorNumber: '',
     bedrooms: '',
     bathrooms: '',
+    livingRooms: '',
+    councils: '',
+    streetWidth: '',
+    facade: '',
+    furnishing: '',
+    propertyAge: '',
+    entrances: '',
+    warehouses: '',
+    hasLaundryRoom: false,
+    balconies: '',
+    acUnits: '',
+    hasExtraKitchen: false,
+    hasPool: false,
+    hasGarden: false,
+    hasElevator: false,
+    hasParking: false,
     description: '',
     agreeToTerms: false,
   });
 
   const updateField = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Add warranty
+  const addWarranty = () => {
+    setWarranties([...warranties, { type: '', duration: '' }]);
+  };
+
+  // Remove warranty
+  const removeWarranty = (index: number) => {
+    setWarranties(warranties.filter((_, i) => i !== index));
+  };
+
+  // Update warranty
+  const updateWarranty = (index: number, field: keyof Warranty, value: string) => {
+    const updated = [...warranties];
+    updated[index][field] = value;
+    setWarranties(updated);
   };
 
   // Upload file to Supabase Storage
@@ -103,15 +236,9 @@ export default function PublicOfferForm() {
     try {
       const { error: uploadError } = await supabase.storage
         .from('property-media')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('property-media')
@@ -173,10 +300,7 @@ export default function PublicOfferForm() {
 
     setIsUploading(false);
     setUploadProgress(0);
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Remove media
@@ -191,11 +315,7 @@ export default function PublicOfferForm() {
 
   // Set as main image
   const setAsMain = (mediaId: string) => {
-    const updatedMedia = media.map(m => ({
-      ...m,
-      isMain: m.id === mediaId,
-    }));
-    setMedia(updatedMedia);
+    setMedia(media.map(m => ({ ...m, isMain: m.id === mediaId })));
   };
 
   const handleSubmit = async () => {
@@ -211,25 +331,25 @@ export default function PublicOfferForm() {
     setIsSubmitting(true);
 
     try {
-      // Create submission data with media
       const submissionData = {
         id: `offer_${Date.now()}`,
         type: 'property_offer',
         brokerId: broker.id,
         brokerName: broker.name,
         ...formData,
-        media: media, // إضافة الصور والفيديو
+        warranties,
+        media,
         mainImage: media.find(m => m.isMain)?.url || null,
         submittedAt: new Date().toISOString(),
         status: 'pending',
       };
 
-      // Save to localStorage (simulating backend)
+      // Save to localStorage
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
       existingSubmissions.push(submissionData);
       localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
 
-      // Trigger notification for broker with pulsing dot
+      // Trigger notification
       const notification = {
         id: `notif_${Date.now()}`,
         type: 'new_offer',
@@ -237,7 +357,7 @@ export default function PublicOfferForm() {
         message: `تم استلام عرض عقاري جديد من ${formData.ownerName} - ${formData.propertyType} ${formData.purpose}`,
         data: submissionData,
         isRead: false,
-        isPulsing: true, // للعلامة الحمراء النابضة
+        isPulsing: true,
         createdAt: new Date().toISOString(),
       };
       
@@ -245,7 +365,7 @@ export default function PublicOfferForm() {
       notifications.unshift(notification);
       localStorage.setItem('broker_notifications', JSON.stringify(notifications));
 
-      // Mark customer for CRM with full data including media
+      // CRM customer data
       const customerData = {
         id: `cust_${Date.now()}`,
         name: formData.ownerName,
@@ -255,14 +375,14 @@ export default function PublicOfferForm() {
         type: 'owner',
         source: 'public_form',
         status: 'new',
-        hasUnreadPublishedAd: true, // للعلامة الحمراء النابضة
+        hasUnreadPublishedAd: true,
         createdAt: new Date().toISOString(),
         tabs: [{
           id: `tab_${Date.now()}`,
           name: 'عرض عقاري',
           type: 'property_offer',
           data: submissionData,
-          isNew: true, // للعلامة الحمراء النابضة
+          isNew: true,
           createdAt: new Date().toISOString(),
         }],
       };
@@ -280,15 +400,6 @@ export default function PublicOfferForm() {
         localStorage.setItem('crm_customers', JSON.stringify(customers));
       }
 
-      // Mark as new for pulsing dot
-      const newItems = JSON.parse(localStorage.getItem('wasata_new_items') || '{}');
-      newItems.offers = newItems.offers || [];
-      newItems.offers.push(submissionData.id);
-      newItems.customers = newItems.customers || [];
-      newItems.customers.push(customerData.id);
-      localStorage.setItem('wasata_new_items', JSON.stringify(newItems));
-
-      // Trigger event for real-time notification
       window.dispatchEvent(new CustomEvent('addNotification', {
         detail: {
           title: 'عرض عقاري جديد',
@@ -316,13 +427,8 @@ export default function PublicOfferForm() {
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-800 mb-2">تم الإرسال بنجاح!</h3>
-          <p className="text-gray-600 mb-6">
-            شكراً لك، تم استلام عرضك وسيتواصل معك الوسيط قريباً
-          </p>
-          <Button
-            onClick={() => window.close()}
-            className="bg-[#01411C] hover:bg-[#065f41] text-white"
-          >
+          <p className="text-gray-600 mb-6">شكراً لك، تم استلام عرضك وسيتواصل معك الوسيط قريباً</p>
+          <Button onClick={() => window.close()} className="bg-[#01411C] hover:bg-[#065f41] text-white">
             إغلاق الصفحة
           </Button>
         </div>
@@ -332,165 +438,430 @@ export default function PublicOfferForm() {
 
   return (
     <PublicFormLayout broker={broker} title="إرسال عرض عقاري">
-      <div className="p-6 space-y-6">
-        {/* معلومات المالك */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <User className="w-5 h-5 text-[#D4AF37]" />
-            معلومات المالك
-          </h3>
-          
+      <div className="p-4 space-y-4">
+        
+        {/* ===== 1. معلومات المالك ===== */}
+        <Section title="معلومات المالك" icon={<User className="w-5 h-5" />} color="green">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>الاسم الكامل *</Label>
+              <Label className="text-green-800">الاسم الكامل *</Label>
               <Input
                 value={formData.ownerName}
                 onChange={(e) => updateField('ownerName', e.target.value)}
                 placeholder="أدخل اسمك الكامل"
+                className="border-green-200 focus:border-green-400"
               />
             </div>
             <div>
-              <Label>رقم الجوال *</Label>
+              <Label className="text-green-800">رقم الجوال *</Label>
               <Input
                 value={formData.ownerPhone}
                 onChange={(e) => updateField('ownerPhone', e.target.value)}
                 placeholder="05xxxxxxxx"
                 dir="ltr"
+                className="border-green-200 focus:border-green-400"
               />
             </div>
             <div>
-              <Label>رقم الهوية</Label>
+              <Label className="text-green-800">رقم الهوية</Label>
               <Input
                 value={formData.ownerIdNumber}
                 onChange={(e) => updateField('ownerIdNumber', e.target.value)}
                 placeholder="رقم الهوية الوطنية"
+                className="border-green-200 focus:border-green-400"
               />
             </div>
             <div>
-              <Label>العنوان الوطني</Label>
-              <Input
-                value={formData.ownerNationalAddress}
-                onChange={(e) => updateField('ownerNationalAddress', e.target.value)}
-                placeholder="العنوان الوطني"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* معلومات العقار */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <Home className="w-5 h-5 text-[#D4AF37]" />
-            معلومات العقار
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>نوع العقار *</Label>
-              <Select value={formData.propertyType} onValueChange={(v) => updateField('propertyType', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر نوع العقار" />
-                </SelectTrigger>
-                <SelectContent>
-                  {propertyTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>الغرض *</Label>
-              <Select value={formData.purpose} onValueChange={(v) => updateField('purpose', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="للبيع / للإيجار" />
-                </SelectTrigger>
-                <SelectContent>
-                  {purposes.map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>المدينة</Label>
-              <Select value={formData.city} onValueChange={(v) => updateField('city', v)}>
-                <SelectTrigger>
+              <Label className="text-green-800">المدينة</Label>
+              <Select value={formData.ownerCity} onValueChange={(v) => updateField('ownerCity', v)}>
+                <SelectTrigger className="border-green-200">
                   <SelectValue placeholder="اختر المدينة" />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities.map(city => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                  ))}
+                  {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-green-800">العنوان الوطني</Label>
+              <Input
+                value={formData.ownerNationalAddress}
+                onChange={(e) => updateField('ownerNationalAddress', e.target.value)}
+                placeholder="العنوان الوطني الكامل"
+                className="border-green-200 focus:border-green-400"
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* ===== 2. معلومات الصك ===== */}
+        <Section title="معلومات الصك" icon={<FileText className="w-5 h-5" />} color="blue">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-blue-800">رقم الصك</Label>
+              <Input
+                value={formData.deedNumber}
+                onChange={(e) => updateField('deedNumber', e.target.value)}
+                placeholder="رقم الصك"
+                className="border-blue-200 focus:border-blue-400"
+              />
+            </div>
+            <div>
+              <Label className="text-blue-800">تاريخ الصك</Label>
+              <Input
+                type="date"
+                value={formData.deedDate}
+                onChange={(e) => updateField('deedDate', e.target.value)}
+                className="border-blue-200 focus:border-blue-400"
+              />
+            </div>
+            <div>
+              <Label className="text-blue-800">مدينة إصدار الصك</Label>
+              <Select value={formData.deedCity} onValueChange={(v) => updateField('deedCity', v)}>
+                <SelectTrigger className="border-blue-200">
+                  <SelectValue placeholder="اختر المدينة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Section>
+
+        {/* ===== 3. معلومات العقار الأساسية ===== */}
+        <Section title="معلومات العقار" icon={<Home className="w-5 h-5" />} color="amber">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-amber-800">نوع العقار *</Label>
+              <Select value={formData.propertyType} onValueChange={(v) => updateField('propertyType', v)}>
+                <SelectTrigger className="border-amber-200">
+                  <SelectValue placeholder="اختر نوع العقار" />
+                </SelectTrigger>
+                <SelectContent>
+                  {propertyTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>الحي</Label>
+              <Label className="text-amber-800">الغرض *</Label>
+              <Select value={formData.purpose} onValueChange={(v) => updateField('purpose', v)}>
+                <SelectTrigger className="border-amber-200">
+                  <SelectValue placeholder="للبيع / للإيجار" />
+                </SelectTrigger>
+                <SelectContent>
+                  {purposes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-amber-800">المدينة</Label>
+              <Select value={formData.city} onValueChange={(v) => updateField('city', v)}>
+                <SelectTrigger className="border-amber-200">
+                  <SelectValue placeholder="اختر المدينة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-amber-800">الحي</Label>
               <Input
                 value={formData.district}
                 onChange={(e) => updateField('district', e.target.value)}
                 placeholder="اسم الحي"
+                className="border-amber-200 focus:border-amber-400"
               />
             </div>
             <div>
-              <Label>المساحة (م²)</Label>
+              <Label className="text-amber-800">الشارع</Label>
+              <Input
+                value={formData.street}
+                onChange={(e) => updateField('street', e.target.value)}
+                placeholder="اسم الشارع"
+                className="border-amber-200 focus:border-amber-400"
+              />
+            </div>
+            <div>
+              <Label className="text-amber-800">المساحة (م²)</Label>
               <Input
                 type="number"
                 value={formData.area}
                 onChange={(e) => updateField('area', e.target.value)}
                 placeholder="المساحة بالمتر المربع"
+                className="border-amber-200 focus:border-amber-400"
               />
             </div>
-            <div>
-              <Label>السعر المطلوب</Label>
+            <div className="md:col-span-2">
+              <Label className="text-amber-800">السعر المطلوب (ريال)</Label>
               <Input
                 type="number"
                 value={formData.price}
                 onChange={(e) => updateField('price', e.target.value)}
                 placeholder="السعر بالريال"
+                className="border-amber-200 focus:border-amber-400"
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* ===== 4. المواصفات التفصيلية ===== */}
+        <Section title="المواصفات التفصيلية" icon={<Building className="w-5 h-5" />} color="purple">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label className="text-purple-800">عدد الأدوار</Label>
+              <Input
+                type="number"
+                value={formData.floors}
+                onChange={(e) => updateField('floors', e.target.value)}
+                placeholder="عدد الأدوار"
+                className="border-purple-200 focus:border-purple-400"
               />
             </div>
             <div>
-              <Label>عدد الغرف</Label>
+              <Label className="text-purple-800">رقم الدور</Label>
+              <Input
+                type="number"
+                value={formData.floorNumber}
+                onChange={(e) => updateField('floorNumber', e.target.value)}
+                placeholder="للشقق"
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+            <div>
+              <Label className="text-purple-800">غرف النوم</Label>
               <Input
                 type="number"
                 value={formData.bedrooms}
                 onChange={(e) => updateField('bedrooms', e.target.value)}
-                placeholder="عدد غرف النوم"
+                placeholder="عدد الغرف"
+                className="border-purple-200 focus:border-purple-400"
               />
             </div>
             <div>
-              <Label>عدد دورات المياه</Label>
+              <Label className="text-purple-800">دورات المياه</Label>
               <Input
                 type="number"
                 value={formData.bathrooms}
                 onChange={(e) => updateField('bathrooms', e.target.value)}
-                placeholder="عدد دورات المياه"
+                placeholder="عدد الحمامات"
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+            <div>
+              <Label className="text-purple-800">صالات المعيشة</Label>
+              <Input
+                type="number"
+                value={formData.livingRooms}
+                onChange={(e) => updateField('livingRooms', e.target.value)}
+                placeholder="عدد الصالات"
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+            <div>
+              <Label className="text-purple-800">المجالس</Label>
+              <Input
+                type="number"
+                value={formData.councils}
+                onChange={(e) => updateField('councils', e.target.value)}
+                placeholder="عدد المجالس"
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+            <div>
+              <Label className="text-purple-800">عرض الشارع (م)</Label>
+              <Input
+                type="number"
+                value={formData.streetWidth}
+                onChange={(e) => updateField('streetWidth', e.target.value)}
+                placeholder="عرض الشارع"
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+            <div>
+              <Label className="text-purple-800">عمر العقار (سنة)</Label>
+              <Input
+                type="number"
+                value={formData.propertyAge}
+                onChange={(e) => updateField('propertyAge', e.target.value)}
+                placeholder="عمر البناء"
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+            <div>
+              <Label className="text-purple-800">الواجهة</Label>
+              <Select value={formData.facade} onValueChange={(v) => updateField('facade', v)}>
+                <SelectTrigger className="border-purple-200">
+                  <SelectValue placeholder="اختر الواجهة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {facadeOptions.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-purple-800">التأثيث</Label>
+              <Select value={formData.furnishing} onValueChange={(v) => updateField('furnishing', v)}>
+                <SelectTrigger className="border-purple-200">
+                  <SelectValue placeholder="حالة التأثيث" />
+                </SelectTrigger>
+                <SelectContent>
+                  {furnishingOptions.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-purple-800">المداخل</Label>
+              <Select value={formData.entrances} onValueChange={(v) => updateField('entrances', v)}>
+                <SelectTrigger className="border-purple-200">
+                  <SelectValue placeholder="عدد المداخل" />
+                </SelectTrigger>
+                <SelectContent>
+                  {entranceOptions.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-purple-800">عدد المكيفات</Label>
+              <Input
+                type="number"
+                value={formData.acUnits}
+                onChange={(e) => updateField('acUnits', e.target.value)}
+                placeholder="عدد المكيفات"
+                className="border-purple-200 focus:border-purple-400"
               />
             </div>
           </div>
+        </Section>
 
-          <div>
-            <Label>وصف إضافي</Label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => updateField('description', e.target.value)}
-              placeholder="أي تفاصيل إضافية عن العقار..."
-              rows={4}
-            />
+        {/* ===== 5. المميزات الإضافية ===== */}
+        <Section title="المميزات الإضافية" icon={<Star className="w-5 h-5" />} color="cyan">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasPool"
+                checked={formData.hasPool}
+                onCheckedChange={(c) => updateField('hasPool', c === true)}
+              />
+              <Label htmlFor="hasPool" className="text-cyan-800 cursor-pointer">🏊 مسبح</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasGarden"
+                checked={formData.hasGarden}
+                onCheckedChange={(c) => updateField('hasGarden', c === true)}
+              />
+              <Label htmlFor="hasGarden" className="text-cyan-800 cursor-pointer">🌳 حديقة</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasElevator"
+                checked={formData.hasElevator}
+                onCheckedChange={(c) => updateField('hasElevator', c === true)}
+              />
+              <Label htmlFor="hasElevator" className="text-cyan-800 cursor-pointer">🛗 مصعد</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasParking"
+                checked={formData.hasParking}
+                onCheckedChange={(c) => updateField('hasParking', c === true)}
+              />
+              <Label htmlFor="hasParking" className="text-cyan-800 cursor-pointer">🚗 موقف سيارات</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasLaundryRoom"
+                checked={formData.hasLaundryRoom}
+                onCheckedChange={(c) => updateField('hasLaundryRoom', c === true)}
+              />
+              <Label htmlFor="hasLaundryRoom" className="text-cyan-800 cursor-pointer">🧺 غرفة غسيل</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="hasExtraKitchen"
+                checked={formData.hasExtraKitchen}
+                onCheckedChange={(c) => updateField('hasExtraKitchen', c === true)}
+              />
+              <Label htmlFor="hasExtraKitchen" className="text-cyan-800 cursor-pointer">🍳 مطبخ إضافي</Label>
+            </div>
+            <div>
+              <Label className="text-cyan-800">البلكونات</Label>
+              <Input
+                type="number"
+                value={formData.balconies}
+                onChange={(e) => updateField('balconies', e.target.value)}
+                placeholder="عدد البلكونات"
+                className="border-cyan-200 focus:border-cyan-400"
+              />
+            </div>
+            <div>
+              <Label className="text-cyan-800">المستودعات</Label>
+              <Input
+                type="number"
+                value={formData.warehouses}
+                onChange={(e) => updateField('warehouses', e.target.value)}
+                placeholder="عدد المستودعات"
+                className="border-cyan-200 focus:border-cyan-400"
+              />
+            </div>
           </div>
-        </div>
+        </Section>
 
-        {/* رفع صور العقار */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <ImageIcon className="w-5 h-5 text-[#D4AF37]" />
-            صور وفيديوهات العقار
-          </h3>
+        {/* ===== 6. الضمانات والكفالات ===== */}
+        <Section title="الضمانات والكفالات" icon={<Shield className="w-5 h-5" />} color="rose">
+          <div className="space-y-3">
+            {warranties.map((warranty, index) => (
+              <div key={index} className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Label className="text-rose-800">نوع الضمان</Label>
+                  <Select value={warranty.type} onValueChange={(v) => updateWarranty(index, 'type', v)}>
+                    <SelectTrigger className="border-rose-200">
+                      <SelectValue placeholder="اختر نوع الضمان" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warrantyTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-32">
+                  <Label className="text-rose-800">المدة (سنة)</Label>
+                  <Input
+                    type="number"
+                    value={warranty.duration}
+                    onChange={(e) => updateWarranty(index, 'duration', e.target.value)}
+                    placeholder="المدة"
+                    className="border-rose-200 focus:border-rose-400"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeWarranty(index)}
+                  className="text-rose-600 hover:bg-rose-100"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addWarranty}
+              className="w-full border-rose-300 text-rose-700 hover:bg-rose-50"
+            >
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة ضمان
+            </Button>
+          </div>
+        </Section>
 
-          {/* منطقة الرفع */}
+        {/* ===== 7. صور وفيديوهات العقار ===== */}
+        <Section title="صور وفيديوهات العقار" icon={<ImageIcon className="w-5 h-5" />} color="orange">
           <div 
-            className="flex flex-col items-center justify-center border-2 border-dashed border-[#D4AF37] rounded-lg p-6 bg-amber-50/50 hover:bg-amber-50 transition-colors cursor-pointer"
+            className="flex flex-col items-center justify-center border-2 border-dashed border-orange-300 rounded-lg p-6 bg-orange-50/50 hover:bg-orange-100/50 transition-colors cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
             <input
@@ -504,40 +875,30 @@ export default function PublicOfferForm() {
             
             {isUploading ? (
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
-                <p className="text-[#01411C] font-semibold">جاري الرفع... {uploadProgress}%</p>
+                <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
+                <p className="text-orange-700 font-semibold">جاري الرفع... {uploadProgress}%</p>
                 <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[#D4AF37] transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
+                  <div className="h-full bg-orange-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                 </div>
               </div>
             ) : (
               <>
-                <Upload className="w-10 h-10 text-[#D4AF37] mb-2" />
-                <p className="text-[#01411C] font-semibold">اضغط لرفع الصور والفيديوهات</p>
+                <Upload className="w-10 h-10 text-orange-500 mb-2" />
+                <p className="text-orange-700 font-semibold">اضغط لرفع الصور والفيديوهات</p>
                 <p className="text-gray-500 text-sm">PNG, JPG, MP4 - حتى 10MB للصور و 50MB للفيديو</p>
               </>
             )}
           </div>
 
-          {/* عرض الوسائط المرفوعة */}
           {media.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
               {media.map((item, index) => (
                 <div
                   key={item.id}
-                  className={`relative aspect-square rounded-lg overflow-hidden group ${
-                    item.isMain ? 'ring-2 ring-[#D4AF37] ring-offset-2' : ''
-                  }`}
+                  className={`relative aspect-square rounded-lg overflow-hidden group ${item.isMain ? 'ring-2 ring-orange-500 ring-offset-2' : ''}`}
                 >
                   {item.type === 'image' ? (
-                    <img
-                      src={item.url}
-                      alt={`Property ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={item.url} alt={`Property ${index + 1}`} className="w-full h-full object-cover" />
                   ) : (
                     <div className="relative w-full h-full bg-black">
                       <video src={item.url} className="w-full h-full object-cover" />
@@ -546,40 +907,29 @@ export default function PublicOfferForm() {
                       </div>
                     </div>
                   )}
-
-                  {/* Overlay Actions */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                     {item.type === 'image' && !item.isMain && (
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAsMain(item.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); setAsMain(item.id); }}
                         className="p-1.5 bg-white rounded-lg"
                         title="تعيين كصورة رئيسية"
                       >
-                        <Star className="w-4 h-4 text-[#D4AF37]" />
+                        <Star className="w-4 h-4 text-orange-500" />
                       </button>
                     )}
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeMedia(item.id);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); removeMedia(item.id); }}
                       className="p-1.5 bg-white rounded-lg"
                       title="حذف"
                     >
                       <X className="w-4 h-4 text-red-600" />
                     </button>
                   </div>
-
-                  {/* Main Badge */}
                   {item.isMain && (
-                    <div className="absolute top-1 right-1 bg-[#D4AF37] text-white px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
-                      <Star className="w-3 h-3 fill-current" />
-                      رئيسية
+                    <div className="absolute top-1 right-1 bg-orange-500 text-white px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-0.5">
+                      <Star className="w-3 h-3 fill-current" /> رئيسية
                     </div>
                   )}
                 </div>
@@ -588,14 +938,25 @@ export default function PublicOfferForm() {
           )}
 
           {media.length > 0 && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 mt-2">
               تم رفع {media.filter(m => m.type === 'image').length} صورة و {media.filter(m => m.type === 'video').length} فيديو
             </p>
           )}
-        </div>
+        </Section>
+
+        {/* ===== 8. وصف إضافي ===== */}
+        <Section title="وصف إضافي" icon={<FileText className="w-5 h-5" />} color="green">
+          <Textarea
+            value={formData.description}
+            onChange={(e) => updateField('description', e.target.value)}
+            placeholder="أي تفاصيل إضافية عن العقار تود إضافتها..."
+            rows={4}
+            className="border-green-200 focus:border-green-400"
+          />
+        </Section>
 
         {/* الموافقة */}
-        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
           <Checkbox
             id="terms"
             checked={formData.agreeToTerms}
