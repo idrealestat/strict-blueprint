@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
@@ -64,6 +64,7 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
   const { user, isAuthenticated, loading: authLoading } = useAuthContext();
   const [userData, setUserData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -138,7 +139,7 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
 
   return (
     <BusinessCardEdit 
-      onBack={() => window.location.href = '/app/dashboard'} 
+      onBack={() => navigate(-1)} 
       user={userData} 
       isNewUser={isNewUser} 
     />
