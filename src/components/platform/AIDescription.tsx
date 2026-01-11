@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { PropertyFeatures, AIDescriptionResponse } from "@/types/owners";
+import { supabase } from "@/integrations/supabase/client";
 
 // واجهة الاستجابة المحدثة مع العناوين
 interface AIGenerationResponse extends AIDescriptionResponse {
@@ -89,6 +90,15 @@ export default function AIDescription({
     setError(null);
 
     try {
+      // الحصول على جلسة المستخدم
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('يرجى تسجيل الدخول أولاً');
+        setError('يرجى تسجيل الدخول لاستخدام التوليد الذكي');
+        setIsLoading(false);
+        return;
+      }
+
       // تحديد الغرض بناءً على الوضع
       const purposeMap = {
         'sale': 'للبيع',
@@ -104,7 +114,7 @@ export default function AIDescription({
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             propertyData: {
