@@ -105,6 +105,19 @@ interface AddressDetails {
   longitude: number;
 }
 
+// Display options for printed card
+interface CardDisplaySettings {
+  nameDisplay: 'arabic' | 'arabic-english';
+  nameEnglish: string;
+  jobTitle: string;
+  phoneDisplay: 'phone-only' | 'phone-whatsapp';
+  whatsappNumber: string;
+  primaryNumber: 'phone' | 'whatsapp';
+  showEmail: boolean;
+  showCity: boolean;
+  showDistrict: boolean;
+}
+
 interface BusinessCardData {
   userName: string;
   companyName: string;
@@ -119,6 +132,7 @@ interface BusinessCardData {
   domain: string;
   googleMapsLocation: string;
   location: string;
+  district: string;
   officialPlatform: string;
   bio: string;
   socialMedia: SocialMedia;
@@ -134,6 +148,7 @@ interface BusinessCardData {
   nationalId: string;
   birthDate: string;
   accountType: string;
+  displayOptions: CardDisplaySettings;
 }
 
 // Zod validation schema for business card
@@ -172,6 +187,19 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
+  // Default display options
+  const defaultDisplayOptions: CardDisplaySettings = {
+    nameDisplay: 'arabic',
+    nameEnglish: '',
+    jobTitle: 'وسيط ومسوق عقاري',
+    phoneDisplay: 'phone-only',
+    whatsappNumber: '',
+    primaryNumber: 'phone',
+    showEmail: true,
+    showCity: true,
+    showDistrict: false,
+  };
+
   // Default form data
   const defaultFormData: BusinessCardData = {
     userName: user.name,
@@ -187,6 +215,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     domain: "",
     googleMapsLocation: "",
     location: user.city,
+    district: "",
     officialPlatform: "",
     bio: "",
     socialMedia: {
@@ -225,7 +254,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     officeAddressDetails: null,
     nationalId: "",
     birthDate: "",
-    accountType: "individual"
+    accountType: "individual",
+    displayOptions: defaultDisplayOptions
   };
 
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
@@ -1162,7 +1192,10 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       {/* Tabs */}
       <div className="px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-5 w-full bg-gray-100">
+          <TabsList className="grid grid-cols-6 w-full bg-gray-100">
+            <TabsTrigger value="card" className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]">
+              البطاقة
+            </TabsTrigger>
             <TabsTrigger value="basic" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               الأساسية
             </TabsTrigger>
@@ -1179,6 +1212,231 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               الإنجازات
             </TabsTrigger>
           </TabsList>
+
+          {/* Card Display Options Tab */}
+          <TabsContent value="card" className="mt-4 space-y-4">
+            <Card className="border-2 border-[#D4AF37]/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-[#01411C] flex items-center gap-2">
+                  🎨 إعدادات عرض البطاقة المطبوعة
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  تحكم في ما يظهر على بطاقة الأعمال الرسمية وترتيبه
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Name Display Options */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-[#01411C] font-medium">
+                    <User className="w-4 h-4" />
+                    طريقة عرض الاسم
+                  </Label>
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="nameDisplay"
+                        checked={formData.displayOptions.nameDisplay === 'arabic'}
+                        onChange={() => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, nameDisplay: 'arabic' }
+                        }))}
+                        className="text-[#01411C]"
+                      />
+                      <span className="text-sm">الاسم بالعربي فقط</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="nameDisplay"
+                        checked={formData.displayOptions.nameDisplay === 'arabic-english'}
+                        onChange={() => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, nameDisplay: 'arabic-english' }
+                        }))}
+                        className="text-[#01411C]"
+                      />
+                      <span className="text-sm">الاسم بالعربي + الإنجليزي (الإنجليزي أصغر تحت العربي)</span>
+                    </label>
+                  </div>
+                  
+                  {formData.displayOptions.nameDisplay === 'arabic-english' && (
+                    <div className="mr-6">
+                      <Label className="text-xs">الاسم بالإنجليزي</Label>
+                      <Input
+                        value={formData.displayOptions.nameEnglish}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, nameEnglish: e.target.value }
+                        }))}
+                        placeholder="Your Name in English"
+                        className="mt-1"
+                        dir="ltr"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-[#D4AF37]/20 pt-4">
+                  {/* Job Title */}
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2 text-[#01411C] font-medium">
+                      <Award className="w-4 h-4" />
+                      المسمى الوظيفي
+                    </Label>
+                    <Input
+                      value={formData.displayOptions.jobTitle}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        displayOptions: { ...prev.displayOptions, jobTitle: e.target.value }
+                      }))}
+                      placeholder="وسيط ومسوق عقاري"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      أمثلة: وسيط عقاري، مدير تنفيذي، مسوق عقاري، وسيط ومسوق عقاري
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-[#D4AF37]/20 pt-4">
+                  {/* Phone Display Options */}
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2 text-[#01411C] font-medium">
+                      <Phone className="w-4 h-4" />
+                      أرقام التواصل
+                    </Label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="phoneDisplay"
+                          checked={formData.displayOptions.phoneDisplay === 'phone-only'}
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            displayOptions: { ...prev.displayOptions, phoneDisplay: 'phone-only' }
+                          }))}
+                          className="text-[#01411C]"
+                        />
+                        <span className="text-sm">رقم الجوال فقط</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="phoneDisplay"
+                          checked={formData.displayOptions.phoneDisplay === 'phone-whatsapp'}
+                          onChange={() => setFormData(prev => ({
+                            ...prev,
+                            displayOptions: { ...prev.displayOptions, phoneDisplay: 'phone-whatsapp' }
+                          }))}
+                          className="text-[#01411C]"
+                        />
+                        <span className="text-sm">رقم الجوال + رقم الواتساب</span>
+                      </label>
+                    </div>
+
+                    {formData.displayOptions.phoneDisplay === 'phone-whatsapp' && (
+                      <div className="mr-6 space-y-3">
+                        <div>
+                          <Label className="text-xs">رقم الواتساب</Label>
+                          <Input
+                            value={formData.displayOptions.whatsappNumber}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              displayOptions: { ...prev.displayOptions, whatsappNumber: e.target.value }
+                            }))}
+                            placeholder="05xxxxxxxx"
+                            className="mt-1"
+                            dir="ltr"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs mb-2 block">أيهما الرقم الرئيسي؟</Label>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="primaryNumber"
+                                checked={formData.displayOptions.primaryNumber === 'phone'}
+                                onChange={() => setFormData(prev => ({
+                                  ...prev,
+                                  displayOptions: { ...prev.displayOptions, primaryNumber: 'phone' }
+                                }))}
+                                className="text-[#01411C]"
+                              />
+                              <span className="text-xs">الجوال</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="primaryNumber"
+                                checked={formData.displayOptions.primaryNumber === 'whatsapp'}
+                                onChange={() => setFormData(prev => ({
+                                  ...prev,
+                                  displayOptions: { ...prev.displayOptions, primaryNumber: 'whatsapp' }
+                                }))}
+                                className="text-[#01411C]"
+                              />
+                              <span className="text-xs">الواتساب</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-[#D4AF37]/20 pt-4">
+                  {/* Optional Fields */}
+                  <div className="space-y-3">
+                    <Label className="text-[#01411C] font-medium">الحقول الاختيارية</Label>
+                    
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-sm">عرض البريد الإلكتروني</span>
+                      </div>
+                      <Switch
+                        checked={formData.displayOptions.showEmail}
+                        onCheckedChange={(checked) => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, showEmail: checked }
+                        }))}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-sm">عرض المدينة {formData.location && `(${formData.location})`}</span>
+                      </div>
+                      <Switch
+                        checked={formData.displayOptions.showCity}
+                        onCheckedChange={(checked) => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, showCity: checked }
+                        }))}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-sm">عرض الحي {formData.district && `(${formData.district})`}</span>
+                      </div>
+                      <Switch
+                        checked={formData.displayOptions.showDistrict}
+                        onCheckedChange={(checked) => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, showDistrict: checked }
+                        }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Basic Info Tab */}
           <TabsContent value="basic" className="mt-4 space-y-4">

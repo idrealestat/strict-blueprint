@@ -108,9 +108,10 @@ function mapLocalDataToSource(localData: Record<string, any>): BusinessCardSourc
     companyName: localData.companyName || '',
     rating: localData.rating || 4.5,
     phone: localData.primaryPhone || localData.phone || '',
+    whatsapp: localData.displayOptions?.whatsappNumber || '',
     email: localData.email || '',
     city: localData.location || localData.city || '',
-    district: localData.officeAddressDetails?.district || '',
+    district: localData.officeAddressDetails?.district || localData.district || '',
     location: localData.officeAddress || localData.location || '',
     slug: localData.userTitle || localData.slug || '',
     identityMode: isSwapped ? 'logo' : 'profile',
@@ -119,6 +120,7 @@ function mapLocalDataToSource(localData: Record<string, any>): BusinessCardSourc
     bio: localData.bio || '',
     falLicense: localData.falLicense || '',
     website: localData.websiteUrl || localData.domain || '',
+    displayOptions: localData.displayOptions || undefined,
   };
 }
 
@@ -133,9 +135,10 @@ function mapSupabaseDataToSource(cardData: Record<string, any>, slug: string): B
     companyName: cardData.companyName || '',
     rating: cardData.rating || 4.5,
     phone: cardData.primaryPhone || cardData.phone || '',
+    whatsapp: cardData.displayOptions?.whatsappNumber || '',
     email: cardData.email || '',
     city: cardData.location || cardData.city || '',
-    district: cardData.officeAddressDetails?.district || '',
+    district: cardData.officeAddressDetails?.district || cardData.district || '',
     location: cardData.officeAddress || cardData.location || '',
     slug: slug || cardData.userTitle || '',
     identityMode: isSwapped ? 'logo' : 'profile',
@@ -144,5 +147,6 @@ function mapSupabaseDataToSource(cardData: Record<string, any>, slug: string): B
     bio: cardData.bio || '',
     falLicense: cardData.falLicense || '',
     website: cardData.websiteUrl || cardData.domain || '',
+    displayOptions: cardData.displayOptions || undefined,
   };
 }
