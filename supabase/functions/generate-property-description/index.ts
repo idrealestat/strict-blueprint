@@ -56,8 +56,8 @@ interface PropertyData {
   livingRooms: string;
   councils: string;
   floors: string;
-  floorNumber: string; // رقم الدور (للشقق)
-  cornerType: string; // زاوية / بطن
+  floorNumber: string;
+  cornerType: string;
   furnishing: string;
   propertyAge: string;
   features: string[];
@@ -72,16 +72,29 @@ interface PropertyData {
   acUnits: string;
   balconies: string;
   entrances: string;
-  warehouses: string; // مستودعات
-  curtains: string; // ستائر
-  hasExtraKitchen: boolean; // مطبخ إضافي
-  extraKitchenAppliances: string; // أجهزة المطبخ
-  hasLaundryRoom: boolean; // غرفة غسيل
-  price: string; // السعر
+  warehouses: string;
+  curtains: string;
+  hasExtraKitchen: boolean;
+  extraKitchenAppliances: string;
+  hasLaundryRoom: boolean;
+  price: string;
+  // خيارات الدفع للإيجار
+  paymentOption: string;
+  paymentPrices: {
+    monthly?: string;
+    quarterly?: string;
+    semiAnnual?: string;
+    yearly?: string;
+  };
 }
 
 function validateAndSanitizePropertyData(raw: unknown): PropertyData {
   const data = typeof raw === 'object' && raw !== null ? raw as Record<string, unknown> : {};
+  
+  // معالجة أسعار الدفع
+  const rawPaymentPrices = typeof data.paymentPrices === 'object' && data.paymentPrices !== null 
+    ? data.paymentPrices as Record<string, unknown> 
+    : {};
   
   return {
     propertyType: sanitizeString(data.propertyType, 50),
@@ -117,6 +130,13 @@ function validateAndSanitizePropertyData(raw: unknown): PropertyData {
     extraKitchenAppliances: sanitizeString(data.extraKitchenAppliances, 200),
     hasLaundryRoom: data.hasLaundryRoom === true,
     price: sanitizeString(data.price, 20),
+    paymentOption: sanitizeString(data.paymentOption, 30),
+    paymentPrices: {
+      monthly: sanitizeString(rawPaymentPrices.monthly, 20),
+      quarterly: sanitizeString(rawPaymentPrices.quarterly, 20),
+      semiAnnual: sanitizeString(rawPaymentPrices.semiAnnual, 20),
+      yearly: sanitizeString(rawPaymentPrices.yearly, 20),
+    },
   };
 }
 
@@ -232,73 +252,97 @@ serve(async (req) => {
         languagePrompt = "اكتب الوصف باللغة العربية";
     }
 
-    // بناء معلومات العقار - جميع الحقول
-    const propertyInfo = `
-معلومات العقار:
-- نوع العقار: ${propertyData.propertyType || 'غير محدد'}
-- الفئة: ${propertyData.category || 'غير محدد'}
-- الغرض: ${propertyData.purpose || 'غير محدد'}
-- المساحة: ${propertyData.area ? `${propertyData.area} متر مربع` : 'غير محدد'}
-- المدينة: ${propertyData.city || 'غير محدد'}
-- الحي: ${propertyData.district || 'غير محدد'}
-${propertyData.price ? `- السعر: ${propertyData.price} ريال` : ''}
-${propertyData.bedrooms ? `- غرف النوم: ${propertyData.bedrooms}` : ''}
-${propertyData.bathrooms ? `- دورات المياه: ${propertyData.bathrooms}` : ''}
-${propertyData.livingRooms ? `- الصالات: ${propertyData.livingRooms}` : ''}
-${propertyData.councils ? `- المجالس: ${propertyData.councils}` : ''}
-${propertyData.floors ? `- الأدوار: ${propertyData.floors}` : ''}
-${propertyData.floorNumber ? `- رقم الدور: ${propertyData.floorNumber}` : ''}
-${propertyData.cornerType ? `- الموقع: ${propertyData.cornerType}` : ''}
-${propertyData.furnishing ? `- التأثيث: ${propertyData.furnishing}` : ''}
-${propertyData.propertyAge ? `- عمر العقار: ${propertyData.propertyAge} سنوات` : ''}
-${propertyData.streetWidth ? `- عرض الشارع: ${propertyData.streetWidth} متر` : ''}
-${propertyData.facade ? `- الواجهة: ${propertyData.facade}` : ''}
-${propertyData.acUnits ? `- عدد المكيفات: ${propertyData.acUnits}` : ''}
-${propertyData.balconies ? `- عدد البلكونات: ${propertyData.balconies}` : ''}
-${propertyData.entrances ? `- المداخل: ${propertyData.entrances}` : ''}
-${propertyData.warehouses ? `- المستودعات: ${propertyData.warehouses}` : ''}
-${propertyData.curtains ? `- الستائر: ${propertyData.curtains}` : ''}
-${propertyData.hasLaundryRoom ? `- غرفة غسيل: نعم` : ''}
-${propertyData.hasExtraKitchen ? `- مطبخ إضافي: نعم${propertyData.extraKitchenAppliances ? ` (${propertyData.extraKitchenAppliances})` : ''}` : ''}
-${propertyData.features && propertyData.features.length > 0 ? `- المميزات: ${propertyData.features.join('، ')}` : ''}
-${propertyData.warranties && propertyData.warranties.length > 0 ? `- الضمانات: ${propertyData.warranties.map(w => `${w.type} (${w.duration})`).join('، ')}` : ''}
-    `.trim();
+    // بناء خيارات الدفع للإيجار
+    let paymentInfo = '';
+    if (propertyData.purpose === 'للإيجار' && propertyData.paymentPrices) {
+      const payments: string[] = [];
+      if (propertyData.paymentPrices.monthly) payments.push(`شهري: ${propertyData.paymentPrices.monthly} ريال`);
+      if (propertyData.paymentPrices.quarterly) payments.push(`ربع سنوي: ${propertyData.paymentPrices.quarterly} ريال`);
+      if (propertyData.paymentPrices.semiAnnual) payments.push(`نصف سنوي: ${propertyData.paymentPrices.semiAnnual} ريال`);
+      if (propertyData.paymentPrices.yearly) payments.push(`سنوي: ${propertyData.paymentPrices.yearly} ريال`);
+      if (payments.length > 0) {
+        paymentInfo = `- خيارات الدفع: ${payments.join(' | ')}`;
+      }
+    }
+
+    // بناء معلومات العقار - فقط الحقول المملوءة
+    const propertyInfoParts: string[] = [
+      `- نوع العقار: ${propertyData.propertyType || 'غير محدد'}`,
+      `- الغرض: ${propertyData.purpose || 'غير محدد'}`,
+      `- المدينة: ${propertyData.city || 'غير محدد'}`,
+      `- الحي: ${propertyData.district || 'غير محدد'}`,
+    ];
+
+    // إضافة الحقول فقط إذا كانت موجودة
+    if (propertyData.category) propertyInfoParts.push(`- الفئة: ${propertyData.category}`);
+    if (propertyData.area) propertyInfoParts.push(`- المساحة: ${propertyData.area} متر مربع`);
+    if (propertyData.price) propertyInfoParts.push(`- السعر: ${propertyData.price} ريال`);
+    if (paymentInfo) propertyInfoParts.push(paymentInfo);
+    if (propertyData.bedrooms) propertyInfoParts.push(`- غرف النوم: ${propertyData.bedrooms}`);
+    if (propertyData.bathrooms) propertyInfoParts.push(`- دورات المياه: ${propertyData.bathrooms}`);
+    if (propertyData.livingRooms) propertyInfoParts.push(`- الصالات: ${propertyData.livingRooms}`);
+    if (propertyData.councils) propertyInfoParts.push(`- المجالس: ${propertyData.councils}`);
+    if (propertyData.floors) propertyInfoParts.push(`- الأدوار: ${propertyData.floors}`);
+    if (propertyData.floorNumber) propertyInfoParts.push(`- رقم الدور: ${propertyData.floorNumber}`);
+    if (propertyData.cornerType) propertyInfoParts.push(`- الموقع: ${propertyData.cornerType}`);
+    if (propertyData.furnishing) propertyInfoParts.push(`- التأثيث: ${propertyData.furnishing}`);
+    if (propertyData.propertyAge) propertyInfoParts.push(`- عمر العقار: ${propertyData.propertyAge} سنوات`);
+    if (propertyData.streetWidth) propertyInfoParts.push(`- عرض الشارع: ${propertyData.streetWidth} متر`);
+    if (propertyData.facade) propertyInfoParts.push(`- الواجهة: ${propertyData.facade}`);
+    if (propertyData.acUnits) propertyInfoParts.push(`- عدد المكيفات: ${propertyData.acUnits}`);
+    if (propertyData.balconies) propertyInfoParts.push(`- عدد البلكونات: ${propertyData.balconies}`);
+    if (propertyData.entrances) propertyInfoParts.push(`- المداخل: ${propertyData.entrances}`);
+    if (propertyData.warehouses) propertyInfoParts.push(`- المستودعات: ${propertyData.warehouses}`);
+    if (propertyData.curtains) propertyInfoParts.push(`- الستائر: ${propertyData.curtains}`);
+    if (propertyData.hasLaundryRoom) propertyInfoParts.push(`- غرفة غسيل: نعم`);
+    if (propertyData.hasExtraKitchen) {
+      let extraKitchenText = `- مطبخ إضافي: نعم`;
+      if (propertyData.extraKitchenAppliances) {
+        extraKitchenText += ` (${propertyData.extraKitchenAppliances})`;
+      }
+      propertyInfoParts.push(extraKitchenText);
+    }
+    if (propertyData.features && propertyData.features.length > 0) {
+      propertyInfoParts.push(`- المميزات: ${propertyData.features.join('، ')}`);
+    }
+    if (propertyData.warranties && propertyData.warranties.length > 0) {
+      propertyInfoParts.push(`- الضمانات: ${propertyData.warranties.map(w => `${w.type} (${w.duration})`).join('، ')}`);
+    }
+
+    const propertyInfo = `معلومات العقار:\n${propertyInfoParts.join('\n')}`;
+
+    // تحديد ما إذا كان هناك ضمانات
+    const hasWarranties = propertyData.warranties && propertyData.warranties.length > 0;
+    const hasFeatures = propertyData.features && propertyData.features.length > 0;
 
     const systemPrompt = `أنت خبير في كتابة الإعلانات العقارية في السعودية. 
 ${stylePrompt}
 ${lengthPrompt}
 ${languagePrompt}
 
-يجب أن يكون الوصف بالتنسيق التالي بالضبط:
+يجب أن يكون الوصف بالتنسيق التالي:
 
 1. **العنوان الرئيسي**: سطر واحد يبدأ بـ "${propertyData.purpose} ${propertyData.propertyType}" ثم الموقع
 
 2. **النص التسويقي**: فقرة قصيرة (سطر ونصف إلى سطرين) تركز على القيمة المضافة والمميزات الرئيسية بأسلوب جذاب
 
-3. **المواصفات**: قائمة منسقة بالشكل التالي (كل مواصفة في سطر منفصل):
-• المساحة: [القيمة] م²
-• غرف النوم: [العدد]
-• دورات المياه: [العدد]
-• الصالات: [العدد]
-• المجالس: [العدد]
-• الأدوار: [العدد]
-• التأثيث: [الحالة]
-• عمر العقار: [السنوات]
-• الواجهة: [الاتجاه]
-• عرض الشارع: [العرض] م
+3. **المواصفات**: قائمة منسقة فقط بالمواصفات المتوفرة (لا تذكر مواصفات غير موجودة في البيانات)
 
-4. **المميزات**: قائمة نقطية بالمميزات الإضافية
+${hasFeatures ? '4. **المميزات**: قائمة نقطية بالمميزات الإضافية' : ''}
 
-5. **الضمانات**: قائمة بالضمانات إن وجدت
+${hasWarranties ? '5. **الضمانات**: قائمة بالضمانات المذكورة' : ''}
 
-6. **معلومات التواصل**: ${propertyData.adLicense ? `ترخيص إعلاني: ${propertyData.adLicense}` : ''} ${propertyData.brokerPhone ? `| للتواصل: ${propertyData.brokerPhone}` : ''}
+${propertyData.adLicense || propertyData.brokerPhone ? `6. **معلومات التواصل**: ${propertyData.adLicense ? `ترخيص إعلاني: ${propertyData.adLicense}` : ''} ${propertyData.brokerPhone ? `| للتواصل: ${propertyData.brokerPhone}` : ''}` : ''}
 
-مهم جداً:
+${propertyData.purpose === 'للإيجار' && paymentInfo ? `7. **خيارات الدفع**: اذكر خيارات الدفع المتاحة` : ''}
+
+⚠️ تعليمات صارمة:
+- اذكر فقط المعلومات الموجودة في البيانات المقدمة
+- لا تكتب "لا توجد ضمانات" أو "لا توجد مميزات" - اتركها فارغة إذا لم تكن موجودة
+- لا تضف أقسام فارغة أو عناوين لمعلومات غير موجودة
 - كل قسم يجب أن يكون في أسطر منفصلة
 - استخدم النقاط (•) للقوائم
-- لا تضع كل المعلومات في سطر واحد
-- اجعل التنسيق واضح ومقروء
-- لا تضف معلومات غير موجودة في البيانات`;
+- اجعل التنسيق واضح ومقروء`;
 
     console.log('Processing property description request for user:', user.id);
 

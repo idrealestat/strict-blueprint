@@ -153,6 +153,13 @@ export default function AIDescription({
               descriptionLanguage: language,
               brokerPhone: brokerPhone || '',
               adLicense: adLicense || '',
+              paymentOption: features?.paymentOption || '',
+              paymentPrices: {
+                monthly: features?.paymentPrices?.monthly?.toString() || '',
+                quarterly: features?.paymentPrices?.quarterly?.toString() || '',
+                semiAnnual: features?.paymentPrices?.semiAnnual?.toString() || '',
+                yearly: features?.paymentPrices?.yearly?.toString() || '',
+              },
             }
           }),
         }

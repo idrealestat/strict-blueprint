@@ -55,6 +55,15 @@ export interface PropertyFeatures {
   category?: string;
   customFeatures?: string[];
   warranties?: { type: string; duration: string }[];
+  
+  // خيارات الدفع (للإيجار)
+  paymentOption?: string; // شهري / سنوي / ربع سنوي
+  paymentPrices?: {
+    monthly?: number;
+    quarterly?: number;
+    semiAnnual?: number;
+    yearly?: number;
+  };
 }
 
 export interface AIDescriptionRequest {
