@@ -262,9 +262,6 @@ export default function AuthPage() {
         localStorage.removeItem('wasata_remember_me');
       }
       
-      // تحديد أنه تم تسجيل الدخول للتو لإظهار رسالة الترحيب
-      sessionStorage.setItem('just_logged_in', 'true');
-      
       toast({
         title: 'مرحباً بك!',
         description: 'تم تسجيل الدخول بنجاح'

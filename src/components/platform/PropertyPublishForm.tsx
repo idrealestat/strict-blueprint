@@ -2169,17 +2169,12 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 extraKitchenAppliances: propertyData.extraKitchenAppliances,
                 customFeatures: [...propertyData.features, ...propertyData.customFeatures],
                 warranties: propertyData.warranties,
-                paymentOption: propertyData.paymentOption,
-                paymentPrices: propertyData.purpose === 'للإيجار' ? {
-                  monthly: propertyData.paymentPrices.monthly ? parseInt(propertyData.paymentPrices.monthly) : undefined,
-                  quarterly: propertyData.paymentPrices.fourPayments ? parseInt(propertyData.paymentPrices.fourPayments) : undefined,
-                  semiAnnual: propertyData.paymentPrices.twoPayments ? parseInt(propertyData.paymentPrices.twoPayments) : undefined,
-                  yearly: propertyData.paymentPrices.onePayment ? parseInt(propertyData.paymentPrices.onePayment) : undefined,
-                } : undefined,
               }}
               price={propertyData.price ? parseInt(propertyData.price) : undefined}
-              onDescriptionGenerated={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
-              onTitleGenerated={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
+              currentDescription={propertyData.aiDescription}
+              currentTitle={propertyData.aiTitle}
+              onDescriptionSelect={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
+              onTitleSelect={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
               style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر'}
               length={propertyData.descriptionLength as 'قصير' | 'متوسط' | 'طويل'}
               language={propertyData.descriptionLanguage as 'عربي' | 'انجليزي' | 'عربي انجليزي'}

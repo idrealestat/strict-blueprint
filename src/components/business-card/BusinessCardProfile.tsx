@@ -264,10 +264,7 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
-  const PUBLIC_BASE_DOMAIN = (import.meta as any).env?.VITE_PUBLIC_BASE_DOMAIN as string | undefined;
-  const PLATFORM_BASE_URL = PUBLIC_BASE_DOMAIN
-    ? `https://${PUBLIC_BASE_DOMAIN.replace(/^https?:\/\//, '').replace(/\/$/, '')}`
-    : window.location.origin;
+  const PLATFORM_BASE_URL = 'https://wasataai.com';
 
   // Get slug (الأولوية للـ slug المنشور للمنصة العامة)
   const getSlug = () => {
@@ -287,7 +284,7 @@ END:VCARD`;
   // Share business card
   const shareBusinessCard = async () => {
     const slug = getSlug();
-    const cardLink = `${PLATFORM_BASE_URL}/${slug}/card`;
+    const cardLink = `${PLATFORM_BASE_URL}/${slug}/businesscard`;
     if (navigator.share) {
       try {
         await navigator.share({
