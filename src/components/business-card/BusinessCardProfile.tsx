@@ -264,7 +264,10 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
-  const PLATFORM_BASE_URL = window.location.origin;
+  const PUBLIC_BASE_DOMAIN = (import.meta as any).env?.VITE_PUBLIC_BASE_DOMAIN as string | undefined;
+  const PLATFORM_BASE_URL = PUBLIC_BASE_DOMAIN
+    ? `https://${PUBLIC_BASE_DOMAIN.replace(/^https?:\/\//, '').replace(/\/$/, '')}`
+    : window.location.origin;
 
   // Get slug (الأولوية للـ slug المنشور للمنصة العامة)
   const getSlug = () => {
