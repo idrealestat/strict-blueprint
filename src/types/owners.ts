@@ -68,6 +68,7 @@ export interface AIDescriptionResponse {
   description: string;
   suggestions: string[];
   neighborhoods: string[];
+  titleSuggestions?: string[]; // عناوين مقترحة متعددة
 }
 
 export type AIDescriptionMode = 'sale' | 'rent' | 'buy-request' | 'rent-request';

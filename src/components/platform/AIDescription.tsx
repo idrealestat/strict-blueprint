@@ -1,7 +1,7 @@
 /**
  * AIDescription.tsx
- * مكون توليد الوصف الذكي بالذكاء الاصطناعي
- * تصميم فاخر مع زر ذهبي، مودال احترافي، و3 اقتراحات
+ * مكون توليد الوصف والعنوان الذكي بالذكاء الاصطناعي
+ * تصميم فاخر مع زر ذهبي، مودال احترافي، عناوين متعددة، و3 اقتراحات للوصف
  */
 
 import { useState, useCallback } from "react";
@@ -15,13 +15,21 @@ import {
   X,
   Loader2,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  Type,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { PropertyFeatures, AIDescriptionResponse } from "@/types/owners";
+
+// واجهة الاستجابة المحدثة مع العناوين
+interface AIGenerationResponse extends AIDescriptionResponse {
+  titleSuggestions: string[]; // عناوين مقترحة متعددة
+}
 
 interface AIDescriptionProps {
   mode: 'sale' | 'rent' | 'buy-request' | 'rent-request';
@@ -31,7 +39,9 @@ interface AIDescriptionProps {
   features?: PropertyFeatures;
   price?: number;
   currentDescription?: string;
+  currentTitle?: string;
   onDescriptionSelect: (description: string) => void;
+  onTitleSelect?: (title: string) => void; // دالة اختيار العنوان
   className?: string;
   // خيارات إضافية للتحكم
   style?: 'احترافي' | 'تسويقي' | 'فاخر';
@@ -49,7 +59,9 @@ export default function AIDescription({
   features,
   price,
   currentDescription,
+  currentTitle,
   onDescriptionSelect,
+  onTitleSelect,
   className = "",
   style = 'احترافي',
   length = 'متوسط',
@@ -59,13 +71,15 @@ export default function AIDescription({
 }: AIDescriptionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<AIDescriptionResponse | null>(null);
+  const [suggestions, setSuggestions] = useState<AIGenerationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<string>('');
+  const [selectedDescription, setSelectedDescription] = useState<string>('');
+  const [selectedTitle, setSelectedTitle] = useState<string>('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'titles' | 'descriptions'>('titles');
 
-  // دالة توليد الأوصاف
-  const generateDescriptions = useCallback(async () => {
+  // دالة توليد العناوين والأوصاف
+  const generateContent = useCallback(async () => {
     if (!propertyType) {
       toast.error('يرجى تحديد نوع العقار أولاً');
       return;
@@ -118,7 +132,8 @@ export default function AIDescription({
               descriptionLanguage: language,
               brokerPhone: brokerPhone || '',
               adLicense: adLicense || '',
-              generateMultiple: true, // طلب توليد اقتراحات متعددة
+              generateMultiple: true,
+              generateTitles: true, // طلب توليد عناوين
             }
           }),
         }
@@ -126,50 +141,91 @@ export default function AIDescription({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'فشل في توليد الوصف');
+        throw new Error(errorData.error || 'فشل في توليد المحتوى');
       }
 
       const data = await response.json();
       
       // إنشاء الاستجابة المنسقة
       const mainDescription = data.description || '';
+      const purpose = purposeMap[mode];
       
-      // توليد اقتراحات إضافية محاكاة (في المستقبل يمكن تحسينها من الباكند)
-      const suggestionsList: string[] = [];
+      // توليد عناوين متعددة
+      const titleSuggestions: string[] = [];
+      
+      // عنوان 1: رسمي
+      titleSuggestions.push(
+        `${propertyType} ${purpose} - ${city || ''} حي ${district || ''}`
+      );
+      
+      // عنوان 2: تسويقي مع المساحة
+      if (features?.area) {
+        titleSuggestions.push(
+          `${propertyType} فاخر ${purpose} | ${features.area} م² - ${district || city || ''}`
+        );
+      }
+      
+      // عنوان 3: مع عدد الغرف
+      if (features?.bedrooms) {
+        titleSuggestions.push(
+          `${propertyType} ${features.bedrooms} غرف ${purpose} في ${city || ''}`
+        );
+      }
+      
+      // عنوان 4: مختصر وجذاب
+      titleSuggestions.push(
+        `✨ ${propertyType} مميز ${purpose} - ${district || city || ''}`
+      );
+      
+      // عنوان 5: مع السعر
+      if (price) {
+        const formattedPrice = price >= 1000000 
+          ? `${(price / 1000000).toFixed(1)} مليون` 
+          : `${(price / 1000).toFixed(0)} ألف`;
+        titleSuggestions.push(
+          `${propertyType} ${purpose} بـ ${formattedPrice} ريال - ${city || ''}`
+        );
+      }
+
+      // توليد اقتراحات وصف إضافية
+      const descriptionSuggestions: string[] = [];
       
       // الاقتراح الأول: نسخة مختصرة
       if (mainDescription.length > 200) {
         const shortVersion = mainDescription.split('\n').slice(0, 4).join('\n');
-        suggestionsList.push(shortVersion);
+        descriptionSuggestions.push(shortVersion);
       }
       
       // الاقتراح الثاني: التركيز على المميزات
       if (features?.customFeatures && features.customFeatures.length > 0) {
-        const featuresFocused = `✨ ${propertyType} ${purposeMap[mode]} في ${city || ''} - ${district || ''}\n\n🏠 المميزات الرئيسية:\n${features.customFeatures.slice(0, 5).map(f => `• ${f}`).join('\n')}\n\n📞 للتواصل والاستفسار`;
-        suggestionsList.push(featuresFocused);
+        const featuresFocused = `✨ ${propertyType} ${purpose} في ${city || ''} - ${district || ''}\n\n🏠 المميزات الرئيسية:\n${features.customFeatures.slice(0, 5).map(f => `• ${f}`).join('\n')}\n\n📞 للتواصل والاستفسار`;
+        descriptionSuggestions.push(featuresFocused);
       }
       
       // الاقتراح الثالث: نسخة تسويقية قصيرة
-      const marketingShort = `🌟 ${propertyType} ${purposeMap[mode]}\n📍 ${city || ''} - ${district || ''}\n${features?.area ? `📐 المساحة: ${features.area} م²` : ''}\n${features?.bedrooms ? `🛏️ ${features.bedrooms} غرف نوم` : ''}\n${price ? `💰 ${price.toLocaleString()} ريال` : ''}\n\n📲 تواصل معنا الآن!`;
-      suggestionsList.push(marketingShort);
+      const marketingShort = `🌟 ${propertyType} ${purpose}\n📍 ${city || ''} - ${district || ''}\n${features?.area ? `📐 المساحة: ${features.area} م²` : ''}\n${features?.bedrooms ? `🛏️ ${features.bedrooms} غرف نوم` : ''}\n${price ? `💰 ${price.toLocaleString()} ريال` : ''}\n\n📲 تواصل معنا الآن!`;
+      descriptionSuggestions.push(marketingShort);
 
       // أحياء مقترحة
       const neighborhoodSuggestions = getNeighborhoodSuggestions(city || '');
 
       setSuggestions({
-        title: `${propertyType} ${purposeMap[mode]} - ${city || ''} ${district || ''}`,
+        title: titleSuggestions[0],
+        titleSuggestions: titleSuggestions.filter(t => t.trim()),
         description: mainDescription,
-        suggestions: suggestionsList,
+        suggestions: descriptionSuggestions,
         neighborhoods: neighborhoodSuggestions
       });
 
-      setSelectedSuggestion(mainDescription);
+      setSelectedTitle(titleSuggestions[0]);
+      setSelectedDescription(mainDescription);
       setIsOpen(true);
+      setActiveTab('titles'); // بدء بتبويب العناوين
 
     } catch (err) {
-      console.error('Error generating description:', err);
+      console.error('Error generating content:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
-      toast.error(err instanceof Error ? err.message : 'فشل في توليد الوصف');
+      toast.error(err instanceof Error ? err.message : 'فشل في توليد المحتوى');
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +236,7 @@ export default function AIDescription({
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(index);
-      toast.success('تم نسخ الوصف');
+      toast.success('تم النسخ');
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch {
       toast.error('فشل في نسخ النص');
@@ -189,12 +245,15 @@ export default function AIDescription({
 
   // دالة تأكيد الاختيار
   const confirmSelection = useCallback(() => {
-    if (selectedSuggestion) {
-      onDescriptionSelect(selectedSuggestion);
-      setIsOpen(false);
-      toast.success('تم اختيار الوصف بنجاح');
+    if (selectedTitle && onTitleSelect) {
+      onTitleSelect(selectedTitle);
     }
-  }, [selectedSuggestion, onDescriptionSelect]);
+    if (selectedDescription) {
+      onDescriptionSelect(selectedDescription);
+    }
+    setIsOpen(false);
+    toast.success('تم اختيار العنوان والوصف بنجاح');
+  }, [selectedTitle, selectedDescription, onTitleSelect, onDescriptionSelect]);
 
   // دالة الحصول على اقتراحات الأحياء
   const getNeighborhoodSuggestions = (cityName: string): string[] => {
@@ -211,10 +270,10 @@ export default function AIDescription({
 
   return (
     <>
-      {/* زر توليد الوصف الذكي - تصميم ذهبي فاخر */}
+      {/* زر توليد المحتوى الذكي - تصميم ذهبي فاخر */}
       <motion.div className={className}>
         <Button
-          onClick={generateDescriptions}
+          onClick={generateContent}
           disabled={isLoading || !propertyType}
           className="w-full relative overflow-hidden group bg-gradient-to-r from-[#D4AF37] via-[#f1c40f] to-[#D4AF37] hover:from-[#c9a227] hover:via-[#e0b40e] hover:to-[#c9a227] text-[#01411C] font-bold shadow-lg transition-all duration-300"
           size="lg"
@@ -231,12 +290,12 @@ export default function AIDescription({
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>جاري توليد الأوصاف...</span>
+                <span>جاري توليد العناوين والأوصاف...</span>
               </>
             ) : (
               <>
                 <Wand2 className="w-5 h-5" />
-                <span>توليد الوصف بالذكاء الاصطناعي</span>
+                <span>توليد العنوان والوصف بالذكاء الاصطناعي</span>
                 <Sparkles className="w-4 h-4 animate-pulse" />
               </>
             )}
@@ -256,7 +315,7 @@ export default function AIDescription({
                     <div className="w-10 h-10 rounded-full bg-[#D4AF37] flex items-center justify-center">
                       <Sparkles className="w-5 h-5 text-[#01411C]" />
                     </div>
-                    <span>الوصف الذكي بالذكاء الاصطناعي</span>
+                    <span>المحتوى الذكي بالذكاء الاصطناعي</span>
                   </DialogTitle>
                   <Button
                     variant="ghost"
@@ -267,194 +326,303 @@ export default function AIDescription({
                     <X className="w-5 h-5" />
                   </Button>
                 </div>
-                {suggestions && (
-                  <p className="text-white/80 mt-2 text-sm">{suggestions.title}</p>
-                )}
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] p-6">
-                {error ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center justify-center py-12 text-center"
-                  >
-                    <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-                    <p className="text-red-600 font-medium mb-4">{error}</p>
-                    <Button onClick={generateDescriptions} variant="outline">
-                      <RefreshCw className="w-4 h-4 ml-2" />
-                      إعادة المحاولة
-                    </Button>
-                  </motion.div>
-                ) : suggestions ? (
-                  <div className="space-y-6">
-                    {/* الوصف الرئيسي */}
+              {/* تبويبات العناوين والأوصاف */}
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'titles' | 'descriptions')} className="flex-1">
+                <div className="px-6 pt-4">
+                  <TabsList className="grid w-full grid-cols-2 bg-[#01411C]/10">
+                    <TabsTrigger 
+                      value="titles" 
+                      className="flex items-center gap-2 data-[state=active]:bg-[#01411C] data-[state=active]:text-white"
+                    >
+                      <Type className="w-4 h-4" />
+                      العناوين ({suggestions?.titleSuggestions?.length || 0})
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="descriptions"
+                      className="flex items-center gap-2 data-[state=active]:bg-[#01411C] data-[state=active]:text-white"
+                    >
+                      <FileText className="w-4 h-4" />
+                      الأوصاف ({(suggestions?.suggestions?.length || 0) + 1})
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <ScrollArea className="max-h-[50vh] p-6">
+                  {error ? (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
+                      className="flex flex-col items-center justify-center py-12 text-center"
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-[#01411C] flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 text-[#D4AF37]" />
-                          الوصف الرئيسي
-                        </h3>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => copyToClipboard(suggestions.description, 0)}
-                          className="text-[#01411C] hover:text-[#D4AF37]"
+                      <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+                      <p className="text-red-600 font-medium mb-4">{error}</p>
+                      <Button onClick={generateContent} variant="outline">
+                        <RefreshCw className="w-4 h-4 ml-2" />
+                        إعادة المحاولة
+                      </Button>
+                    </motion.div>
+                  ) : suggestions ? (
+                    <>
+                      {/* تبويب العناوين */}
+                      <TabsContent value="titles" className="mt-0 space-y-4">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
                         >
-                          {copiedIndex === 0 ? (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <div
-                        onClick={() => setSelectedSuggestion(suggestions.description)}
-                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                          selectedSuggestion === suggestions.description
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-md'
-                            : 'border-gray-200 hover:border-[#D4AF37]/50 bg-white'
-                        }`}
-                      >
-                        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
-                          {suggestions.description}
-                        </pre>
-                        {selectedSuggestion === suggestions.description && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="flex items-center gap-1 mt-3 text-[#01411C] text-sm font-medium"
+                          <h3 className="font-bold text-[#01411C] mb-4 flex items-center gap-2">
+                            <Type className="w-5 h-5 text-[#D4AF37]" />
+                            اختر عنواناً للإعلان
+                          </h3>
+                          <div className="grid gap-3">
+                            {suggestions.titleSuggestions?.map((title, index) => (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                onClick={() => setSelectedTitle(title)}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                  selectedTitle === title
+                                    ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-md'
+                                    : 'border-gray-200 hover:border-[#D4AF37]/50 bg-white'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                                      selectedTitle === title 
+                                        ? 'bg-[#D4AF37] text-[#01411C]' 
+                                        : 'bg-gray-200 text-gray-600'
+                                    }`}>
+                                      {index + 1}
+                                    </div>
+                                    <p className="text-gray-800 font-medium">{title}</p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      copyToClipboard(title, index);
+                                    }}
+                                    className="text-[#01411C] hover:text-[#D4AF37] shrink-0"
+                                  >
+                                    {copiedIndex === index ? (
+                                      <CheckCircle className="w-4 h-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                                {selectedTitle === title && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="flex items-center gap-1 mt-2 text-[#01411C] text-sm font-medium"
+                                  >
+                                    <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
+                                    محدد
+                                  </motion.div>
+                                )}
+                              </motion.div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      </TabsContent>
+
+                      {/* تبويب الأوصاف */}
+                      <TabsContent value="descriptions" className="mt-0 space-y-6">
+                        {/* الوصف الرئيسي */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-bold text-[#01411C] flex items-center gap-2">
+                              <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+                              الوصف الرئيسي
+                            </h3>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => copyToClipboard(suggestions.description, 100)}
+                              className="text-[#01411C] hover:text-[#D4AF37]"
+                            >
+                              {copiedIndex === 100 ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <div
+                            onClick={() => setSelectedDescription(suggestions.description)}
+                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                              selectedDescription === suggestions.description
+                                ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-md'
+                                : 'border-gray-200 hover:border-[#D4AF37]/50 bg-white'
+                            }`}
                           >
-                            <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
-                            محدد
+                            <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
+                              {suggestions.description}
+                            </pre>
+                            {selectedDescription === suggestions.description && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="flex items-center gap-1 mt-3 text-[#01411C] text-sm font-medium"
+                              >
+                                <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
+                                محدد
+                              </motion.div>
+                            )}
+                          </div>
+                        </motion.div>
+
+                        {/* الاقتراحات الإضافية */}
+                        {suggestions.suggestions.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                          >
+                            <h3 className="font-bold text-[#01411C] mb-3 flex items-center gap-2">
+                              <RefreshCw className="w-5 h-5 text-[#065f41]" />
+                              اقتراحات بديلة ({suggestions.suggestions.length})
+                            </h3>
+                            <div className="grid gap-3">
+                              {suggestions.suggestions.map((suggestion, index) => (
+                                <motion.div
+                                  key={index}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.3 + index * 0.1 }}
+                                  onClick={() => setSelectedDescription(suggestion)}
+                                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                    selectedDescription === suggestion
+                                      ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-md'
+                                      : 'border-gray-200 hover:border-[#D4AF37]/50 bg-white'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed flex-1">
+                                      {suggestion}
+                                    </pre>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        copyToClipboard(suggestion, 101 + index);
+                                      }}
+                                      className="text-[#01411C] hover:text-[#D4AF37] shrink-0"
+                                    >
+                                      {copiedIndex === 101 + index ? (
+                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                      ) : (
+                                        <Copy className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                  {selectedDescription === suggestion && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="flex items-center gap-1 mt-3 text-[#01411C] text-sm font-medium"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
+                                      محدد
+                                    </motion.div>
+                                  )}
+                                </motion.div>
+                              ))}
+                            </div>
                           </motion.div>
                         )}
-                      </div>
-                    </motion.div>
 
-                    {/* الاقتراحات الإضافية */}
-                    {suggestions.suggestions.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        <h3 className="font-bold text-[#01411C] mb-3 flex items-center gap-2">
-                          <RefreshCw className="w-5 h-5 text-[#065f41]" />
-                          اقتراحات بديلة ({suggestions.suggestions.length})
-                        </h3>
-                        <div className="grid gap-3">
-                          {suggestions.suggestions.map((suggestion, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.3 + index * 0.1 }}
-                              onClick={() => setSelectedSuggestion(suggestion)}
-                              className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                                selectedSuggestion === suggestion
-                                  ? 'border-[#D4AF37] bg-[#D4AF37]/10 shadow-md'
-                                  : 'border-gray-200 hover:border-[#D4AF37]/50 bg-white'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed flex-1">
-                                  {suggestion}
-                                </pre>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    copyToClipboard(suggestion, index + 1);
-                                  }}
-                                  className="text-[#01411C] hover:text-[#D4AF37] shrink-0"
+                        {/* الأحياء المقترحة */}
+                        {suggestions.neighborhoods.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 }}
+                          >
+                            <h3 className="font-bold text-[#01411C] mb-3 flex items-center gap-2">
+                              <MapPin className="w-5 h-5 text-[#065f41]" />
+                              أحياء مقترحة في {city}
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                              {suggestions.neighborhoods.map((neighborhood, index) => (
+                                <motion.span
+                                  key={index}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ delay: 0.6 + index * 0.05 }}
+                                  className="px-3 py-1.5 bg-[#f0fdf4] border border-[#01411C]/20 rounded-full text-sm text-[#01411C] hover:bg-[#01411C] hover:text-white cursor-pointer transition-colors"
                                 >
-                                  {copiedIndex === index + 1 ? (
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                  ) : (
-                                    <Copy className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              </div>
-                              {selectedSuggestion === suggestion && (
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  className="flex items-center gap-1 mt-3 text-[#01411C] text-sm font-medium"
-                                >
-                                  <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
-                                  محدد
-                                </motion.div>
-                              )}
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
+                                  {neighborhood}
+                                </motion.span>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </TabsContent>
+                    </>
+                  ) : null}
+                </ScrollArea>
+              </Tabs>
 
-                    {/* الأحياء المقترحة */}
-                    {suggestions.neighborhoods.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        <h3 className="font-bold text-[#01411C] mb-3 flex items-center gap-2">
-                          <MapPin className="w-5 h-5 text-[#065f41]" />
-                          أحياء مقترحة في {city}
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {suggestions.neighborhoods.map((neighborhood, index) => (
-                            <motion.span
-                              key={index}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.6 + index * 0.05 }}
-                              className="px-3 py-1.5 bg-[#f0fdf4] border border-[#01411C]/20 rounded-full text-sm text-[#01411C] hover:bg-[#01411C] hover:text-white cursor-pointer transition-colors"
-                            >
-                              {neighborhood}
-                            </motion.span>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                ) : null}
-              </ScrollArea>
-
-              {/* تذييل المودال */}
+              {/* تذييل المودال - ملخص الاختيارات */}
               {suggestions && !error && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-6 pt-4 border-t bg-gray-50/80 flex items-center justify-between gap-4"
+                  className="p-6 pt-4 border-t bg-gray-50/80"
                 >
-                  <Button
-                    variant="outline"
-                    onClick={generateDescriptions}
-                    disabled={isLoading}
-                    className="border-[#01411C] text-[#01411C] hover:bg-[#01411C] hover:text-white"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 ml-2" />
-                    )}
-                    توليد أوصاف جديدة
-                  </Button>
-                  <Button
-                    onClick={confirmSelection}
-                    disabled={!selectedSuggestion}
-                    className="bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:from-[#c9a227] hover:to-[#e0b40e] shadow-md px-8"
-                  >
-                    <CheckCircle className="w-4 h-4 ml-2" />
-                    استخدام الوصف المحدد
-                  </Button>
+                  {/* ملخص الاختيارات */}
+                  <div className="mb-4 p-3 bg-white rounded-lg border space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Type className="w-4 h-4 text-[#D4AF37]" />
+                      <span className="text-gray-500">العنوان:</span>
+                      <span className="font-medium text-[#01411C] truncate flex-1">
+                        {selectedTitle || 'لم يتم اختيار عنوان'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="w-4 h-4 text-[#D4AF37]" />
+                      <span className="text-gray-500">الوصف:</span>
+                      <span className="font-medium text-[#01411C] truncate flex-1">
+                        {selectedDescription ? `${selectedDescription.substring(0, 50)}...` : 'لم يتم اختيار وصف'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={generateContent}
+                      disabled={isLoading}
+                      className="border-[#01411C] text-[#01411C] hover:bg-[#01411C] hover:text-white"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 ml-2" />
+                      )}
+                      توليد محتوى جديد
+                    </Button>
+                    <Button
+                      onClick={confirmSelection}
+                      disabled={!selectedTitle && !selectedDescription}
+                      className="bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:from-[#c9a227] hover:to-[#e0b40e] shadow-md px-8"
+                    >
+                      <CheckCircle className="w-4 h-4 ml-2" />
+                      استخدام المحدد
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </DialogContent>

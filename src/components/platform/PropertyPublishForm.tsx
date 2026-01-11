@@ -141,13 +141,14 @@ interface PropertyData {
   hashtags: string[];
   customHashtags: string[];
 
-  // 12. مولد الوصف
+  // 12. مولد الوصف والعنوان
   brokerPhone: string;
   adLicense: string;
   descriptionLength: string;
   descriptionLanguage: string;
   descriptionStyle: string;
   aiDescription: string;
+  aiTitle: string; // العنوان المولد بالذكاء الاصطناعي
 
   // 13. الوسائط (صور وفيديو)
   media: MediaFile[];
@@ -270,6 +271,7 @@ const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
   descriptionLanguage: 'عربي',
   descriptionStyle: 'احترافي',
   aiDescription: '',
+  aiTitle: '', // العنوان المولد
   media: [],
   tour3DUrl: '',
 });
@@ -812,8 +814,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     try {
       const adData: PublishedAdData = {
         id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        title: `${propertyData.purpose || ''} - ${propertyData.propertyType || ''} - ${propertyData.area || ''}م`.
-          replace(/^\s*-\s*/,'').trim(),
+        // استخدام العنوان المولد بالذكاء الاصطناعي إن وجد، وإلا توليد عنوان تلقائي
+        title: propertyData.aiTitle || 
+          `${propertyData.purpose || ''} - ${propertyData.propertyType || ''} - ${propertyData.area || ''}م`.replace(/^\s*-\s*/,'').trim(),
         propertyType: propertyData.propertyType,
         category: propertyData.category,
         purpose: propertyData.purpose,
@@ -2127,7 +2130,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               </div>
             </div>
 
-            {/* زر توليد الوصف الذكي الجديد */}
+            {/* زر توليد العنوان والوصف الذكي */}
             <AIDescription
               mode={propertyData.purpose === 'للبيع' ? 'sale' : 'rent'}
               city={propertyData.locationDetails.city}
@@ -2153,7 +2156,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               }}
               price={propertyData.price ? parseInt(propertyData.price) : undefined}
               currentDescription={propertyData.aiDescription}
+              currentTitle={propertyData.aiTitle}
               onDescriptionSelect={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
+              onTitleSelect={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
               style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر'}
               length={propertyData.descriptionLength as 'قصير' | 'متوسط' | 'طويل'}
               language={propertyData.descriptionLanguage as 'عربي' | 'انجليزي' | 'عربي انجليزي'}
@@ -2161,6 +2166,43 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               adLicense={propertyData.adLicense}
             />
 
+            {/* حقل العنوان المولد */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-[#01411C] flex items-center gap-2">
+                  <SparklesIcon className="w-4 h-4 text-[#D4AF37]" />
+                  عنوان الإعلان
+                  <Badge variant="outline" className="text-xs border-[#D4AF37] text-[#D4AF37]">
+                    يظهر في المنصة العامة
+                  </Badge>
+                </Label>
+                {propertyData.aiTitle && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(propertyData.aiTitle);
+                      toast.success('تم نسخ العنوان');
+                    }}
+                    className="text-[#01411C] hover:text-[#D4AF37]"
+                  >
+                    <Copy className="w-3 h-3 ml-1" />
+                    نسخ
+                  </Button>
+                )}
+              </div>
+              <Input
+                value={propertyData.aiTitle}
+                onChange={(e) => setPropertyData(prev => ({ ...prev, aiTitle: e.target.value }))}
+                placeholder="اضغط على زر التوليد لإنشاء عنوان جذاب للإعلان..."
+                className="border-[#D4AF37] bg-[#f0fdf4]/50 font-medium"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                هذا العنوان سيظهر للعملاء في المنصة العامة
+              </p>
+            </div>
+
+            {/* حقل الوصف */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-[#01411C] flex items-center gap-2">
@@ -2168,20 +2210,18 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   الوصف
                 </Label>
                 {propertyData.aiDescription && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        navigator.clipboard.writeText(propertyData.aiDescription);
-                        toast.success('تم نسخ الوصف');
-                      }}
-                      className="text-[#01411C] hover:text-[#D4AF37]"
-                    >
-                      <Copy className="w-3 h-3 ml-1" />
-                      نسخ
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(propertyData.aiDescription);
+                      toast.success('تم نسخ الوصف');
+                    }}
+                    className="text-[#01411C] hover:text-[#D4AF37]"
+                  >
+                    <Copy className="w-3 h-3 ml-1" />
+                    نسخ
+                  </Button>
                 )}
               </div>
               <Textarea
