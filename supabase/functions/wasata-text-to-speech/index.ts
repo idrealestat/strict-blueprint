@@ -10,9 +10,12 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+// الصوت الافتراضي المطلوب
+const DEFAULT_VOICE_ID = 'QRq5hPRAKf5ZhSlTBH6r';
+
 // ElevenLabs Voice IDs - Arabic-friendly voices
 const VOICE_MAP: Record<string, string> = {
-  'alloy': 'EXAVITQu4vr4xnSDxMaL',    // Sarah - عربي جيد
+  'alloy': 'QRq5hPRAKf5ZhSlTBH6r',    // الصوت المطلوب
   'echo': 'JBFqnCBsd6RMkjVDRZzb',     // George
   'fable': 'N2lVS1w4EtoT3dr4eOWO',    // Callum
   'onyx': 'onwK4e9ZLuTAKqWW03F9',     // Daniel
@@ -124,9 +127,9 @@ serve(async (req) => {
     console.log("Converting text to speech for user:", userId, "text:", text.substring(0, 100));
     console.log("Voice:", voice, "VoiceId:", voiceId, "Text length:", text.length);
 
-    // Use ElevenLabs TTS API
+    // Use ElevenLabs TTS API with turbo model for faster response
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: {
@@ -135,12 +138,13 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_multilingual_v2", // Best for Arabic
+          model_id: "eleven_turbo_v2_5", // أسرع - latency منخفض
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,
             style: 0.3,
             use_speaker_boost: true,
+            speed: 1.0,
           },
         }),
       }
