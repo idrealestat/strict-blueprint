@@ -86,6 +86,14 @@ interface FormData {
   area: string;
   price: string;
   
+  // خيارات الدفعات للإيجار
+  paymentPrices: {
+    onePayment: string;
+    twoPayments: string;
+    fourPayments: string;
+    monthly: string;
+  };
+  
   // المواصفات التفصيلية
   floors: string;
   floorNumber: string;
@@ -192,6 +200,12 @@ export default function PublicOfferForm() {
     street: '',
     area: '',
     price: '',
+    paymentPrices: {
+      onePayment: '',
+      twoPayments: '',
+      fourPayments: '',
+      monthly: '',
+    },
     floors: '',
     floorNumber: '',
     bedrooms: '',
@@ -835,6 +849,73 @@ export default function PublicOfferForm() {
                 className="border-amber-200 focus:border-amber-400"
               />
             </div>
+
+            {/* حقول الدفعات للإيجار */}
+            {formData.purpose === 'للإيجار' && (
+              <div className="md:col-span-2 border-t pt-4 mt-2 space-y-4">
+                <Label className="text-amber-800 font-bold flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  خيارات الدفعات (اختياري)
+                </Label>
+                <p className="text-sm text-amber-600">
+                  حدد الأسعار حسب طريقة الدفع المفضلة للمستأجر
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm text-amber-700">دفعة واحدة</Label>
+                    <Input
+                      type="number"
+                      value={formData.paymentPrices.onePayment}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        paymentPrices: { ...prev.paymentPrices, onePayment: e.target.value }
+                      }))}
+                      placeholder="السعر السنوي"
+                      className="border-amber-200 focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-amber-700">دفعتين</Label>
+                    <Input
+                      type="number"
+                      value={formData.paymentPrices.twoPayments}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        paymentPrices: { ...prev.paymentPrices, twoPayments: e.target.value }
+                      }))}
+                      placeholder="السعر للدفعتين"
+                      className="border-amber-200 focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-amber-700">أربع دفعات</Label>
+                    <Input
+                      type="number"
+                      value={formData.paymentPrices.fourPayments}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        paymentPrices: { ...prev.paymentPrices, fourPayments: e.target.value }
+                      }))}
+                      placeholder="السعر لأربع دفعات"
+                      className="border-amber-200 focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-amber-700">شهري</Label>
+                    <Input
+                      type="number"
+                      value={formData.paymentPrices.monthly}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        paymentPrices: { ...prev.paymentPrices, monthly: e.target.value }
+                      }))}
+                      placeholder="السعر الشهري"
+                      className="border-amber-200 focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Section>
 
