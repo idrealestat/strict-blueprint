@@ -865,25 +865,28 @@ END:VCARD`;
                 <Calculator className="w-5 h-5" />
                 <span className="text-xs">حاسبة تمويل</span>
               </Button>
+
+              {/* Rate Me - قييمني */}
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col items-center gap-1 border-2 border-[#D4AF37] bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] text-[#01411C] font-bold hover:opacity-90"
+                onClick={() => toast.info("قييمني - قريباً")}
+              >
+                <Star className="w-5 h-5" />
+                <span className="text-xs">قييمني</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Share Buttons */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Share Button */}
+        <div className="grid grid-cols-1 gap-4">
           <Button
             className="h-16 bg-gradient-to-br from-[#01411C] to-[#065f41] border-2 border-[#D4AF37] text-white hover:from-[#065f41] hover:to-[#01411C]"
             onClick={shareBusinessCard}
           >
             <Share2 className="w-5 h-5 ml-2" />
             مشاركة البطاقة
-          </Button>
-          <Button
-            className="h-16 bg-gradient-to-br from-[#D4AF37] to-[#f1c40f] border-2 border-[#01411C] text-[#01411C] font-bold hover:from-[#f1c40f] hover:to-[#D4AF37]"
-            onClick={() => toast.info("قييمني - قريباً")}
-          >
-            <Star className="w-5 h-5 ml-2" />
-            قييمني
           </Button>
         </div>
 
