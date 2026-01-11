@@ -105,11 +105,11 @@ const SlugRequestPage = () => {
 
     setIsSubmitting(true);
     
-    // Track request submission
+    // Track request submission - UNIFIED EVENT NAME
     track({
-      eventName: 'request_submitted',
+      eventName: 'request_submit',
       channel: 'public_web',
-      entityType: 'request_form',
+      entityType: 'request',
       entityId: businessCard?.id,
       metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
     });
