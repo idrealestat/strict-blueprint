@@ -30,6 +30,7 @@ export interface FeatureFlags {
   right_slider_owner_panel_enabled: boolean;
   // Business Card
   business_card_add_colleague_enabled: boolean;
+  official_business_card_enabled: boolean;
 }
 
 // Feature flag keys for iteration
@@ -45,6 +46,7 @@ export const FEATURE_FLAG_KEYS: (keyof FeatureFlags)[] = [
   'right_slider_workspace_enabled',
   'right_slider_owner_panel_enabled',
   'business_card_add_colleague_enabled',
+  'official_business_card_enabled',
 ];
 
 // Human-readable labels for each feature
@@ -60,6 +62,7 @@ export const FEATURE_FLAG_LABELS: Record<keyof FeatureFlags, string> = {
   right_slider_workspace_enabled: 'مساحة العمل',
   right_slider_owner_panel_enabled: 'لوحة تحكم المالك',
   business_card_add_colleague_enabled: 'إضافة زميل',
+  official_business_card_enabled: 'البطاقة الرسمية للطباعة',
 };
 
 // Feature categories for UI grouping
@@ -67,7 +70,7 @@ export const FEATURE_CATEGORIES = {
   dashboard: ['publishing_enabled', 'smart_paths_enabled', 'spatial_intelligence_enabled', 'offers_requests_enabled', 'quick_calculator_enabled'] as (keyof FeatureFlags)[],
   left_slider: ['left_slider_enabled'] as (keyof FeatureFlags)[],
   right_slider: ['right_slider_mediation_course_enabled', 'right_slider_team_management_enabled', 'right_slider_workspace_enabled', 'right_slider_owner_panel_enabled'] as (keyof FeatureFlags)[],
-  business_card: ['business_card_add_colleague_enabled'] as (keyof FeatureFlags)[],
+  business_card: ['business_card_add_colleague_enabled', 'official_business_card_enabled'] as (keyof FeatureFlags)[],
 };
 
 interface FeatureFlagsContextValue {
@@ -95,6 +98,7 @@ const systemFallbackDefaults: FeatureFlags = {
   right_slider_workspace_enabled: true,
   right_slider_owner_panel_enabled: false, // Only for owners
   business_card_add_colleague_enabled: true,
+  official_business_card_enabled: true,
 };
 
 const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({

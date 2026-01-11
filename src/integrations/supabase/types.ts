@@ -68,6 +68,7 @@ export type Database = {
           left_slider_enabled: boolean | null
           notes: string | null
           offers_requests_enabled: boolean | null
+          official_business_card_enabled: boolean | null
           publishing_enabled: boolean | null
           quick_calculator_enabled: boolean | null
           right_slider_mediation_course_enabled: boolean | null
@@ -86,6 +87,7 @@ export type Database = {
           left_slider_enabled?: boolean | null
           notes?: string | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -104,6 +106,7 @@ export type Database = {
           left_slider_enabled?: boolean | null
           notes?: string | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -506,6 +509,7 @@ export type Database = {
           id: string
           left_slider_enabled: boolean | null
           offers_requests_enabled: boolean | null
+          official_business_card_enabled: boolean | null
           publishing_enabled: boolean | null
           quick_calculator_enabled: boolean | null
           right_slider_mediation_course_enabled: boolean | null
@@ -523,6 +527,7 @@ export type Database = {
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -540,6 +545,7 @@ export type Database = {
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -587,6 +593,7 @@ export type Database = {
           id: string
           left_slider_enabled: boolean | null
           offers_requests_enabled: boolean | null
+          official_business_card_enabled: boolean | null
           publishing_enabled: boolean | null
           quick_calculator_enabled: boolean | null
           right_slider_mediation_course_enabled: boolean | null
@@ -603,6 +610,7 @@ export type Database = {
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -619,6 +627,7 @@ export type Database = {
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -1319,6 +1328,7 @@ export type Database = {
           left_slider_enabled: boolean | null
           notes: string | null
           offers_requests_enabled: boolean | null
+          official_business_card_enabled: boolean | null
           publishing_enabled: boolean | null
           quick_calculator_enabled: boolean | null
           right_slider_mediation_course_enabled: boolean | null
@@ -1339,6 +1349,7 @@ export type Database = {
           left_slider_enabled?: boolean | null
           notes?: string | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
@@ -1359,6 +1370,7 @@ export type Database = {
           left_slider_enabled?: boolean | null
           notes?: string | null
           offers_requests_enabled?: boolean | null
+          official_business_card_enabled?: boolean | null
           publishing_enabled?: boolean | null
           quick_calculator_enabled?: boolean | null
           right_slider_mediation_course_enabled?: boolean | null
