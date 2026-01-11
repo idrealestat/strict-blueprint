@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { Download, FileText, Printer, Edit2, QrCode, Phone, Mail, MapPin, Star, Globe } from 'lucide-react';
+import { Download, FileText, Printer, Edit2, Phone, Mail, MapPin, Star, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 import { getIdentityImage, getAvatarFallback, generateVCard } from '@/types/businessCard';
+import { useQRCode } from '@/hooks/useQRCode';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -23,6 +24,36 @@ const WasataWatermark = () => (
     </svg>
   </div>
 );
+
+// QR Code Component for the card
+const CardQRCode = ({ vCardData }: { vCardData: string }) => {
+  const { qrDataUrl, loading } = useQRCode(vCardData, {
+    width: 200,
+    margin: 1,
+    color: {
+      dark: '#01411C',
+      light: '#FFFFFF',
+    }
+  });
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-white">
+        <div className="w-4 h-4 border-2 border-[#01411C] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!qrDataUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-xs">
+        QR
+      </div>
+    );
+  }
+
+  return <img src={qrDataUrl} alt="QR Code - vCard" className="w-full h-full" />;
+};
 
 interface OfficialBusinessCardProps {
   onEdit?: () => void;
@@ -38,12 +69,6 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
   const avatarFallback = getAvatarFallback(data.name);
   const publicUrl = `wasataai.com/${data.slug}`;
   const vCardData = generateVCard(data);
-
-  // Generate QR code as data URL (simple QR using canvas)
-  const generateQRDataUrl = (): string => {
-    // For now, return a placeholder - in production, use a QR library
-    return `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(vCardData)}`;
-  };
 
   // Handle image download
   const handleDownloadImage = async () => {
@@ -247,12 +272,8 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                   </div>
 
                   {/* QR Code */}
-                  <div className="w-16 h-16 bg-white rounded-lg p-1 shadow-lg">
-                    <img 
-                      src={generateQRDataUrl()} 
-                      alt="QR Code" 
-                      className="w-full h-full"
-                    />
+                  <div className="w-16 h-16 bg-white rounded-lg p-1 shadow-lg overflow-hidden">
+                    <CardQRCode vCardData={vCardData} />
                   </div>
                 </div>
 
