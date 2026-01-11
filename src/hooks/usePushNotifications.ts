@@ -124,6 +124,26 @@ export function usePushNotifications() {
     });
   }, [sendLocalNotification]);
 
+  // إرسال إشعار عرض عقاري جديد
+  const sendOfferNotification = useCallback(async (
+    offerInfo: {
+      ownerName: string;
+      propertyType: string;
+      purpose: string;
+      city?: string;
+      offerId?: string;
+      customerId?: string;
+    }
+  ) => {
+    const title = `🏠 عرض عقاري جديد`;
+    const body = `${offerInfo.ownerName} - ${offerInfo.propertyType} ${offerInfo.purpose}${offerInfo.city ? ` في ${offerInfo.city}` : ''}`;
+    
+    return sendLocalNotification(title, body, {
+      type: 'new_offer',
+      ...offerInfo,
+    });
+  }, [sendLocalNotification]);
+
   // إلغاء الاشتراك
   const unsubscribe = useCallback(async () => {
     try {
@@ -148,6 +168,7 @@ export function usePushNotifications() {
     requestPermission,
     sendLocalNotification,
     sendViewNotification,
+    sendOfferNotification,
     unsubscribe,
   };
 }
