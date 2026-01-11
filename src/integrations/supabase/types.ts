@@ -871,6 +871,60 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_views_log: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          device: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          offer_id: string
+          offer_title: string | null
+          os: string | null
+          referrer: string | null
+          session_id: string | null
+          user_id: string
+          view_duration: number | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          offer_id: string
+          offer_title?: string | null
+          os?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_id: string
+          view_duration?: number | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          offer_id?: string
+          offer_title?: string | null
+          os?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_id?: string
+          view_duration?: number | null
+        }
+        Relationships: []
+      }
       platform_listings: {
         Row: {
           ac_units: string | null
@@ -1126,6 +1180,60 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      received_documents: {
+        Row: {
+          city: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          data: Json | null
+          district: string | null
+          document_type: string
+          id: string
+          is_read: boolean | null
+          notes: string | null
+          property_type: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          data?: Json | null
+          district?: string | null
+          document_type: string
+          id?: string
+          is_read?: boolean | null
+          notes?: string | null
+          property_type?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          data?: Json | null
+          district?: string | null
+          document_type?: string
+          id?: string
+          is_read?: boolean | null
+          notes?: string | null
+          property_type?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
