@@ -1,9 +1,10 @@
 /**
  * PublicOfferForm.tsx
  * صفحة إرسال عرض عقاري من العميل - نموذج شامل مع أقسام ملونة
+ * يحفظ البيانات في قاعدة البيانات مع الإشعارات والدوائر النابضة
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
+import { triggerOfferNotification, createNotification } from '@/utils/notificationTriggers';
+import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 // Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
@@ -339,8 +342,10 @@ export default function PublicOfferForm() {
     setIsSubmitting(true);
 
     try {
+      // إنشاء بيانات العرض
+      const offerId = `offer_${Date.now()}`;
       const submissionData = {
-        id: `offer_${Date.now()}`,
+        id: offerId,
         type: 'property_offer',
         brokerId: broker.id,
         brokerName: broker.name,
@@ -350,70 +355,190 @@ export default function PublicOfferForm() {
         mainImage: media.find(m => m.isMain)?.url || null,
         submittedAt: new Date().toISOString(),
         status: 'pending',
+        isNew: true, // علامة للدائرة النابضة
+        isViewed: false,
       };
 
-      // Save to localStorage
+      // 1. الحصول على معرف الوسيط من business_cards باستخدام الـ slug
+      const { data: businessCard } = await supabase
+        .from('business_cards')
+        .select('user_id, data')
+        .eq('slug', brokerId)
+        .eq('published', true)
+        .single();
+
+      const brokerUserId = businessCard?.user_id;
+
+      if (brokerUserId) {
+        // 2. البحث عن العميل برقم الجوال في CRM
+        const { data: existingCustomer } = await supabase
+          .from('crm_customers')
+          .select('*')
+          .eq('user_id', brokerUserId)
+          .or(`phone.eq.${formData.ownerPhone},whatsapp.eq.${formData.ownerPhone}`)
+          .maybeSingle();
+
+        let customerId: string;
+        let isNewCustomer = false;
+
+        if (existingCustomer) {
+          // 3a. العميل موجود - تحديث بياناته وإضافة العرض
+          customerId = existingCustomer.id;
+          
+          // تحديث البيانات الأساسية إذا كانت فارغة
+          const updates: Record<string, any> = {
+            last_contact: new Date().toISOString().split('T')[0],
+          };
+          
+          // تحديث الاسم إذا كان فارغاً
+          if (!existingCustomer.name || existingCustomer.name === 'غير معروف') {
+            updates.name = formData.ownerName;
+          }
+          
+          // إضافة العرض للـ metadata
+          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
+          const existingOffers = currentMetadata.property_offers || [];
+          
+          updates.metadata = {
+            ...currentMetadata,
+            property_offers: [...existingOffers, submissionData],
+            hasUnreadOffer: true,
+            lastOfferAt: new Date().toISOString(),
+          };
+          
+          await supabase
+            .from('crm_customers')
+            .update(updates)
+            .eq('id', customerId);
+
+        } else {
+          // 3b. العميل غير موجود - إنشاء بطاقة جديدة
+          isNewCustomer = true;
+          
+          const { data: newCustomer, error: createError } = await supabase
+            .from('crm_customers')
+            .insert([{
+              user_id: brokerUserId,
+              name: formData.ownerName,
+              phone: formData.ownerPhone,
+              status: 'جديد',
+              priority: 'عالي',
+              property_type: 'owner',
+              source: 'نموذج عرض عقاري',
+              location: formData.city || null,
+              notes: `عرض عقاري: ${formData.propertyType} ${formData.purpose}`,
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                idNumber: formData.ownerIdNumber,
+                nationalAddress: formData.ownerNationalAddress,
+                property_offers: [submissionData],
+                hasUnreadOffer: true,
+                isNewCard: true,
+                lastOfferAt: new Date().toISOString(),
+              } as Record<string, any>,
+            }])
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating customer:', createError);
+          } else if (newCustomer) {
+            customerId = newCustomer.id;
+          }
+        }
+
+        // 4. إنشاء إشعار في قاعدة البيانات
+        await createNotification({
+          userId: brokerUserId,
+          title: '🏠 عرض عقاري جديد',
+          message: `استلمت عرض من ${formData.ownerName} - ${formData.propertyType} ${formData.purpose}`,
+          notificationType: 'offer',
+          category: 'incoming',
+          priority: 'high',
+          relatedEntityType: 'offer_form',
+          relatedEntityId: offerId,
+          metadata: {
+            ownerName: formData.ownerName,
+            ownerPhone: formData.ownerPhone,
+            propertyType: formData.propertyType,
+            purpose: formData.purpose,
+            city: formData.city,
+            customerId: customerId!,
+            isNewCustomer,
+            isPulsing: true,
+          },
+        });
+
+        // 5. تتبع الدوائر النابضة
+        markAsNew('offer', offerId);
+        if (customerId!) {
+          markAsNew('customer', customerId!);
+        }
+        markAsNew('tab', 'property-offer');
+      }
+
+      // 6. حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
       existingSubmissions.push(submissionData);
       localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
 
-      // Trigger notification
-      const notification = {
-        id: `notif_${Date.now()}`,
-        type: 'new_offer',
-        title: 'عرض عقاري جديد',
-        message: `تم استلام عرض عقاري جديد من ${formData.ownerName} - ${formData.propertyType} ${formData.purpose}`,
+      // 7. تحديث localStorage للعملاء (للتوافق مع النظام الحالي)
+      const localCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+      const existingLocalCustomer = localCustomers.find((c: any) => c.phone === formData.ownerPhone);
+      
+      const tabData = {
+        id: `tab_${Date.now()}`,
+        name: 'عرض عقاري',
+        type: 'property_offer',
         data: submissionData,
-        isRead: false,
-        isPulsing: true,
+        isNew: true,
+        isViewed: false,
         createdAt: new Date().toISOString(),
       };
-      
-      const notifications = JSON.parse(localStorage.getItem('broker_notifications') || '[]');
-      notifications.unshift(notification);
-      localStorage.setItem('broker_notifications', JSON.stringify(notifications));
 
-      // CRM customer data
-      const customerData = {
-        id: `cust_${Date.now()}`,
-        name: formData.ownerName,
-        phone: formData.ownerPhone,
-        idNumber: formData.ownerIdNumber,
-        nationalAddress: formData.ownerNationalAddress,
-        type: 'owner',
-        source: 'public_form',
-        status: 'new',
-        hasUnreadPublishedAd: true,
-        createdAt: new Date().toISOString(),
-        tabs: [{
-          id: `tab_${Date.now()}`,
-          name: 'عرض عقاري',
-          type: 'property_offer',
-          data: submissionData,
-          isNew: true,
-          createdAt: new Date().toISOString(),
-        }],
-      };
-
-      const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-      const existingCustomer = customers.find((c: any) => c.phone === formData.ownerPhone);
-      
-      if (existingCustomer) {
-        existingCustomer.tabs = existingCustomer.tabs || [];
-        existingCustomer.tabs.push(customerData.tabs[0]);
-        existingCustomer.hasUnreadPublishedAd = true;
-        localStorage.setItem('crm_customers', JSON.stringify(customers));
+      if (existingLocalCustomer) {
+        existingLocalCustomer.tabs = existingLocalCustomer.tabs || [];
+        existingLocalCustomer.tabs.push(tabData);
+        existingLocalCustomer.hasUnreadPublishedAd = true;
+        existingLocalCustomer.hasUnreadOffer = true;
+        existingLocalCustomer.name = formData.ownerName;
+        existingLocalCustomer.idNumber = formData.ownerIdNumber;
+        existingLocalCustomer.nationalAddress = formData.ownerNationalAddress;
       } else {
-        customers.push(customerData);
-        localStorage.setItem('crm_customers', JSON.stringify(customers));
+        localCustomers.push({
+          id: `cust_${Date.now()}`,
+          name: formData.ownerName,
+          phone: formData.ownerPhone,
+          idNumber: formData.ownerIdNumber,
+          nationalAddress: formData.ownerNationalAddress,
+          type: 'owner',
+          source: 'public_form',
+          status: 'new',
+          hasUnreadPublishedAd: true,
+          hasUnreadOffer: true,
+          isNewCard: true,
+          createdAt: new Date().toISOString(),
+          tabs: [tabData],
+        });
       }
+      localStorage.setItem('crm_customers', JSON.stringify(localCustomers));
 
+      // 8. إرسال حدث لتحديث واجهة المستخدم
       window.dispatchEvent(new CustomEvent('addNotification', {
         detail: {
-          title: 'عرض عقاري جديد',
+          title: '🏠 عرض عقاري جديد',
           message: `تم استلام عرض من ${formData.ownerName}`,
           type: 'success',
           category: 'customer',
+          isPulsing: true,
+        }
+      }));
+
+      window.dispatchEvent(new CustomEvent('newOfferReceived', {
+        detail: {
+          offerId,
+          ownerName: formData.ownerName,
+          ownerPhone: formData.ownerPhone,
         }
       }));
 
