@@ -243,7 +243,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             .from('profiles')
             .select('*')
             .eq('user_id', authUser.id)
-            .single();
+            .maybeSingle();
 
           // البحث عن بطاقة مرتبطة بهذا المستخدم أو بمعرفاته
           let businessCard = null;
@@ -818,8 +818,14 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             <Button
               variant="ghost"
               onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.href = '/auth';
+                try {
+                  await supabase.auth.signOut();
+                } catch (e) {
+                  console.error('Logout error:', e);
+                } finally {
+                  // تأكد من إعادة التوجيه حتى لو فشل signOut
+                  window.location.href = '/app/login';
+                }
               }}
               className="text-white hover:bg-white/20"
             >
