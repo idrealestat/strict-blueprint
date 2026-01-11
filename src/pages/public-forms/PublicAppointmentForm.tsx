@@ -235,7 +235,7 @@ export default function PublicAppointmentForm() {
       newItems.appointments.push(appointmentId);
       localStorage.setItem('wasata_new_items', JSON.stringify(newItems));
 
-      // Track event and create DB notification
+      // Track event - UNIFIED EVENT NAME
       track({
         eventName: 'appointment_create',
         channel: 'public_web',

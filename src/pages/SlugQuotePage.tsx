@@ -101,11 +101,11 @@ const SlugQuotePage = () => {
 
     setIsSubmitting(true);
     
-    // Track quote request
+    // Track quote request - UNIFIED EVENT NAME
     track({
-      eventName: 'quote_requested',
+      eventName: 'quote_submit',
       channel: 'public_web',
-      entityType: 'quote_form',
+      entityType: 'quote',
       entityId: businessCard?.id,
       metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
     });

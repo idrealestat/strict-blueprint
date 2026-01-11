@@ -28,7 +28,7 @@ export type EntityType =
   | 'quote'
   | 'task';
 
-// Event names
+// Event names - UNIFIED NAMING SCHEMA
 export type EventName =
   // Page views
   | 'page_view'
@@ -59,15 +59,16 @@ export type EventName =
   | 'card_whatsapp'
   | 'card_email'
   | 'card_location'
-  // Calendar events
+  | 'card_save_contact'
+  // Calendar events (UNIFIED)
   | 'appointment_create'
   | 'appointment_update'
   | 'appointment_cancel'
   | 'appointment_complete'
-  // Request events
-  | 'request_create'
-  | 'request_update'
-  | 'request_match'
+  // Form submissions (UNIFIED)
+  | 'request_submit'      // العميل يرسل طلب عقار
+  | 'quote_submit'        // العميل يرسل طلب عرض سعر
+  | 'property_offer_submit' // مالك العقار يرسل عرض للوسيط
   // Generic
   | 'interaction'
   | 'search'

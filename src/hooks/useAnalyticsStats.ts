@@ -467,7 +467,7 @@ export function useAnalyticsStats() {
           .from('events')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('event_name', 'calendar_created')
+          .eq('event_name', 'appointment_create')
           .eq('channel', 'public_web'),
       ]);
 
