@@ -86,6 +86,10 @@ export interface PublishedAdData {
   videos?: string[];
   tour3DUrl?: string;
   
+  // Tracking for republished offers
+  source?: string;
+  originalTabId?: string;
+  
   // Metadata
   publishedAt: string;
   linkedCustomerId?: string;
@@ -104,6 +108,7 @@ export interface LinkedCustomer {
   status: string;
   columnId: string;
   publishedAds: PublishedAdData[];
+  tabs?: any[]; // التبويبات (عروض، طلبات، مواعيد، إلخ)
   createdAt: string;
   lastContact: string;
   isNew?: boolean;
@@ -155,6 +160,45 @@ export function addPublishedAdToCustomer(customerId: string, ad: PublishedAdData
   saveCustomers(customers);
   
   return true;
+}
+
+// تحديث حالة تبويب العرض الأصلي في بطاقة العميل
+export function updateOriginalOfferStatus(originalTabId: string, publishedAdId: string): boolean {
+  if (!originalTabId) return false;
+  
+  try {
+    const customers = getAllCustomers();
+    let updated = false;
+    
+    // البحث في جميع العملاء عن التبويب الأصلي
+    for (const customer of customers) {
+      if (customer.tabs) {
+        const tabIndex = customer.tabs.findIndex((t: any) => t.id === originalTabId);
+        if (tabIndex !== -1) {
+          // تحديث حالة التبويب
+          customer.tabs[tabIndex].isPublished = true;
+          customer.tabs[tabIndex].publishedAdId = publishedAdId;
+          customer.tabs[tabIndex].publishedAt = new Date().toISOString();
+          customer.tabs[tabIndex].status = 'published';
+          updated = true;
+          break;
+        }
+      }
+    }
+    
+    if (updated) {
+      saveCustomers(customers);
+      // إرسال حدث لتحديث واجهة المستخدم
+      window.dispatchEvent(new CustomEvent('offerStatusUpdated', { 
+        detail: { originalTabId, publishedAdId, status: 'published' } 
+      }));
+    }
+    
+    return updated;
+  } catch (error) {
+    console.error('Error updating original offer status:', error);
+    return false;
+  }
 }
 
 // Create new customer from ad data
