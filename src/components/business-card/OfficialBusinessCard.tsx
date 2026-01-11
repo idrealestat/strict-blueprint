@@ -334,7 +334,7 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
               
               <div className="relative z-10 p-4 h-full flex flex-col items-center justify-center text-center">
                 {/* Identity Image - Bigger */}
-                <div className="w-24 h-24 rounded-full border-3 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg mb-2">
+                <div className="w-24 h-24 rounded-full border-4 border-[#D4AF37] overflow-hidden bg-[#D4AF37] flex items-center justify-center shadow-lg shadow-[#D4AF37]/30 mb-2 ring-2 ring-[#D4AF37]/50 ring-offset-2 ring-offset-[#01411C]">
                   {identityImage ? (
                     <img src={identityImage} alt={data.name} className="w-full h-full object-cover" />
                   ) : (
