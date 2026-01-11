@@ -671,12 +671,14 @@ export default function RightSliderComplete({
                 )}
 
                 {/* Official Business Card Mini Preview */}
-                <OfficialCardMiniPreview 
-                  onEdit={() => {
-                    onNavigate('official-business-card');
-                    onClose();
-                  }}
-                />
+                {flags.official_business_card_enabled && (
+                  <OfficialCardMiniPreview 
+                    onEdit={() => {
+                      onNavigate('official-business-card');
+                      onClose();
+                    }}
+                  />
+                )}
               </div>
 
               {/* المحتوى الرئيسي */}
