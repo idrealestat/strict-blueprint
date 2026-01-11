@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
+import { useEventTracker } from '@/hooks/useEventTracker';
 import { Loader2, Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,6 +30,7 @@ interface BusinessCardData {
 const SlugCalendarPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { trackPageView } = useEventTracker();
   const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -54,6 +56,8 @@ const SlugCalendarPage: React.FC = () => {
           setNotFound(true);
         } else {
           setBusinessCard(data as BusinessCardData);
+          // Track page view
+          trackPageView('calendar', data.id, 'public_web');
         }
       } catch (err) {
         console.error('Error fetching business card:', err);

@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
 import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
 import { motion, AnimatePresence } from "framer-motion";
@@ -307,6 +308,54 @@ const mockCustomers: Customer[] = [
 export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMProps) {
   // Reference for scrolling to right
   const kanbanContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Use the new CRM hook with real database
+  const { 
+    customers: dbCustomers, 
+    loading: crmLoading, 
+    createCustomer: dbAddCustomer,
+    updateCustomer: dbUpdateCustomer,
+    deleteCustomer: dbDeleteCustomer 
+  } = useCRMCustomers();
+
+  // Map CRM customers to local Customer type
+  const mapCRMToCustomer = useCallback((c: CRMCustomer): Customer => {
+    const columnMap: Record<string, string> = {
+      'new': 'leads',
+      'جديد': 'leads',
+      'active': 'contacted',
+      'نشط': 'contacted',
+      'viewing': 'viewing',
+      'معاينة': 'viewing',
+      'negotiation': 'negotiation',
+      'تفاوض': 'negotiation',
+      'closed': 'closed',
+      'مغلق': 'closed',
+      'lost': 'lost',
+      'ضائع': 'lost'
+    };
+    const columnId = columnMap[c.status || 'active'] || 'leads';
+    return {
+      id: c.id,
+      name: c.name,
+      phone: c.phone || '',
+      email: c.email || undefined,
+      whatsapp: c.whatsapp || c.phone || undefined,
+      company: c.company || undefined,
+      type: c.property_type as Customer['type'] || 'other',
+      status: c.status || 'active',
+      columnId,
+      budget: c.budget || undefined,
+      location: c.location || undefined,
+      notes: c.notes || undefined,
+      source: c.source || undefined,
+      tags: c.tags || [],
+      createdAt: c.created_at || new Date().toISOString(),
+      lastContact: c.last_contact || undefined,
+      nextFollowUp: c.next_follow_up || undefined,
+      interestLevel: c.priority as Customer['interestLevel'] || undefined,
+    };
+  }, []);
 
   const mapLinkedToCustomer = useCallback((c: LinkedCustomer): Customer => {
     // ملاحظة: الـ Kanban يستخدم أعمدة مختلفة عن hook (new/...). نُحوّلها لأقرب قيمة.
@@ -315,7 +364,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       id: c.id,
       name: c.name,
       phone: c.phone,
-      // لا نستخدم البريد هنا حسب طلبك
       whatsapp: c.phone,
       type: c.type === 'seller' ? 'owner' : (c.type as any),
       status: c.status || 'active',
@@ -326,16 +374,25 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     };
   }, []);
 
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const stored = getAllCustomers();
-    if (stored.length) return stored.map(mapLinkedToCustomer);
-    return mockCustomers;
-  });
+  // Use database customers if available, otherwise fallback to mock
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  
+  // Sync with database customers
+  useEffect(() => {
+    if (dbCustomers.length > 0) {
+      setCustomers(dbCustomers.map(mapCRMToCustomer));
+    } else if (!crmLoading) {
+      // If no DB customers and loading is done, use mock data
+      const stored = getAllCustomers();
+      if (stored.length) {
+        setCustomers(stored.map(mapLinkedToCustomer));
+      } else {
+        setCustomers(mockCustomers);
+      }
+    }
+  }, [dbCustomers, crmLoading, mapCRMToCustomer, mapLinkedToCustomer]);
 
   const [columns, setColumns] = useState<Column[]>(() => {
-    const stored = getAllCustomers();
-    const baseCustomers = stored.length ? stored.map(mapLinkedToCustomer) : mockCustomers;
-
     // Try to load saved column order from localStorage
     const savedOrder = localStorage.getItem('crm_column_order');
     const baseColumns = (() => {
@@ -355,12 +412,16 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       }
       return defaultColumns;
     })();
-
-    return baseColumns.map(col => ({
-      ...col,
-      customerIds: baseCustomers.filter(c => c.columnId === col.id).map(c => c.id),
-    }));
+    return baseColumns;
   });
+  
+  // Sync columns with customers
+  useEffect(() => {
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      customerIds: customers.filter(c => c.columnId === col.id).map(c => c.id),
+    })));
+  }, [customers]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('kanban');

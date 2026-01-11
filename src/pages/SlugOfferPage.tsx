@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
+import { useEventTracker } from '@/hooks/useEventTracker';
 import {
   ArrowRight, Loader2, Send, Upload, Home, MapPin, User, Phone,
   CreditCard, FileText, Building, X, Image as ImageIcon, Video, Star,
@@ -71,6 +72,7 @@ const defaultFeatures = [
 const SlugOfferPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { trackPageView, track } = useEventTracker();
   const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -158,6 +160,8 @@ const SlugOfferPage = () => {
           setNotFound(true);
         } else {
           setBusinessCard(data as BusinessCardData);
+          // Track page view
+          trackPageView('offer_form', data.id, 'public_web');
         }
       } catch (error) {
         setNotFound(true);
@@ -298,6 +302,15 @@ const SlugOfferPage = () => {
     }
 
     setIsSubmitting(true);
+    
+    // Track offer submission
+    track({
+      eventName: 'offer_submitted',
+      channel: 'public_web',
+      entityType: 'offer_form',
+      entityId: businessCard?.id,
+      metadata: { propertyType: formData.propertyType, city: formData.city, purpose: formData.purpose }
+    });
     
     // Simulate submission - in real app, save to database
     await new Promise(resolve => setTimeout(resolve, 1500));
