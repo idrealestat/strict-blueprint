@@ -642,46 +642,9 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
   // حالة لتتبع ما إذا كنا ننتظر معالجة الصوت
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const wasRecordingRef = useRef(false);
-
-  // مراقبة انتهاء التسجيل التلقائي وإرسال الصوت
-  useEffect(() => {
-    const processVoice = async () => {
-      if (wasRecordingRef.current && !isRecording && !isProcessingVoice) {
-        // التسجيل توقف تلقائياً
-        setIsProcessingVoice(true);
-        toast.info("🔄 جاري تحليل الصوت...");
-        
-        const audioResult = await stopRecording();
-        
-        if (audioResult) {
-          const { base64, mimeType } = audioResult;
-          
-          // تحويل الصوت إلى نص
-          const transcribedText = await transcribe(base64, mimeType);
-          
-          if (transcribedText && transcribedText.length > 0) {
-            setInputValue(transcribedText);
-            toast.success("✅ تم تحويل الصوت!");
-            
-            // إرسال تلقائي فوري
-            handleSend(transcribedText);
-          } else {
-            toast.error("لم نستطع فهم الصوت، يرجى المحاولة مرة أخرى");
-          }
-        }
-        
-        setIsProcessingVoice(false);
-      }
-      wasRecordingRef.current = isRecording;
-    };
-
-    if (wasRecordingRef.current && !isRecording) {
-      processVoice();
-    } else {
-      wasRecordingRef.current = isRecording;
-    }
-  }, [isRecording]);
+  
+  // ref لمنع الإفلات المزدوج
+  const isStoppingRef = useRef(false);
 
   // اهتزاز للموبايل
   const vibrate = (pattern: number | number[]) => {
@@ -695,12 +658,13 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     e.preventDefault(); // منع السلوك الافتراضي
     e.stopPropagation();
     
-    if (isProcessingVoice || isTranscribing || ttsLoading || isRecording) return;
+    if (isProcessingVoice || isTranscribing || ttsLoading || isRecording || isStoppingRef.current) return;
     
     // اهتزاز قصير عند بدء التسجيل
     vibrate(50);
     
     try {
+      console.log('🎤 Starting recording...');
       await startRecording();
       console.log('🎤 Recording started via walkie-talkie');
     } catch (error) {
@@ -713,11 +677,13 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isRecording) {
-      console.log('⚠️ handleVoiceEnd called but not recording');
+    // منع الاستدعاء المتكرر
+    if (!isRecording || isStoppingRef.current) {
+      console.log('⚠️ handleVoiceEnd skipped - not recording or already stopping');
       return;
     }
     
+    isStoppingRef.current = true;
     console.log('🛑 Stopping recording via walkie-talkie');
     
     // اهتزاز عند الإفلات
@@ -725,29 +691,32 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     
     setIsProcessingVoice(true);
     
-    const audioResult = await stopRecording();
-    
-    if (audioResult) {
-      const { base64, mimeType } = audioResult;
-      console.log('📤 Audio captured, transcribing...');
+    try {
+      const audioResult = await stopRecording();
       
-      // تحويل الصوت إلى نص
-      const transcribedText = await transcribe(base64, mimeType);
-      
-      if (transcribedText && transcribedText.length > 0) {
-        setInputValue(transcribedText);
-        vibrate(20); // اهتزاز خفيف للنجاح
-        console.log('✅ Transcribed:', transcribedText);
+      if (audioResult) {
+        const { base64, mimeType } = audioResult;
+        console.log('📤 Audio captured, transcribing...');
         
-        // إرسال تلقائي فوري
-        handleSend(transcribedText);
-      } else {
-        vibrate([100, 50, 100]); // اهتزاز مزدوج للفشل
-        toast.error("لم نستطع فهم الصوت");
+        // تحويل الصوت إلى نص
+        const transcribedText = await transcribe(base64, mimeType);
+        
+        if (transcribedText && transcribedText.length > 0) {
+          setInputValue(transcribedText);
+          vibrate(20); // اهتزاز خفيف للنجاح
+          console.log('✅ Transcribed:', transcribedText);
+          
+          // إرسال تلقائي فوري
+          handleSend(transcribedText);
+        } else {
+          vibrate([100, 50, 100]); // اهتزاز مزدوج للفشل
+          toast.error("لم نستطع فهم الصوت");
+        }
       }
+    } finally {
+      setIsProcessingVoice(false);
+      isStoppingRef.current = false;
     }
-    
-    setIsProcessingVoice(false);
   }, [isRecording, stopRecording, transcribe, handleSend]);
 
   // تبديل الرد الصوتي التلقائي - حفظ في localStorage

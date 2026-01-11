@@ -34,6 +34,9 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}): UseVoic
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   
+  // ref لتتبع حالة التسجيل بشكل فوري (لحل مشكلة الإفلات)
+  const isRecordingRef = useRef(false);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -65,7 +68,7 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}): UseVoic
 
   // مراقبة مستوى الصوت للكشف عن الصمت
   const monitorAudioLevel = useCallback(() => {
-    if (!analyserRef.current || !isRecording) return;
+    if (!analyserRef.current || !isRecordingRef.current) return;
 
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
     analyserRef.current.getByteFrequencyData(dataArray);
@@ -129,6 +132,7 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}): UseVoic
     }
 
     mediaRecorderRef.current.stop();
+    isRecordingRef.current = false;
     setIsRecording(false);
     setRecordingDuration(0);
     setAudioLevel(0);
@@ -226,7 +230,9 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}): UseVoic
 
       // بدء التسجيل
       mediaRecorder.start(100);
+      isRecordingRef.current = true;
       setIsRecording(true);
+      console.log('🎙️ MediaRecorder started');
 
       // عداد مدة التسجيل
       const startTime = Date.now();
@@ -254,11 +260,14 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}): UseVoic
 
   const stopRecording = useCallback(async (): Promise<{ base64: string; mimeType: string } | null> => {
     return new Promise((resolve) => {
-      if (!mediaRecorderRef.current || !streamRef.current) {
+      // تحقق فوري من حالة التسجيل باستخدام ref
+      if (!isRecordingRef.current || !mediaRecorderRef.current || !streamRef.current) {
+        console.log('⚠️ stopRecording: not currently recording');
         resolve(null);
         return;
       }
 
+      console.log('🛑 stopRecording: stopping...');
       stopPromiseRef.current = { resolve };
       stopRecordingInternal();
     });
@@ -301,6 +310,7 @@ export function useVoiceRecorder(options: UseVoiceRecorderOptions = {}): UseVoic
     }
 
     chunksRef.current = [];
+    isRecordingRef.current = false;
     setIsRecording(false);
     setRecordingDuration(0);
     setAudioBlob(null);
