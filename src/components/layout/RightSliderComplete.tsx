@@ -35,6 +35,7 @@ import {
   LogOut,
   FileText,
   LucideIcon,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureFlags, FeatureFlags } from "@/context/FeatureFlagsContext";
 import { useAuthContext } from "@/context/AuthContext";
+import OfficialCardMiniPreview from "@/components/business-card/OfficialCardMiniPreview";
 
 interface Broker {
   id: number;
@@ -639,7 +641,7 @@ export default function RightSliderComplete({
 
             {/* محتوى قابل للتمرير */}
             <div className="h-full overflow-y-auto">
-              {/* User Card Header */}
+              {/* User Card Header with Official Card Preview */}
               <div className="bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] p-6 border-b-2 border-[#D4AF37]">
                 {currentUser && (
                   <div className="flex items-center gap-4">
@@ -667,6 +669,14 @@ export default function RightSliderComplete({
                     </div>
                   </div>
                 )}
+
+                {/* Official Business Card Mini Preview */}
+                <OfficialCardMiniPreview 
+                  onEdit={() => {
+                    onNavigate('official-business-card');
+                    onClose();
+                  }}
+                />
               </div>
 
               {/* المحتوى الرئيسي */}

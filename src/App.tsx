@@ -21,6 +21,7 @@ import CustomersListPage from "./pages/CustomersListPage";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import RentedPropertiesReport from "./components/reports/RentedPropertiesReport";
+import OfficialBusinessCardPage from "./pages/OfficialBusinessCardPage";
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
@@ -340,6 +341,8 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return <><MyPlatformSmartPaths onBack={handleBack} user={userData} /><AIFloatingButton /></>;
     case "business-card-profile":
       return <><BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={userData} /><AIFloatingButton /></>;
+    case "official-business-card":
+      return <><OfficialBusinessCardPage /><AIFloatingButton /></>;
     case "business-card-edit":
       return <><BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={userData} isNewUser={isNewUser} /><AIFloatingButton /></>;
     case "reports-analytics":
