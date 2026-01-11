@@ -4,7 +4,7 @@
  * Main Dashboard Component
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import NotificationsSidebar from "../NotificationsSidebar";
@@ -59,10 +59,27 @@ export default function SimpleDashboard({
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showWelcomeCard, setShowWelcomeCard] = useState(false);
   const {
     flags,
     loading: flagsLoading
   } = useFeatureFlags();
+
+  // إظهار بطاقة الترحيب فقط عند تسجيل الدخول لبضع ثوانٍ ثم إخفائها
+  useEffect(() => {
+    const justLoggedIn = sessionStorage.getItem('just_logged_in');
+    if (justLoggedIn === 'true') {
+      setShowWelcomeCard(true);
+      sessionStorage.removeItem('just_logged_in');
+      
+      // إخفاء البطاقة بعد 5 ثوانٍ
+      const timer = setTimeout(() => {
+        setShowWelcomeCard(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Get offers for notifications sidebar
   const getOffersForNotifications = () => {
@@ -222,8 +239,9 @@ export default function SimpleDashboard({
         <NewsBar />
 
 
-        {/* Profile Card */}
-        {user && <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-white to-[#f0fdf4] shadow-xl">
+        {/* Profile Card - يظهر فقط عند تسجيل الدخول لبضع ثوانٍ */}
+        {user && showWelcomeCard && (
+          <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-white to-[#f0fdf4] shadow-xl animate-fade-in">
             <CardContent className="p-6">
               <div className="flex items-center justify-between gap-4">
                 {/* الصورة */}
@@ -254,7 +272,8 @@ export default function SimpleDashboard({
                 </div>
               </div>
             </CardContent>
-          </Card>}
+          </Card>
+        )}
 
         {/* Services Grid - Dynamic based on Feature Flags */}
         <Card className="border-2 border-[#D4AF37] bg-white shadow-xl">
