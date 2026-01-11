@@ -42,11 +42,20 @@ export function useChatHistory(): UseChatHistoryReturn {
   }, []);
 
   // إنشاء محادثة جديدة
-  const createConversation = useCallback(async (userId: string): Promise<string | null> => {
+  const createConversation = useCallback(async (_userName: string): Promise<string | null> => {
     try {
+      // الحصول على user_id الحقيقي من auth
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      
+      if (!userId) {
+        console.warn('No authenticated user, skipping conversation creation');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('wasata_ai_conversations')
-        .insert({ user_id: userId })
+        .insert({ user_id: userId }) // استخدام auth.uid() الحقيقي
         .select()
         .single();
 
@@ -104,8 +113,17 @@ export function useChatHistory(): UseChatHistoryReturn {
   }, []);
 
   // تحميل جميع محادثات المستخدم
-  const loadUserConversations = useCallback(async (userId: string): Promise<Conversation[]> => {
+  const loadUserConversations = useCallback(async (_userName: string): Promise<Conversation[]> => {
     try {
+      // الحصول على user_id الحقيقي من auth
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      
+      if (!userId) {
+        console.warn('No authenticated user');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('wasata_ai_conversations')
         .select('*')

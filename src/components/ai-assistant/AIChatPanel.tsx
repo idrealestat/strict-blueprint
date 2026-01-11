@@ -691,22 +691,34 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   };
 
   // Walkie-Talkie: اضغط للتسجيل، افلت للإرسال
-  const handleVoiceStart = async () => {
-    if (isProcessingVoice || isTranscribing || ttsLoading) return;
+  const handleVoiceStart = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault(); // منع السلوك الافتراضي
+    e.stopPropagation();
+    
+    if (isProcessingVoice || isTranscribing || ttsLoading || isRecording) return;
     
     // اهتزاز قصير عند بدء التسجيل
     vibrate(50);
     
     try {
       await startRecording();
+      console.log('🎤 Recording started via walkie-talkie');
     } catch (error) {
       vibrate([100, 50, 100]); // اهتزاز مزدوج للخطأ
       toast.error("لم نتمكن من الوصول للميكروفون");
     }
-  };
+  }, [isProcessingVoice, isTranscribing, ttsLoading, isRecording, startRecording]);
 
-  const handleVoiceEnd = async () => {
-    if (!isRecording) return;
+  const handleVoiceEnd = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isRecording) {
+      console.log('⚠️ handleVoiceEnd called but not recording');
+      return;
+    }
+    
+    console.log('🛑 Stopping recording via walkie-talkie');
     
     // اهتزاز عند الإفلات
     vibrate(30);
@@ -717,6 +729,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     
     if (audioResult) {
       const { base64, mimeType } = audioResult;
+      console.log('📤 Audio captured, transcribing...');
       
       // تحويل الصوت إلى نص
       const transcribedText = await transcribe(base64, mimeType);
@@ -724,6 +737,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       if (transcribedText && transcribedText.length > 0) {
         setInputValue(transcribedText);
         vibrate(20); // اهتزاز خفيف للنجاح
+        console.log('✅ Transcribed:', transcribedText);
         
         // إرسال تلقائي فوري
         handleSend(transcribedText);
@@ -734,7 +748,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     }
     
     setIsProcessingVoice(false);
-  };
+  }, [isRecording, stopRecording, transcribe, handleSend]);
 
   // تبديل الرد الصوتي التلقائي - حفظ في localStorage
   const toggleAutoSpeak = () => {
@@ -1098,25 +1112,29 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               <button
                 onMouseDown={handleVoiceStart}
                 onMouseUp={handleVoiceEnd}
-                onMouseLeave={handleVoiceEnd}
+                onMouseLeave={(e) => { if (isRecording) handleVoiceEnd(e); }}
                 onTouchStart={handleVoiceStart}
                 onTouchEnd={handleVoiceEnd}
+                onTouchCancel={(e) => { if (isRecording) handleVoiceEnd(e); }}
+                onContextMenu={(e) => e.preventDefault()} // منع القائمة المنبثقة
                 disabled={isTranscribing || ttsLoading || isProcessingVoice}
-                className={`px-4 py-2 rounded-xl transition-all duration-150 border flex items-center justify-center flex-shrink-0 select-none ${
+                style={{ touchAction: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
+                className={`px-4 py-3 rounded-xl transition-all duration-150 border flex items-center justify-center flex-shrink-0 select-none cursor-pointer ${
                   isRecording 
                     ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white border-red-600 scale-110 shadow-lg' 
                     : isTranscribing || ttsLoading || isProcessingVoice
                     ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-[#01411C] to-[#065f41] text-white border-[#D4AF37] hover:scale-105 active:scale-95'
+                    : 'bg-gradient-to-r from-[#01411C] to-[#065f41] text-white border-[#D4AF37] hover:scale-105 active:scale-110'
                 }`}
-                title="اضغط مع الاستمرار للتحدث"
+                title="اضغط مع الاستمرار للتحدث 🎤"
               >
                 {isTranscribing || ttsLoading || isProcessingVoice ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : isRecording ? (
                   <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ repeat: Infinity, duration: 0.5 }}
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.4 }}
+                    className="flex items-center gap-1"
                   >
                     <Mic className="w-5 h-5" />
                   </motion.div>
