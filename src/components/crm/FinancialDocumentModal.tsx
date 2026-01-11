@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { triggerSavedDocumentNotification } from '@/utils/notificationTriggers';
 
 interface UserData {
   name: string;
@@ -95,8 +96,8 @@ export default function FinancialDocumentModal({
   const mainImage = swapped ? logoImage : profileImage;
   const smallImage = swapped ? profileImage : logoImage;
 
-  // حفظ المستند
-  const saveDocument = () => {
+  // حفظ المستند مع إشعار
+  const saveDocument = async (showNotification = true) => {
     const document = {
       id: `doc_${Date.now()}`,
       type: docType,
@@ -131,6 +132,19 @@ export default function FinancialDocumentModal({
     window.dispatchEvent(new CustomEvent('customerDocumentAdded', { 
       detail: { customerId, document } 
     }));
+
+    // إرسال إشعار مع صوت
+    if (showNotification) {
+      // إطلاق إشعار في واجهة المستخدم مباشرة
+      window.dispatchEvent(new CustomEvent('addNotification', {
+        detail: {
+          title: `💾 تم حفظ ${document.typeName}`,
+          message: `تم حفظ ${document.typeName} للعميل ${customerName} - ${total.toLocaleString()} ر.س`,
+          type: 'success',
+          category: 'saved_document',
+        }
+      }));
+    }
 
     if (onSave) {
       onSave(document);

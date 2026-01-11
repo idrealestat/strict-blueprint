@@ -232,3 +232,99 @@ export async function triggerInsightNotification(
     metadata: insightData,
   });
 }
+
+/**
+ * إشعار استلام مستند من الصفحة العامة (عرض سعر / طلب)
+ * يظهر مع صوت تنبيه في الجرس
+ */
+export async function triggerReceivedDocumentNotification(
+  userId: string,
+  documentData: { 
+    clientName: string; 
+    documentType: 'quotation_request' | 'offer_request';
+    total?: number;
+    document: any;
+  }
+): Promise<void> {
+  const typeText = documentData.documentType === 'quotation_request' 
+    ? 'طلب عرض سعر' 
+    : 'طلب عرض عقاري';
+  
+  const totalText = documentData.total 
+    ? ` - الميزانية: ${documentData.total.toLocaleString()} ر.س`
+    : '';
+
+  // إنشاء الإشعار في قاعدة البيانات
+  await createNotification({
+    userId,
+    title: `📥 ${typeText} مُستلَم`,
+    message: `استلمت ${typeText} من ${documentData.clientName}${totalText}`,
+    notificationType: 'request',
+    category: 'received_document',
+    priority: 'high',
+    relatedEntityType: 'document',
+    metadata: { ...documentData, source: 'public_form' },
+  });
+
+  // إطلاق حدث للتنبيه الصوتي والعرض في الجرس
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('addNotification', {
+      detail: {
+        title: `📥 ${typeText} مُستلَم`,
+        message: `استلمت ${typeText} من ${documentData.clientName}${totalText}`,
+        type: 'success',
+        category: 'received_document',
+        priority: 'high',
+        soundType: 'urgent',
+        document: documentData.document,
+      }
+    }));
+
+    // حفظ المستند في localStorage للعميل
+    window.dispatchEvent(new CustomEvent('receivedDocumentFromPublic', {
+      detail: documentData.document
+    }));
+  }
+}
+
+/**
+ * إشعار حفظ مستند (من داخل التطبيق)
+ * يظهر مع صوت تنبيه في الجرس
+ */
+export async function triggerSavedDocumentNotification(
+  userId: string,
+  documentData: { 
+    documentType: 'quotation' | 'receipt';
+    customerName: string;
+    total: number;
+  }
+): Promise<void> {
+  const typeText = documentData.documentType === 'quotation' 
+    ? 'عرض سعر' 
+    : 'سند قبض';
+
+  // إنشاء الإشعار في قاعدة البيانات
+  await createNotification({
+    userId,
+    title: `💾 تم حفظ ${typeText}`,
+    message: `تم حفظ ${typeText} للعميل ${documentData.customerName} - ${documentData.total.toLocaleString()} ر.س`,
+    notificationType: 'system',
+    category: 'saved_document',
+    priority: 'normal',
+    relatedEntityType: 'document',
+    metadata: documentData,
+  });
+
+  // إطلاق حدث للتنبيه الصوتي
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('addNotification', {
+      detail: {
+        title: `💾 تم حفظ ${typeText}`,
+        message: `تم حفظ ${typeText} للعميل ${documentData.customerName} - ${documentData.total.toLocaleString()} ر.س`,
+        type: 'success',
+        category: 'saved_document',
+        soundType: 'default',
+      }
+    }));
+  }
+}

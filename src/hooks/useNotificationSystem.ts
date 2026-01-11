@@ -466,7 +466,9 @@ export function useNotificationSystem() {
   // Listen for external notification events
   useEffect(() => {
     const handleExternalNotification = (event: CustomEvent) => {
-      const { title, message, type = 'info', category = 'system' } = event.detail;
+      const { title, message, type = 'info', category = 'system', soundType, priority } = event.detail;
+      
+      // إضافة الإشعار
       addNotification({
         title,
         message,
@@ -474,13 +476,39 @@ export function useNotificationSystem() {
         type,
         category,
       });
+
+      // تشغيل صوت خاص إذا تم تحديده
+      if (soundEnabled && soundType) {
+        if (soundType === 'urgent' || priority === 'high') {
+          soundManager.playNotificationSound('urgent');
+        } else if (soundType === 'reminder') {
+          soundManager.playNotificationSound('reminder');
+        }
+        // الصوت العادي يتم تشغيله تلقائياً من addNotification
+      }
+    };
+
+    // الاستماع لحدث استلام مستند من الصفحة العامة
+    const handleReceivedDocument = (event: CustomEvent) => {
+      const document = event.detail;
+      if (document) {
+        // حفظ المستند المستلم في localStorage
+        const receivedDocs = JSON.parse(localStorage.getItem('received_documents') || '[]');
+        receivedDocs.unshift(document);
+        localStorage.setItem('received_documents', JSON.stringify(receivedDocs));
+        
+        console.log('[NotificationSystem] Received document saved:', document.id);
+      }
     };
 
     window.addEventListener('addNotification' as any, handleExternalNotification);
+    window.addEventListener('receivedDocumentFromPublic' as any, handleReceivedDocument);
+    
     return () => {
       window.removeEventListener('addNotification' as any, handleExternalNotification);
+      window.removeEventListener('receivedDocumentFromPublic' as any, handleReceivedDocument);
     };
-  }, [addNotification]);
+  }, [addNotification, soundEnabled]);
 
   return {
     notifications,
