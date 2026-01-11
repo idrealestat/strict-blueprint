@@ -585,23 +585,24 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
             </h1>
             
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => {
-                  // Get slug from localStorage or business card
-                  const businessCard = localStorage.getItem(`business_card_${user?.id}`);
-                  let slug = 'default';
-                  if (businessCard) {
-                    try {
-                      const data = JSON.parse(businessCard);
-                      slug = data.userTitle || data.slug || 'default';
-                    } catch (e) {}
-                  }
-                  const platformUrl = `https://wasataai.com/${slug}`;
-                  navigator.clipboard.writeText(platformUrl);
-                  toast.success('تم نسخ رابط منصتك العامة!', {
-                    description: platformUrl
-                  });
-                }}
+               <Button
+                 onClick={() => {
+                   // Get slug from business card cache
+                   const businessCard = localStorage.getItem(`business_card_${user?.id}`);
+                   let slug = localStorage.getItem('public_platform_slug') || '';
+                   if (businessCard) {
+                     try {
+                       const data = JSON.parse(businessCard);
+                       slug = data.slug || slug;
+                     } catch (e) {}
+                   }
+                   slug = String(slug || 'default').toLowerCase();
+                   const platformUrl = `https://wasataai.com/${slug}`;
+                   navigator.clipboard.writeText(platformUrl);
+                   toast.success('تم نسخ رابط منصتك العامة!', {
+                     description: platformUrl
+                   });
+                 }}
                 variant="outline"
                 className="border-2 border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
               >
