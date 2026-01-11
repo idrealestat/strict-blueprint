@@ -14,6 +14,14 @@ export default function OfficialBusinessCardPage() {
   const navigate = useNavigate();
   const { flags, loading } = useFeatureFlags();
 
+  /**
+   * ⚠️ زر "رجوع" (مقفل/مهم):
+   * هذا الزر يجب أن ينقلك دائماً إلى الواجهة الرئيسية (/app/dashboard)
+   * لأن navigate(-1) قد يفشل إذا كانت الصفحة فُتحت مباشرة أو بدون سجل تنقّل.
+   * الرجاء عدم تعديل هذا السلوك إلا بعد الرجوع لصاحب المشروع.
+   */
+  const handleBackToDashboard = () => navigate('/app/dashboard');
+
   // If feature is disabled, show message and redirect option
   if (!loading && !flags.official_business_card_enabled) {
     return (
@@ -42,7 +50,7 @@ export default function OfficialBusinessCardPage() {
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate(-1)}
+            onClick={handleBackToDashboard}
             className="text-white hover:bg-white/20"
           >
             <ArrowRight className="w-5 h-5 ml-2" />
