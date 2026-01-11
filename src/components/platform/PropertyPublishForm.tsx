@@ -2171,10 +2171,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 warranties: propertyData.warranties,
               }}
               price={propertyData.price ? parseInt(propertyData.price) : undefined}
-              currentDescription={propertyData.aiDescription}
-              currentTitle={propertyData.aiTitle}
-              onDescriptionSelect={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
-              onTitleSelect={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
+              onDescriptionGenerated={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
+              onTitleGenerated={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
               style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر'}
               length={propertyData.descriptionLength as 'قصير' | 'متوسط' | 'طويل'}
               language={propertyData.descriptionLanguage as 'عربي' | 'انجليزي' | 'عربي انجليزي'}
