@@ -28,11 +28,11 @@ const WasataWatermark = () => (
 
 // Saudi Watermark Background for Front Side - Centered & Balanced
 const SaudiWatermarkBg = () => (
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+  <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden pt-8">
     <img 
       src={saudiWatermark} 
       alt="" 
-      className="w-64 h-44 object-contain opacity-[0.12]"
+      className="w-72 h-52 object-contain opacity-[0.12]"
     />
   </div>
 );
