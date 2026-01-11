@@ -497,6 +497,58 @@ export function useNotificationSystem() {
         receivedDocs.unshift(document);
         localStorage.setItem('received_documents', JSON.stringify(receivedDocs));
         
+        // البحث عن العميل بالجوال أو إنشاء عميل جديد
+        const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+        const existingCustomerIndex = customers.findIndex(
+          (c: any) => c.phone === document.customerPhone
+        );
+        
+        if (existingCustomerIndex !== -1) {
+          // العميل موجود - إضافة المستند لملفه
+          if (!customers[existingCustomerIndex].documents) {
+            customers[existingCustomerIndex].documents = [];
+          }
+          customers[existingCustomerIndex].documents.push(document);
+          localStorage.setItem('crm_customers', JSON.stringify(customers));
+          console.log('[NotificationSystem] Document added to existing customer:', customers[existingCustomerIndex].name);
+        } else {
+          // العميل غير موجود - إنشاء بطاقة جديدة
+          const newCustomer = {
+            id: `customer_${Date.now()}`,
+            name: document.customerName || 'عميل جديد',
+            phone: document.customerPhone,
+            email: document.customerEmail || '',
+            type: 'buyer',
+            status: 'جديد',
+            columnId: 'new',
+            interestLevel: 'interested',
+            source: 'quote_form',
+            notes: document.notes || '',
+            propertyType: document.propertyType || '',
+            location: document.city || '',
+            documents: [document],
+            createdAt: new Date().toISOString(),
+            lastContact: new Date().toISOString(),
+          };
+          customers.unshift(newCustomer);
+          localStorage.setItem('crm_customers', JSON.stringify(customers));
+          
+          // إطلاق إشعار إضافة عميل جديد
+          window.dispatchEvent(new CustomEvent('addNotification', {
+            detail: {
+              title: '👤 عميل جديد تلقائي',
+              message: `تم إنشاء بطاقة للعميل ${document.customerName} من طلب عرض السعر`,
+              type: 'success',
+              category: 'crm',
+            }
+          }));
+          
+          console.log('[NotificationSystem] New customer created:', newCustomer.name);
+        }
+        
+        // إطلاق حدث تحديث العملاء
+        window.dispatchEvent(new CustomEvent('customersUpdated'));
+        
         console.log('[NotificationSystem] Received document saved:', document.id);
       }
     };
