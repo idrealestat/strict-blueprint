@@ -97,7 +97,8 @@ const PublicBusinessCardView: React.FC<PublicBusinessCardViewProps> = ({ data, s
   const coverImage = data.coverImage || "";
   const falLicense = data.falLicense || "";
   const commercialRegistration = data.commercialRegistration || "";
-  const userTitle = data.userTitle || "وسيط عقاري معتمد";
+  // إذا كان userTitle يساوي الـ slug أو فارغ، نستخدم المسمى الافتراضي
+  const userTitle = (data.userTitle && data.userTitle !== slug) ? data.userTitle : "وسيط عقاري معتمد";
   
   const achievements = data.achievements || {
     totalDeals: 0,
