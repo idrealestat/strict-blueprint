@@ -179,6 +179,75 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_customers: {
+        Row: {
+          budget: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contact: string | null
+          location: string | null
+          metadata: Json | null
+          name: string
+          next_follow_up: string | null
+          notes: string | null
+          phone: string | null
+          priority: string | null
+          property_type: string | null
+          source: string | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          budget?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact?: string | null
+          location?: string | null
+          metadata?: Json | null
+          name: string
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          property_type?: string | null
+          source?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          budget?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact?: string | null
+          location?: string | null
+          metadata?: Json | null
+          name?: string
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          property_type?: string | null
+          source?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       domain_blacklist: {
         Row: {
           category: string | null
@@ -376,6 +445,57 @@ export type Database = {
           priority_warning_enabled?: boolean | null
           priority_warning_message?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          actor_type: string
+          browser: string | null
+          channel: string
+          created_at: string
+          device: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_name: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          os: string | null
+          user_id: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          actor_type?: string
+          browser?: string | null
+          channel?: string
+          created_at?: string
+          device?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_name: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          os?: string | null
+          user_id?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          actor_type?: string
+          browser?: string | null
+          channel?: string
+          created_at?: string
+          device?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_name?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          os?: string | null
+          user_id?: string | null
+          viewer_id?: string | null
         }
         Relationships: []
       }
@@ -694,6 +814,54 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_url: string | null
+          category: string | null
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          notification_type: string
+          priority: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          priority?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          priority?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_listings: {
         Row: {
           ac_units: string | null
@@ -713,6 +881,7 @@ export type Database = {
           custom_hashtags: string[] | null
           deed_date: string | null
           deed_number: string | null
+          deleted_at: string | null
           description: string | null
           direction: string | null
           district: string
@@ -772,6 +941,7 @@ export type Database = {
           custom_hashtags?: string[] | null
           deed_date?: string | null
           deed_number?: string | null
+          deleted_at?: string | null
           description?: string | null
           direction?: string | null
           district: string
@@ -831,6 +1001,7 @@ export type Database = {
           custom_hashtags?: string[] | null
           deed_date?: string | null
           deed_number?: string | null
+          deleted_at?: string | null
           description?: string | null
           direction?: string | null
           district?: string
