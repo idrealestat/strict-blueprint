@@ -343,7 +343,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
     case "business-card-profile":
       return <><BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={userData} /><AIFloatingButton /></>;
     case "official-business-card":
-      return <><OfficialBusinessCardPage /><AIFloatingButton /></>;
+      return <><OfficialBusinessCardPage onBack={handleBack} /><AIFloatingButton /></>;
     case "business-card-edit":
       return <><BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={userData} isNewUser={isNewUser} /><AIFloatingButton /></>;
     case "reports-analytics":
