@@ -184,12 +184,24 @@ interface CustomerActivity {
 const getCustomerActivities = (customer: Customer): CustomerActivity[] => {
   const activities: CustomerActivity[] = [];
   
-  // آخر اتصال
-  if (customer.lastContact) {
+  // آخر اتصال (من metadata.lastCall أو lastContact)
+  if (customer.metadata?.lastCall) {
+    const lastCall = customer.metadata.lastCall as { timestamp: string; type?: string; description?: string };
+    const callType = lastCall.type === 'whatsapp' ? 'واتساب' : lastCall.type === 'email' ? 'بريد' : 'اتصال';
     activities.push({
       id: `call-${customer.id}`,
       type: 'call',
-      title: 'آخر اتصال',
+      title: callType,
+      description: lastCall.description || callType,
+      timestamp: new Date(lastCall.timestamp),
+      icon: lastCall.type === 'whatsapp' ? '💬' : lastCall.type === 'email' ? '📧' : '📞',
+      color: lastCall.type === 'whatsapp' ? 'text-green-600 bg-green-50' : lastCall.type === 'email' ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'
+    });
+  } else if (customer.lastContact) {
+    activities.push({
+      id: `call-${customer.id}`,
+      type: 'call',
+      title: 'آخر تواصل',
       description: customer.lastContact,
       timestamp: new Date(customer.lastContact),
       icon: '📞',
@@ -494,7 +506,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     loading: crmLoading, 
     createCustomer: dbAddCustomer,
     updateCustomer: dbUpdateCustomer,
-    deleteCustomer: dbDeleteCustomer 
+    deleteCustomer: dbDeleteCustomer,
+    logActivity: logCustomerActivity
   } = useCRMCustomers();
 
   // Map CRM customers to local Customer type
@@ -2161,6 +2174,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 rounded"
                                                   onClick={() => {
+                                                    logCustomerActivity(customer.id, 'call', { description: 'اتصال صادر' });
                                                     window.location.href = `tel:${customer.phone}`;
                                                     setShowActionsMenu(null);
                                                   }}
@@ -2171,6 +2185,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded"
                                                   onClick={() => {
+                                                    logCustomerActivity(customer.id, 'whatsapp', { description: 'محادثة واتساب' });
                                                     window.open(`https://wa.me/${customer.phone}`, '_blank');
                                                     setShowActionsMenu(null);
                                                   }}
@@ -2182,6 +2197,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-purple-50 rounded"
                                                   onClick={() => {
                                                     if (customer.email) {
+                                                      logCustomerActivity(customer.id, 'email', { description: 'بريد إلكتروني' });
                                                       window.location.href = `mailto:${customer.email}`;
                                                     } else {
                                                       toast.error('لا يوجد بريد إلكتروني');
@@ -2195,6 +2211,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-orange-50 rounded"
                                                   onClick={() => {
+                                                    logCustomerActivity(customer.id, 'appointment_added', { title: 'موعد جديد' });
                                                     window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
                                                       detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
                                                     }));
@@ -2207,6 +2224,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-yellow-50 rounded"
                                                   onClick={() => {
+                                                    logCustomerActivity(customer.id, 'task_added', { title: 'مهمة جديدة' });
                                                     window.dispatchEvent(new CustomEvent('createTaskFromCRM', {
                                                       detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
                                                     }));
@@ -2397,6 +2415,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 variant="ghost"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  logCustomerActivity(customer.id, 'call', { description: 'اتصال صادر' });
                                   window.location.href = `tel:${customer.phone}`;
                                 }}
                               >
@@ -2407,6 +2426,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 variant="ghost"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  logCustomerActivity(customer.id, 'whatsapp', { description: 'محادثة واتساب' });
                                   window.open(`https://wa.me/${customer.phone}`, '_blank');
                                 }}
                               >
