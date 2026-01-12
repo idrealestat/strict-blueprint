@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
+import { useCRMCustomTags } from "@/hooks/useCRMCustomTags";
 import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
 import { motion, AnimatePresence } from "framer-motion";
@@ -560,14 +561,13 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     dateTo: '',
   });
   
-  // Tags Manager State
-  const [customTags, setCustomTags] = useState<{ name: string; color: string }[]>([
-    { name: 'VIP', color: '#ef4444' },
-    { name: 'مستعجل', color: '#f97316' },
-    { name: 'متابعة', color: '#10b981' },
-    { name: 'تمويل', color: '#3b82f6' },
-    { name: 'استثمار', color: '#8b5cf6' },
-  ]);
+  // Tags Manager - from database
+  const { 
+    customTags, 
+    isLoading: tagsLoading, 
+    addTag: dbAddTag, 
+    deleteTag: dbDeleteTag 
+  } = useCRMCustomTags();
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#01411C');
   
@@ -730,21 +730,17 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   // Add new tag
-  const handleAddTag = () => {
+  const handleAddTag = async () => {
     if (!newTagName.trim()) return;
-    if (customTags.find(t => t.name === newTagName.trim())) {
-      toast.error('التاق موجود مسبقاً');
-      return;
+    const result = await dbAddTag(newTagName.trim(), newTagColor);
+    if (result) {
+      setNewTagName('');
     }
-    setCustomTags([...customTags, { name: newTagName.trim(), color: newTagColor }]);
-    setNewTagName('');
-    toast.success('تم إضافة التاق');
   };
 
   // Delete tag
-  const handleDeleteTag = (tagName: string) => {
-    setCustomTags(customTags.filter(t => t.name !== tagName));
-    toast.success('تم حذف التاق');
+  const handleDeleteTag = async (tagId: string) => {
+    await dbDeleteTag(tagId);
   };
 
   // Export customers to CSV
@@ -2989,7 +2985,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                   const isAssigned = tagSelectCustomer && (tagSelectCustomer.tags || []).includes(tag.name);
                   return (
                     <div 
-                      key={tag.name} 
+                      key={tag.id} 
                       className={`flex items-center justify-between p-3 rounded-lg transition-all ${
                         tagSelectCustomer 
                           ? isAssigned 
@@ -3032,7 +3028,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteTag(tag.name);
+                            handleDeleteTag(tag.id);
                           }}
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
