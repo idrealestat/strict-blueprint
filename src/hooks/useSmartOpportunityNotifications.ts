@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useNotifications } from './useNotifications';
+import { getSmartOpportunitiesPreferences } from '@/components/settings/SmartOpportunitiesSettings';
 
 interface SmartOpportunityNotification {
   id: string;
@@ -34,8 +35,32 @@ export function useSmartOpportunityNotifications() {
     other_broker_name?: string;
     opportunity_key: string;
     type: 'offer_to_request' | 'request_to_offer';
+    purpose?: 'sale' | 'rent';
+    category?: 'residential' | 'commercial';
   }) => {
     if (!user) return;
+
+    // التحقق من إعدادات المستخدم
+    const prefs = getSmartOpportunitiesPreferences();
+    
+    // إذا كانت الإشعارات معطلة
+    if (!prefs.notificationsEnabled) return;
+    
+    // التحقق من الحد الأدنى لنسبة التطابق
+    if (data.similarity_score < prefs.minMatchScore) return;
+    
+    // التحقق من نوع التطابق
+    const isListingMatch = data.type === 'offer_to_request';
+    if (isListingMatch && !prefs.enableListingMatches) return;
+    if (!isListingMatch && !prefs.enableRequestMatches) return;
+    
+    // التحقق من نوع الصفقة
+    if (data.purpose === 'sale' && !prefs.notifyForSale) return;
+    if (data.purpose === 'rent' && !prefs.notifyForRent) return;
+    
+    // التحقق من تصنيف العقار
+    if (data.category === 'residential' && !prefs.notifyForResidential) return;
+    if (data.category === 'commercial' && !prefs.notifyForCommercial) return;
 
     const isOffer = data.type === 'offer_to_request';
     const title = isOffer 
@@ -43,6 +68,11 @@ export function useSmartOpportunityNotifications() {
       : '🎯 فرصة ذكية جديدة - طلب مطابق!';
     
     const message = `تم العثور على ${isOffer ? 'عرض' : 'طلب'} يطابق ${isOffer ? 'طلبك' : 'عرضك'} بنسبة ${data.similarity_score}% - ${data.other_item_title}`;
+
+    // تشغيل صوت الإشعار إذا كان مفعلاً
+    if (prefs.soundEnabled) {
+      playNotificationSound();
+    }
 
     // إنشاء إشعار في قاعدة البيانات
     await createNotification({
@@ -62,6 +92,32 @@ export function useSmartOpportunityNotifications() {
       },
     });
   }, [user, createNotification]);
+
+  // تشغيل صوت الإشعار
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // نغمة صاعدة للفرصة الجديدة
+      oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+      oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // E5
+      oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2); // G5
+      oscillator.frequency.setValueAtTime(1047, audioContext.currentTime + 0.3); // C6
+      
+      gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (e) {
+      console.log('Could not play notification sound');
+    }
+  };
 
   // جلب عدد الفرص الذكية الجديدة غير المقروءة
   const fetchUnreadOpportunitiesCount = useCallback(async () => {
