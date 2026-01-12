@@ -774,6 +774,14 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     setIsGeneratingDescription(true);
     
     try {
+      // استخدام توكن الجلسة بدلاً من publishable key للأمان
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('يرجى تسجيل الدخول أولاً');
+        setIsGeneratingDescription(false);
+        return;
+      }
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-property-description`,
         {
@@ -781,7 +789,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             propertyData: {
