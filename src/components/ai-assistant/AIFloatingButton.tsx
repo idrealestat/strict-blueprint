@@ -223,13 +223,13 @@ export function AIFloatingButton() {
                     className="relative cursor-pointer hover:scale-[1.02] transition-transform"
                     style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}
                   >
-                    {/* الفقاعة الرئيسية */}
+                    {/* الفقاعة الرئيسية - خلفية خضراء فاتحة متدرجة */}
                     <div 
                       className="relative px-4 py-3 rounded-[20px] rounded-bl-[6px] max-w-[200px]"
                       style={{
-                        background: 'linear-gradient(145deg, #2d8a5e 0%, #1a6b45 50%, #0f5132 100%)',
+                        background: 'linear-gradient(145deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%)',
                         border: '2px solid #D4AF37',
-                        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.15), inset 0 -1px 2px rgba(0,0,0,0.1)'
+                        boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.8), 0 4px 15px rgba(0,0,0,0.1)'
                       }}
                     >
                       {/* الذيل المنحني بنمط آيفون */}
@@ -242,25 +242,26 @@ export function AIFloatingButton() {
                       >
                         <path 
                           d="M16 0 C16 0 14 4 10 8 C6 12 0 14 0 20 C4 18 10 16 14 10 C16 6 16 0 16 0Z"
-                          fill="#0f5132"
+                          fill="#a5d6a7"
                         />
                       </svg>
                       
-                      {/* المحتوى */}
+                      {/* المحتوى - نص بالأخضر الملكي */}
                       <div className="relative z-10">
-                        <p className="text-white text-[15px] leading-snug font-medium">
-                          أهلاً! 👋 معك <span className="text-amber-300">المساعد الذكي</span>
+                        <p className="text-[15px] leading-snug font-semibold" style={{ color: '#01411C' }}>
+                          أهلاً! 👋 معك <span className="text-amber-600 font-bold">المساعد الذكي</span>
                         </p>
-                        <p className="text-white/85 text-[13px] mt-1.5 flex items-center gap-1">
+                        <p className="text-[13px] mt-1.5 flex items-center gap-1" style={{ color: '#065f41' }}>
                           <span>انقر هنا للمساعدة</span>
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
                         </p>
                       </div>
                     </div>
                     
                     {/* زر إغلاق صغير */}
                     <button 
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800/90 backdrop-blur-sm rounded-full text-white/90 text-[10px] flex items-center justify-center hover:bg-red-500 transition-colors border border-white/20"
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white/90 backdrop-blur-sm rounded-full text-[10px] flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors border-2 border-amber-500"
+                      style={{ color: '#01411C' }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowWelcomeBubble(false);
