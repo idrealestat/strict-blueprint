@@ -157,6 +157,171 @@ interface RecentCall {
   duration?: string;
 }
 
+// Activity Types for tracking recent activities
+type ActivityType = 
+  | 'call' 
+  | 'tab_update' 
+  | 'property_published' 
+  | 'quote_received' 
+  | 'request_received' 
+  | 'document_added' 
+  | 'task_added' 
+  | 'appointment_added' 
+  | 'offer_received' 
+  | 'offer_published';
+
+interface CustomerActivity {
+  id: string;
+  type: ActivityType;
+  title: string;
+  description: string;
+  timestamp: Date;
+  icon: string;
+  color: string;
+}
+
+// Helper function to get recent activities for a customer
+const getCustomerActivities = (customer: Customer): CustomerActivity[] => {
+  const activities: CustomerActivity[] = [];
+  
+  // آخر اتصال
+  if (customer.lastContact) {
+    activities.push({
+      id: `call-${customer.id}`,
+      type: 'call',
+      title: 'آخر اتصال',
+      description: customer.lastContact,
+      timestamp: new Date(customer.lastContact),
+      icon: '📞',
+      color: 'text-blue-600 bg-blue-50'
+    });
+  }
+  
+  // تحديثات التبويبات من metadata
+  if (customer.metadata?.lastTabUpdate) {
+    activities.push({
+      id: `tab-${customer.id}`,
+      type: 'tab_update',
+      title: 'تحديث في التبويبات',
+      description: customer.metadata.lastTabUpdate.tabName || 'تحديث',
+      timestamp: new Date(customer.metadata.lastTabUpdate.timestamp),
+      icon: '📝',
+      color: 'text-purple-600 bg-purple-50'
+    });
+  }
+  
+  // نشر عقار للمالك
+  if (customer.metadata?.lastPropertyPublished) {
+    activities.push({
+      id: `property-${customer.id}`,
+      type: 'property_published',
+      title: 'نشر عقار',
+      description: customer.metadata.lastPropertyPublished.title || 'عقار جديد',
+      timestamp: new Date(customer.metadata.lastPropertyPublished.timestamp),
+      icon: '🏠',
+      color: 'text-green-600 bg-green-50'
+    });
+  }
+  
+  // استلام عرض سعر
+  if (customer.metadata?.lastQuoteReceived) {
+    activities.push({
+      id: `quote-${customer.id}`,
+      type: 'quote_received',
+      title: 'عرض سعر مستلم',
+      description: customer.metadata.lastQuoteReceived.title || 'عرض سعر',
+      timestamp: new Date(customer.metadata.lastQuoteReceived.timestamp),
+      icon: '💰',
+      color: 'text-yellow-600 bg-yellow-50'
+    });
+  }
+  
+  // استلام طلب عقار
+  if (customer.metadata?.lastRequestReceived) {
+    activities.push({
+      id: `request-${customer.id}`,
+      type: 'request_received',
+      title: 'طلب عقار مستلم',
+      description: customer.metadata.lastRequestReceived.title || 'طلب عقار',
+      timestamp: new Date(customer.metadata.lastRequestReceived.timestamp),
+      icon: '📥',
+      color: 'text-indigo-600 bg-indigo-50'
+    });
+  }
+  
+  // إضافة مستند
+  if (customer.metadata?.lastDocumentAdded) {
+    activities.push({
+      id: `doc-${customer.id}`,
+      type: 'document_added',
+      title: customer.metadata.lastDocumentAdded.docType === 'receipt' ? 'سند قبض' : 'عرض سعر',
+      description: customer.metadata.lastDocumentAdded.title || 'مستند جديد',
+      timestamp: new Date(customer.metadata.lastDocumentAdded.timestamp),
+      icon: '📄',
+      color: 'text-teal-600 bg-teal-50'
+    });
+  }
+  
+  // إضافة مهمة
+  if (customer.metadata?.lastTaskAdded) {
+    activities.push({
+      id: `task-${customer.id}`,
+      type: 'task_added',
+      title: 'مهمة جديدة',
+      description: customer.metadata.lastTaskAdded.title || 'مهمة',
+      timestamp: new Date(customer.metadata.lastTaskAdded.timestamp),
+      icon: '✅',
+      color: 'text-orange-600 bg-orange-50'
+    });
+  }
+  
+  // إضافة موعد
+  if (customer.metadata?.lastAppointmentAdded) {
+    activities.push({
+      id: `appt-${customer.id}`,
+      type: 'appointment_added',
+      title: 'موعد جديد',
+      description: customer.metadata.lastAppointmentAdded.title || 'موعد',
+      timestamp: new Date(customer.metadata.lastAppointmentAdded.timestamp),
+      icon: '📅',
+      color: 'text-pink-600 bg-pink-50'
+    });
+  }
+  
+  // استلام أو نشر عرض
+  if (customer.metadata?.lastOfferActivity) {
+    activities.push({
+      id: `offer-${customer.id}`,
+      type: customer.metadata.lastOfferActivity.isPublished ? 'offer_published' : 'offer_received',
+      title: customer.metadata.lastOfferActivity.isPublished ? 'عرض منشور' : 'عرض مستلم',
+      description: customer.metadata.lastOfferActivity.title || 'عرض',
+      timestamp: new Date(customer.metadata.lastOfferActivity.timestamp),
+      icon: customer.metadata.lastOfferActivity.isPublished ? '📤' : '📩',
+      color: customer.metadata.lastOfferActivity.isPublished ? 'text-emerald-600 bg-emerald-50' : 'text-cyan-600 bg-cyan-50'
+    });
+  }
+  
+  // ترتيب الأنشطة حسب التاريخ (الأحدث أولاً) وإرجاع أول 3
+  return activities
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 3);
+};
+
+// Helper to format activity timestamp
+const formatActivityTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffMins < 1) return 'الآن';
+  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+  return date.toLocaleDateString('ar-SA');
+};
+
 const mockRecentCalls: RecentCall[] = [
   { id: 'rc1', phone: '0501234567', name: 'أحمد محمد', time: '10:30', type: 'incoming', duration: '3:45' },
   { id: 'rc2', phone: '0559876543', time: '09:15', type: 'outgoing', duration: '2:10' },
@@ -1934,127 +2099,42 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         )}
                                       </div>
 
-                                      {/* 7 أزرار سريعة */}
+                                      {/* آخر 3 أنشطة */}
                                       <div className="px-3 py-2 border-t border-gray-100">
-                                        <p className="text-xs text-gray-500 mb-2">⚡ إجراءات سريعة</p>
-                                        <div className="grid grid-cols-4 gap-1">
-                                          {/* 1. اتصال */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-blue-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.location.href = `tel:${customer.phone}`;
-                                            }}
-                                          >
-                                            <Phone className="w-3.5 h-3.5 text-blue-600" />
-                                            <span className="text-[10px]">اتصال</span>
-                                          </Button>
-                                          
-                                          {/* 2. واتساب */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-green-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.open(`https://wa.me/${customer.phone}`, '_blank');
-                                            }}
-                                          >
-                                            <MessageSquare className="w-3.5 h-3.5 text-green-600" />
-                                            <span className="text-[10px]">واتساب</span>
-                                          </Button>
-                                          
-                                          {/* 3. بريد */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-purple-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (customer.email) {
-                                                window.location.href = `mailto:${customer.email}`;
-                                              } else {
-                                                toast.error('لا يوجد بريد إلكتروني');
-                                              }
-                                            }}
-                                          >
-                                            <Mail className="w-3.5 h-3.5 text-purple-600" />
-                                            <span className="text-[10px]">بريد</span>
-                                          </Button>
-                                          
-                                          {/* 4. موعد - مع ربط العميل */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-orange-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              // إرسال حدث لإنشاء موعد مع ربط العميل
-                                              window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
-                                                detail: {
-                                                  customerId: customer.id,
-                                                  customerName: customer.name,
-                                                  customerPhone: customer.phone,
-                                                }
-                                              }));
-                                            }}
-                                          >
-                                            <Calendar className="w-3.5 h-3.5 text-orange-600" />
-                                            <span className="text-[10px]">موعد</span>
-                                          </Button>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-1 mt-1">
-                                          {/* 5. مهمة - مع ربط العميل */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-yellow-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              // إرسال حدث لإنشاء مهمة مع ربط العميل
-                                              window.dispatchEvent(new CustomEvent('createTaskFromCRM', {
-                                                detail: {
-                                                  customerId: customer.id,
-                                                  customerName: customer.name,
-                                                  customerPhone: customer.phone,
-                                                }
-                                              }));
-                                            }}
-                                          >
-                                            <Check className="w-3.5 h-3.5 text-yellow-600" />
-                                            <span className="text-[10px]">مهمة</span>
-                                          </Button>
-                                          
-                                          {/* 6. عقار */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-teal-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toast.info('سيتم ربط عقار');
-                                            }}
-                                          >
-                                            <Building2 className="w-3.5 h-3.5 text-teal-600" />
-                                            <span className="text-[10px]">عقار</span>
-                                          </Button>
-                                          
-                                          {/* 7. حاسبة */}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 px-1 text-xs hover:bg-indigo-100 flex flex-col items-center gap-0.5"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toast.info('سيتم فتح حاسبة التمويل');
-                                            }}
-                                          >
-                                            <DollarSign className="w-3.5 h-3.5 text-indigo-600" />
-                                            <span className="text-[10px]">حاسبة</span>
-                                          </Button>
-                                        </div>
+                                        <p className="text-xs text-gray-500 mb-2">🕒 آخر الأنشطة</p>
+                                        {(() => {
+                                          const activities = getCustomerActivities(customer);
+                                          if (activities.length === 0) {
+                                            return (
+                                              <div className="text-center py-2 text-gray-400 text-xs">
+                                                لا توجد أنشطة سابقة
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <div className="space-y-1.5">
+                                              {activities.map((activity) => (
+                                                <div 
+                                                  key={activity.id}
+                                                  className={`flex items-center gap-2 p-1.5 rounded-lg ${activity.color.split(' ')[1]}`}
+                                                >
+                                                  <span className="text-sm">{activity.icon}</span>
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className={`text-[10px] font-medium ${activity.color.split(' ')[0]}`}>
+                                                      {activity.title}
+                                                    </p>
+                                                    <p className="text-[9px] text-gray-500 truncate">
+                                                      {activity.description}
+                                                    </p>
+                                                  </div>
+                                                  <span className="text-[9px] text-gray-400 whitespace-nowrap">
+                                                    {formatActivityTime(activity.timestamp)}
+                                                  </span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
 
                                       {/* ✅ الشريط السفلي الثلاثي: الإجراءات - التفاصيل - المشاركة */}
