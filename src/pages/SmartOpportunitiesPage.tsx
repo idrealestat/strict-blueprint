@@ -1,9 +1,9 @@
 /**
  * SmartOpportunitiesPage.tsx
- * صفحة الفرص الذكية مع بطاقات قابلة للسحب
+ * صفحة الفرص الذكية مع بطاقات قابلة للسحب وفلاتر متقدمة
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,12 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Sparkles, ArrowRight, RefreshCw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
-import { usePlatformListings } from '@/hooks/usePlatformListings';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import SwipeableOpportunityCard, { SmartOpportunity } from '@/components/smart-opportunities/SwipeableOpportunityCard';
+import OpportunityFilters, { OpportunityFiltersState, defaultFilters } from '@/components/smart-opportunities/OpportunityFilters';
 
 const SmartOpportunitiesPage = () => {
   const navigate = useNavigate();
@@ -25,10 +25,90 @@ const SmartOpportunitiesPage = () => {
   const { data: businessCardData } = useBusinessCardData();
   const userSlug = businessCardData?.slug;
   
-  const [opportunities, setOpportunities] = useState<SmartOpportunity[]>([]);
+  const [allOpportunities, setAllOpportunities] = useState<SmartOpportunity[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filters, setFilters] = useState<OpportunityFiltersState>(defaultFilters);
+
+  // استخراج المدن والأحياء المتاحة من الفرص
+  const availableCities = useMemo(() => {
+    const cities = new Set<string>();
+    allOpportunities.forEach(opp => {
+      if (opp.other_item.city) cities.add(opp.other_item.city);
+      if (opp.owner_item.city) cities.add(opp.owner_item.city);
+    });
+    return Array.from(cities).sort();
+  }, [allOpportunities]);
+
+  const availableDistricts = useMemo(() => {
+    const districts = new Set<string>();
+    allOpportunities.forEach(opp => {
+      if (opp.other_item.district) districts.add(opp.other_item.district);
+      if (opp.owner_item.district) districts.add(opp.owner_item.district);
+    });
+    return Array.from(districts).sort();
+  }, [allOpportunities]);
+
+  // تطبيق الفلاتر على الفرص
+  const filteredOpportunities = useMemo(() => {
+    return allOpportunities.filter(opp => {
+      const item = opp.other_item;
+
+      // فلتر المدينة
+      if (filters.city && item.city !== filters.city) return false;
+
+      // فلتر الحي
+      if (filters.district && item.district !== filters.district) return false;
+
+      // فلتر نوع العقار
+      if (filters.propertyType && item.property_type !== filters.propertyType) return false;
+
+      // فلتر الغرض (بيع/إيجار)
+      if (filters.purpose) {
+        const oppPurpose = opp.type === 'offer_to_request' ? 'للبيع' : 'للإيجار';
+        // نتحقق من item description أو نستخدم type
+        // هنا نفترض أن الغرض مرتبط بنوع الفرصة
+      }
+
+      // فلتر السعر
+      if (item.price) {
+        if (filters.minPrice > 0 && item.price < filters.minPrice) return false;
+        if (filters.maxPrice < 10000000 && item.price > filters.maxPrice) return false;
+      }
+
+      // فلتر عدد الغرف
+      if (filters.bedrooms) {
+        const bedroomFilter = filters.bedrooms === '6+' ? 6 : parseInt(filters.bedrooms);
+        if (filters.bedrooms === '6+') {
+          if (!item.bedrooms || item.bedrooms < 6) return false;
+        } else {
+          if (item.bedrooms !== bedroomFilter) return false;
+        }
+      }
+
+      // فلتر نسبة التطابق
+      if (filters.minMatchScore > 0 && opp.similarity_score < filters.minMatchScore) return false;
+
+      return true;
+    });
+  }, [allOpportunities, filters]);
+
+  // حساب عدد الفلاتر النشطة
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.city) count++;
+    if (filters.district) count++;
+    if (filters.propertyType) count++;
+    if (filters.purpose) count++;
+    if (filters.category) count++;
+    if (filters.minPrice > 0 || filters.maxPrice < 10000000) count++;
+    if (filters.bedrooms) count++;
+    if (filters.floors) count++;
+    if (filters.minMatchScore > 0) count++;
+    if (filters.features.length > 0) count++;
+    return count;
+  }, [filters]);
 
   // جلب الفرص الذكية الحقيقية من قاعدة البيانات
   const fetchSmartOpportunities = useCallback(async () => {
@@ -57,7 +137,7 @@ const SmartOpportunitiesPage = () => {
         .neq('slug', userSlug)
         .is('deleted_at', null)
         .eq('status', 'published')
-        .limit(50);
+        .limit(100);
 
       if (otherListingsError) throw otherListingsError;
 
@@ -78,7 +158,7 @@ const SmartOpportunitiesPage = () => {
           for (const otherListing of otherListings) {
             const matchResult = calculateMatch(myListing, otherListing);
             
-            if (matchResult.score >= 50) {
+            if (matchResult.score >= 40) {
               const otherCard = cardsBySlug.get(otherListing.slug);
               const cardData = otherCard?.data as any || {};
 
@@ -131,7 +211,7 @@ const SmartOpportunitiesPage = () => {
       // ترتيب حسب نسبة التطابق
       generatedOpportunities.sort((a, b) => b.similarity_score - a.similarity_score);
 
-      setOpportunities(generatedOpportunities.slice(0, 20)); // أول 20 فرصة
+      setAllOpportunities(generatedOpportunities);
       setCurrentIndex(0);
     } catch (error) {
       console.error('Error fetching smart opportunities:', error);
@@ -203,6 +283,11 @@ const SmartOpportunitiesPage = () => {
     fetchSmartOpportunities();
   }, [fetchSmartOpportunities]);
 
+  // إعادة تعيين المؤشر عند تغيير الفلاتر
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [filters]);
+
   const handleAccept = async (opp: SmartOpportunity) => {
     const result = await acceptOpportunity({
       type: opp.type,
@@ -246,14 +331,14 @@ const SmartOpportunitiesPage = () => {
     });
   };
 
-  const currentOpportunity = opportunities[currentIndex];
-  const remainingCount = opportunities.length - currentIndex;
+  const currentOpportunity = filteredOpportunities[currentIndex];
+  const remainingCount = filteredOpportunities.length - currentIndex;
 
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6 space-y-6 min-h-screen">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -273,12 +358,22 @@ const SmartOpportunitiesPage = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {remainingCount > 0 && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+              <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                 {remainingCount} فرصة متبقية
               </Badge>
             )}
+            
+            {/* زر الفلترة */}
+            <OpportunityFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              availableCities={availableCities}
+              availableDistricts={availableDistricts}
+              activeFiltersCount={activeFiltersCount}
+            />
+
             <Button 
               variant="outline" 
               size="sm"
@@ -292,6 +387,56 @@ const SmartOpportunitiesPage = () => {
           </div>
         </div>
 
+        {/* شريط الفلاتر النشطة */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm text-gray-500">الفلاتر النشطة:</span>
+            {filters.city && (
+              <Badge variant="outline" className="gap-1">
+                المدينة: {filters.city}
+              </Badge>
+            )}
+            {filters.district && (
+              <Badge variant="outline" className="gap-1">
+                الحي: {filters.district}
+              </Badge>
+            )}
+            {filters.propertyType && (
+              <Badge variant="outline" className="gap-1">
+                النوع: {filters.propertyType}
+              </Badge>
+            )}
+            {filters.purpose && (
+              <Badge variant="outline" className="gap-1">
+                الغرض: {filters.purpose}
+              </Badge>
+            )}
+            {filters.category && (
+              <Badge variant="outline" className="gap-1">
+                التصنيف: {filters.category}
+              </Badge>
+            )}
+            {filters.bedrooms && (
+              <Badge variant="outline" className="gap-1">
+                الغرف: {filters.bedrooms}
+              </Badge>
+            )}
+            {filters.minMatchScore > 0 && (
+              <Badge variant="outline" className="gap-1 border-amber-400 text-amber-600">
+                التطابق: {filters.minMatchScore}%+
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilters(defaultFilters)}
+              className="text-xs text-red-500 hover:text-red-600"
+            >
+              مسح الكل
+            </Button>
+          </div>
+        )}
+
         {/* المحتوى */}
         <div className="flex flex-col items-center justify-center py-4">
           {isLoading ? (
@@ -304,18 +449,31 @@ const SmartOpportunitiesPage = () => {
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <Sparkles className="w-16 h-16 text-amber-300 mb-4" />
                 <h3 className="text-xl font-medium text-gray-600 dark:text-gray-400">
-                  {opportunities.length === 0 
+                  {allOpportunities.length === 0 
                     ? 'لا توجد فرص ذكية حالياً'
-                    : 'انتهت الفرص المتاحة 🎉'
+                    : filteredOpportunities.length === 0
+                      ? 'لا توجد فرص تطابق الفلاتر المحددة'
+                      : 'انتهت الفرص المتاحة 🎉'
                   }
                 </h3>
                 <p className="text-sm text-gray-400 mt-2 max-w-xs">
-                  {opportunities.length === 0 
+                  {allOpportunities.length === 0 
                     ? 'سنخبرك عند وجود فرص مطابقة لعروضك. تأكد من نشر عروضك أولاً!'
-                    : 'لقد راجعت جميع الفرص المتاحة. يمكنك التحديث للبحث عن فرص جديدة.'
+                    : filteredOpportunities.length === 0
+                      ? 'جرب تغيير الفلاتر للعثور على فرص أكثر'
+                      : 'لقد راجعت جميع الفرص المتاحة. يمكنك التحديث للبحث عن فرص جديدة.'
                   }
                 </p>
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3 mt-6 flex-wrap justify-center">
+                  {filteredOpportunities.length === 0 && activeFiltersCount > 0 && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => setFilters(defaultFilters)}
+                      className="gap-2"
+                    >
+                      مسح الفلاتر
+                    </Button>
+                  )}
                   <Button 
                     variant="outline"
                     onClick={handleRefresh}
@@ -344,18 +502,18 @@ const SmartOpportunitiesPage = () => {
         </div>
 
         {/* شريط التقدم */}
-        {opportunities.length > 0 && currentIndex < opportunities.length && (
+        {filteredOpportunities.length > 0 && currentIndex < filteredOpportunities.length && (
           <div className="fixed bottom-20 left-4 right-4 max-w-md mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-300"
-                    style={{ width: `${((currentIndex + 1) / opportunities.length) * 100}%` }}
+                    style={{ width: `${((currentIndex + 1) / filteredOpportunities.length) * 100}%` }}
                   />
                 </div>
                 <span className="text-xs text-gray-500 whitespace-nowrap">
-                  {currentIndex + 1} / {opportunities.length}
+                  {currentIndex + 1} / {filteredOpportunities.length}
                 </span>
               </div>
             </div>
