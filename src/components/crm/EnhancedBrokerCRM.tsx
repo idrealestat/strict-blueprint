@@ -1341,24 +1341,25 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   return (
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-b-4 border-[#D4AF37] shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-b-2 border-[#D4AF37] shadow-md">
+        <div className="container mx-auto px-4 py-2">
+          <div className="flex items-center justify-between">
             <Button
               onClick={onBack}
               variant="outline"
-              className="border-2 border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+              size="sm"
+              className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
             >
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-3 h-3 ml-1" />
               العودة
             </Button>
             
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <User className="w-6 h-6" />
+            <h1 className="text-lg font-semibold text-white flex items-center gap-1.5">
+              <User className="w-4 h-4" />
               إدارة العملاء
             </h1>
             
-            <div className="w-20"></div>
+            <div className="w-16"></div>
           </div>
         </div>
       </header>
