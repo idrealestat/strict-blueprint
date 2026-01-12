@@ -2734,7 +2734,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       {/* Bottom Bar - ⚠️ تحذير: هذا الشريط محمي - لا تعدله بدون إذن صريح من صاحب المشروع */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#01411C] to-[#065f41] border-t-2 border-[#D4AF37] backdrop-blur-md">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-around gap-2 flex-row-reverse">
+          <div className="flex items-center justify-around gap-2">
             {/* 1. زر الرجوع للصفحة الرئيسية (أقصى اليمين) */}
             <button
               onClick={onBack}
