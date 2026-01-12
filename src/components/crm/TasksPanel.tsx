@@ -1,7 +1,6 @@
 /**
  * TasksPanel.tsx
  * لوحة المهام المرتبطة ببطاقات العملاء
- * ⚠️ تحذير: هذا الملف محمي - لا تعدله بدون إذن صريح من صاحب المشروع
  */
 
 import React, { useState, useMemo } from "react";
@@ -11,17 +10,35 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   CheckSquare,
   Clock,
   AlertTriangle,
   AlertCircle,
   Check,
   User,
+  Pencil,
+  Trash2,
+  MoreVertical,
 } from "lucide-react";
-
-// أنواع الأولوية
-type TaskPriority = 'urgent_important' | 'important_not_urgent' | 'urgent_not_important' | 'not_urgent_not_important';
-type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import EditTaskDialog from "./EditTaskDialog";
+import { CRMTask, UpdateTaskInput, TaskPriority, TaskStatus } from "@/hooks/useCRMTasks";
 
 interface Task {
   id: string;
@@ -41,6 +58,8 @@ interface TasksPanelProps {
   onClose: () => void;
   tasks: Task[];
   onToggleComplete: (taskId: string, completed: boolean) => void;
+  onUpdateTask: (taskId: string, input: UpdateTaskInput) => Promise<boolean>;
+  onDeleteTask: (taskId: string) => Promise<boolean>;
   customers: Array<{ id: string; name: string }>;
 }
 
@@ -92,8 +111,12 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
   onClose,
   tasks,
   onToggleComplete,
+  onUpdateTask,
+  onDeleteTask,
   customers,
 }) => {
+  const [editingTask, setEditingTask] = useState<CRMTask | null>(null);
+
   // ترتيب المهام حسب الأولوية ثم الحالة
   const sortedTasks = useMemo(() => {
     const activeTasks = tasks.filter(t => t.status !== 'completed');
@@ -122,6 +145,21 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
     if (!customerId) return null;
     return customers.find(c => c.id === customerId)?.name || 'عميل محذوف';
   };
+
+  // تحويل Task إلى CRMTask للتعديل
+  const convertToCRMTask = (task: Task): CRMTask => ({
+    id: task.id,
+    user_id: '',
+    customer_id: task.customerId,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    status: task.status,
+    due_date: task.dueDate,
+    completed_at: task.completedAt,
+    created_at: task.createdAt,
+    updated_at: task.createdAt,
+  });
 
   // رندر بطاقة المهمة
   const renderTaskCard = (task: Task) => {
@@ -179,6 +217,14 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
                 </Badge>
               )}
 
+              {/* تاريخ الاستحقاق */}
+              {task.dueDate && !isCompleted && (
+                <Badge variant="outline" className="gap-1 py-0 text-[10px]">
+                  <Clock className="w-3 h-3" />
+                  {new Date(task.dueDate).toLocaleDateString('ar-SA')}
+                </Badge>
+              )}
+
               {/* تاريخ الإنجاز */}
               {isCompleted && task.completedAt && (
                 <span className="text-gray-400 flex items-center gap-1">
@@ -188,6 +234,46 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
               )}
             </div>
           </div>
+
+          {/* أزرار التحرير والحذف */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditingTask(convertToCRMTask(task))}>
+                <Pencil className="w-4 h-4 ml-2" />
+                تعديل
+              </DropdownMenuItem>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                    <Trash2 className="w-4 h-4 ml-2" />
+                    حذف
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent dir="rtl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      هل أنت متأكد من حذف المهمة "{task.title}"؟ لا يمكن التراجع عن هذا الإجراء.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDeleteTask(task.id)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      حذف
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     );
@@ -254,6 +340,14 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Edit Task Dialog */}
+      <EditTaskDialog
+        isOpen={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        task={editingTask}
+        onUpdate={onUpdateTask}
+      />
     </Dialog>
   );
 };

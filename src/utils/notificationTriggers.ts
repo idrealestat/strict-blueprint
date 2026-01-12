@@ -328,3 +328,71 @@ export async function triggerSavedDocumentNotification(
     }));
   }
 }
+
+/**
+ * إشعار مهمة مستحقة / تذكير بمهمة
+ * يظهر مع صوت تنبيه في الجرس
+ */
+export async function triggerTaskReminderNotification(
+  userId: string,
+  taskData: { 
+    taskId: string;
+    taskTitle: string;
+    dueDate: string;
+    reminderType: 'upcoming' | 'due_now' | 'overdue';
+    customerName?: string;
+    priority?: string;
+  }
+): Promise<void> {
+  const typeConfig = {
+    upcoming: {
+      title: '⏰ مهمة قادمة',
+      priority: 'normal' as const,
+      type: 'warning',
+    },
+    due_now: {
+      title: '🔔 مهمة مستحقة الآن',
+      priority: 'high' as const,
+      type: 'warning',
+    },
+    overdue: {
+      title: '⚠️ مهمة متأخرة',
+      priority: 'urgent' as const,
+      type: 'error',
+    },
+  };
+
+  const config = typeConfig[taskData.reminderType];
+  const customerText = taskData.customerName ? ` - للعميل: ${taskData.customerName}` : '';
+  const dueDateFormatted = new Date(taskData.dueDate).toLocaleDateString('ar-SA');
+
+  // إنشاء الإشعار في قاعدة البيانات
+  await createNotification({
+    userId,
+    title: config.title,
+    message: `${taskData.taskTitle}${customerText} - الموعد: ${dueDateFormatted}`,
+    notificationType: 'crm',
+    category: 'task',
+    priority: config.priority,
+    relatedEntityType: 'task',
+    relatedEntityId: taskData.taskId,
+    actionUrl: '/app/crm',
+    metadata: taskData,
+  });
+
+  // إطلاق حدث للتنبيه الصوتي والعرض في الجرس
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('addNotification', {
+      detail: {
+        title: config.title,
+        message: `${taskData.taskTitle}${customerText} - الموعد: ${dueDateFormatted}`,
+        type: config.type,
+        category: 'task',
+        priority: config.priority,
+        soundType: taskData.reminderType === 'overdue' ? 'urgent' : 'reminder',
+        relatedId: taskData.taskId,
+        actionType: `task_${taskData.reminderType}`,
+      }
+    }));
+  }
+}
