@@ -112,25 +112,25 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
       <motion.button
         key={buttonId}
         onClick={() => handleButtonClick(buttonId)}
-        className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-white/10 transition-all group"
+        className="flex flex-col items-center gap-0.5 md:gap-0 px-1.5 md:px-2 py-1 md:py-0.5 rounded-lg hover:bg-white/10 transition-all group"
         whileTap={{ scale: 0.95 }}
       >
         <div 
           className={`
             flex items-center justify-center transition-transform group-hover:scale-110
             ${isCenter 
-              ? 'w-12 h-12 rounded-full bg-[#D4AF37] shadow-lg' 
-              : 'w-9 h-9 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50'
+              ? 'w-10 h-10 md:w-9 md:h-9 rounded-full bg-[#D4AF37] shadow-lg' 
+              : 'w-8 h-8 md:w-7 md:h-7 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50'
             }
           `}
         >
           <Icon 
             className={`
-              ${isCenter ? 'w-6 h-6 text-[#01411C]' : 'w-4 h-4 text-[#D4AF37]'}
+              ${isCenter ? 'w-5 h-5 md:w-4 md:h-4 text-[#01411C]' : 'w-4 h-4 md:w-3.5 md:h-3.5 text-[#D4AF37]'}
             `} 
           />
         </div>
-        <span className={`text-[10px] ${isCenter ? 'text-white font-medium' : 'text-white/80'}`}>
+        <span className={`text-[9px] md:text-[8px] ${isCenter ? 'text-white font-medium' : 'text-white/80'}`}>
           {buttonInfo.label}
         </span>
       </motion.button>
@@ -145,7 +145,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
           className="bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-t-2 border-[#D4AF37] shadow-[0_-4px_20px_rgba(0,0,0,0.3)]"
         >
           <div className="container mx-auto px-2">
-            <div className="flex items-center justify-between py-2" dir="rtl">
+            <div className="flex items-center justify-between py-1.5 md:py-1" dir="rtl">
               {/* أقصى اليمين - الرئيسية */}
               {renderButton('right')}
               
