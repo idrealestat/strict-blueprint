@@ -630,6 +630,12 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         }
       }
 
+      // تحديث حالة الـ onboarding
+      await supabase
+        .from('user_entitlements')
+        .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
+        .eq('user_id', authUser.id);
+
       // حفظ الـ slug المستخدم للرابط العام
       localStorage.setItem('public_platform_slug', selectedSlug);
 

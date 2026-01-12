@@ -46,12 +46,16 @@ import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
 import SlugOfferPage from "./pages/SlugOfferPage";
 import SlugRequestPage from "./pages/SlugRequestPage";
 import SlugQuotePage from "./pages/SlugQuotePage";
+import ChoosePlanPage from "./pages/ChoosePlanPage";
 import { AuthProvider } from "./context/AuthContext";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
+import { EntitlementsProvider } from "./context/EntitlementsContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
 import RoleGuard from "./components/auth/RoleGuard";
+import { OnboardingGuard } from "./components/auth/OnboardingGuard";
 import { useAuthContext } from "./context/AuthContext";
+import { useEntitlementsContext } from "./context/EntitlementsContext";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -402,42 +406,54 @@ const App = () => {
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <FeatureFlagsProvider>
-            <DashboardProvider>
-              <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  {/* Root - صفحة تسجيل الدخول */}
-                  <Route path="/" element={<AuthPage />} />
-                  {/* Auth routes */}
-                  <Route path="/app/login" element={<AuthPage />} />
-                  <Route path="/app/register" element={<AuthPage />} />
-                  <Route path="/app/recover" element={<RecoverDomainPage />} />
-                  <Route path="/app/auth/callback" element={<AuthCallbackPage />} />
-                  <Route path="/app/reset-password" element={<ResetPasswordPage />} />
-                  
-                  {/* Legacy auth routes */}
-                  <Route path="/auth" element={<Navigate to="/app/login" replace />} />
-                  <Route path="/login" element={<Navigate to="/app/login" replace />} />
-                  
-                  {/* Redirect legacy owner route */}
-                  <Route path="/owner" element={<Navigate to="/app/owner" replace />} />
-                  
-                  {/* businesscard/edit - محمي فقط بـ ProtectedRoute */}
-                  <Route path="/app/businesscard/edit" element={
-                    <ProtectedRoute>
-                      <ProtectedBusinessCardEdit isNewUser={isNewUser} />
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* باقي صفحات /app/* - تحتاج BusinessCardGuard */}
-                  <Route path="/app/dashboard" element={
-                    <BusinessCardGuard>
-                      <DashboardContent isNewUser={isNewUser} />
-                    </BusinessCardGuard>
-                  } />
+          <EntitlementsProvider>
+            <FeatureFlagsProvider>
+              <DashboardProvider>
+                <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    {/* Root - صفحة تسجيل الدخول */}
+                    <Route path="/" element={<AuthPage />} />
+                    {/* Auth routes */}
+                    <Route path="/app/login" element={<AuthPage />} />
+                    <Route path="/app/register" element={<AuthPage />} />
+                    <Route path="/app/recover" element={<RecoverDomainPage />} />
+                    <Route path="/app/auth/callback" element={<AuthCallbackPage />} />
+                    <Route path="/app/reset-password" element={<ResetPasswordPage />} />
+                    
+                    {/* Legacy auth routes */}
+                    <Route path="/auth" element={<Navigate to="/app/login" replace />} />
+                    <Route path="/login" element={<Navigate to="/app/login" replace />} />
+                    
+                    {/* Redirect legacy owner route */}
+                    <Route path="/owner" element={<Navigate to="/app/owner" replace />} />
+                    
+                    {/* صفحة اختيار الباقة - إجباري بعد التسجيل */}
+                    <Route path="/app/choose-plan" element={
+                      <ProtectedRoute>
+                        <ChoosePlanPage />
+                      </ProtectedRoute>
+                    } />
+                    
+                    {/* businesscard/edit - محمي بـ ProtectedRoute + OnboardingGuard */}
+                    <Route path="/app/businesscard/edit" element={
+                      <ProtectedRoute>
+                        <OnboardingGuard>
+                          <ProtectedBusinessCardEdit isNewUser={isNewUser} />
+                        </OnboardingGuard>
+                      </ProtectedRoute>
+                    } />
+                    
+                    {/* باقي صفحات /app/* - تحتاج BusinessCardGuard + OnboardingGuard */}
+                    <Route path="/app/dashboard" element={
+                      <OnboardingGuard>
+                        <BusinessCardGuard>
+                          <DashboardContent isNewUser={isNewUser} />
+                        </BusinessCardGuard>
+                      </OnboardingGuard>
+                    } />
                   
                   <Route path="/app/publish-ad" element={
                     <BusinessCardGuard>
@@ -515,6 +531,7 @@ const App = () => {
             </TooltipProvider>
             </DashboardProvider>
           </FeatureFlagsProvider>
+          </EntitlementsProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
