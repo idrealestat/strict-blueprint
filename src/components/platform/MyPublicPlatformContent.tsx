@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users } from 'lucide-react';
 import { getDisplayName } from '@/components/business-card/DisplayNameSettings';
 import { Badge } from '@/components/ui/badge';
@@ -281,7 +282,56 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       };
     }
 
-    const loadCardData = () => {
+    const loadCardData = async () => {
+      // أولاً: محاولة الجلب من قاعدة البيانات
+      if (userId && userId !== 'default' && userId !== 'public') {
+        try {
+          const { data: businessCard } = await supabase
+            .from('business_cards')
+            .select('data')
+            .eq('user_id', userId)
+            .maybeSingle();
+          
+          if (businessCard?.data) {
+            const cardData = businessCard.data as Record<string, any>;
+            setBusinessCardData({
+              userName: cardData.userName || cardData.name || '',
+              companyName: cardData.companyName || '',
+              falLicense: cardData.falLicense || '',
+              falExpiry: cardData.falExpiry || '',
+              commercialRegistration: cardData.commercialRegistration || '',
+              commercialExpiryDate: cardData.commercialExpiryDate || '',
+              primaryPhone: cardData.primaryPhone || cardData.phone || '',
+              email: cardData.email || '',
+              domain: cardData.domain || '',
+              googleMapsLocation: cardData.googleMapsLocation || '',
+              location: cardData.location || '',
+              officialPlatform: cardData.officialPlatform || '',
+              bio: cardData.bio || '',
+              achievements: cardData.achievements || {
+                totalDeals: 0,
+                totalProperties: 0,
+                totalClients: 0,
+                yearsOfExperience: 0,
+                awards: [],
+                certifications: [],
+                topPerformer: false,
+                verified: false
+              },
+              profileImage: cardData.profileImage || '',
+              coverImage: cardData.coverImage || '',
+              logoImage: cardData.logoImage || '',
+              displayNameType: cardData.displayNameType || 'personal',
+              platformNameArabic: cardData.platformNameArabic || ''
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('[MyPublicPlatformContent] Error loading from DB:', error);
+        }
+      }
+      
+      // ثانياً: جلب من localStorage كـ fallback
       const savedBusinessCard = localStorage.getItem(STORAGE_KEY);
 
       if (savedBusinessCard) {
