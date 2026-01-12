@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useNotifications } from './useNotifications';
+import { usePushNotifications } from './usePushNotifications';
 import { getSmartOpportunitiesPreferences } from '@/components/settings/SmartOpportunitiesSettings';
 
 interface SmartOpportunityNotification {
@@ -25,6 +26,7 @@ interface SmartOpportunityNotification {
 export function useSmartOpportunityNotifications() {
   const { user } = useAuth();
   const { createNotification } = useNotifications();
+  const { sendSmartOpportunityNotification, permission } = usePushNotifications();
   const [opportunities, setOpportunities] = useState<SmartOpportunityNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -37,6 +39,8 @@ export function useSmartOpportunityNotifications() {
     type: 'offer_to_request' | 'request_to_offer';
     purpose?: 'sale' | 'rent';
     category?: 'residential' | 'commercial';
+    city?: string;
+    propertyType?: string;
   }) => {
     if (!user) return;
 
@@ -74,6 +78,19 @@ export function useSmartOpportunityNotifications() {
       playNotificationSound();
     }
 
+    // إرسال Push Notification للجوال (إذا كان مفعلاً)
+    if (permission === 'granted') {
+      await sendSmartOpportunityNotification({
+        similarityScore: data.similarity_score,
+        otherItemTitle: data.other_item_title,
+        otherBrokerName: data.other_broker_name,
+        opportunityKey: data.opportunity_key,
+        matchType: data.type,
+        city: data.city,
+        propertyType: data.propertyType,
+      });
+    }
+
     // إنشاء إشعار في قاعدة البيانات
     await createNotification({
       title,
@@ -91,7 +108,7 @@ export function useSmartOpportunityNotifications() {
         opportunity_type: data.type,
       },
     });
-  }, [user, createNotification]);
+  }, [user, createNotification, sendSmartOpportunityNotification, permission]);
 
   // تشغيل صوت الإشعار
   const playNotificationSound = () => {

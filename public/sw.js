@@ -30,6 +30,14 @@ function getNotificationStyle(type) {
         vibrate: [300, 100, 300, 100, 300], // اهتزاز قوي للعروض الجديدة
         requireInteraction: true, // يبقى حتى يتفاعل المستخدم
       };
+    case 'smart_opportunity':
+      return {
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'smart-opportunity',
+        vibrate: [400, 100, 400, 100, 400, 100, 400], // اهتزاز مميز للفرص الذكية
+        requireInteraction: true, // يبقى حتى يتفاعل المستخدم
+      };
     case 'offer_view':
       return {
         icon: '/favicon.ico',
@@ -96,6 +104,11 @@ function getActionsForType(type) {
         { action: 'view_customer', title: '👤 عرض العميل' },
         { action: 'view', title: '📋 عرض التفاصيل' },
       ];
+    case 'smart_opportunity':
+      return [
+        { action: 'view', title: '🎯 عرض الفرصة' },
+        { action: 'view_all', title: '📊 كل الفرص' },
+      ];
     case 'offer_view':
       return [
         { action: 'view_stats', title: '📊 الإحصائيات' },
@@ -131,9 +144,13 @@ self.addEventListener('notificationclick', (event) => {
     targetUrl = `/app/dashboard?customer=${data.customerId}`;
   } else if (event.action === 'view_stats') {
     targetUrl = '/app/dashboard?tab=analytics';
+  } else if (event.action === 'view_all' && data.type === 'smart_opportunity') {
+    targetUrl = '/app/smart-opportunities';
   } else if (event.action === 'view') {
     if (data.actionUrl) {
       targetUrl = data.actionUrl;
+    } else if (data.type === 'smart_opportunity') {
+      targetUrl = '/app/smart-opportunities';
     } else if (data.type === 'new_offer' || data.type === 'offer') {
       targetUrl = data.customerId 
         ? `/app/dashboard?customer=${data.customerId}&tab=offers`
@@ -149,6 +166,8 @@ self.addEventListener('notificationclick', (event) => {
     // النقر على الإشعار نفسه (وليس زر)
     if (data.actionUrl) {
       targetUrl = data.actionUrl;
+    } else if (data.type === 'smart_opportunity') {
+      targetUrl = '/app/smart-opportunities';
     } else if (data.type === 'new_offer' || data.type === 'offer') {
       targetUrl = '/app/dashboard?section=crm';
     }

@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Sparkles, 
   Bell, 
@@ -21,9 +22,13 @@ import {
   Home,
   Settings,
   Save,
-  RotateCcw
+  RotateCcw,
+  Smartphone,
+  Check,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export interface SmartOpportunitiesPreferences {
   // تفعيل الإشعارات
@@ -76,11 +81,19 @@ export default function SmartOpportunitiesSettings() {
   const [preferences, setPreferences] = useState<SmartOpportunitiesPreferences>(defaultPreferences);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const { isSupported, permission, requestPermission } = usePushNotifications();
 
   useEffect(() => {
     const saved = getSmartOpportunitiesPreferences();
     setPreferences(saved);
   }, []);
+
+  const handleEnablePushNotifications = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      toast.success('تم تفعيل إشعارات Push للجوال');
+    }
+  };
 
   const handleChange = <K extends keyof SmartOpportunitiesPreferences>(
     key: K,
@@ -303,6 +316,64 @@ export default function SmartOpportunitiesSettings() {
               onCheckedChange={(checked) => handleChange('soundEnabled', checked)}
               disabled={!preferences.notificationsEnabled}
             />
+          </div>
+
+          <Separator />
+
+          {/* إشعارات Push للجوال */}
+          <div className="space-y-4 p-4 rounded-lg bg-muted/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Smartphone className="w-5 h-5 text-primary" />
+                <div>
+                  <Label className="text-base font-medium">إشعارات Push للجوال</Label>
+                  <p className="text-sm text-muted-foreground">
+                    استلام إشعارات حتى عندما يكون التطبيق مغلقاً
+                  </p>
+                </div>
+              </div>
+              <Badge 
+                variant={permission === 'granted' ? 'default' : 'secondary'}
+                className={permission === 'granted' ? 'bg-green-500 gap-1' : 'gap-1'}
+              >
+                {permission === 'granted' ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    مفعّلة
+                  </>
+                ) : (
+                  <>
+                    <X className="w-3 h-3" />
+                    غير مفعّلة
+                  </>
+                )}
+              </Badge>
+            </div>
+
+            {!isSupported ? (
+              <Alert>
+                <AlertDescription>
+                  المتصفح الحالي لا يدعم إشعارات Push. جرب استخدام متصفح Chrome أو Safari.
+                </AlertDescription>
+              </Alert>
+            ) : permission !== 'granted' ? (
+              <Button
+                variant="outline"
+                onClick={handleEnablePushNotifications}
+                className="w-full gap-2"
+                disabled={!preferences.notificationsEnabled}
+              >
+                <Bell className="w-4 h-4" />
+                تفعيل إشعارات Push
+              </Button>
+            ) : (
+              <Alert className="border-green-500/50 bg-green-500/10">
+                <Check className="w-4 h-4 text-green-500" />
+                <AlertDescription className="text-green-700 dark:text-green-400">
+                  إشعارات Push مفعلة! ستصلك إشعارات الفرص الذكية على جوالك.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           {/* أزرار الحفظ */}

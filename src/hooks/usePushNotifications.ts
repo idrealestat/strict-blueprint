@@ -144,6 +144,31 @@ export function usePushNotifications() {
     });
   }, [sendLocalNotification]);
 
+  // إرسال إشعار فرصة ذكية جديدة
+  const sendSmartOpportunityNotification = useCallback(async (
+    opportunityInfo: {
+      similarityScore: number;
+      otherItemTitle: string;
+      otherBrokerName?: string;
+      opportunityKey: string;
+      matchType: 'offer_to_request' | 'request_to_offer';
+      city?: string;
+      propertyType?: string;
+    }
+  ) => {
+    const isOffer = opportunityInfo.matchType === 'offer_to_request';
+    const emoji = opportunityInfo.similarityScore >= 90 ? '🎯' : opportunityInfo.similarityScore >= 80 ? '✨' : '💡';
+    
+    const title = `${emoji} فرصة ذكية ${opportunityInfo.similarityScore}%`;
+    const body = `${isOffer ? 'عرض يطابق طلبك' : 'طلب يطابق عرضك'}: ${opportunityInfo.otherItemTitle}${opportunityInfo.otherBrokerName ? ` - ${opportunityInfo.otherBrokerName}` : ''}`;
+    
+    return sendLocalNotification(title, body, {
+      type: 'smart_opportunity',
+      actionUrl: '/app/smart-opportunities',
+      ...opportunityInfo,
+    });
+  }, [sendLocalNotification]);
+
   // إلغاء الاشتراك
   const unsubscribe = useCallback(async () => {
     try {
@@ -169,6 +194,7 @@ export function usePushNotifications() {
     sendLocalNotification,
     sendViewNotification,
     sendOfferNotification,
+    sendSmartOpportunityNotification,
     unsubscribe,
   };
 }
