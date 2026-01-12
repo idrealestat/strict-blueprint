@@ -1375,12 +1375,12 @@ export default function NotificationSettings() {
         </CardContent>
       </Card>
 
-      {/* حفظ الإعدادات */}
-      <div className="flex justify-center pb-8">
-        <Button size="lg" onClick={savePreferences} disabled={isSaving} className="px-8">
-          {isSaving ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات'}
-        </Button>
-      </div>
+          {/* حفظ الإعدادات */}
+          <div className="flex justify-center pb-8">
+            <Button size="lg" onClick={savePreferences} disabled={isSaving} className="px-8">
+              {isSaving ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات'}
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="smart-opportunities">
