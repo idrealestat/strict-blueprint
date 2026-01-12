@@ -80,6 +80,7 @@ export default function AuthPage() {
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
+  const REMEMBER_ME_KEY = 'wasata_saved_credentials';
 
   const { toast } = useToast();
   const { isAuthenticated, loading, user } = useAuth();
@@ -91,6 +92,22 @@ export default function AuthPage() {
       navigate('/app/businesscard/edit');
     }
   }, [isAuthenticated, loading, navigate, user]);
+
+  // استرجاع بيانات تسجيل الدخول المحفوظة (تذكرني)
+  useEffect(() => {
+    try {
+      const savedCredentials = localStorage.getItem(REMEMBER_ME_KEY);
+      if (savedCredentials) {
+        const { email, password } = JSON.parse(savedCredentials);
+        if (email && password) {
+          setData(prev => ({ ...prev, email, password }));
+          setRememberMe(true);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // استرجاع بيانات التسجيل المؤقتة
   useEffect(() => {
@@ -256,10 +273,14 @@ export default function AuthPage() {
         return;
       }
       
+      // حفظ بيانات الدخول إذا كان "تذكرني" مفعّل
       if (rememberMe) {
-        localStorage.setItem('wasata_remember_me', 'true');
+        localStorage.setItem(REMEMBER_ME_KEY, JSON.stringify({
+          email: data.email,
+          password: data.password
+        }));
       } else {
-        localStorage.removeItem('wasata_remember_me');
+        localStorage.removeItem(REMEMBER_ME_KEY);
       }
       
       toast({
