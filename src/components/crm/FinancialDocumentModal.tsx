@@ -27,6 +27,9 @@ interface UserData {
   profileImage?: string;
   logoImage?: string;
   coverImage?: string;
+  // Display name settings
+  displayNameType?: 'personal' | 'company' | 'platform';
+  platformNameArabic?: string;
 }
 
 interface InvoiceItem {
@@ -87,9 +90,25 @@ export default function FinancialDocumentModal({
     ));
   };
 
+  // حساب الاسم المعروض
+  const getDisplayName = (): string => {
+    const displayType = userData?.displayNameType || 'personal';
+    switch (displayType) {
+      case 'company':
+        return userData?.companyName || userData?.name || 'وسيط عقاري';
+      case 'platform':
+        return userData?.platformNameArabic || userData?.name || 'منصة عقارية';
+      case 'personal':
+      default:
+        return userData?.name || 'وسيط عقاري';
+    }
+  };
+
+  const displayName = getDisplayName();
+
   // الصور الافتراضية
-  const defaultProfileImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || 'وسيط')}&background=01411C&color=D4AF37&size=192&bold=true&font-size=0.4`;
-  const defaultLogoImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.companyName || 'شركة')}&background=D4AF37&color=01411C&size=192&bold=true&font-size=0.35`;
+  const defaultProfileImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=01411C&color=D4AF37&size=192&bold=true&font-size=0.4`;
+  const defaultLogoImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.companyName || displayName)}&background=D4AF37&color=01411C&size=192&bold=true&font-size=0.35`;
   
   const profileImage = userData?.profileImage || defaultProfileImage;
   const logoImage = userData?.logoImage || defaultLogoImage;
@@ -336,8 +355,10 @@ export default function FinancialDocumentModal({
           <div className="pt-16 px-4 pb-4 space-y-4">
             {/* معلومات الوسيط */}
             <div className="text-right">
-              <h3 className="font-bold text-lg text-[#01411C]">{userData.name}</h3>
-              <p className="text-sm text-gray-600">{userData.companyName}</p>
+              <h3 className="font-bold text-lg text-[#01411C]">{displayName}</h3>
+              {userData.displayNameType !== 'company' && userData.companyName && (
+                <p className="text-sm text-gray-600">{userData.companyName}</p>
+              )}
               {userData.falLicense && (
                 <Badge variant="outline" className="mt-1 text-xs border-[#D4AF37] text-[#D4AF37]">
                   رخصة فال: {userData.falLicense}
