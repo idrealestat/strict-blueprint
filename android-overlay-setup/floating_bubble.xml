@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    floating_bubble.xml
+    تخطيط الفقاعة العائمة
+    
+    يجب نسخه إلى:
+    android/app/src/main/res/layout/floating_bubble.xml
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="4dp">
+
+    <!-- الفقاعة الرئيسية -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:elevation="8dp"
+        app:cardCornerRadius="32dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bubble_gradient">
+
+            <!-- أيقونة المساعد -->
+            <ImageView
+                android:id="@+id/bubble_icon"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_centerInParent="true"
+                android:src="@drawable/ic_ai_assistant"
+                android:contentDescription="مساعد وساطة الذكي" />
+
+            <!-- نقطة الإشعار -->
+            <View
+                android:id="@+id/notification_dot"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/notification_dot" />
+
+        </RelativeLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</FrameLayout>

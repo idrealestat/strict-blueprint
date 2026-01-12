@@ -1,0 +1,39 @@
+<!--
+    AndroidManifest_additions.xml
+    الإضافات المطلوبة لملف AndroidManifest.xml
+    
+    يجب إضافة هذه الأسطر إلى:
+    android/app/src/main/AndroidManifest.xml
+-->
+
+<!-- ===================== الصلاحيات المطلوبة ===================== -->
+<!-- أضف هذه الصلاحيات داخل <manifest> وقبل <application> -->
+
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+
+<!-- ===================== تسجيل الخدمة ===================== -->
+<!-- أضف هذا داخل <application> -->
+
+<service
+    android:name=".FloatingBubbleService"
+    android:enabled="true"
+    android:exported="false"
+    android:foregroundServiceType="specialUse">
+    <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="ai_assistant_overlay" />
+</service>
+
+
+<!-- ===================== ملاحظات مهمة ===================== -->
+<!--
+1. صلاحية SYSTEM_ALERT_WINDOW تتطلب موافقة المستخدم اليدوية
+2. يجب توجيه المستخدم لـ Settings > Apps > Special Access > Display over other apps
+3. يمكن فتح صفحة الإعدادات برمجياً باستخدام:
+   Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+       Uri.parse("package:" + getPackageName()));
+   startActivity(intent);
+-->
