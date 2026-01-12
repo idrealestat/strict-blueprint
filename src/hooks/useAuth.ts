@@ -3,7 +3,11 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { clearSensitiveData } from '@/utils/localDataManager';
 
-export type AppRole = 'owner' | 'admin' | 'user';
+// الأدوار المعتمدة:
+// owner = مالك النظام (شخص واحد)
+// admin = مدير مكتب/شركة (صلاحيات داخل حسابه فقط)
+// member = عضو فريق (صلاحيات محدودة)
+export type AppRole = 'owner' | 'admin' | 'member';
 
 interface AuthState {
   user: User | null;
@@ -124,9 +128,14 @@ export function useAuth() {
   };
 
   // Helper functions to check roles
+  // owner = مالك النظام الوحيد (صلاحيات كاملة)
   const isOwner = role === 'owner';
-  const isAdmin = role === 'admin' || role === 'owner';
-  const isUser = role === 'user' || role === 'admin' || role === 'owner';
+  // admin = مدير مكتب (صلاحيات داخل حسابه فقط) - لا يشمل Owner
+  const isAdmin = role === 'admin';
+  // isMember = عضو فريق
+  const isMember = role === 'member';
+  // hasAnyRole = أي دور معتمد (للتحقق من أن المستخدم له دور)
+  const hasAnyRole = role === 'owner' || role === 'admin' || role === 'member';
 
   const hasRole = (requiredRoles: AppRole[]): boolean => {
     if (!role) return false;
@@ -149,7 +158,8 @@ export function useAuth() {
     isEmailVerified,
     isOwner,
     isAdmin,
-    isUser,
+    isMember,
+    hasAnyRole,
     hasRole,
   };
 }

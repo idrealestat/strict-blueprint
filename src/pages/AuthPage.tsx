@@ -406,8 +406,8 @@ export default function AuthPage() {
           website: data.website || null,
         }, { onConflict: 'user_id' });
         
-        // 2) تعيين الدور
-        const userRole = data.accountType === 'individual' ? 'user' : 'admin';
+        // 2) تعيين الدور: individual = member, office = admin
+        const userRole = data.accountType === 'individual' ? 'member' : 'admin';
         await supabase.from('user_roles').upsert({
           user_id: userId,
           role: userRole,

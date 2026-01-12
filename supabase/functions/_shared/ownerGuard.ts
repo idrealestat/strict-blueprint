@@ -14,7 +14,11 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-export type AppRole = 'owner' | 'admin' | 'user';
+// الأدوار المعتمدة:
+// owner = مالك النظام (شخص واحد)
+// admin = مدير مكتب (صلاحيات داخل حسابه فقط)
+// member = عضو فريق
+export type AppRole = 'owner' | 'admin' | 'member';
 
 export interface OwnerAuthResult {
   userId: string;

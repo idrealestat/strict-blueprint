@@ -79,14 +79,14 @@ export default function RoleGuard({
                     key={r} 
                     className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
                   >
-                    {r === 'owner' ? 'مالك' : r === 'admin' ? 'مدير' : 'مستخدم'}
+                    {r === 'owner' ? 'مالك النظام' : r === 'admin' ? 'مدير مكتب' : 'عضو فريق'}
                   </span>
                 ))}
               </div>
               {role && (
                 <p className="mt-3 text-xs">
                   دورك الحالي: <span className="font-medium text-foreground">
-                    {role === 'owner' ? 'مالك' : role === 'admin' ? 'مدير' : 'مستخدم'}
+                    {role === 'owner' ? 'مالك النظام' : role === 'admin' ? 'مدير مكتب' : 'عضو فريق'}
                   </span>
                 </p>
               )}
