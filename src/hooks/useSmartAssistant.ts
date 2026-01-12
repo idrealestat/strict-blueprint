@@ -19,6 +19,7 @@ import {
   getKeyBenefits,
   WELCOME_PAGES
 } from '@/data/assistantKnowledge';
+import { analyzeConversation, determineExitType, ConversationAnalysis } from '@/utils/conversationAnalyzer';
 
 export interface AssistantMessage {
   role: 'assistant' | 'user';
@@ -50,6 +51,7 @@ interface AssistantState {
   showPageDescriptionOptions: boolean;
   showRatingForm: boolean;
   currentPagePath: string;
+  conversationAnalysis: ConversationAnalysis | null;
 }
 
 // Contextual messages based on trigger reason and page context with knowledge base
@@ -191,6 +193,7 @@ export function useSmartAssistant() {
     showPageDescriptionOptions: false,
     showRatingForm: false,
     currentPagePath: '',
+    conversationAnalysis: null,
   });
   
   const shownOnPagesRef = useRef<Set<string>>(new Set());
@@ -270,6 +273,7 @@ export function useSmartAssistant() {
       showPageDescriptionOptions: isWelcomePage && triggerReason === 'page_visit',
       showRatingForm: false,
       currentPagePath: location.pathname,
+      conversationAnalysis: null,
     });
   }, [silentMode, location.pathname, sessionId, pageContext, updateContext]);
 
@@ -301,6 +305,7 @@ export function useSmartAssistant() {
         showPageDescriptionOptions: false,
         showRatingForm: false,
         currentPagePath: location.pathname,
+        conversationAnalysis: null,
       });
     };
 
@@ -380,6 +385,7 @@ export function useSmartAssistant() {
           showPageDescriptionOptions: welcome.showDescriptionChoice,
           showRatingForm: false,
           currentPagePath: location.pathname,
+          conversationAnalysis: null,
         });
       }, 1500);
 
@@ -605,20 +611,58 @@ export function useSmartAssistant() {
     }
   }, [state.messages, state.conversationId, pageContext]);
 
-  // Dismiss assistant
+  // Dismiss assistant with conversation analysis
   const dismiss = useCallback(async (outcome: 'helped' | 'dismissed' | 'ignored' = 'dismissed') => {
     if (state.conversationId && userIdRef.current) {
+      // تحليل المحادثة قبل الإغلاق
+      const analysis = analyzeConversation(
+        state.messages.map(m => ({ role: m.role, content: m.content })),
+        pageContext ? {
+          pagePath: pageContext.pagePath,
+          pageName: pageContext.pageName,
+          formProgress: pageContext.formProgress,
+          timeOnPage: pageContext.timeOnPage,
+        } : undefined
+      );
+
+      // تحديد نوع الخروج
+      const exitType = determineExitType(
+        state.messages.length > 1,
+        outcome,
+        state.messages.map(m => ({ role: m.role, content: m.content }))
+      );
+
       await supabase.from('assistant_conversations')
         .update({
           outcome,
           ended_at: new Date().toISOString(),
+          analysis: {
+            intent: analysis.intent,
+            problemType: analysis.problemType,
+            confidenceLevel: analysis.confidenceLevel,
+            sentiment: analysis.sentiment,
+            userUnderstandingLevel: analysis.userUnderstandingLevel,
+            actionNeeded: analysis.actionNeeded,
+            keywords: analysis.keywords,
+            suggestedAction: analysis.suggestedAction,
+            exitType,
+          },
         })
         .eq('id', state.conversationId);
 
       if (state.signalId) {
         const result = outcome === 'helped' ? 'completed' : 'exited';
         await supabase.from('behavioral_signals')
-          .update({ intervention_result: result })
+          .update({ 
+            intervention_result: result,
+            metadata: {
+              analysis: {
+                intent: analysis.intent,
+                problemType: analysis.problemType,
+                sentiment: analysis.sentiment,
+              },
+            },
+          })
           .eq('id', state.signalId);
       }
 
@@ -627,6 +671,14 @@ export function useSmartAssistant() {
           .update({ 
             was_rescued: true,
             assistant_interventions: 1,
+            exit_type: 'helped',
+          })
+          .eq('session_id', sessionId);
+      } else {
+        await supabase.from('behavioral_sessions')
+          .update({ 
+            exit_type: exitType,
+            exit_reason: analysis.problemType !== 'none' ? analysis.problemType : null,
           })
           .eq('session_id', sessionId);
       }
@@ -643,8 +695,9 @@ export function useSmartAssistant() {
       showPageDescriptionOptions: false,
       showRatingForm: false,
       currentPagePath: '',
+      conversationAnalysis: null,
     });
-  }, [state.conversationId, state.signalId, sessionId]);
+  }, [state.conversationId, state.signalId, state.messages, sessionId, pageContext]);
 
   // Enable silent mode
   const enableSilentMode = useCallback(async () => {
@@ -667,6 +720,7 @@ export function useSmartAssistant() {
       showPageDescriptionOptions: false,
       showRatingForm: false,
       currentPagePath: '',
+      conversationAnalysis: null,
     });
   }, [state.conversationId]);
 

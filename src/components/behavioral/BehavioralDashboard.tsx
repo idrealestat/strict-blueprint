@@ -105,6 +105,7 @@ export function BehavioralDashboard() {
   const [signals, setSignals] = useState<BehavioralSignal[]>([]);
   const [insights, setInsights] = useState<SmartInsight[]>([]);
   const [investorMetrics, setInvestorMetrics] = useState<any>(null);
+  const [conversationAnalytics, setConversationAnalytics] = useState<any>(null);
 
   // Fetch all data
   const fetchData = useCallback(async () => {
@@ -118,12 +119,19 @@ export function BehavioralDashboard() {
         .select('*')
         .gte('started_at', startDate.toISOString());
 
+      // Fetch conversations for analysis
+      const { data: conversations } = await supabase
+        .from('assistant_conversations')
+        .select('*')
+        .gte('created_at', startDate.toISOString());
+
       if (sessions) {
         const totalSessions = sessions.length;
         const stuckSessions = sessions.filter(s => s.was_stuck).length;
         const rescuedSessions = sessions.filter(s => s.was_rescued).length;
         const silentExits = sessions.filter(s => s.exit_type === 'silent').length;
-        const explainedExits = sessions.filter(s => s.exit_type === 'explained').length;
+        const explainedExits = sessions.filter(s => s.exit_type === 'explained' || s.exit_type === 'helped' || s.exit_type === 'frustrated').length;
+        const frustratedExits = sessions.filter(s => s.exit_type === 'frustrated').length;
         const assistantInterventions = sessions.reduce((sum, s) => sum + (s.assistant_interventions || 0), 0);
 
         setOverviewStats({
@@ -136,13 +144,59 @@ export function BehavioralDashboard() {
           rescueRate: stuckSessions > 0 ? (rescuedSessions / stuckSessions) * 100 : 0,
         });
 
-        // Calculate investor metrics
+        // Calculate investor metrics with additional data
+        const avgTimeToRescue = calculateAvgTimeToRescue(sessions, conversations || []);
+        const userRetentionAfterHelp = calculateUserRetention(sessions);
+        
         setInvestorMetrics({
           assistedCompletionRate: totalSessions > 0 ? (rescuedSessions / totalSessions) * 100 : 0,
           frictionIndex: totalSessions > 0 ? (stuckSessions / totalSessions) * 100 : 0,
           learningCurveIndex: calculateLearningCurve(sessions),
           trustRecoveryScore: stuckSessions > 0 ? (rescuedSessions / stuckSessions) * 100 : 0,
           featureConfusionIndex: calculateConfusionIndex(sessions),
+          avgTimeToRescue,
+          userRetentionAfterHelp,
+          frustrationRate: totalSessions > 0 ? (frustratedExits / totalSessions) * 100 : 0,
+          selfServiceRate: totalSessions > 0 ? ((totalSessions - stuckSessions) / totalSessions) * 100 : 0,
+        });
+      }
+
+      // Analyze conversations
+      if (conversations && conversations.length > 0) {
+        const problemTypes: Record<string, number> = {};
+        const intents: Record<string, number> = {};
+        const sentiments: Record<string, number> = {};
+        
+        conversations.forEach(conv => {
+          const analysis = conv.analysis as any;
+          if (analysis) {
+            // Count problem types
+            if (analysis.problemType && analysis.problemType !== 'none') {
+              problemTypes[analysis.problemType] = (problemTypes[analysis.problemType] || 0) + 1;
+            }
+            // Count intents
+            if (analysis.intent && analysis.intent !== 'unknown') {
+              intents[analysis.intent] = (intents[analysis.intent] || 0) + 1;
+            }
+            // Count sentiments
+            if (analysis.sentiment) {
+              sentiments[analysis.sentiment] = (sentiments[analysis.sentiment] || 0) + 1;
+            }
+          }
+        });
+
+        setConversationAnalytics({
+          totalConversations: conversations.length,
+          problemTypes,
+          intents,
+          sentiments,
+          topProblems: Object.entries(problemTypes)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5),
+          avgMessagesPerConversation: conversations.reduce((sum, c) => {
+            const msgs = c.messages as any[];
+            return sum + (msgs?.length || 0);
+          }, 0) / conversations.length || 0,
         });
       }
 
@@ -165,8 +219,8 @@ export function BehavioralDashboard() {
       setInsights(insightsData || []);
 
       // Generate insights if needed
-      if (!insightsData?.length && signalsData?.length) {
-        await generateInsights(signalsData);
+      if ((!insightsData?.length || insightsData.length < 3) && signalsData?.length) {
+        await generateInsights(signalsData, conversations || []);
       }
 
     } catch (error) {
@@ -203,9 +257,41 @@ export function BehavioralDashboard() {
     return Math.min(100, avgSignalsPerSession * 10);
   }
 
-  // Generate insights from signals
-  async function generateInsights(signalsData: BehavioralSignal[]) {
+  // Calculate average time to rescue
+  function calculateAvgTimeToRescue(sessions: any[], conversations: any[]): number {
+    const rescuedSessions = sessions.filter(s => s.was_rescued);
+    if (rescuedSessions.length === 0) return 0;
+
+    let totalTime = 0;
+    rescuedSessions.forEach(session => {
+      const conv = conversations.find(c => c.session_id === session.session_id);
+      if (conv && conv.created_at && conv.ended_at) {
+        const start = new Date(conv.created_at).getTime();
+        const end = new Date(conv.ended_at).getTime();
+        totalTime += (end - start) / 1000; // seconds
+      }
+    });
+
+    return totalTime / rescuedSessions.length || 0;
+  }
+
+  // Calculate user retention after help
+  function calculateUserRetention(sessions: any[]): number {
+    // Users who continued after being helped
+    const helpedSessions = sessions.filter(s => s.was_rescued);
+    const continuedAfterHelp = helpedSessions.filter(s => 
+      s.pages_visited && s.pages_visited.length > 2
+    ).length;
+
+    return helpedSessions.length > 0 
+      ? (continuedAfterHelp / helpedSessions.length) * 100 
+      : 0;
+  }
+
+  // Generate insights from signals and conversations
+  async function generateInsights(signalsData: BehavioralSignal[], conversations: any[]) {
     const pageFrequency: Record<string, { count: number; types: string[] }> = {};
+    const problemTypeCount: Record<string, number> = {};
     
     signalsData.forEach(signal => {
       if (!pageFrequency[signal.page_path]) {
@@ -217,18 +303,76 @@ export function BehavioralDashboard() {
       }
     });
 
-    const newInsights = Object.entries(pageFrequency)
+    // Analyze conversation problem types
+    conversations.forEach(conv => {
+      const analysis = conv.analysis as any;
+      if (analysis?.problemType && analysis.problemType !== 'none') {
+        problemTypeCount[analysis.problemType] = (problemTypeCount[analysis.problemType] || 0) + 1;
+      }
+    });
+
+    const newInsights: any[] = [];
+
+    // Page friction insights
+    Object.entries(pageFrequency)
       .filter(([_, data]) => data.count >= 3)
-      .map(([path, data]) => ({
-        insight_type: 'friction_page',
-        title: `صفحة تسبب صعوبة: ${path}`,
-        description: `${data.count} إشارات سلوكية مسجلة`,
-        page_path: path,
-        severity: data.count >= 10 ? 'high' : data.count >= 5 ? 'medium' : 'low',
-        occurrence_count: data.count,
-        suggested_improvement: 'مراجعة تصميم الصفحة وإضافة توجيهات واضحة',
-        implementation_priority: data.count >= 10 ? 'high' : 'medium',
-      }));
+      .forEach(([path, data]) => {
+        newInsights.push({
+          insight_type: 'friction_page',
+          title: `صفحة تسبب صعوبة: ${path}`,
+          description: `${data.count} إشارات سلوكية مسجلة في هذه الصفحة`,
+          page_path: path,
+          severity: data.count >= 10 ? 'high' : data.count >= 5 ? 'medium' : 'low',
+          occurrence_count: data.count,
+          suggested_improvement: 'مراجعة تصميم الصفحة وإضافة توجيهات واضحة',
+          implementation_priority: data.count >= 10 ? 'high' : 'medium',
+          metadata: { signalTypes: data.types },
+        });
+      });
+
+    // Problem type insights
+    Object.entries(problemTypeCount)
+      .filter(([_, count]) => count >= 2)
+      .forEach(([problemType, count]) => {
+        const problemLabels: Record<string, { title: string; suggestion: string }> = {
+          technical: { 
+            title: 'مشاكل تقنية متكررة', 
+            suggestion: 'مراجعة الأخطاء البرمجية وتحسين الأداء' 
+          },
+          design: { 
+            title: 'صعوبات في التصميم', 
+            suggestion: 'تحسين واجهة المستخدم وجعلها أكثر وضوحاً' 
+          },
+          linguistic: { 
+            title: 'مشاكل في فهم النصوص', 
+            suggestion: 'تبسيط اللغة وإضافة شروحات توضيحية' 
+          },
+          navigation: { 
+            title: 'صعوبة في التنقل', 
+            suggestion: 'تحسين بنية التنقل وإضافة روابط سريعة' 
+          },
+          process: { 
+            title: 'ارتباك في الخطوات', 
+            suggestion: 'إضافة شريط تقدم وتوضيح الخطوات' 
+          },
+        };
+
+        const label = problemLabels[problemType] || { 
+          title: `مشكلة من نوع: ${problemType}`, 
+          suggestion: 'مراجعة وتحسين' 
+        };
+
+        newInsights.push({
+          insight_type: 'problem_pattern',
+          title: label.title,
+          description: `تم تسجيل ${count} حالة من هذا النوع`,
+          severity: count >= 5 ? 'high' : count >= 3 ? 'medium' : 'low',
+          occurrence_count: count,
+          suggested_improvement: label.suggestion,
+          implementation_priority: count >= 5 ? 'high' : 'medium',
+          metadata: { problemType },
+        });
+      });
 
     if (newInsights.length > 0) {
       await supabase.from('behavioral_insights').insert(newInsights);
