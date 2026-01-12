@@ -471,7 +471,9 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const { 
     tasks: crmTasks, 
     isLoading: tasksLoading, 
-    toggleComplete: toggleTaskComplete 
+    toggleComplete: toggleTaskComplete,
+    updateTask: updateCRMTask,
+    deleteTask: deleteCRMTask,
   } = useCRMTasks();
   
   // قائمة الزملاء (Mock)
@@ -2365,6 +2367,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           createdAt: t.created_at,
         }))}
         onToggleComplete={toggleTaskComplete}
+        onUpdateTask={updateCRMTask}
+        onDeleteTask={deleteCRMTask}
         customers={customers.map(c => ({ id: c.id, name: c.name }))}
       />
 
