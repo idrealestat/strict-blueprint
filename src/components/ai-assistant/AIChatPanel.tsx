@@ -304,7 +304,40 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         // إرسال تنبيهات للملاك
         sendRentalNotifications();
         break;
+      case 'view_property':
+        // الانتقال لعرض العقار
+        viewPropertyDetails(target, action.data?.title as string);
+        break;
+      case 'compare_properties':
+        // مقارنة العقارات
+        compareProperties(action.data?.ids as string[]);
+        break;
     }
+  };
+
+  // عرض تفاصيل العقار
+  const viewPropertyDetails = (propertyId: string, propertyTitle: string) => {
+    window.dispatchEvent(new CustomEvent('navigateToProperty', { 
+      detail: { propertyId, propertyTitle } 
+    }));
+    // الانتقال للمنصة مع فتح العقار
+    window.dispatchEvent(new CustomEvent('navigateFromAssistant', { 
+      detail: { page: 'dashboard-main-252', propertyId } 
+    }));
+    toast.success(`جاري فتح: ${propertyTitle}`);
+    onClose();
+  };
+
+  // مقارنة العقارات
+  const compareProperties = (propertyIds: string[]) => {
+    window.dispatchEvent(new CustomEvent('compareProperties', { 
+      detail: { propertyIds } 
+    }));
+    window.dispatchEvent(new CustomEvent('navigateFromAssistant', { 
+      detail: { page: 'dashboard-main-252', compareIds: propertyIds } 
+    }));
+    toast.success('جاري فتح المقارنة...');
+    onClose();
   };
 
   const openOwnerDetails = (ownerId: string, activeTab?: string) => {
@@ -393,6 +426,33 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     const actions: ActionButton[] = [];
     const userInputLower = userInput.toLowerCase();
 
+    // استخراج أزرار العقارات من رد AI
+    const propertyActionRegex = /\[ACTION:VIEW_PROPERTY:([^:]+):([^\]]+)\]/g;
+    let match;
+    while ((match = propertyActionRegex.exec(content)) !== null) {
+      const [, propertyId, propertyTitle] = match;
+      actions.push({
+        icon: '🏠',
+        text: `عرض: ${propertyTitle}`,
+        action: `view_property:${propertyId}`,
+        type: 'navigate',
+        data: { id: propertyId, title: propertyTitle }
+      });
+    }
+
+    // استخراج أزرار المقارنة
+    const compareActionRegex = /\[ACTION:COMPARE_PROPERTIES:([^:]+):([^\]]+)\]/g;
+    while ((match = compareActionRegex.exec(content)) !== null) {
+      const [, propertyIds, title] = match;
+      actions.push({
+        icon: '⚖️',
+        text: title,
+        action: `compare_properties:${propertyIds}`,
+        type: 'navigate',
+        data: { ids: propertyIds.split(',') }
+      });
+    }
+
     if (userInputLower.includes('عملاء') || userInputLower.includes('كانبان')) {
       actions.push({ icon: '👥', text: 'فتح الكانبان', action: 'navigate:crm', type: 'navigate' });
       if (customers.length > 0) {
@@ -406,7 +466,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       }
     }
 
-    if (userInputLower.includes('عروض') || userInputLower.includes('منصة')) {
+    if (userInputLower.includes('عروض') || userInputLower.includes('منصة') || userInputLower.includes('عقار')) {
       actions.push({ icon: '🏠', text: 'فتح منصتي', action: 'navigate:platform', type: 'navigate' });
     }
 

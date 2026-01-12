@@ -41,8 +41,56 @@ function validateAndSanitizeMessages(input: unknown, maxMessages: number = 50): 
     .filter(msg => msg.content.length > 0);
 }
 
+// تعريف نوع العقار
+interface PropertyListing {
+  id: string;
+  title: string;
+  city: string;
+  district: string;
+  price: number;
+  bedrooms?: number;
+  living_rooms?: string;
+  purpose?: string;
+  property_type: string;
+  status: string;
+  area?: number;
+}
+
 // البرومبت المحدث لـ Wasata AI - المساعد العقاري السعودي المتخصص
-const getSystemPrompt = (userName: string) => `
+const getSystemPrompt = (userName: string, properties: PropertyListing[] = []) => {
+  // بناء سياق العقارات
+  let propertiesContext = '';
+  if (properties.length > 0) {
+    propertiesContext = `
+
+## 🏠 العقارات المتاحة في منصتك (${properties.length} عقار):
+${properties.map((p, i) => {
+  const purposeText = p.purpose === 'rent' ? 'إيجار' : 'بيع';
+  const typeText = p.property_type === 'residential' ? 'سكني' : p.property_type === 'commercial' ? 'تجاري' : p.property_type;
+  return `${i + 1}. **${p.title}** [ID: ${p.id}]
+   - المدينة: ${p.city} | الحي: ${p.district}
+   - السعر: ${p.price?.toLocaleString() || 'غير محدد'} ريال | النوع: ${purposeText} - ${typeText}
+   - الغرف: ${p.bedrooms || 'غير محدد'} | المجالس: ${p.living_rooms || 'غير محدد'}
+   - الحالة: ${p.status === 'published' ? 'منشور' : p.status}`;
+}).join('\n')}
+
+### 📋 قدراتي مع العقارات:
+1. **البحث**: أستطيع البحث بالمدينة، الحي، السعر، عدد الغرف، إيجار/بيع، سكني/تجاري
+2. **عرض التفاصيل**: عند السؤال عن عقار محدد، أعرض كامل التفاصيل مع زر للانتقال إليه
+3. **المقارنة**: أستطيع مقارنة عقارين أو أكثر من حيث السعر، المساحة، الموقع
+4. **التوصيات**: أنصح بالعقار المناسب حسب المتطلبات
+
+### 🔗 إنشاء أزرار الانتقال:
+عندما أذكر عقاراً، أضف في نهاية الرد:
+[ACTION:VIEW_PROPERTY:معرف_العقار:عنوان_العقار]
+مثال: [ACTION:VIEW_PROPERTY:abc123:فيلا في حي النرجس]
+
+للمقارنة بين عقارات:
+[ACTION:COMPARE_PROPERTIES:id1,id2:عقار1 vs عقار2]
+`;
+  }
+
+  return `
 # 🏠 Wasata AI - المساعد العقاري السعودي المتخصص
 
 ## 🌟 الهوية الثابتة
@@ -50,6 +98,7 @@ const getSystemPrompt = (userName: string) => `
 **اسم المستخدم:** ${userName} - هذا اسم العميل الذي أتحدث معه، وليس اسمي أنا!
 
 ⚠️ **تنبيه حاسم:** اسمي الوحيد هو "Wasata AI" أو "وساطه AI". لا أستخدم أبداً اسم المستخدم كاسم لي!
+${propertiesContext}
 
 ## 🎯 التخصص العقاري السعودي
 
@@ -133,7 +182,7 @@ const getSystemPrompt = (userName: string) => `
 ## 📋 ما أستطيع فعله:
 
 1. **إدارة العملاء** - البحث والعرض والتنقل
-2. **إدارة العروض** - عرض وتصفية العقارات
+2. **إدارة العروض** - عرض وتصفية العقارات والبحث فيها
 3. **التقويم وإنشاء المواعيد** - أستطيع إنشاء موعد جديد في التقويم
 4. **التحليلات** - عرض الإحصائيات
 5. **الحسابات العقارية** - جميع الحسابات أعلاه
@@ -141,6 +190,7 @@ const getSystemPrompt = (userName: string) => `
 7. **أسعار السوق** - معلومات عن الأسعار التقريبية
 8. **التمويل العقاري** - معلومات عن البنوك والفوائد
 9. **الأنظمة والتشريعات** - معلومات عن الأنظمة الجديدة
+10. **المقارنة بين العقارات** - مقارنة تفصيلية بين عقارين أو أكثر
 
 ## 📅 إنشاء المواعيد:
 عندما يطلب المستخدم إنشاء موعد، أستطيع إنشاؤه وتسجيله في التقويم.
@@ -155,6 +205,7 @@ const getSystemPrompt = (userName: string) => `
 5. اختم بعرض خيارات للمساعدة الإضافية
 6. كن صادقاً ومباشراً
 7. إذا لم تعرف معلومة، قل ذلك بوضوح
+8. **عند ذكر عقار، أضف زر الانتقال إليه باستخدام [ACTION:VIEW_PROPERTY:id:title]**
 
 ## 🌌 رسالة الترحيب
 
@@ -174,7 +225,9 @@ const getSystemPrompt = (userName: string) => `
 - ركز على الخدمة العملية والمعلومات المفيدة
 - استخدم اللهجة السعودية الرسمية المهذبة
 - عند طلب إنشاء موعد، أكد للمستخدم أنه تم إنشاؤه وسيظهر في التقويم
+- **عند ذكر أي عقار من القائمة، أضف في نهاية الرد: [ACTION:VIEW_PROPERTY:معرف_العقار:عنوان_العقار]**
 `;
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -274,10 +327,32 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = getSystemPrompt(userName);
+    // جلب العقارات من قاعدة البيانات
+    let properties: PropertyListing[] = [];
+    try {
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? supabaseAnon;
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      
+      const { data: listings, error: listingsError } = await adminClient
+        .from('platform_listings')
+        .select('id, title, city, district, price, bedrooms, living_rooms, purpose, property_type, status, area')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (!listingsError && listings) {
+        properties = listings as PropertyListing[];
+        console.log(`Found ${properties.length} properties for user ${userId}`);
+      }
+    } catch (dbError) {
+      console.error('Error fetching properties:', dbError);
+    }
+
+    const systemPrompt = getSystemPrompt(userName, properties);
 
     console.log("Processing chat request for:", userName);
     console.log("Messages count:", messages.length);
+    console.log("Properties count:", properties.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
