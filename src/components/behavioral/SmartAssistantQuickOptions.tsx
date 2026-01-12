@@ -13,7 +13,11 @@ import {
   MessageSquare,
   CheckCircle,
   ChevronRight,
-  X
+  X,
+  FileText,
+  ListChecks,
+  Sparkles,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -66,6 +70,38 @@ const DEFAULT_OPTIONS: QuickOption[] = [
     description: 'شاركنا ملاحظاتك',
     hasInput: true,
     inputPlaceholder: 'اكتب ملاحظاتك هنا...',
+    color: 'text-gray-500',
+  },
+];
+
+// خيارات وصف الصفحة
+export const PAGE_DESCRIPTION_OPTIONS: QuickOption[] = [
+  {
+    id: 'short_description',
+    label: 'وصف مختصر',
+    icon: FileText,
+    description: 'أهم المميزات باختصار',
+    color: 'text-blue-500',
+  },
+  {
+    id: 'detailed_description',
+    label: 'شرح مفصل',
+    icon: BookOpen,
+    description: 'طريقة الاستخدام والنصائح',
+    color: 'text-green-500',
+  },
+  {
+    id: 'key_benefits',
+    label: 'الفوائد للوسيط',
+    icon: Sparkles,
+    description: 'كيف تستفيد من هذه الصفحة',
+    color: 'text-amber-500',
+  },
+  {
+    id: 'skip_intro',
+    label: 'لا شكراً، أعرفها',
+    icon: ChevronRight,
+    description: 'تخطي المقدمة',
     color: 'text-gray-500',
   },
 ];

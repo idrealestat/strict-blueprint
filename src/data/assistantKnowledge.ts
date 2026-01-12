@@ -568,3 +568,134 @@ export function generateContextualHelp(pagePath: string, context: {
   // رسالة افتراضية
   return `مرحباً! أنا هنا لمساعدتك في ${knowledge.arabicName}. ${knowledge.mainPurpose}`;
 }
+
+// الصفحات التي تظهر فيها رسالة الترحيب
+export const WELCOME_PAGES = [
+  '/app/publish-ad',
+  '/app/crm',
+  '/app/platform',
+  '/app/calendar',
+  '/app/business-card',
+  '/app/requests',
+  '/app/smart-opportunities',
+  '/app/offers',
+];
+
+// دالة لتوليد رسالة الترحيب بالصفحة
+export function generatePageWelcome(pagePath: string): {
+  message: string;
+  pageName: string;
+  showDescriptionChoice: boolean;
+} {
+  const knowledge = getPageKnowledge(pagePath);
+  
+  if (!knowledge) {
+    return {
+      message: 'مرحباً! كيف أقدر أساعدك؟',
+      pageName: 'الصفحة',
+      showDescriptionChoice: false,
+    };
+  }
+
+  const isWelcomePage = WELCOME_PAGES.some(p => pagePath.includes(p));
+  
+  return {
+    message: `مرحباً! أنت الآن في "${knowledge.arabicName}" 📍\n\nهل تريد معرفة المزيد عن هذه الصفحة؟`,
+    pageName: knowledge.arabicName,
+    showDescriptionChoice: isWelcomePage,
+  };
+}
+
+// دالة توليد الوصف المختصر للصفحة
+export function getShortDescription(pagePath: string): string {
+  const knowledge = getPageKnowledge(pagePath);
+  
+  if (!knowledge) {
+    return 'هذه الصفحة تساعدك في إدارة أعمالك العقارية.';
+  }
+
+  // أهم 3 مميزات
+  const topFeatures = knowledge.tips.slice(0, 3);
+  const featuresList = topFeatures.length > 0 
+    ? `\n\n✨ أهم المميزات:\n${topFeatures.map(t => `• ${t}`).join('\n')}`
+    : '';
+
+  return `📌 ${knowledge.arabicName}\n\n${knowledge.description}${featuresList}`;
+}
+
+// دالة توليد الوصف المفصل للصفحة
+export function getDetailedDescription(pagePath: string): string {
+  const knowledge = getPageKnowledge(pagePath);
+  
+  if (!knowledge) {
+    return 'لا تتوفر معلومات تفصيلية عن هذه الصفحة.';
+  }
+
+  let description = `📌 ${knowledge.arabicName}\n\n`;
+  description += `🎯 الهدف الرئيسي:\n${knowledge.mainPurpose}\n\n`;
+  
+  // خطوات الاستخدام
+  if (knowledge.howToUse.length > 0) {
+    description += `📋 طريقة الاستخدام:\n`;
+    description += knowledge.howToUse.map((step, i) => `${i + 1}. ${step}`).join('\n');
+    description += '\n\n';
+  }
+
+  // المميزات والنصائح
+  if (knowledge.tips.length > 0) {
+    description += `💡 نصائح مهمة:\n`;
+    description += knowledge.tips.map(t => `• ${t}`).join('\n');
+    description += '\n\n';
+  }
+
+  // الأزرار الرئيسية
+  if (knowledge.buttons && knowledge.buttons.length > 0) {
+    description += `🔘 الأزرار الرئيسية:\n`;
+    description += knowledge.buttons.map(b => `• "${b.name}": ${b.action}`).join('\n');
+    description += '\n\n';
+  }
+
+  // الصفحات المرتبطة
+  if (knowledge.relatedPages.length > 0) {
+    description += `🔗 صفحات مرتبطة: ${knowledge.relatedPages.join('، ')}`;
+  }
+
+  return description;
+}
+
+// دالة للحصول على أهم المميزات للوسيط
+export function getKeyBenefits(pagePath: string): string[] {
+  const knowledge = getPageKnowledge(pagePath);
+  if (!knowledge) return [];
+
+  const benefits: string[] = [];
+  
+  // استخراج الفوائد من النصائح والوصف
+  if (pagePath.includes('publish-ad')) {
+    benefits.push('نشر عروضك بسرعة وسهولة');
+    benefits.push('الصور الواضحة تزيد المشاهدات 40%');
+    benefits.push('ربط العروض بنظام العملاء تلقائياً');
+  } else if (pagePath.includes('crm')) {
+    benefits.push('تتبع العملاء من أول تواصل حتى الصفقة');
+    benefits.push('نظام Kanban لتنظيم المتابعات');
+    benefits.push('ربط تلقائي مع سجل المكالمات');
+  } else if (pagePath.includes('platform')) {
+    benefits.push('منصة احترافية باسمك للعملاء');
+    benefits.push('رابط سهل المشاركة: wasata.com/اسمك');
+    benefits.push('عرض العروض بأشكال متعددة');
+  } else if (pagePath.includes('calendar')) {
+    benefits.push('تنظيم مواعيدك مع العملاء');
+    benefits.push('تذكيرات تلقائية قبل المواعيد');
+    benefits.push('حجز المواعيد من بطاقتك الرقمية');
+  } else if (pagePath.includes('smart-opportunities') || pagePath.includes('requests')) {
+    benefits.push('اكتشاف فرص التعاون مع وسطاء آخرين');
+    benefits.push('مطابقة تلقائية بين العروض والطلبات');
+    benefits.push('إشعارات فورية عند التطابق');
+  } else if (pagePath.includes('business-card')) {
+    benefits.push('بطاقة أعمال رقمية احترافية');
+    benefits.push('التحقق من رخصة فال لزيادة الثقة');
+    benefits.push('مشاركة سهلة عبر QR أو رابط');
+  }
+
+  return benefits.length > 0 ? benefits : knowledge.tips.slice(0, 3);
+}
