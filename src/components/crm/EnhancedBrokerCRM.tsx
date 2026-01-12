@@ -653,6 +653,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{ columnId: string; position: number } | null>(null);
   const [columnDropIndicator, setColumnDropIndicator] = useState<number | null>(null);
+  
+  // Touch drag state for mobile
+  const [touchDragCustomer, setTouchDragCustomer] = useState<string | null>(null);
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
+  const [touchCurrentPos, setTouchCurrentPos] = useState<{ x: number; y: number } | null>(null);
+  const touchDragRef = useRef<HTMLDivElement | null>(null);
+  const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1073,6 +1081,136 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setDropIndicator(null);
     setColumnDropIndicator(null);
   };
+
+  // ===================== TOUCH DRAG HANDLERS FOR MOBILE =====================
+  
+  // Find which column contains a point
+  const findColumnAtPoint = useCallback((x: number, y: number): { columnId: string; position: number } | null => {
+    const columnElements = document.querySelectorAll('[data-column-id]');
+    for (const colEl of Array.from(columnElements)) {
+      const rect = colEl.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        const columnId = colEl.getAttribute('data-column-id');
+        if (!columnId) continue;
+        
+        // Find position within column
+        const cardElements = colEl.querySelectorAll('[data-customer-id]');
+        let position = 0;
+        for (const cardEl of Array.from(cardElements)) {
+          const cardRect = cardEl.getBoundingClientRect();
+          const cardMiddle = cardRect.top + cardRect.height / 2;
+          if (y > cardMiddle) {
+            position++;
+          }
+        }
+        return { columnId, position };
+      }
+    }
+    return null;
+  }, []);
+
+  // Touch start handler
+  const handleTouchStart = useCallback((e: React.TouchEvent, customerId: string) => {
+    const touch = e.touches[0];
+    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+    isLongPressRef.current = false;
+    
+    // Start long press timer (300ms)
+    touchTimeoutRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      setTouchDragCustomer(customerId);
+      setDraggedCustomer(customerId);
+      
+      // Vibrate for haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      
+      // Prevent context menu
+      e.preventDefault();
+    }, 300);
+  }, []);
+
+  // Touch move handler
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+    
+    // Cancel long press if moved too much before timeout
+    if (touchStartPos && !isLongPressRef.current) {
+      const dx = Math.abs(touch.clientX - touchStartPos.x);
+      const dy = Math.abs(touch.clientY - touchStartPos.y);
+      if (dx > 10 || dy > 10) {
+        if (touchTimeoutRef.current) {
+          clearTimeout(touchTimeoutRef.current);
+          touchTimeoutRef.current = null;
+        }
+      }
+    }
+    
+    // If we're in drag mode, find drop target
+    if (touchDragCustomer && isLongPressRef.current) {
+      e.preventDefault();
+      const target = findColumnAtPoint(touch.clientX, touch.clientY);
+      if (target) {
+        setDropIndicator(target);
+      }
+    }
+  }, [touchStartPos, touchDragCustomer, findColumnAtPoint]);
+
+  // Touch end handler
+  const handleTouchEnd = useCallback(() => {
+    // Clear timeout
+    if (touchTimeoutRef.current) {
+      clearTimeout(touchTimeoutRef.current);
+      touchTimeoutRef.current = null;
+    }
+    
+    // If we were dragging and have a drop target
+    if (touchDragCustomer && dropIndicator) {
+      // Move customer to new column
+      setColumns(prev => {
+        const newColumns = prev.map(col => ({
+          ...col,
+          customerIds: col.customerIds.filter(id => id !== touchDragCustomer)
+        }));
+        
+        const targetColumn = newColumns.find(col => col.id === dropIndicator.columnId);
+        if (targetColumn) {
+          if (dropIndicator.position >= 0) {
+            targetColumn.customerIds.splice(dropIndicator.position, 0, touchDragCustomer);
+          } else {
+            targetColumn.customerIds.push(touchDragCustomer);
+          }
+        }
+        
+        return newColumns;
+      });
+
+      setCustomers(prev => prev.map(c => 
+        c.id === touchDragCustomer ? { ...c, columnId: dropIndicator.columnId } : c
+      ));
+
+      toast.success('تم نقل العميل بنجاح');
+    }
+    
+    // Reset touch state
+    setTouchDragCustomer(null);
+    setDraggedCustomer(null);
+    setTouchStartPos(null);
+    setTouchCurrentPos(null);
+    setDropIndicator(null);
+    isLongPressRef.current = false;
+  }, [touchDragCustomer, dropIndicator]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (touchTimeoutRef.current) {
+        clearTimeout(touchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle actions menu
   const handleActionsClick = (e: React.MouseEvent, customerId: string) => {
@@ -1674,6 +1812,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                         {/* Column Content */}
                         <div 
                           className="p-2 space-y-0 min-h-[400px] max-h-[600px] overflow-y-auto"
+                          data-column-id={column.id}
                           onDragOver={(e) => {
                             e.preventDefault();
                             if (draggedCustomer && columnCustomers.length === 0) {
@@ -1699,6 +1838,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 )}
                                 
                                 <div
+                                  data-customer-id={customer.id}
                                   draggable
                                   onDragStart={(e) => {
                                     e.stopPropagation();
@@ -1710,11 +1850,34 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     e.stopPropagation();
                                     handleDrop(column.id, customerIndex);
                                   }}
+                                  // Touch handlers for mobile drag and drop
+                                  onTouchStart={(e) => handleTouchStart(e, customer.id)}
+                                  onTouchMove={handleTouchMove}
+                                  onTouchEnd={handleTouchEnd}
+                                  onContextMenu={(e) => {
+                                    // Prevent context menu on long press
+                                    if (touchDragCustomer) {
+                                      e.preventDefault();
+                                    }
+                                  }}
                                   className={`
                                     bg-white rounded-lg shadow-md cursor-move mb-2 overflow-hidden relative
                                     hover:shadow-xl transition-shadow duration-200
                                     ${draggedCustomer === customer.id ? 'opacity-50 scale-95' : ''}
+                                    ${touchDragCustomer === customer.id ? 'opacity-70 scale-105 shadow-2xl z-50 ring-2 ring-[#D4AF37]' : ''}
+                                    touch-none select-none
                                   `}
+                                  style={{
+                                    // If being dragged on touch, follow finger
+                                    ...(touchDragCustomer === customer.id && touchCurrentPos ? {
+                                      position: 'fixed',
+                                      left: touchCurrentPos.x - 100,
+                                      top: touchCurrentPos.y - 50,
+                                      width: '200px',
+                                      zIndex: 9999,
+                                      pointerEvents: 'none',
+                                    } : {})
+                                  }}
                                 >
                                   {/* خط نوع العميل أعلى البطاقة */}
                                   <div 
