@@ -204,44 +204,63 @@ export function AIFloatingButton() {
               </div>
             </Button>
 
-            {/* رسالة سحابية ترحيبية */}
+            {/* رسالة سحابية ترحيبية - بنمط فقاعات iMessage */}
             <AnimatePresence>
               {showWelcomeBubble && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8, x: 10 }}
+                  initial={{ opacity: 0, scale: 0.5, x: -20 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: 10 }}
-                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                  className="absolute bottom-4 left-20 pointer-events-auto"
+                  exit={{ opacity: 0, scale: 0.5, x: -20 }}
+                  transition={{ type: "spring", damping: 15, stiffness: 400 }}
+                  className="absolute bottom-2 left-[72px] pointer-events-auto"
                   onClick={() => {
                     setShowWelcomeBubble(false);
                     setIsOpen(true);
                   }}
                 >
-                  <div className="relative bg-gradient-to-br from-emerald-700 to-emerald-800 text-white px-4 py-3 rounded-xl shadow-2xl border-2 border-amber-500 max-w-[220px] cursor-pointer hover:scale-105 transition-transform">
-                    {/* مثلث الفقاعة - يشير لليسار */}
+                  {/* فقاعة الرسالة بنمط آيفون */}
+                  <div 
+                    className="relative cursor-pointer hover:scale-[1.02] transition-transform"
+                    style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}
+                  >
+                    {/* الفقاعة الرئيسية */}
                     <div 
-                      className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-amber-500"
-                    />
-                    <div 
-                      className="absolute right-full top-1/2 -translate-y-1/2 mr-[2px] w-0 h-0 border-t-6 border-b-6 border-r-6 border-t-transparent border-b-transparent border-r-emerald-700"
-                    />
-                    
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0 animate-pulse" />
-                      <div className="flex-1">
-                        <p className="text-sm leading-relaxed">
-                          أهلاً! معك <span className="text-amber-400 font-bold">المساعد الذكي</span> 👋
+                      className="relative px-4 py-3 rounded-[20px] rounded-bl-[6px] max-w-[200px]"
+                      style={{
+                        background: 'linear-gradient(145deg, #2d8a5e 0%, #1a6b45 50%, #0f5132 100%)',
+                        border: '2px solid #D4AF37',
+                        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.15), inset 0 -1px 2px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {/* الذيل المنحني بنمط آيفون */}
+                      <svg 
+                        className="absolute -left-[10px] bottom-0"
+                        width="16" 
+                        height="20" 
+                        viewBox="0 0 16 20"
+                        style={{ filter: 'drop-shadow(-1px 0 0 #D4AF37)' }}
+                      >
+                        <path 
+                          d="M16 0 C16 0 14 4 10 8 C6 12 0 14 0 20 C4 18 10 16 14 10 C16 6 16 0 16 0Z"
+                          fill="#0f5132"
+                        />
+                      </svg>
+                      
+                      {/* المحتوى */}
+                      <div className="relative z-10">
+                        <p className="text-white text-[15px] leading-snug font-medium">
+                          أهلاً! 👋 معك <span className="text-amber-300">المساعد الذكي</span>
                         </p>
-                        <p className="text-xs text-white/80 mt-1">
-                          انقر هنا للمساعدة ✨
+                        <p className="text-white/85 text-[13px] mt-1.5 flex items-center gap-1">
+                          <span>انقر هنا للمساعدة</span>
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
                         </p>
                       </div>
                     </div>
                     
                     {/* زر إغلاق صغير */}
                     <button 
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800/90 backdrop-blur-sm rounded-full text-white/90 text-[10px] flex items-center justify-center hover:bg-red-500 transition-colors border border-white/20"
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowWelcomeBubble(false);
