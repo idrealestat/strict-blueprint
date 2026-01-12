@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.verify-otp]
 verify_jwt = false
+
+[functions.entitlements-smoke-test]
+verify_jwt = false
+
+[functions.recover-domain]
+verify_jwt = false
