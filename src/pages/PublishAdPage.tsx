@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PropertyPublishForm from "@/components/platform/PropertyPublishForm";
+import { SmartAssistantBubble } from "@/components/behavioral/SmartAssistantBubble";
+import { AIFloatingButton } from "@/components/ai-assistant";
 import { toast } from "sonner";
 
 const PublishAdPage = () => {
@@ -55,6 +57,10 @@ const PublishAdPage = () => {
           onCancel={handleCancel}
         />
       </main>
+
+      {/* Smart Assistant & AI Button */}
+      <SmartAssistantBubble />
+      <AIFloatingButton />
     </div>
   );
 };
