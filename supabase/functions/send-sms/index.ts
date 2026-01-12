@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { entitlementsGuard, corsHeaders } from '../_shared/entitlementsGuard.ts';
 
 // Input validation
 function sanitizeString(input: unknown, maxLength: number = 500): string {
@@ -30,38 +26,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ============ ENTITLEMENTS GUARD ============
+  const guardResult = await entitlementsGuard(req, 'crm');
+  if ('error' in guardResult) {
+    return guardResult.error;
+  }
+  const userId = guardResult.userId;
+  // ============ END ENTITLEMENTS GUARD ============
+
   // Initialize Supabase client
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? '';
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? '';
   const supabase = createClient(supabaseUrl, supabaseKey);
-
-  // ============ AUTHENTICATION CHECK ============
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    console.error('No authorization header provided');
-    return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Create client with user's auth token to verify identity
-  const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
-  const userClient = createClient(supabaseUrl, supabaseAnon, {
-    global: { headers: { Authorization: authHeader } }
-  });
-
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
-  if (authError || !user) {
-    console.error('Auth error:', authError?.message || 'No user found');
-    return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  console.log('Authenticated user:', user.id);
-  // ============ END AUTHENTICATION CHECK ============
 
   let logId: string | null = null;
 
@@ -134,7 +110,7 @@ serve(async (req) => {
         message_type: messageType,
         appointment_id: appointmentId || null,
         status: 'pending',
-        user_id: user.id, // Track which user sent this SMS
+        user_id: userId, // Track which user sent this SMS
       })
       .select('id')
       .single();

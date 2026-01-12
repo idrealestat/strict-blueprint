@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { entitlementsGuard, corsHeaders } from '../_shared/entitlementsGuard.ts';
 
 // Input validation helper functions
 function sanitizeString(input: unknown, maxLength: number = 100): string {
@@ -235,53 +231,17 @@ serve(async (req) => {
   }
 
   try {
-    // ============ AUTHENTICATION CHECK ============
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.error('No authorization header provided');
-      return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ============ ENTITLEMENTS GUARD ============
+    // Using ai_assistant_basic as the default feature - advanced features handled separately
+    const guardResult = await entitlementsGuard(req, 'ai_assistant_basic');
+    if ('error' in guardResult) {
+      return guardResult.error;
     }
+    const userId = guardResult.userId;
+    // ============ END ENTITLEMENTS GUARD ============
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? '';
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
-    const userClient = createClient(supabaseUrl, supabaseAnon, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // استخدام getClaims بدلاً من getUser
-    const token = authHeader.replace('Bearer ', '');
-    let userId: string;
-    
-    try {
-      const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
-      
-      if (authError || !claimsData?.claims?.sub) {
-        console.error('Auth error:', authError?.message || 'invalid claim: missing sub claim');
-        return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى تسجيل الدخول مرة أخرى" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      userId = claimsData.claims.sub;
-    } catch (jwtError) {
-      // Handle JWT expiration or other JWT errors
-      console.error('JWT validation error:', jwtError);
-      const errorMessage = jwtError instanceof Error ? jwtError.message : 'Unknown JWT error';
-      const isExpired = errorMessage.toLowerCase().includes('expired');
-      
-      return new Response(JSON.stringify({ 
-        error: isExpired ? "انتهت صلاحية الجلسة - يرجى تسجيل الدخول مرة أخرى" : "جلسة غير صالحة" 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    console.log('Authenticated user:', userId);
-    // ============ END AUTHENTICATION CHECK ============
 
     // Validate content type
     const contentType = req.headers.get('content-type');
