@@ -225,6 +225,27 @@ export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppoint
     }
   }, [linkedCustomer]);
 
+  // استمع لأحداث إنشاء موعد من CRM
+  useEffect(() => {
+    const handleCreateAppointmentFromCRM = (event: CustomEvent) => {
+      const { customerName, customerPhone } = event.detail;
+      setNewAppointment(prev => ({
+        ...prev,
+        title: `موعد مع ${customerName}`,
+        customerName: customerName || '',
+        customerPhone: customerPhone || '',
+        date: new Date(),
+        time: '10:00',
+      }));
+      setIsAddDialogOpen(true);
+    };
+
+    window.addEventListener('createAppointmentFromCRM', handleCreateAppointmentFromCRM as EventListener);
+    return () => {
+      window.removeEventListener('createAppointmentFromCRM', handleCreateAppointmentFromCRM as EventListener);
+    };
+  }, []);
+
   // Get week days
   const getWeekDays = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
