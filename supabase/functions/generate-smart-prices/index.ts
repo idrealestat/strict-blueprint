@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { entitlementsGuard, corsHeaders } from '../_shared/entitlementsGuard.ts';
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -134,30 +130,13 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error("Missing Authorization header");
-      return new Response(JSON.stringify({ error: "غير مصرح - يرجى تسجيل الدخول" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ============ ENTITLEMENTS GUARD ============
+    const guardResult = await entitlementsGuard(req, 'ai_assistant_basic');
+    if ('error' in guardResult) {
+      return guardResult.error;
     }
-
-    const userClient = createClient(supabaseUrl, supabaseAnon, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      console.error("Authentication failed:", authError?.message);
-      return new Response(JSON.stringify({ error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log("Authenticated user:", user.id);
+    const userId = guardResult.userId;
+    // ============ END ENTITLEMENTS GUARD ============
 
     // Validate content type
     const contentType = req.headers.get('content-type');
@@ -322,7 +301,7 @@ serve(async (req) => {
       };
     }
 
-    console.log('Price calculation completed successfully for user:', user.id);
+    console.log('Price calculation completed successfully for user:', userId);
 
     return new Response(JSON.stringify({ 
       prices,

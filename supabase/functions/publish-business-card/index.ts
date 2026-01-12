@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { entitlementsGuard, corsHeaders } from '../_shared/entitlementsGuard.ts';
 
 type PublishRequest = {
   slug?: string;
@@ -26,11 +22,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const supabase = createClient(supabaseUrl, serviceKey);
-
   try {
+    // ============ ENTITLEMENTS GUARD ============
+    const guardResult = await entitlementsGuard(req, 'business_card');
+    if ('error' in guardResult) {
+      return guardResult.error;
+    }
+    const userId = guardResult.userId;
+    // ============ END ENTITLEMENTS GUARD ============
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabase = createClient(supabaseUrl, serviceKey);
+
     if (!req.headers.get("content-type")?.includes("application/json")) {
       return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
         status: 400,
@@ -76,14 +80,13 @@ serve(async (req) => {
       });
     }
 
-    // Upsert
+    // Upsert - now using authenticated user's ID
     const payload = {
       slug,
       data,
       published: true,
       publish_token_hash: tokenHash,
-      // لا نعتمد على auth هنا لأن المستخدم قد لا يكون مسجلاً بعد
-      user_id: "00000000-0000-0000-0000-000000000000",
+      user_id: userId,
     };
 
     const { error: upsertError } = await supabase
@@ -97,6 +100,7 @@ serve(async (req) => {
       });
     }
 
+    console.log("Business card published for user:", userId, "slug:", slug);
     return new Response(JSON.stringify({ ok: true, slug, token }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

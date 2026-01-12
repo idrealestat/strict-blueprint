@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { entitlementsGuard, corsHeaders } from '../_shared/entitlementsGuard.ts';
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -21,41 +17,13 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check (signing keys compatible)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.error("Missing/invalid Authorization header");
-      return new Response(JSON.stringify({ 
-        error: "غير مصرح - يرجى تسجيل الدخول",
-        text: "",
-        success: false 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ============ ENTITLEMENTS GUARD ============
+    const guardResult = await entitlementsGuard(req, 'ai_assistant_basic');
+    if ('error' in guardResult) {
+      return guardResult.error;
     }
-
-    const userClient = createClient(supabaseUrl, supabaseAnon, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
-
-    if (authError || !claimsData?.claims?.sub) {
-      console.error("Authentication failed:", authError?.message || 'invalid claim: missing sub');
-      return new Response(JSON.stringify({ 
-        error: "جلسة غير صالحة - يرجى إعادة تسجيل الدخول",
-        text: "",
-        success: false 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub;
-    console.log("Authenticated user:", userId);
+    const userId = guardResult.userId;
+    // ============ END ENTITLEMENTS GUARD ============
 
     const { audioData, mimeType } = await req.json();
     
