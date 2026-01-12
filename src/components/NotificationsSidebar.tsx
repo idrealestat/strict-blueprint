@@ -1,6 +1,6 @@
 /**
  * NotificationsSidebar.tsx
- * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد وإشعارات النطاقات
+ * شريط الإشعارات الجانبي مع نظام التذكير بالمهام والمواعيد وإشعارات النطاقات والفرص الذكية
  */
 
 import { useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import {
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
   ChevronRight, Settings, Home, Phone, ExternalLink,
-  Zap, BellOff, Globe, Shield
+  Zap, BellOff, Globe, Shield, Sparkles
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -20,6 +20,7 @@ import { Card, CardContent } from "./ui/card";
 import { useNotificationSystem, SystemNotification } from "@/hooks/useNotificationSystem";
 import { useViewingNotifications, ViewingAppointment } from "@/hooks/useViewingNotifications";
 import { useDomainNotifications, DomainNotification } from "@/hooks/useDomainNotifications";
+import { useSmartOpportunityNotifications } from "@/hooks/useSmartOpportunityNotifications";
 import ViewingNotificationModal from "./ViewingNotificationModal";
 import { CollapsibleNotificationSettings, SmartAlertsPanel } from "@/components/offers";
 
@@ -79,11 +80,19 @@ export default function NotificationsSidebar({
     markAllAsRead: markAllDomainAsRead,
   } = useDomainNotifications();
 
+  // Smart opportunities notifications hook
+  const {
+    opportunities: smartOpportunities,
+    unreadCount: smartOpportunitiesUnreadCount,
+    markAsRead: markSmartOpportunityAsRead,
+    markAllAsRead: markAllSmartOpportunitiesAsRead,
+  } = useSmartOpportunityNotifications();
+
   // Initialize viewing notifications hook - must be called unconditionally
   const viewingNotifications = useViewingNotifications();
 
   // Calculate total unread count
-  const totalUnreadCount = unreadCount + domainUnreadCount;
+  const totalUnreadCount = unreadCount + domainUnreadCount + smartOpportunitiesUnreadCount;
 
   // Listen for viewing reminder events
   useEffect(() => {
@@ -300,7 +309,7 @@ export default function NotificationsSidebar({
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-5 bg-white/10 w-full">
+                <TabsList className="grid grid-cols-6 bg-white/10 w-full">
                   <TabsTrigger 
                     value="all" 
                     className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
@@ -315,6 +324,17 @@ export default function NotificationsSidebar({
                     {totalUnreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center">
                         {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="opportunities"
+                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
+                  >
+                    الفرص
+                    {smartOpportunitiesUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] flex items-center justify-center animate-pulse">
+                        {smartOpportunitiesUnreadCount > 9 ? '9+' : smartOpportunitiesUnreadCount}
                       </span>
                     )}
                   </TabsTrigger>
@@ -347,8 +367,84 @@ export default function NotificationsSidebar({
 
             {/* Notifications List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {/* Domain Notifications Tab */}
-              {activeTab === "domains" ? (
+              {/* Smart Opportunities Tab */}
+              {activeTab === "opportunities" ? (
+                smartOpportunities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <Sparkles className="w-16 h-16 mb-4 opacity-30 text-amber-300" />
+                    <p className="text-lg font-medium">لا توجد فرص ذكية جديدة</p>
+                    <p className="text-sm text-center px-4">ستظهر إشعارات الفرص المطابقة لعروضك وطلباتك هنا</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 gap-2 border-amber-400 text-amber-600"
+                      onClick={() => {
+                        navigate('/app/smart-opportunities');
+                        onClose();
+                      }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      تصفح الفرص الذكية
+                    </Button>
+                  </div>
+                ) : (
+                  smartOpportunities.map((opportunity) => (
+                    <motion.div
+                      key={opportunity.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      layout
+                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
+                        opportunity.is_read
+                          ? "bg-gray-50 border-gray-200 opacity-70"
+                          : "bg-amber-50 border-amber-200"
+                      }`}
+                      onClick={() => {
+                        markSmartOpportunityAsRead(opportunity.id);
+                        navigate('/app/smart-opportunities');
+                        onClose();
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          opportunity.is_read ? 'bg-gray-200' : 'bg-amber-100'
+                        }`}>
+                          <Sparkles className={`w-5 h-5 ${opportunity.is_read ? 'text-gray-400' : 'text-amber-500'}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h4 className={`font-bold text-sm ${opportunity.is_read ? 'text-gray-500' : 'text-[#01411C]'}`}>
+                              {opportunity.title}
+                            </h4>
+                            <div className="flex items-center gap-1">
+                              {!opportunity.is_read && (
+                                <Badge className="bg-amber-500 text-white text-xs px-1.5 py-0.5 animate-pulse">
+                                  جديد
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs border-emerald-400 text-emerald-600">
+                                {opportunity.similarity_score}%
+                              </Badge>
+                            </div>
+                          </div>
+                          <p className={`text-sm mb-2 ${opportunity.is_read ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {opportunity.message}
+                          </p>
+                          {opportunity.other_broker_name && (
+                            <p className="text-xs text-gray-500 mb-1">
+                              الوسيط: {opportunity.other_broker_name}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatTime(new Date(opportunity.created_at))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )
+              ) : activeTab === "domains" ? (
                 domainNotifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                     <Globe className="w-16 h-16 mb-4 opacity-30" />
@@ -533,11 +629,19 @@ export default function NotificationsSidebar({
                   onClick={() => {
                     if (activeTab === 'domains') {
                       markAllDomainAsRead();
+                    } else if (activeTab === 'opportunities') {
+                      markAllSmartOpportunitiesAsRead();
                     } else {
                       markAllAsRead();
                     }
                   }}
-                  disabled={activeTab === 'domains' ? domainUnreadCount === 0 : unreadCount === 0}
+                  disabled={
+                    activeTab === 'domains' 
+                      ? domainUnreadCount === 0 
+                      : activeTab === 'opportunities'
+                        ? smartOpportunitiesUnreadCount === 0
+                        : unreadCount === 0
+                  }
                   className="flex-1 text-xs border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
                 >
                   <Check className="w-3 h-3 ml-1" />
