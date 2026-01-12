@@ -20,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSmartAssistant } from '@/hooks/useSmartAssistant';
-import { SmartAssistantQuickOptions, getContextualOptions } from './SmartAssistantQuickOptions';
+import { SmartAssistantQuickOptions, getContextualOptions, PAGE_DESCRIPTION_OPTIONS } from './SmartAssistantQuickOptions';
 
 // Pages where the assistant should NOT appear
 const EXCLUDED_PAGES = [
@@ -39,6 +39,7 @@ export function SmartAssistantBubble() {
     silentMode,
     pageContext,
     showQuickOptions,
+    showPageDescriptionOptions,
     sendMessage,
     handleQuickOption,
     dismiss,
@@ -221,8 +222,24 @@ export function SmartAssistantBubble() {
                     </motion.div>
                   ))}
                   
-                  {/* Quick Options */}
-                  {showQuickOptions && messages.length <= 2 && (
+                  {/* Page Description Options (shown first on key pages) */}
+                  {showPageDescriptionOptions && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="pt-2"
+                    >
+                      <SmartAssistantQuickOptions
+                        options={PAGE_DESCRIPTION_OPTIONS}
+                        onSelect={handleOptionSelect}
+                        contextMessage="هل تريد معرفة المزيد عن هذه الصفحة؟"
+                      />
+                    </motion.div>
+                  )}
+                  
+                  {/* Regular Quick Options */}
+                  {showQuickOptions && !showPageDescriptionOptions && messages.length <= 2 && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}

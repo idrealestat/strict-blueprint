@@ -8,7 +8,17 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useBehavioralTracking } from './useBehavioralTracking';
 import { usePageContextTracker, PageContext } from './usePageContextTracker';
-import { getPageKnowledge, generateContextualHelp, findAnswer, getPageTips } from '@/data/assistantKnowledge';
+import { 
+  getPageKnowledge, 
+  generateContextualHelp, 
+  findAnswer, 
+  getPageTips,
+  generatePageWelcome,
+  getShortDescription,
+  getDetailedDescription,
+  getKeyBenefits,
+  WELCOME_PAGES
+} from '@/data/assistantKnowledge';
 
 export interface AssistantMessage {
   role: 'assistant' | 'user';
@@ -37,6 +47,8 @@ interface AssistantState {
   conversationId: string | null;
   pageContext: PageContext | null;
   showQuickOptions: boolean;
+  showPageDescriptionOptions: boolean;
+  currentPagePath: string;
 }
 
 // Contextual messages based on trigger reason and page context with knowledge base
@@ -175,6 +187,8 @@ export function useSmartAssistant() {
     conversationId: null,
     pageContext: null,
     showQuickOptions: true,
+    showPageDescriptionOptions: false,
+    currentPagePath: '',
   });
   
   const shownOnPagesRef = useRef<Set<string>>(new Set());
@@ -240,6 +254,9 @@ export function useSmartAssistant() {
       }
     }
 
+    // Check if this is a welcome page to show description options
+    const isWelcomePage = WELCOME_PAGES.some(p => location.pathname.includes(p));
+
     setState({
       isVisible: true,
       triggerReason,
@@ -247,7 +264,9 @@ export function useSmartAssistant() {
       messages: [initialMessage],
       conversationId,
       pageContext,
-      showQuickOptions: true,
+      showQuickOptions: !isWelcomePage,
+      showPageDescriptionOptions: isWelcomePage && triggerReason === 'page_visit',
+      currentPagePath: location.pathname,
     });
   }, [silentMode, location.pathname, sessionId, pageContext, updateContext]);
 
@@ -276,6 +295,8 @@ export function useSmartAssistant() {
         conversationId: null,
         pageContext,
         showQuickOptions: true,
+        showPageDescriptionOptions: false,
+        currentPagePath: location.pathname,
       });
     };
 
@@ -322,8 +343,103 @@ export function useSmartAssistant() {
     };
   }, [silentMode, location.pathname, getInactiveTime, recordSignal, showAssistant, pageContext]);
 
+  // Auto-show welcome message on key pages
+  useEffect(() => {
+    const isWelcomePage = WELCOME_PAGES.some(p => location.pathname.includes(p));
+    
+    if (isWelcomePage && !shownOnPagesRef.current.has(location.pathname) && !silentMode) {
+      // Small delay to let the page load
+      const timer = setTimeout(() => {
+        const welcome = generatePageWelcome(location.pathname);
+        
+        shownOnPagesRef.current.add(location.pathname);
+        lastTriggerTimeRef.current = Date.now();
+        
+        const welcomeMessage: AssistantMessage = {
+          role: 'assistant',
+          content: welcome.message,
+          timestamp: new Date().toISOString(),
+          contextInfo: {
+            pageName: welcome.pageName,
+            formProgress: 0,
+          },
+        };
+
+        setState({
+          isVisible: true,
+          triggerReason: 'page_visit',
+          signalId: null,
+          messages: [welcomeMessage],
+          conversationId: null,
+          pageContext,
+          showQuickOptions: false,
+          showPageDescriptionOptions: welcome.showDescriptionChoice,
+          currentPagePath: location.pathname,
+        });
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, silentMode, pageContext]);
+
+  // Handle page description option selection
+  const handlePageDescriptionOption = useCallback((optionId: string) => {
+    const optionLabels: Record<string, string> = {
+      short_description: 'أريد وصف مختصر',
+      detailed_description: 'أريد شرح مفصل',
+      key_benefits: 'ما الفائدة لي كوسيط؟',
+      skip_intro: 'لا شكراً، أعرف هذه الصفحة',
+    };
+
+    const userMessage: AssistantMessage = {
+      role: 'user',
+      content: optionLabels[optionId] || optionId,
+      timestamp: new Date().toISOString(),
+    };
+
+    let responseContent = '';
+    
+    switch (optionId) {
+      case 'short_description':
+        responseContent = getShortDescription(state.currentPagePath);
+        break;
+      case 'detailed_description':
+        responseContent = getDetailedDescription(state.currentPagePath);
+        break;
+      case 'key_benefits':
+        const benefits = getKeyBenefits(state.currentPagePath);
+        responseContent = `🎯 كيف تستفيد من هذه الصفحة كوسيط:\n\n${benefits.map((b, i) => `${i + 1}. ${b}`).join('\n')}\n\nهل تريد شرح أي ميزة بالتفصيل؟`;
+        break;
+      case 'skip_intro':
+        responseContent = 'ممتاز! إذا احتجت أي مساعدة أثناء استخدام الصفحة، أنا موجود 👋';
+        break;
+      default:
+        responseContent = 'كيف أقدر أساعدك؟';
+    }
+
+    const assistantResponse: AssistantMessage = {
+      role: 'assistant',
+      content: responseContent,
+      timestamp: new Date().toISOString(),
+    };
+
+    const newMessages = [...state.messages, userMessage, assistantResponse];
+
+    setState(prev => ({
+      ...prev,
+      messages: newMessages,
+      showPageDescriptionOptions: false,
+      showQuickOptions: optionId !== 'skip_intro',
+    }));
+  }, [state.messages, state.currentPagePath]);
+
   // Handle quick option selection
   const handleQuickOption = useCallback(async (optionId: string, inputValue?: string) => {
+    // Handle page description options
+    if (['short_description', 'detailed_description', 'key_benefits', 'skip_intro'].includes(optionId)) {
+      return handlePageDescriptionOption(optionId);
+    }
+
     const optionMessages: Record<string, string> = {
       problem: 'واجهت مشكلة' + (inputValue ? `: ${inputValue}` : ''),
       help: 'أحتاج مساعدة',
@@ -369,7 +485,8 @@ export function useSmartAssistant() {
     setState(prev => ({
       ...prev,
       messages: newMessages,
-      showQuickOptions: optionId === 'help', // Show options again only for help
+      showQuickOptions: optionId === 'help',
+      showPageDescriptionOptions: false,
     }));
 
     // Save to database
@@ -479,6 +596,8 @@ export function useSmartAssistant() {
       conversationId: null,
       pageContext: null,
       showQuickOptions: true,
+      showPageDescriptionOptions: false,
+      currentPagePath: '',
     });
   }, [state.conversationId, state.signalId, sessionId]);
 
@@ -500,6 +619,8 @@ export function useSmartAssistant() {
       conversationId: null,
       pageContext: null,
       showQuickOptions: true,
+      showPageDescriptionOptions: false,
+      currentPagePath: '',
     });
   }, [state.conversationId]);
 
@@ -510,6 +631,8 @@ export function useSmartAssistant() {
     silentMode,
     pageContext: state.pageContext,
     showQuickOptions: state.showQuickOptions,
+    showPageDescriptionOptions: state.showPageDescriptionOptions,
+    currentPagePath: state.currentPagePath,
     sendMessage,
     handleQuickOption,
     dismiss,
