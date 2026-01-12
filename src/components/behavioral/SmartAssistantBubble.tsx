@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSmartAssistant } from '@/hooks/useSmartAssistant';
 import { SmartAssistantQuickOptions, getContextualOptions, PAGE_DESCRIPTION_OPTIONS } from './SmartAssistantQuickOptions';
+import { PageRatingForm, PageRating } from './PageRatingForm';
 
 // Pages where the assistant should NOT appear
 const EXCLUDED_PAGES = [
@@ -40,10 +41,13 @@ export function SmartAssistantBubble() {
     pageContext,
     showQuickOptions,
     showPageDescriptionOptions,
+    showRatingForm,
+    currentPagePath,
     sendMessage,
     handleQuickOption,
     dismiss,
     enableSilentMode,
+    handleRatingSubmit,
   } = useSmartAssistant();
 
   const [inputValue, setInputValue] = useState('');
@@ -250,6 +254,24 @@ export function SmartAssistantBubble() {
                         options={contextOptions}
                         onSelect={handleOptionSelect}
                         contextMessage="اختر أحد الخيارات أو اكتب لنا:"
+                      />
+                    </motion.div>
+                  )}
+
+                  {/* Rating Form */}
+                  {showRatingForm && pageContext && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="pt-2"
+                    >
+                      <PageRatingForm
+                        pageName={pageContext.pageName}
+                        pagePath={currentPagePath || location.pathname}
+                        onClose={() => dismiss('dismissed')}
+                        onSubmit={handleRatingSubmit}
+                        autoCloseTimeout={50}
                       />
                     </motion.div>
                   )}
