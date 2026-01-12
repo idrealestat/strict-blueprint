@@ -1,17 +1,31 @@
 /**
- * useSmartAssistant.ts
- * Hook for managing the smart contextual assistant
+ * Enhanced useSmartAssistant.ts
+ * Hook for managing the context-aware smart assistant
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useBehavioralTracking } from './useBehavioralTracking';
+import { usePageContextTracker, PageContext } from './usePageContextTracker';
 
-interface AssistantMessage {
+export interface AssistantMessage {
   role: 'assistant' | 'user';
   content: string;
   timestamp: string;
+  options?: QuickOptionResponse[];
+  contextInfo?: {
+    pageName: string;
+    formProgress: number;
+    currentField?: string;
+  };
+}
+
+export interface QuickOptionResponse {
+  id: string;
+  label: string;
+  selected?: boolean;
+  inputValue?: string;
 }
 
 interface AssistantState {
@@ -20,50 +34,107 @@ interface AssistantState {
   signalId: string | null;
   messages: AssistantMessage[];
   conversationId: string | null;
+  pageContext: PageContext | null;
+  showQuickOptions: boolean;
 }
 
-// Contextual messages based on trigger reason
-const TRIGGER_MESSAGES: Record<string, string[]> = {
-  freeze: [
-    'لاحظت إنك متوقف هنا.. هل تحتاج مساعدة؟',
-    'هل كل شي واضح؟ أقدر أساعدك إذا تحتاج',
-    'إذا عندك س؅ال، أنا موجود 👋',
-  ],
-  rapid_navigation: [
-    'يبدو إنك تبحث عن شي معين.. أقدر أساعدك؟',
-    'وش الي تدور عليه؟ خلني أوجهك للمكان الصحيح',
-  ],
-  repeated_errors: [
-    'لاحظت إن في مشكلة متكررة.. خلني أساعدك',
-    'هل تواجه صعوبة؟ أقدر أشرح لك الخطوات',
-  ],
-  typing_hesitation: [
-    'تحتاج مساعدة في تعبئة البيانات؟',
-    'إذا مو متأكد من المطلوب، أقدر أوضح لك',
-  ],
-  hesitation: [
-    'هل في شي غير واضح؟ اسألني وأنا أساعدك',
-  ],
+// Contextual messages based on trigger reason and page context
+const getContextualMessage = (
+  triggerReason: string, 
+  context: PageContext
+): string => {
+  const { pageName, formProgress, currentField, fields, timeOnPage } = context;
+
+  // Page-specific messages
+  if (context.pagePath.includes('publish-ad')) {
+    if (formProgress < 30 && timeOnPage > 30) {
+      return `لاحظت إنك في صفحة ${pageName}. هل تحتاج مساعدة في ملء بيانات العقار؟`;
+    }
+    if (formProgress >= 30 && formProgress < 70) {
+      const emptyFields = fields.filter(f => f.isRequired && !f.isFilled);
+      if (emptyFields.length > 0) {
+        return `أنت في منتصف الطريق! باقي ${emptyFields.length} حقول لإكمال الإعلان. هل تحتاج مساعدة؟`;
+      }
+    }
+    if (formProgress >= 70) {
+      return 'رائع! أوشكت على الانتهاء. هل كل شيء واضح؟';
+    }
+  }
+
+  if (context.pagePath.includes('crm')) {
+    return 'هل تحتاج مساعدة في إدارة العملاء؟ أقدر أساعدك في إضافة عميل جديد أو متابعة العملاء الحاليين.';
+  }
+
+  if (context.pagePath.includes('platform')) {
+    return 'هل تبحث عن عروض معينة أو تريد إضافة عرض جديد؟';
+  }
+
+  // Trigger-based messages
+  switch (triggerReason) {
+    case 'freeze':
+      if (currentField) {
+        return `لاحظت إنك متوقف عند حقل "${currentField.label || currentField.name}". هل تحتاج مساعدة في تعبئته؟`;
+      }
+      return `يبدو إنك متوقف في صفحة ${pageName}. كيف أقدر أساعدك؟`;
+    
+    case 'rapid_navigation':
+      return 'يبدو إنك تبحث عن شي معين. وش الي تدور عليه؟ خلني أوجهك للمكان الصحيح.';
+    
+    case 'repeated_errors':
+      return 'لاحظت إن في مشكلة متكررة. خلني أساعدك في حلها.';
+    
+    case 'typing_hesitation':
+      if (currentField) {
+        return `هل تحتاج مساعدة في تعبئة "${currentField.label || currentField.name}"؟`;
+      }
+      return 'هل تحتاج مساعدة في تعبئة البيانات؟';
+    
+    case 'incomplete_form':
+      return `لاحظت إنك أكملت ${formProgress}% من النموذج. هل تحتاج مساعدة لإكماله؟`;
+    
+    case 'exit_intent':
+      return 'هل أنت متأكد من الخروج؟ لم يتم حفظ البيانات بعد.';
+    
+    default:
+      return `مرحباً! أنا هنا لمساعدتك في صفحة ${pageName}. كيف أقدر أخدمك؟`;
+  }
 };
 
-// Follow-up questions based on user response
-const FOLLOW_UP_PROMPTS: Record<string, string[]> = {
-  confusion: [
-    'وش الجزء الي مو واضح بالضبط؟',
-    'أقدر أشرح لك خطوة بخطوة إذا تبي',
-  ],
-  technical: [
-    'هل المشكلة في التطبيق نفسه أو في البيانات؟',
-    'جرب تحدث الصفحة، وإذا استمرت المشكلة أخبرني',
-  ],
-  feature: [
-    'هل تبي أوضح لك كيف تستخدم هذي الميزة؟',
-  ],
+// Follow-up messages based on user response
+const getFollowUpMessage = (
+  userMessage: string,
+  context: PageContext
+): string => {
+  const lowerMessage = userMessage.toLowerCase();
+
+  // Analyze user intent
+  if (lowerMessage.includes('مشكلة') || lowerMessage.includes('خطأ') || lowerMessage.includes('ما يشتغل')) {
+    return 'أفهم. هل تقدر تصف لي المشكلة بالتفصيل؟ أو اختر من الخيارات أدناه لنساعدك بشكل أسرع.';
+  }
+
+  if (lowerMessage.includes('كيف') || lowerMessage.includes('وين') || lowerMessage.includes('أين')) {
+    if (context.pagePath.includes('publish-ad')) {
+      return 'لنشر إعلان، ابدأ بتعبئة البيانات الأساسية: العنوان، نوع العقار، السعر، والموقع. ثم أضف الصور والتفاصيل.';
+    }
+    return 'أقدر أوجهك! وش بالضبط تبي توصل له؟';
+  }
+
+  if (lowerMessage.includes('سعر') || lowerMessage.includes('تسعير')) {
+    return 'للمساعدة في التسعير، يمكنك استخدام الحاسبة الذكية أو الاطلاع على أسعار العقارات المشابهة في المنطقة.';
+  }
+
+  if (lowerMessage.includes('شكر') || lowerMessage.includes('تمام') || lowerMessage.includes('اوكي')) {
+    return 'العفو! إذا احتجت أي مساعدة ثانية، أنا موجود 👋';
+  }
+
+  // Default response with options
+  return 'تمام! كيف أقدر أساعدك أكثر؟ اختر من الخيارات أو اكتب لي.';
 };
 
 export function useSmartAssistant() {
   const location = useLocation();
   const { sessionId, silentMode, recordSignal, getInactiveTime } = useBehavioralTracking();
+  const { context: pageContext, updateContext } = usePageContextTracker();
   
   const [state, setState] = useState<AssistantState>({
     isVisible: false,
@@ -71,6 +142,8 @@ export function useSmartAssistant() {
     signalId: null,
     messages: [],
     conversationId: null,
+    pageContext: null,
+    showQuickOptions: true,
   });
   
   const shownOnPagesRef = useRef<Set<string>>(new Set());
@@ -85,25 +158,34 @@ export function useSmartAssistant() {
     });
   }, []);
 
-  // Get random message for trigger type
-  const getRandomMessage = (triggerType: string): string => {
-    const messages = TRIGGER_MESSAGES[triggerType] || TRIGGER_MESSAGES.freeze;
-    return messages[Math.floor(Math.random() * messages.length)];
-  };
+  // Update page context in state
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      pageContext,
+    }));
+  }, [pageContext]);
 
   // Show assistant with context
   const showAssistant = useCallback(async (triggerReason: string, signalId?: string) => {
     if (silentMode) return;
     if (shownOnPagesRef.current.has(location.pathname)) return;
-    if (Date.now() - lastTriggerTimeRef.current < 60000) return; // Min 1 min between triggers
+    if (Date.now() - lastTriggerTimeRef.current < 60000) return;
     
     shownOnPagesRef.current.add(location.pathname);
     lastTriggerTimeRef.current = Date.now();
+
+    updateContext();
     
     const initialMessage: AssistantMessage = {
       role: 'assistant',
-      content: getRandomMessage(triggerReason),
+      content: getContextualMessage(triggerReason, pageContext),
       timestamp: new Date().toISOString(),
+      contextInfo: {
+        pageName: pageContext.pageName,
+        formProgress: pageContext.formProgress,
+        currentField: pageContext.currentField?.label || pageContext.currentField?.name,
+      },
     };
 
     // Create conversation record
@@ -120,7 +202,6 @@ export function useSmartAssistant() {
       
       conversationId = data?.id || null;
       
-      // Mark signal as intervened
       if (signalId) {
         await supabase.from('behavioral_signals')
           .update({ assistant_intervened: true })
@@ -134,19 +215,26 @@ export function useSmartAssistant() {
       signalId: signalId || null,
       messages: [initialMessage],
       conversationId,
+      pageContext,
+      showQuickOptions: true,
     });
-  }, [silentMode, location.pathname, sessionId]);
+  }, [silentMode, location.pathname, sessionId, pageContext, updateContext]);
 
-  // Listen for manual test trigger from Owner Dashboard
+  // Listen for manual test trigger
   useEffect(() => {
     const handleManualTrigger = (event: CustomEvent) => {
       const { reason, message } = event.detail || {};
       
-      // Force show assistant for testing
+      updateContext();
+      
       const testMessage: AssistantMessage = {
         role: 'assistant',
-        content: message || 'هذا اختبار للمساعد الذكي. كيف يمكنني مساعدتك؟',
+        content: message || getContextualMessage(reason || 'manual_test', pageContext),
         timestamp: new Date().toISOString(),
+        contextInfo: {
+          pageName: pageContext.pageName,
+          formProgress: pageContext.formProgress,
+        },
       };
 
       setState({
@@ -155,6 +243,8 @@ export function useSmartAssistant() {
         signalId: null,
         messages: [testMessage],
         conversationId: null,
+        pageContext,
+        showQuickOptions: true,
       });
     };
 
@@ -162,7 +252,7 @@ export function useSmartAssistant() {
     return () => {
       window.removeEventListener('trigger-smart-assistant', handleManualTrigger as EventListener);
     };
-  }, []);
+  }, [pageContext, updateContext]);
 
   // Monitor for triggers
   useEffect(() => {
@@ -171,14 +261,26 @@ export function useSmartAssistant() {
     const checkForTriggers = async () => {
       const inactiveTime = getInactiveTime();
       
-      // Check for freeze (45+ seconds inactive)
+      // Check for freeze
       if (inactiveTime >= 45 && !shownOnPagesRef.current.has(location.pathname)) {
         const signalId = await recordSignal({
           signal_type: 'freeze',
           page_path: location.pathname,
           duration_seconds: inactiveTime,
+          metadata: {
+            formProgress: pageContext.formProgress,
+            currentField: pageContext.currentField?.name,
+            timeOnPage: pageContext.timeOnPage,
+          },
         });
         showAssistant('freeze', signalId || undefined);
+      }
+
+      // Check for incomplete form
+      if (pageContext.formProgress > 0 && pageContext.formProgress < 100 && pageContext.timeOnPage > 120) {
+        if (!shownOnPagesRef.current.has(location.pathname)) {
+          showAssistant('incomplete_form');
+        }
       }
     };
 
@@ -187,46 +289,42 @@ export function useSmartAssistant() {
     return () => {
       if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
     };
-  }, [silentMode, location.pathname, getInactiveTime, recordSignal, showAssistant]);
+  }, [silentMode, location.pathname, getInactiveTime, recordSignal, showAssistant, pageContext]);
 
-  // Reset shown pages on location change
-  useEffect(() => {
-    // Don't reset - we want to track per-page
-  }, [location.pathname]);
+  // Handle quick option selection
+  const handleQuickOption = useCallback(async (optionId: string, inputValue?: string) => {
+    const optionMessages: Record<string, string> = {
+      problem: 'واجهت مشكلة' + (inputValue ? `: ${inputValue}` : ''),
+      help: 'أحتاج مساعدة',
+      call: 'أريد أن يتم الاتصال بي',
+      pricing: 'لدي استفسار عن التسعير',
+      other: inputValue || 'لدي استفسار آخر',
+    };
 
-  // Send user message
-  const sendMessage = useCallback(async (content: string) => {
     const userMessage: AssistantMessage = {
       role: 'user',
-      content,
+      content: optionMessages[optionId] || optionId,
       timestamp: new Date().toISOString(),
+      options: [{ id: optionId, label: optionMessages[optionId], selected: true, inputValue }],
     };
 
-    // Simple analysis of user message
-    let analysis = {
-      intent: 'unknown',
-      problem_type: 'general',
-      confidence_level: 0.5,
-    };
-
-    const lowerContent = content.toLowerCase();
-    if (lowerContent.includes('مو فاهم') || lowerContent.includes('غير واضح') || lowerContent.includes('كيف')) {
-      analysis = { intent: 'confusion', problem_type: 'ux', confidence_level: 0.8 };
-    } else if (lowerContent.includes('خطأ') || lowerContent.includes('مشكلة') || lowerContent.includes('ما يشتغل')) {
-      analysis = { intent: 'technical_issue', problem_type: 'technical', confidence_level: 0.8 };
-    } else if (lowerContent.includes('وين') || lowerContent.includes('أين') || lowerContent.includes('كيف أوصل')) {
-      analysis = { intent: 'navigation', problem_type: 'ux', confidence_level: 0.7 };
-    }
-
-    // Generate contextual response
-    let responseContent = 'شكراً لإخباري! سأحاول مساعدتك.';
-    
-    if (analysis.intent === 'confusion') {
-      responseContent = 'تمام، خلني أوضح لك. وش الجزء الي تحتاج توضيح فيه بالضبط؟';
-    } else if (analysis.intent === 'technical_issue') {
-      responseContent = 'أفهم، في مشكلة تقنية. جرب تحدث الصفحة، وإذا استمرت المشكلة راسل الدعم الفني.';
-    } else if (analysis.intent === 'navigation') {
-      responseContent = 'تقدر توصل لأي قسم من القائمة الجانبية. وش الي تبي توصل له؟';
+    // Generate appropriate response
+    let responseContent = '';
+    switch (optionId) {
+      case 'problem':
+        responseContent = 'شكراً لإخبارنا! سنقوم بمراجعة المشكلة والتواصل معك. هل تريد مساعدة إضافية الآن؟';
+        break;
+      case 'help':
+        responseContent = `أنا هنا لمساعدتك في صفحة ${pageContext.pageName}. وش تحتاج بالضبط؟`;
+        break;
+      case 'call':
+        responseContent = 'تم تسجيل طلبك! سيتم التواصل معك في أقرب وقت ممكن.';
+        break;
+      case 'pricing':
+        responseContent = 'للمساعدة في التسعير، يمكنك استخدام الحاسبة الذكية أو مراجعة الأسعار المشابهة في المنطقة.';
+        break;
+      default:
+        responseContent = 'شكراً لتواصلك! كيف أقدر أساعدك أكثر؟';
     }
 
     const assistantResponse: AssistantMessage = {
@@ -240,6 +338,69 @@ export function useSmartAssistant() {
     setState(prev => ({
       ...prev,
       messages: newMessages,
+      showQuickOptions: optionId === 'help', // Show options again only for help
+    }));
+
+    // Save to database
+    if (state.conversationId && userIdRef.current) {
+      await supabase.from('assistant_conversations')
+        .update({
+          messages: newMessages as any,
+          analysis: {
+            selectedOption: optionId,
+            inputValue,
+            pageContext: {
+              pagePath: pageContext.pagePath,
+              pageName: pageContext.pageName,
+              formProgress: pageContext.formProgress,
+            },
+          },
+        })
+        .eq('id', state.conversationId);
+    }
+
+    // Log user feedback for owner dashboard
+    if (userIdRef.current) {
+      await supabase.from('behavioral_signals').insert({
+        user_id: userIdRef.current,
+        session_id: sessionId,
+        signal_type: 'user_feedback',
+        page_path: location.pathname,
+        metadata: {
+          feedbackType: optionId,
+          feedbackText: inputValue,
+          pageContext: {
+            pageName: pageContext.pageName,
+            formProgress: pageContext.formProgress,
+            timeOnPage: pageContext.timeOnPage,
+          },
+        },
+      });
+    }
+  }, [state.messages, state.conversationId, pageContext, sessionId, location.pathname]);
+
+  // Send user message
+  const sendMessage = useCallback(async (content: string) => {
+    const userMessage: AssistantMessage = {
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    };
+
+    const responseContent = getFollowUpMessage(content, pageContext);
+
+    const assistantResponse: AssistantMessage = {
+      role: 'assistant',
+      content: responseContent,
+      timestamp: new Date().toISOString(),
+    };
+
+    const newMessages = [...state.messages, userMessage, assistantResponse];
+
+    setState(prev => ({
+      ...prev,
+      messages: newMessages,
+      showQuickOptions: true,
     }));
 
     // Update conversation in database
@@ -247,11 +408,10 @@ export function useSmartAssistant() {
       await supabase.from('assistant_conversations')
         .update({
           messages: newMessages as any,
-          analysis,
         })
         .eq('id', state.conversationId);
     }
-  }, [state.messages, state.conversationId]);
+  }, [state.messages, state.conversationId, pageContext]);
 
   // Dismiss assistant
   const dismiss = useCallback(async (outcome: 'helped' | 'dismissed' | 'ignored' = 'dismissed') => {
@@ -263,7 +423,6 @@ export function useSmartAssistant() {
         })
         .eq('id', state.conversationId);
 
-      // Update signal intervention result
       if (state.signalId) {
         const result = outcome === 'helped' ? 'completed' : 'exited';
         await supabase.from('behavioral_signals')
@@ -271,12 +430,11 @@ export function useSmartAssistant() {
           .eq('id', state.signalId);
       }
 
-      // Update session rescue status
       if (outcome === 'helped') {
         await supabase.from('behavioral_sessions')
           .update({ 
             was_rescued: true,
-            assistant_interventions: 1, // Will be incremented
+            assistant_interventions: 1,
           })
           .eq('session_id', sessionId);
       }
@@ -288,6 +446,8 @@ export function useSmartAssistant() {
       signalId: null,
       messages: [],
       conversationId: null,
+      pageContext: null,
+      showQuickOptions: true,
     });
   }, [state.conversationId, state.signalId, sessionId]);
 
@@ -307,6 +467,8 @@ export function useSmartAssistant() {
       signalId: null,
       messages: [],
       conversationId: null,
+      pageContext: null,
+      showQuickOptions: true,
     });
   }, [state.conversationId]);
 
@@ -315,9 +477,12 @@ export function useSmartAssistant() {
     messages: state.messages,
     triggerReason: state.triggerReason,
     silentMode,
+    pageContext: state.pageContext,
+    showQuickOptions: state.showQuickOptions,
     sendMessage,
+    handleQuickOption,
     dismiss,
     enableSilentMode,
-    showAssistant, // For manual triggers if needed
+    showAssistant,
   };
 }
