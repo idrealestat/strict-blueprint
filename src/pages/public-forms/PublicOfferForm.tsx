@@ -586,6 +586,12 @@ export default function PublicOfferForm() {
   return (
     <PublicFormLayout broker={broker} title="إرسال عرض عقاري">
       <div className="p-4 space-y-4">
+        {/* عنوان المستند */}
+        <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
+          <Home className="w-8 h-8 text-green-600 mx-auto mb-1" />
+          <h2 className="text-xl font-bold text-[#01411C]">إرسال عرض</h2>
+          <p className="text-xs text-gray-500 mt-1">{new Date().toLocaleDateString('ar-SA')}</p>
+        </div>
         
         {/* ===== 1. معلومات المالك ===== */}
         <Section title="معلومات المالك" icon={<User className="w-5 h-5" />} color="green">

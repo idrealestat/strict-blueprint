@@ -464,6 +464,12 @@ export default function PublicRequestForm() {
   return (
     <PublicFormLayout broker={broker} title="إرسال طلب عقار">
       <div className="p-6 space-y-6">
+        {/* عنوان المستند */}
+        <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
+          <Search className="w-8 h-8 text-blue-600 mx-auto mb-1" />
+          <h2 className="text-xl font-bold text-[#01411C]">إرسال طلب</h2>
+          <p className="text-xs text-gray-500 mt-1">{new Date().toLocaleDateString('ar-SA')}</p>
+        </div>
         
         {/* القسم 1: معلومات العميل */}
         <Section title="معلوماتك" icon={<User className="w-5 h-5" />} color="green">
