@@ -463,6 +463,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showFilters, setShowFilters] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showTagsManager, setShowTagsManager] = useState(false);
+  const [tagSelectCustomer, setTagSelectCustomer] = useState<Customer | null>(null); // العميل المراد إضافة تاق له
   const [showColorsManager, setShowColorsManager] = useState(false);
   const [unreadCustomers, setUnreadCustomers] = useState<string[]>(['1', '3']);
   const [draggedCustomer, setDraggedCustomer] = useState<string | null>(null);
@@ -1676,29 +1677,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     <div className="flex items-start justify-between gap-2 mb-2">
                                       {/* التاقات - يمين الشاشة (لأنها أول عنصر في RTL) */}
                                       <div className="order-1 flex flex-wrap items-start gap-0.5 justify-end max-w-[140px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
-                                        {/* زر إضافة تاق بسيط */}
+                                        {/* زر إضافة تاق - يفتح شاشة التاقات مع وضع الاختيار */}
                                         <button
                                           type="button"
                                           className="inline-flex items-center justify-center h-5 w-5 rounded-full border-2 border-dashed border-amber-400 text-amber-500 hover:bg-amber-50 hover:border-amber-500 transition-colors"
-                                          onClick={async (e) => {
+                                          onClick={(e) => {
                                             e.stopPropagation();
-                                            const tagsList = customTags.map(t => t.name).join('، ');
-                                            const hint = customTags.length > 0 
-                                              ? `التاقات المتاحة: ${tagsList}\n\nأدخل اسم تاق موجود أو جديد:`
-                                              : 'أدخل اسم التاق الجديد:';
-                                            const tag = prompt(hint);
-                                            if (tag?.trim()) {
-                                              const trimmed = tag.trim();
-                                              // أضف للتاقات العامة إن لم تكن موجودة
-                                              if (!customTags.find(t => t.name === trimmed)) {
-                                                const randomColor = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
-                                                setCustomTags(prev => [...prev, { name: trimmed, color: randomColor }]);
-                                              }
-                                              const nextTags = Array.from(new Set([...(customer.tags || []), trimmed]));
-                                              setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
-                                              await dbUpdateCustomer(customer.id, { tags: nextTags });
-                                              toast.success(`تم إضافة تاق "${trimmed}"`);
-                                            }
+                                            setTagSelectCustomer(customer);
+                                            setShowTagsManager(true);
                                           }}
                                           title="إضافة تاق"
                                         >
@@ -2912,15 +2898,32 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       </Dialog>
 
       {/* Tags Manager Dialog */}
-      <Dialog open={showTagsManager} onOpenChange={setShowTagsManager}>
+      <Dialog open={showTagsManager} onOpenChange={(open) => {
+        setShowTagsManager(open);
+        if (!open) setTagSelectCustomer(null);
+      }}>
         <DialogContent dir="rtl" className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Tag className="w-5 h-5" />
-              إدارة التاقات
+              {tagSelectCustomer ? `اختر تاق لـ "${tagSelectCustomer.name}"` : 'إدارة التاقات'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* شريط معلومات العميل المختار */}
+            {tagSelectCustomer && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
+                <User className="w-5 h-5 text-amber-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-800">{tagSelectCustomer.name}</p>
+                  <p className="text-xs text-amber-600">{tagSelectCustomer.phone}</p>
+                </div>
+                <Badge variant="outline" className="border-amber-400 text-amber-700">
+                  {(tagSelectCustomer.tags || []).length} تاق
+                </Badge>
+              </div>
+            )}
+            
             {/* Add new tag */}
             <div className="flex gap-2">
               <Input
@@ -2928,6 +2931,12 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                 onChange={(e) => setNewTagName(e.target.value)}
                 placeholder="اسم التاق الجديد"
                 className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
               />
               <div className="flex items-center gap-1">
                 {TAG_COLORS.slice(0, 6).map((color) => (
@@ -2944,45 +2953,101 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               </Button>
             </div>
             
-            {/* Existing tags */}
+            {/* Existing tags - مع إمكانية الاختيار للعميل */}
             <ScrollArea className="h-64">
               <div className="space-y-2">
-                {customTags.map((tag) => (
-                  <div key={tag.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      <span className="font-medium">{tag.name}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteTag(tag.name)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                {customTags.map((tag) => {
+                  const isAssigned = tagSelectCustomer && (tagSelectCustomer.tags || []).includes(tag.name);
+                  return (
+                    <div 
+                      key={tag.name} 
+                      className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                        tagSelectCustomer 
+                          ? isAssigned 
+                            ? 'bg-green-50 border-2 border-green-300' 
+                            : 'bg-gray-50 hover:bg-blue-50 cursor-pointer border-2 border-transparent hover:border-blue-300'
+                          : 'bg-gray-50'
+                      }`}
+                      onClick={async () => {
+                        if (!tagSelectCustomer) return;
+                        if (isAssigned) {
+                          // إزالة التاق
+                          const nextTags = (tagSelectCustomer.tags || []).filter(t => t !== tag.name);
+                          setCustomers(prev => prev.map(c => c.id === tagSelectCustomer.id ? { ...c, tags: nextTags } : c));
+                          setTagSelectCustomer({ ...tagSelectCustomer, tags: nextTags });
+                          await dbUpdateCustomer(tagSelectCustomer.id, { tags: nextTags });
+                          toast.success(`تم إزالة تاق "${tag.name}"`);
+                        } else {
+                          // إضافة التاق
+                          const nextTags = [...(tagSelectCustomer.tags || []), tag.name];
+                          setCustomers(prev => prev.map(c => c.id === tagSelectCustomer.id ? { ...c, tags: nextTags } : c));
+                          setTagSelectCustomer({ ...tagSelectCustomer, tags: nextTags });
+                          await dbUpdateCustomer(tagSelectCustomer.id, { tags: nextTags });
+                          toast.success(`تم إضافة تاق "${tag.name}"`);
+                        }
+                      }}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded-full" 
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        <span className="font-medium">{tag.name}</span>
+                        {tagSelectCustomer && isAssigned && (
+                          <Check className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                      {!tagSelectCustomer && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTag(tag.name);
+                          }}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
             
-            {/* Color palette */}
-            <div className="border-t pt-4">
-              <p className="text-sm text-gray-600 mb-2">الألوان المتاحة</p>
-              <div className="flex flex-wrap gap-2">
-                {TAG_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setNewTagColor(color)}
-                    className={`w-8 h-8 rounded-full transition-all hover:scale-110 ${newTagColor === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
+            {/* Color palette - فقط في وضع الإدارة */}
+            {!tagSelectCustomer && (
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-600 mb-2">الألوان المتاحة</p>
+                <div className="flex flex-wrap gap-2">
+                  {TAG_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setNewTagColor(color)}
+                      className={`w-8 h-8 rounded-full transition-all hover:scale-110 ${newTagColor === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            
+            {/* زر إغلاق في وضع الاختيار */}
+            {tagSelectCustomer && (
+              <div className="border-t pt-4">
+                <Button 
+                  className="w-full bg-[#01411C] hover:bg-[#065f41]"
+                  onClick={() => {
+                    setShowTagsManager(false);
+                    setTagSelectCustomer(null);
+                  }}
+                >
+                  <Check className="w-4 h-4 ml-2" />
+                  تم
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
