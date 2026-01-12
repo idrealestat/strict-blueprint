@@ -7,6 +7,7 @@
 import { useState, useMemo, useEffect } from "react";
 import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
+import DashboardBottomNav from "./DashboardBottomNav";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
 import { useFeatureFlags } from "@/context/FeatureFlagsContext";
@@ -224,7 +225,7 @@ export default function SimpleDashboard({
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 space-y-8">
+      <main className="container mx-auto px-4 py-6 pb-24 space-y-8">
         {/* رسالة الترحيب المتحركة */}
         <AnimatePresence>
           {showWelcome && user && (
@@ -389,6 +390,9 @@ export default function SimpleDashboard({
       <NotificationsSidebar isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} onNavigate={onNavigate} offers={notificationOffers} />
 
       {/* المساعد الذكي العائم يتم عرضه من App.tsx */}
+
+      {/* الشريط السفلي */}
+      <DashboardBottomNav onNavigate={onNavigate} />
 
       {/* Right Menu */}
       <RightSliderComplete isOpen={rightMenuOpen} onClose={() => setRightMenuOpen(false)} onNavigate={onNavigate} mode="navigation" currentUser={user ? {

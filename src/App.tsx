@@ -28,6 +28,7 @@ import { AIFloatingButton } from "./components/ai-assistant";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import SlugOffersPage from "./pages/SlugOffersPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
+import BottomNavCustomization from "./components/settings/BottomNavCustomization";
 import AuthPage from "./pages/AuthPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -365,6 +366,8 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return <><MapSystemDashboard /><AIFloatingButton /></>;
     case "notification-settings":
       return <><NotificationSettings /><AIFloatingButton /></>;
+    case "bottom-nav-customization":
+      return <><div className="min-h-screen bg-gray-50 p-4 pb-24"><BottomNavCustomization onBack={handleBack} /></div><AIFloatingButton /></>;
     case "sales":
     case "advertising":
       return <><AdPublishingSections onBack={handleBack} /><AIFloatingButton /></>;
