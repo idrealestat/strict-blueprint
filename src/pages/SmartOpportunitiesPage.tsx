@@ -1,6 +1,7 @@
 /**
  * SmartOpportunitiesPage.tsx
  * صفحة الفرص الذكية مع بطاقات قابلة للسحب وفلاتر متقدمة
+ * البيانات حقيقية من قاعدة البيانات
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -11,6 +12,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Sparkles, ArrowRight, RefreshCw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
+import { useSmartOpportunityNotifications } from '@/hooks/useSmartOpportunityNotifications';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,186 +20,11 @@ import { toast } from '@/hooks/use-toast';
 import SwipeableOpportunityCard, { SmartOpportunity } from '@/components/smart-opportunities/SwipeableOpportunityCard';
 import OpportunityFilters, { OpportunityFiltersState, defaultFilters } from '@/components/smart-opportunities/OpportunityFilters';
 
-// بيانات تجريبية للاختبار
-const DEMO_OPPORTUNITIES: SmartOpportunity[] = [
-  {
-    id: 'demo-1',
-    type: 'offer_to_request',
-    similarity_score: 92,
-    matched_features: ['same_city', 'same_property_type', 'price_close', 'bedrooms_match'],
-    owner_item: {
-      id: 'my-req-1',
-      title: 'أبحث عن شقة في الرياض',
-      property_type: 'شقة',
-      city: 'الرياض',
-      district: 'النرجس',
-      price: 450000,
-      area: 140,
-      bedrooms: 3,
-      bathrooms: 2,
-    },
-    other_item: {
-      id: 'other-offer-1',
-      title: 'شقة فاخرة للبيع في حي النرجس',
-      property_type: 'شقة',
-      city: 'الرياض',
-      district: 'النرجس',
-      price: 480000,
-      area: 150,
-      bedrooms: 3,
-      bathrooms: 2,
-      description: 'شقة راقية بتشطيبات سوبر لوكس، 3 غرف نوم، صالة كبيرة، مطبخ أمريكي',
-      images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800'],
-    },
-    other_broker: {
-      name: 'أحمد محمد العتيبي',
-      phone: '0501234567',
-      whatsapp: '966501234567',
-      fal_license: 'FAL-1234567890',
-    },
-  },
-  {
-    id: 'demo-2',
-    type: 'request_to_offer',
-    similarity_score: 85,
-    matched_features: ['same_city', 'same_district', 'same_property_type', 'area_close'],
-    owner_item: {
-      id: 'my-offer-1',
-      title: 'فيلا دوبلكس للبيع',
-      property_type: 'فيلا',
-      city: 'جدة',
-      district: 'الحمراء',
-      price: 1800000,
-      area: 400,
-      bedrooms: 5,
-      bathrooms: 4,
-      images: ['https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800'],
-    },
-    other_item: {
-      id: 'other-req-1',
-      title: 'مطلوب فيلا في جدة - الحمراء',
-      property_type: 'فيلا',
-      city: 'جدة',
-      district: 'الحمراء',
-      price: 1700000,
-      area: 380,
-      bedrooms: 5,
-      bathrooms: 4,
-      description: 'أبحث عن فيلا دوبلكس للعائلة في حي الحمراء أو ما يقاربه',
-    },
-    other_broker: {
-      name: 'سعد عبدالله القحطاني',
-      phone: '0559876543',
-      whatsapp: '966559876543',
-      fal_license: 'FAL-9876543210',
-    },
-  },
-  {
-    id: 'demo-3',
-    type: 'offer_to_request',
-    similarity_score: 78,
-    matched_features: ['same_city', 'same_property_type', 'price_close'],
-    owner_item: {
-      id: 'my-req-2',
-      title: 'أبحث عن أرض تجارية',
-      property_type: 'أرض',
-      city: 'الدمام',
-      district: 'الشاطئ',
-      price: 2500000,
-      area: 1000,
-    },
-    other_item: {
-      id: 'other-offer-2',
-      title: 'أرض تجارية على شارع رئيسي',
-      property_type: 'أرض',
-      city: 'الدمام',
-      district: 'الفيصلية',
-      price: 2700000,
-      area: 1200,
-      description: 'أرض تجارية ممتازة على شارع 40 متر، قريبة من طريق الملك فهد',
-      images: ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800'],
-    },
-    other_broker: {
-      name: 'خالد إبراهيم الشمري',
-      phone: '0503456789',
-      whatsapp: '966503456789',
-      fal_license: 'FAL-3456789012',
-    },
-  },
-  {
-    id: 'demo-4',
-    type: 'request_to_offer',
-    similarity_score: 71,
-    matched_features: ['same_city', 'same_property_type', 'bedrooms_match'],
-    owner_item: {
-      id: 'my-offer-2',
-      title: 'شقة للإيجار في المدينة',
-      property_type: 'شقة',
-      city: 'المدينة المنورة',
-      district: 'العزيزية',
-      price: 35000,
-      area: 120,
-      bedrooms: 2,
-      bathrooms: 1,
-      images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'],
-    },
-    other_item: {
-      id: 'other-req-2',
-      title: 'مطلوب شقة للإيجار - العزيزية',
-      property_type: 'شقة',
-      city: 'المدينة المنورة',
-      district: 'قباء',
-      price: 30000,
-      area: 100,
-      bedrooms: 2,
-      bathrooms: 1,
-      description: 'أبحث عن شقة نظيفة غرفتين في المدينة المنورة',
-    },
-    other_broker: {
-      name: 'محمد علي الزهراني',
-      phone: '0507654321',
-      whatsapp: '966507654321',
-      fal_license: 'FAL-7654321098',
-    },
-  },
-  {
-    id: 'demo-5',
-    type: 'offer_to_request',
-    similarity_score: 65,
-    matched_features: ['same_city', 'price_close'],
-    owner_item: {
-      id: 'my-req-3',
-      title: 'أبحث عن محل تجاري',
-      property_type: 'محل',
-      city: 'مكة المكرمة',
-      district: 'العزيزية',
-      price: 150000,
-      area: 50,
-    },
-    other_item: {
-      id: 'other-offer-3',
-      title: 'محل تجاري للإيجار',
-      property_type: 'محل',
-      city: 'مكة المكرمة',
-      district: 'الشوقية',
-      price: 140000,
-      area: 45,
-      description: 'محل تجاري جاهز على شارع حيوي، مناسب لجميع الأنشطة',
-      images: ['https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800'],
-    },
-    other_broker: {
-      name: 'عبدالرحمن فهد المالكي',
-      phone: '0508765432',
-      whatsapp: '966508765432',
-      fal_license: 'FAL-8765432109',
-    },
-  },
-];
-
 const SmartOpportunitiesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { acceptOpportunity, rejectOpportunity, rejectedKeys } = useSmartOpportunities();
+  const { notifyNewOpportunity } = useSmartOpportunityNotifications();
   const { data: businessCardData } = useBusinessCardData();
   const userSlug = businessCardData?.slug;
   
@@ -206,7 +33,6 @@ const SmartOpportunitiesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filters, setFilters] = useState<OpportunityFiltersState>(defaultFilters);
-  const [useDemoData, setUseDemoData] = useState(false);
 
   // استخراج المدن والأحياء المتاحة من الفرص
   const availableCities = useMemo(() => {
@@ -286,18 +112,15 @@ const SmartOpportunitiesPage = () => {
 
   // جلب الفرص الذكية الحقيقية من قاعدة البيانات
   const fetchSmartOpportunities = useCallback(async () => {
+    if (!user || !userSlug) {
+      setIsLoading(false);
+      setAllOpportunities([]);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // إذا لم يكن هناك مستخدم أو slug، استخدم البيانات التجريبية
-      if (!user || !userSlug) {
-        setAllOpportunities(DEMO_OPPORTUNITIES);
-        setUseDemoData(true);
-        setCurrentIndex(0);
-        setIsLoading(false);
-        return;
-      }
-
       // جلب عروض المستخدم الحالي
       const { data: myListings, error: myListingsError } = await supabase
         .from('platform_listings')
@@ -319,10 +142,9 @@ const SmartOpportunitiesPage = () => {
 
       if (otherListingsError) throw otherListingsError;
 
-      // إذا لم توجد بيانات حقيقية، استخدم التجريبية
+      // إذا لم توجد بيانات
       if (!myListings?.length || !otherListings?.length) {
-        setAllOpportunities(DEMO_OPPORTUNITIES);
-        setUseDemoData(true);
+        setAllOpportunities([]);
         setCurrentIndex(0);
         setIsLoading(false);
         return;
@@ -348,7 +170,7 @@ const SmartOpportunitiesPage = () => {
             const otherCard = cardsBySlug.get(otherListing.slug);
             const cardData = otherCard?.data as any || {};
 
-            generatedOpportunities.push({
+            const opportunity: SmartOpportunity = {
               id: `${myListing.id}-${otherListing.id}`,
               type: myListing.purpose === 'للبيع' || myListing.purpose === 'للإيجار' 
                 ? 'request_to_offer' 
@@ -388,7 +210,9 @@ const SmartOpportunitiesPage = () => {
                 whatsapp: otherCard?.phone?.replace(/^0/, '966') || cardData?.phone?.replace(/^0/, '966'),
                 fal_license: otherCard?.fal_license_number || cardData?.falLicense,
               },
-            });
+            };
+
+            generatedOpportunities.push(opportunity);
           }
         }
       }
@@ -396,29 +220,33 @@ const SmartOpportunitiesPage = () => {
       // ترتيب حسب نسبة التطابق
       generatedOpportunities.sort((a, b) => b.similarity_score - a.similarity_score);
 
-      if (generatedOpportunities.length > 0) {
-        setAllOpportunities(generatedOpportunities);
-        setUseDemoData(false);
-      } else {
-        // لا توجد فرص حقيقية، استخدم التجريبية
-        setAllOpportunities(DEMO_OPPORTUNITIES);
-        setUseDemoData(true);
+      // إرسال إشعارات للفرص الجديدة عالية التطابق (80%+)
+      const highMatchOpportunities = generatedOpportunities.filter(o => o.similarity_score >= 80);
+      if (highMatchOpportunities.length > 0) {
+        // إرسال إشعار لأول فرصة فقط لتجنب الإزعاج
+        const topOpportunity = highMatchOpportunities[0];
+        notifyNewOpportunity({
+          similarity_score: topOpportunity.similarity_score,
+          other_item_title: topOpportunity.other_item.title,
+          other_broker_name: topOpportunity.other_broker.name,
+          opportunity_key: topOpportunity.id,
+          type: topOpportunity.type,
+        });
       }
-      
+
+      setAllOpportunities(generatedOpportunities);
       setCurrentIndex(0);
     } catch (error) {
       console.error('Error fetching smart opportunities:', error);
-      // في حالة الخطأ، استخدم البيانات التجريبية
-      setAllOpportunities(DEMO_OPPORTUNITIES);
-      setUseDemoData(true);
       toast({
-        title: 'تنبيه',
-        description: 'يتم عرض بيانات تجريبية للمعاينة',
+        title: 'خطأ',
+        description: 'فشل في جلب الفرص الذكية',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  }, [user, userSlug]);
+  }, [user, userSlug, notifyNewOpportunity]);
 
   // حساب نسبة التطابق بين عرضين
   const calculateMatch = (listing1: any, listing2: any) => {
@@ -484,16 +312,6 @@ const SmartOpportunitiesPage = () => {
   }, [filters]);
 
   const handleAccept = async (opp: SmartOpportunity) => {
-    // للبيانات التجريبية، نظهر رسالة فقط
-    if (useDemoData) {
-      toast({
-        title: '✅ تم قبول الفرصة (تجريبي)',
-        description: 'هذه بيانات تجريبية للمعاينة فقط',
-      });
-      setCurrentIndex(prev => prev + 1);
-      return;
-    }
-
     const result = await acceptOpportunity({
       type: opp.type,
       owner_item_id: opp.owner_item.id,
@@ -519,17 +337,6 @@ const SmartOpportunitiesPage = () => {
   const handleReject = async (opp: SmartOpportunity) => {
     const oppKey = `${opp.owner_item.id}-${opp.other_item.id}`;
     
-    // للبيانات التجريبية
-    if (useDemoData) {
-      toast({
-        title: 'تم رفض الفرصة (تجريبي)',
-        description: 'هذه بيانات تجريبية للمعاينة فقط',
-        variant: 'destructive',
-      });
-      setCurrentIndex(prev => prev + 1);
-      return;
-    }
-
     // تسجيل الرفض
     await rejectOpportunity(oppKey);
     
@@ -572,11 +379,6 @@ const SmartOpportunitiesPage = () => {
               <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                 <Sparkles className="w-6 h-6 text-amber-500" />
                 الفرص الذكية
-                {useDemoData && (
-                  <Badge variant="outline" className="mr-2 text-xs border-amber-400 text-amber-600">
-                    تجريبي
-                  </Badge>
-                )}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 اسحب يميناً للقبول أو يساراً للرفض
