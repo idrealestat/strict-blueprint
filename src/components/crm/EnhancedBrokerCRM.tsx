@@ -342,7 +342,24 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       'lost': 'lost',
       'ضائع': 'lost'
     };
+
     const columnId = columnMap[c.status || 'active'] || 'leads';
+
+    const metadataObj = (c.metadata && typeof c.metadata === 'object' && !Array.isArray(c.metadata))
+      ? (c.metadata as Record<string, any>)
+      : {};
+
+    const metaClientType = metadataObj.clientType as string | undefined;
+    const metaInterestLevel = metadataObj.interestLevel as string | undefined;
+
+    const normalizedClientType = (metaClientType && metaClientType in clientTypes)
+      ? (metaClientType as Customer['type'])
+      : (undefined);
+
+    const normalizedInterestLevel = (metaInterestLevel && metaInterestLevel in interestLevels)
+      ? (metaInterestLevel as Customer['interestLevel'])
+      : (undefined);
+
     return {
       id: c.id,
       name: c.name,
@@ -350,7 +367,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       email: c.email || undefined,
       whatsapp: c.whatsapp || c.phone || undefined,
       company: c.company || undefined,
-      type: c.property_type as Customer['type'] || 'other',
+
+      // ✅ نستخدم metadata لحفظ نوع العميل/درجة الاهتمام لكل بطاقة (بدلاً من الحقول العامة)
+      type: normalizedClientType || 'other',
+      interestLevel: normalizedInterestLevel || undefined,
+
       status: c.status || 'active',
       columnId,
       budget: c.budget || undefined,
@@ -361,7 +382,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       createdAt: c.created_at || new Date().toISOString(),
       lastContact: c.last_contact || undefined,
       nextFollowUp: c.next_follow_up || undefined,
-      interestLevel: c.priority as Customer['interestLevel'] || undefined,
+
+      // ملاحظة: لا نربط type/interestLevel بـ property_type/priority حتى لا تختلط البيانات
     };
   }, []);
 
@@ -1613,50 +1635,124 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       </div>
                                     </div>
                                     
-                                    {/* 2. معلومات الاتصال */}
-                                    <div className="flex items-center gap-1 text-xs text-gray-700 mb-2">
-                                      <Phone className="w-3 h-3" />
-                                      <span className="truncate" dir="ltr">{customer.phone}</span>
+                                    {/* 2. معلومات الاتصال + أزرار اتصال/واتساب */}
+                                    <div className="flex items-center justify-between gap-2 text-xs text-gray-700 mb-2">
+                                      <div className="flex items-center gap-1 min-w-0">
+                                        <Phone className="w-3 h-3" />
+                                        <span className="truncate" dir="ltr">{customer.phone}</span>
+                                      </div>
+
+                                      <div className="flex items-center gap-1 flex-shrink-0">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 w-6 p-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.location.href = `tel:${customer.phone}`;
+                                          }}
+                                          title="اتصال"
+                                        >
+                                          <Phone className="w-3.5 h-3.5" />
+                                        </Button>
+
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 w-6 p-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(`https://wa.me/${customer.whatsapp || customer.phone}`, '_blank');
+                                          }}
+                                          title="واتساب"
+                                        >
+                                          <MessageSquare className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
                                     </div>
                                     
                                     {/* 3. نوع العميل + درجة الاهتمام (يسار الشاشة) + التاقات (يمين الشاشة) */}
                                     <div className="flex flex-row-reverse items-start justify-between gap-2 mb-2">
                                       {/* التاقات - تظهر يمين الشاشة في RTL */}
-                                      {customer.tags && customer.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-0.5 justify-end max-w-[120px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
-                                          {(expandedCardId === customer.id ? customer.tags.slice(0, 9) : customer.tags.slice(0, 4)).map((tag, idx) => {
-                                            const tagColor = getTagColor(tag);
-                                            return (
-                                              <Badge 
-                                                key={idx}
-                                                style={{ 
-                                                  backgroundColor: tagColor.bg,
-                                                  color: tagColor.text,
-                                                  borderColor: tagColor.border
+                                      <div className="flex flex-wrap items-start gap-0.5 justify-end max-w-[140px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
+                                        {/* زر إضافة تاق */}
+                                        <button
+                                          type="button"
+                                          className="inline-flex items-center justify-center h-4 w-4 rounded border border-dashed border-muted-foreground text-muted-foreground"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            const tag = window.prompt('اكتب اسم التاق');
+                                            const trimmed = (tag || '').trim();
+                                            if (!trimmed) return;
+
+                                            const nextTags = Array.from(new Set([...(customer.tags || []), trimmed]));
+                                            setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
+                                            await dbUpdateCustomer(customer.id, { tags: nextTags });
+                                          }}
+                                          title="إضافة تاق"
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </button>
+
+                                        {(customer.tags || []).slice(0, expandedCardId === customer.id ? 9 : 4).map((tag, idx) => {
+                                          const tagColor = getTagColor(tag);
+                                          return (
+                                            <span
+                                              key={`${tag}-${idx}`}
+                                              className="inline-flex items-center gap-1 text-[8px] px-1 py-0 border h-4 rounded-md"
+                                              style={{
+                                                backgroundColor: tagColor.bg,
+                                                color: tagColor.text,
+                                                borderColor: tagColor.border,
+                                              }}
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <span>{tag}</span>
+                                              <button
+                                                type="button"
+                                                className="text-[9px] leading-none"
+                                                title="حذف التاق"
+                                                onClick={async (e) => {
+                                                  e.stopPropagation();
+                                                  const nextTags = (customer.tags || []).filter((t, i) => !(t === tag && i === idx));
+                                                  setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
+                                                  await dbUpdateCustomer(customer.id, { tags: nextTags });
                                                 }}
-                                                className="text-[8px] px-1 py-0 border h-4"
                                               >
-                                                {tag}
-                                              </Badge>
-                                            );
-                                          })}
-                                          {customer.tags.length > (expandedCardId === customer.id ? 9 : 4) && (
-                                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-dashed">
-                                              +{customer.tags.length - (expandedCardId === customer.id ? 9 : 4)}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      )}
-                                      
+                                                ×
+                                              </button>
+                                            </span>
+                                          );
+                                        })}
+
+                                        {(customer.tags || []).length > (expandedCardId === customer.id ? 9 : 4) && (
+                                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-dashed">
+                                            +{(customer.tags || []).length - (expandedCardId === customer.id ? 9 : 4)}
+                                          </Badge>
+                                        )}
+                                      </div>
+
                                       {/* نوع العميل + درجة الاهتمام - تظهر يسار الشاشة في RTL */}
                                       <div className="flex flex-col gap-1">
                                         {/* نوع العميل */}
                                         <Select
                                           value={customer.type || 'buyer'}
-                                          onValueChange={(value) => {
-                                            setCustomers(prev => prev.map(c => 
+                                          onValueChange={async (value) => {
+                                            setCustomers(prev => prev.map(c =>
                                               c.id === customer.id ? { ...c, type: value as Customer['type'] } : c
                                             ));
+
+                                            const current = dbCustomers.find(c => c.id === customer.id);
+                                            const currentMeta = (current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata))
+                                              ? (current.metadata as Record<string, any>)
+                                              : {};
+
+                                            await dbUpdateCustomer(customer.id, {
+                                              metadata: {
+                                                ...currentMeta,
+                                                clientType: value,
+                                              },
+                                            });
                                           }}
                                         >
                                           <SelectTrigger 
@@ -1693,14 +1789,26 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                             ))}
                                           </SelectContent>
                                         </Select>
-                                        
+
                                         {/* درجة الاهتمام */}
                                         <Select
                                           value={customer.interestLevel || 'medium'}
-                                          onValueChange={(value) => {
-                                            setCustomers(prev => prev.map(c => 
+                                          onValueChange={async (value) => {
+                                            setCustomers(prev => prev.map(c =>
                                               c.id === customer.id ? { ...c, interestLevel: value as Customer['interestLevel'] } : c
                                             ));
+
+                                            const current = dbCustomers.find(c => c.id === customer.id);
+                                            const currentMeta = (current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata))
+                                              ? (current.metadata as Record<string, any>)
+                                              : {};
+
+                                            await dbUpdateCustomer(customer.id, {
+                                              metadata: {
+                                                ...currentMeta,
+                                                interestLevel: value,
+                                              },
+                                            });
                                           }}
                                         >
                                           <SelectTrigger 
