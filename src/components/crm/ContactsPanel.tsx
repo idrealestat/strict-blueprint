@@ -1,16 +1,17 @@
 /**
  * ContactsPanel.tsx
- * لوحة جهات الاتصال - الهيكل والتصميم الأساسي
+ * لوحة جهات الاتصال مع تكامل Capacitor Contacts API
  * ⚠️ تحذير: هذا الملف محمي - لا تعدله بدون إذن صريح من صاحب المشروع
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Search,
   Phone,
@@ -21,9 +22,12 @@ import {
   Cloud,
   Mail,
   Users,
-  X,
+  AlertCircle,
+  Lock,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDeviceContacts } from "@/hooks/useDeviceContacts";
 
 interface Contact {
   id: string;
@@ -56,6 +60,17 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
   const [activeTab, setActiveTab] = useState("app");
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // استخدام hook جهات اتصال الجهاز
+  const {
+    contacts: deviceContactsRaw,
+    isLoading: deviceLoading,
+    error: deviceError,
+    hasPermission,
+    isNativePlatform,
+    requestPermission,
+    fetchContacts: fetchDeviceContacts,
+  } = useDeviceContacts();
+
   // تحويل جهات اتصال التطبيق للصيغة الموحدة
   const formattedAppContacts: Contact[] = useMemo(() => 
     appContacts.map(c => ({
@@ -63,18 +78,26 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
       source: 'app' as const,
     })), [appContacts]);
 
-  // جهات اتصال وهمية للعرض (سيتم استبدالها بالتكامل الفعلي لاحقاً)
-  const [googleContacts] = useState<Contact[]>([
-    { id: 'g1', name: 'جهة اتصال Google', phone: '0555555551', source: 'google' },
-  ]);
-  
-  const [icloudContacts] = useState<Contact[]>([
-    { id: 'i1', name: 'جهة اتصال iCloud', phone: '0555555552', source: 'icloud' },
-  ]);
-  
-  const [deviceContacts] = useState<Contact[]>([
-    { id: 'd1', name: 'جهة اتصال الجهاز', phone: '0555555553', source: 'device' },
-  ]);
+  // تحويل جهات اتصال الجهاز للصيغة الموحدة
+  const deviceContacts: Contact[] = useMemo(() => 
+    deviceContactsRaw.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      source: 'device' as const,
+    })), [deviceContactsRaw]);
+
+  // جهات اتصال Google و iCloud (للمستقبل)
+  const [googleContacts] = useState<Contact[]>([]);
+  const [icloudContacts] = useState<Contact[]>([]);
+
+  // جلب جهات اتصال الجهاز عند فتح التبويب
+  useEffect(() => {
+    if (isOpen && activeTab === 'device' && isNativePlatform && hasPermission && deviceContacts.length === 0) {
+      fetchDeviceContacts();
+    }
+  }, [isOpen, activeTab, isNativePlatform, hasPermission, deviceContacts.length, fetchDeviceContacts]);
 
   // دمج جميع جهات الاتصال حسب التبويب
   const getContactsByTab = () => {
@@ -83,7 +106,7 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
       case 'google': return googleContacts;
       case 'icloud': return icloudContacts;
       case 'device': return deviceContacts;
-      case 'all': return [...formattedAppContacts, ...googleContacts, ...icloudContacts, ...deviceContacts];
+      case 'all': return [...formattedAppContacts, ...deviceContacts, ...googleContacts, ...icloudContacts];
       default: return formattedAppContacts;
     }
   };
@@ -99,14 +122,27 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
       c.phone.includes(query) ||
       c.email?.toLowerCase().includes(query)
     );
-  }, [searchQuery, activeTab, formattedAppContacts, googleContacts, icloudContacts, deviceContacts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, activeTab, formattedAppContacts, deviceContacts, googleContacts, icloudContacts]);
 
-  // محاكاة المزامنة
+  // مزامنة جهات الاتصال
   const handleSync = async () => {
     setIsSyncing(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    if (activeTab === 'device' || activeTab === 'all') {
+      await fetchDeviceContacts();
+    }
+    
     setIsSyncing(false);
     toast.success("تم تحديث جهات الاتصال");
+  };
+
+  // طلب الصلاحية
+  const handleRequestPermission = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      await fetchDeviceContacts();
+    }
   };
 
   // الاتصال المباشر
@@ -116,7 +152,7 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
 
   // إرسال واتساب
   const handleWhatsApp = (phone: string) => {
-    const formattedPhone = phone.replace(/^0/, '966');
+    const formattedPhone = phone.replace(/^0/, '966').replace(/\s/g, '');
     window.open(`https://wa.me/${formattedPhone}`, '_blank');
   };
 
@@ -146,6 +182,67 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
     }
   };
 
+  // عرض حالة جهات اتصال الجهاز
+  const renderDeviceContactsState = () => {
+    // إذا كانت المنصة غير أصلية (ويب)
+    if (!isNativePlatform) {
+      return (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Smartphone className="w-4 h-4 text-blue-600" />
+          <AlertDescription className="text-blue-700 text-sm">
+            جهات اتصال الجهاز متاحة فقط على تطبيق Android/iOS.
+            <br />
+            <span className="text-xs">استخدم التطبيق الأصلي للوصول لدفتر الهاتف.</span>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    // إذا لم يتم منح الصلاحية
+    if (!hasPermission) {
+      return (
+        <Alert className="bg-amber-50 border-amber-200">
+          <Lock className="w-4 h-4 text-amber-600" />
+          <AlertDescription className="text-amber-700 text-sm">
+            <p className="mb-2">يتطلب الوصول لجهات الاتصال إذنك.</p>
+            <Button
+              size="sm"
+              onClick={handleRequestPermission}
+              className="bg-[#01411C] hover:bg-[#065f41] text-white"
+            >
+              <Lock className="w-4 h-4 ml-1" />
+              السماح بالوصول
+            </Button>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    // إذا كان هناك خطأ
+    if (deviceError) {
+      return (
+        <Alert className="bg-red-50 border-red-200">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <AlertDescription className="text-red-700 text-sm">
+            {deviceError}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    // إذا كان يتم التحميل
+    if (deviceLoading) {
+      return (
+        <div className="text-center py-12">
+          <Loader2 className="w-8 h-8 mx-auto mb-3 text-[#01411C] animate-spin" />
+          <p className="text-gray-500">جاري جلب جهات الاتصال...</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden" dir="rtl">
@@ -156,15 +253,20 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
               <span className="flex items-center gap-2 text-lg">
                 <Users className="w-5 h-5 text-[#D4AF37]" />
                 جهات الاتصال
+                {deviceContacts.length > 0 && (
+                  <Badge className="bg-[#D4AF37]/20 text-[#D4AF37] text-xs">
+                    {deviceContacts.length} من الجهاز
+                  </Badge>
+                )}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSync}
-                disabled={isSyncing}
+                disabled={isSyncing || deviceLoading}
                 className="text-white hover:bg-white/20"
               >
-                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${(isSyncing || deviceLoading) ? 'animate-spin' : ''}`} />
                 <span className="mr-1 text-sm">مزامنة</span>
               </Button>
             </DialogTitle>
@@ -187,13 +289,13 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
           <div className="px-4 pt-2 bg-gray-50 border-b">
             <TabsList className="w-full grid grid-cols-5 h-auto p-1 bg-gray-200/50">
               <TabsTrigger value="all" className="text-xs py-2 data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
-                الكل
+                الكل ({formattedAppContacts.length + deviceContacts.length})
               </TabsTrigger>
               <TabsTrigger value="app" className="text-xs py-2 data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
-                التطبيق
+                التطبيق ({formattedAppContacts.length})
               </TabsTrigger>
               <TabsTrigger value="device" className="text-xs py-2 data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
-                الجهاز
+                الجهاز ({deviceContacts.length})
               </TabsTrigger>
               <TabsTrigger value="google" className="text-xs py-2 data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
                 Google
@@ -206,12 +308,19 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
 
           <ScrollArea className="h-[400px]">
             <div className="p-4 space-y-2">
-              {filteredContacts.length === 0 ? (
+              {/* حالة جهات اتصال الجهاز */}
+              {(activeTab === 'device' || activeTab === 'all') && renderDeviceContactsState()}
+
+              {/* عرض جهات الاتصال */}
+              {filteredContacts.length === 0 && !deviceLoading ? (
                 <div className="text-center py-12 text-gray-500">
                   <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p>لا توجد جهات اتصال</p>
-                  {activeTab !== 'app' && (
-                    <p className="text-xs mt-2">التكامل مع {activeTab} قادم قريباً</p>
+                  {activeTab === 'google' && (
+                    <p className="text-xs mt-2">تكامل Google Contacts قادم قريباً</p>
+                  )}
+                  {activeTab === 'icloud' && (
+                    <p className="text-xs mt-2">تكامل iCloud قادم قريباً</p>
                   )}
                 </div>
               ) : (
@@ -233,6 +342,9 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-500 font-mono" dir="ltr">{contact.phone}</p>
+                        {contact.email && (
+                          <p className="text-xs text-gray-400 truncate">{contact.email}</p>
+                        )}
                       </div>
                     </div>
 
@@ -275,10 +387,13 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
           </ScrollArea>
         </Tabs>
 
-        {/* ملاحظة التكامل */}
-        <div className="p-3 bg-amber-50 border-t border-amber-200 text-center">
-          <p className="text-xs text-amber-700">
-            💡 التكامل مع جهات اتصال الجهاز وGoogle وiCloud سيتم تفعيله قريباً
+        {/* ملاحظة */}
+        <div className="p-3 bg-gray-50 border-t text-center">
+          <p className="text-xs text-gray-500">
+            {isNativePlatform 
+              ? '✅ التطبيق الأصلي - يمكنك الوصول لجهات اتصال الجهاز'
+              : '💡 للوصول لجهات اتصال الجهاز، استخدم التطبيق الأصلي (Android/iOS)'
+            }
           </p>
         </div>
       </DialogContent>
