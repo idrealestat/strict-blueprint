@@ -27,11 +27,40 @@ export interface SmartOpportunityAcceptance {
   updated_at: string;
 }
 
+interface RejectionRecord {
+  opportunity_key: string;
+  rejection_count: number;
+}
+
 export function useSmartOpportunities() {
   const { user } = useAuth();
   const [acceptances, setAcceptances] = useState<SmartOpportunityAcceptance[]>([]);
   const [unviewedCount, setUnviewedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [rejectedKeys, setRejectedKeys] = useState<Set<string>>(new Set());
+
+  // جلب الفرص المرفوضة مرتين
+  const fetchRejectedOpportunities = useCallback(async () => {
+    if (!user) {
+      setRejectedKeys(new Set());
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('smart_opportunity_rejections')
+        .select('opportunity_key, rejection_count')
+        .eq('user_id', user.id)
+        .gte('rejection_count', 2);
+
+      if (error) throw error;
+
+      const keys = new Set((data || []).map(r => r.opportunity_key));
+      setRejectedKeys(keys);
+    } catch (error) {
+      console.error('Error fetching rejected opportunities:', error);
+    }
+  }, [user]);
 
   // جلب الفرص المقبولة
   const fetchAcceptances = useCallback(async () => {
@@ -161,28 +190,58 @@ export function useSmartOpportunities() {
     }
   }, [user, fetchAcceptances]);
 
-  // رفض فرصة
-  const rejectOpportunity = useCallback(async (id: string) => {
+  // رفض فرصة وتسجيلها في جدول الرفض
+  const rejectOpportunity = useCallback(async (opportunityKey: string) => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('smart_opportunity_acceptances')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('owner_user_id', user.id);
+      // محاولة تحديث عداد الرفض أو إنشاء سجل جديد
+      const { data: existing } = await supabase
+        .from('smart_opportunity_rejections')
+        .select('id, rejection_count')
+        .eq('user_id', user.id)
+        .eq('opportunity_key', opportunityKey)
+        .single();
 
-      if (error) throw error;
-      
-      setAcceptances(prev => prev.filter(a => a.id !== id));
+      if (existing) {
+        // تحديث العداد
+        await supabase
+          .from('smart_opportunity_rejections')
+          .update({ 
+            rejection_count: existing.rejection_count + 1,
+            last_rejected_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+          
+        // إذا وصل إلى 2 أو أكثر، أضفه للمجموعة المحلية
+        if (existing.rejection_count + 1 >= 2) {
+          setRejectedKeys(prev => new Set([...prev, opportunityKey]));
+        }
+      } else {
+        // إنشاء سجل جديد
+        await supabase
+          .from('smart_opportunity_rejections')
+          .insert({
+            user_id: user.id,
+            opportunity_key: opportunityKey,
+            rejection_count: 1,
+          });
+      }
     } catch (error) {
       console.error('Error rejecting opportunity:', error);
     }
   }, [user]);
 
+  // التحقق مما إذا كانت الفرصة مرفوضة نهائياً
+  const isOpportunityRejected = useCallback((myListingId: string, otherListingId: string) => {
+    const key = `${myListingId}-${otherListingId}`;
+    return rejectedKeys.has(key);
+  }, [rejectedKeys]);
+
   useEffect(() => {
     fetchAcceptances();
-  }, [fetchAcceptances]);
+    fetchRejectedOpportunities();
+  }, [fetchAcceptances, fetchRejectedOpportunities]);
 
   // الفرص حسب النوع
   const acceptedOffers = acceptances.filter(a => a.type === 'offer_to_request');
@@ -194,10 +253,13 @@ export function useSmartOpportunities() {
     acceptedRequests,
     unviewedCount,
     isLoading,
+    rejectedKeys,
     fetchAcceptances,
     fetchUnviewedCount,
+    fetchRejectedOpportunities,
     markAsViewed,
     acceptOpportunity,
     rejectOpportunity,
+    isOpportunityRejected,
   };
 }
