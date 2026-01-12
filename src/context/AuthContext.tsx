@@ -11,7 +11,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isOwner: boolean;
   isAdmin: boolean;
-  isUser: boolean;
+  isMember: boolean;
+  hasAnyRole: boolean;
   hasRole: (requiredRoles: AppRole[]) => boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
