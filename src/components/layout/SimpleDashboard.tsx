@@ -115,15 +115,6 @@ export default function SimpleDashboard({
     badge: "النظام الجديد",
     badgeClass: "bg-[#D4AF37] text-[#01411C]"
   }, {
-    id: "smart-paths",
-    title: "المسارات الذكية",
-    description: "تجميع العقارات حسب المدينة والحي ونوع العقار",
-    icon: Layers,
-    navigateTo: "my-platform-smart",
-    badge: "📁 مسارات ذكية",
-    badgeClass: "bg-gradient-to-r from-[#01411C] to-[#065f41] text-[#D4AF37]",
-    flagKey: "smart_paths_enabled"
-  }, {
     id: "spatial-intelligence",
     title: "الذكاء المكاني",
     description: "اختبر تحليل المواقع العقارية وتقييم الجاذبية",
