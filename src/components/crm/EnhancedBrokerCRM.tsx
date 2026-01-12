@@ -220,17 +220,21 @@ const CUSTOMER_STATUS_COLORS: Record<string, { bg: string; border: string; text:
 };
 
 // Tag Colors
-const getTagColor = (tag: string) => {
-  const colors = [
-    { bg: '#fee2e2', text: '#dc2626', border: '#fecaca' },
-    { bg: '#fef3c7', text: '#d97706', border: '#fde68a' },
-    { bg: '#dcfce7', text: '#16a34a', border: '#bbf7d0' },
-    { bg: '#dbeafe', text: '#2563eb', border: '#bfdbfe' },
-    { bg: '#f3e8ff', text: '#9333ea', border: '#e9d5ff' },
-    { bg: '#fce7f3', text: '#db2777', border: '#fbcfe8' },
-  ];
-  const index = tag.charCodeAt(0) % colors.length;
-  return colors[index];
+// Helper to convert hex to rgba for backgrounds
+const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// Helper to determine if color is light or dark for text contrast
+const isLightColor = (hex: string) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
 };
 
 // Mock Data
@@ -593,6 +597,31 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     notes: '',
     tags: [] as string[],
   });
+
+  // Function to get tag color from customTags or fallback
+  const getTagColor = (tagName: string) => {
+    const customTag = customTags.find(t => t.name === tagName);
+    if (customTag) {
+      // Use the custom color
+      const baseColor = customTag.color;
+      return {
+        bg: hexToRgba(baseColor, 0.15),
+        text: baseColor,
+        border: hexToRgba(baseColor, 0.4),
+      };
+    }
+    // Fallback colors for tags not in customTags
+    const fallbackColors = [
+      { bg: '#fee2e2', text: '#dc2626', border: '#fecaca' },
+      { bg: '#fef3c7', text: '#d97706', border: '#fde68a' },
+      { bg: '#dcfce7', text: '#16a34a', border: '#bbf7d0' },
+      { bg: '#dbeafe', text: '#2563eb', border: '#bfdbfe' },
+      { bg: '#f3e8ff', text: '#9333ea', border: '#e9d5ff' },
+      { bg: '#fce7f3', text: '#db2777', border: '#fbcfe8' },
+    ];
+    const index = tagName.charCodeAt(0) % fallbackColors.length;
+    return fallbackColors[index];
+  };
 
   // Handle CSV file import
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1676,11 +1705,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     {/* 3. نوع العميل + درجة الاهتمام (يسار الشاشة) + التاقات (يمين الشاشة) */}
                                     <div className="flex items-start justify-between gap-2 mb-2">
                                       {/* التاقات - يمين الشاشة (لأنها أول عنصر في RTL) */}
-                                      <div className="order-1 flex flex-wrap items-start gap-0.5 justify-end max-w-[140px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
+                                      <div className="order-1 flex flex-wrap items-start gap-1 justify-end max-w-[160px]" style={{ maxHeight: expandedCardId === customer.id ? '80px' : '44px', overflow: 'hidden' }}>
                                         {/* زر إضافة تاق - يفتح شاشة التاقات مع وضع الاختيار */}
                                         <button
                                           type="button"
-                                          className="inline-flex items-center justify-center h-5 w-5 rounded-full border-2 border-dashed border-amber-400 text-amber-500 hover:bg-amber-50 hover:border-amber-500 transition-colors"
+                                          className="inline-flex items-center justify-center h-6 w-6 rounded-full border-2 border-dashed border-amber-400 text-amber-500 hover:bg-amber-50 hover:border-amber-500 transition-colors"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setTagSelectCustomer(customer);
@@ -1688,7 +1717,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           }}
                                           title="إضافة تاق"
                                         >
-                                          <Plus className="h-3 w-3" />
+                                          <Plus className="h-3.5 w-3.5" />
                                         </button>
 
                                         {(customer.tags || []).slice(0, expandedCardId === customer.id ? 9 : 4).map((tag, idx) => {
@@ -1696,7 +1725,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           return (
                                             <span
                                               key={`${tag}-${idx}`}
-                                              className="inline-flex items-center gap-1 text-[8px] px-1 py-0 border h-4 rounded-md"
+                                              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 border h-5 rounded-md"
                                               style={{
                                                 backgroundColor: tagColor.bg,
                                                 color: tagColor.text,
@@ -1707,7 +1736,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                               <span>{tag}</span>
                                               <button
                                                 type="button"
-                                                className="text-[9px] leading-none"
+                                                className="text-[11px] leading-none opacity-70 hover:opacity-100"
                                                 title="حذف التاق"
                                                 onClick={async (e) => {
                                                   e.stopPropagation();
@@ -1723,7 +1752,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         })}
 
                                         {(customer.tags || []).length > (expandedCardId === customer.id ? 9 : 4) && (
-                                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-dashed">
+                                          <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 border-dashed">
                                             +{(customer.tags || []).length - (expandedCardId === customer.id ? 9 : 4)}
                                           </Badge>
                                         )}
