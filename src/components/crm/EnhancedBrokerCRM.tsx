@@ -1672,9 +1672,9 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </div>
                                     
                                     {/* 3. نوع العميل + درجة الاهتمام (يسار الشاشة) + التاقات (يمين الشاشة) */}
-                                    <div className="flex flex-row-reverse items-start justify-between gap-2 mb-2">
-                                      {/* التاقات - تظهر يمين الشاشة في RTL */}
-                                      <div className="flex flex-wrap items-start gap-0.5 justify-end max-w-[140px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                      {/* التاقات - يمين الشاشة (لأنها أول عنصر في RTL) */}
+                                      <div className="order-1 flex flex-wrap items-start gap-0.5 justify-end max-w-[140px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
                                         {/* زر إضافة تاق */}
                                         <button
                                           type="button"
@@ -1732,9 +1732,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         )}
                                       </div>
 
-                                      {/* نوع العميل + درجة الاهتمام - تظهر يسار الشاشة في RTL */}
-                                      <div className="flex flex-col gap-1">
-                                        {/* نوع العميل */}
+                                      {/* نوع العميل + درجة الاهتمام - يسار الشاشة */}
+                                      <div className="order-2 flex flex-col gap-1">
                                         <Select
                                           value={customer.type || 'buyer'}
                                           onValueChange={async (value) => {
