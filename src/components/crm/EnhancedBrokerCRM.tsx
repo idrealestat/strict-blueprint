@@ -222,12 +222,12 @@ const getCustomerActivities = (customer: Customer): CustomerActivity[] => {
     });
   }
   
-  // نشر عقار للمالك
+  // نشر إعلان للمالك
   if (customer.metadata?.lastPropertyPublished) {
     activities.push({
       id: `property-${customer.id}`,
       type: 'property_published',
-      title: 'نشر عقار',
+      title: 'نشر إعلان',
       description: customer.metadata.lastPropertyPublished.title || 'عقار جديد',
       timestamp: new Date(customer.metadata.lastPropertyPublished.timestamp),
       icon: '🏠',

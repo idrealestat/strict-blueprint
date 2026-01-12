@@ -1167,7 +1167,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       className="bg-[#01411C] text-[#D4AF37]"
                     >
                       <Plus className="w-4 h-4 ml-1" />
-                      نشر عقار جديد
+                      نشر إعلان جديد
                     </Button>
                   </div>
                 )}

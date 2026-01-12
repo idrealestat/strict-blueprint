@@ -201,16 +201,16 @@ export async function triggerCRMNotification(
 }
 
 /**
- * إشعار نشر عقار
+ * إشعار نشر إعلان
  */
 export async function triggerPublishingNotification(
   userId: string,
   publishData: { title: string; status: 'published' | 'updated' | 'deleted' }
 ): Promise<void> {
   const statusText = {
-    published: '✅ تم نشر العقار',
-    updated: '🔄 تم تحديث العقار',
-    deleted: '🗑️ تم حذف العقار',
+    published: '✅ تم نشر الإعلان',
+    updated: '🔄 تم تحديث الإعلان',
+    deleted: '🗑️ تم حذف الإعلان',
   };
 
   await createNotification({
