@@ -79,6 +79,7 @@ import PDFPreviewDialog from "./PDFPreviewDialog";
 import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { useDeviceContacts } from "@/hooks/useDeviceContacts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
@@ -2448,11 +2449,18 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 const smsMessage = `مرحباً ${customer.name}، تم قبول عرضك على العقار "${quote.propertyTitle}" بسعر ${quote.offeredPrice?.toLocaleString()} ريال. سيتم التواصل معك قريباً لإتمام الإجراءات. - وساطة`;
                                 
                                 try {
+                                  // استخدام توكن الجلسة بدلاً من publishable key للأمان
+                                  const { data: { session } } = await supabase.auth.getSession();
+                                  if (!session?.access_token) {
+                                    toast.error('يرجى تسجيل الدخول أولاً');
+                                    return;
+                                  }
+                                  
                                   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`, {
                                     method: 'POST',
                                     headers: {
                                       'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                                      'Authorization': `Bearer ${session.access_token}`,
                                     },
                                     body: JSON.stringify({
                                       to: customer.phone,
@@ -2501,11 +2509,18 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 const smsMessage = `مرحباً ${customer.name}، نأسف لإبلاغك أن عرضك على العقار "${quote.propertyTitle}" بسعر ${quote.offeredPrice?.toLocaleString()} ريال لم يُقبل. السعر المقبول يبدأ من ${acceptablePrice?.toLocaleString()} ريال. للمزيد من المعلومات تواصل معنا. - وساطة`;
                                 
                                 try {
+                                  // استخدام توكن الجلسة بدلاً من publishable key للأمان
+                                  const { data: { session } } = await supabase.auth.getSession();
+                                  if (!session?.access_token) {
+                                    toast.error('يرجى تسجيل الدخول أولاً');
+                                    return;
+                                  }
+                                  
                                   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`, {
                                     method: 'POST',
                                     headers: {
                                       'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                                      'Authorization': `Bearer ${session.access_token}`,
                                     },
                                     body: JSON.stringify({
                                       to: customer.phone,

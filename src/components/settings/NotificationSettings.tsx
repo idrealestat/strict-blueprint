@@ -583,10 +583,16 @@ export default function NotificationSettings() {
     
     setTestingSMS(true);
     try {
-      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
-      const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+      // استخدام توكن الجلسة بدلاً من publishable key للأمان
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('يرجى تسجيل الدخول أولاً');
+        setTestingSMS(false);
+        return;
+      }
       
-      if (!supabaseUrl || !supabaseKey) {
+      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+      if (!supabaseUrl) {
         toast.error('لم يتم تكوين خدمة الرسائل');
         setTestingSMS(false);
         return;
@@ -596,7 +602,7 @@ export default function NotificationSettings() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           to: testPhone,

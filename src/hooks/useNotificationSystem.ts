@@ -250,23 +250,22 @@ export function useNotificationSystem() {
     
     try {
       const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
-      const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+      if (!supabaseUrl) return;
       
-      if (!supabaseUrl || !supabaseKey) return;
-      
-      await fetch(`${supabaseUrl}/functions/v1/send-sms`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({
+      // استخدام supabase.functions.invoke للاستفادة من توكن الجلسة تلقائياً
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { error } = await supabase.functions.invoke('send-sms', {
+        body: {
           to: customerPhone,
           message,
           messageType: 'appointment_reminder',
           appointmentId: apt.id,
-        }),
+        },
       });
+      
+      if (error) {
+        console.error('SMS error:', error);
+      }
       console.log('Appointment SMS sent successfully');
     } catch (error) {
       console.error('Failed to send appointment SMS:', error);
