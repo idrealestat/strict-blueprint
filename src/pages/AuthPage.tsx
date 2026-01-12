@@ -89,7 +89,7 @@ export default function AuthPage() {
   // توجيه المستخدم المسجل مباشرة
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      navigate('/app/businesscard/edit');
+      navigate('/app/dashboard');
     }
   }, [isAuthenticated, loading, navigate, user]);
 
@@ -287,7 +287,7 @@ export default function AuthPage() {
         title: 'مرحباً بك!',
         description: 'تم تسجيل الدخول بنجاح'
       });
-      navigate('/app/businesscard/edit');
+      navigate('/app/dashboard');
     } catch (error: any) {
       toast({
         title: 'خطأ غير متوقع',
@@ -447,8 +447,8 @@ export default function AuthPage() {
         description: 'مرحباً بك في وساطة'
       });
       
-      // التوجيه مباشرة لصفحة تحرير البطاقة
-      navigate('/app/businesscard/edit');
+      // التوجيه لصفحة اختيار الباقة للمستخدمين الجدد
+      navigate('/app/choose-plan');
     } catch (error: any) {
       toast({
         title: 'خطأ غير متوقع',
