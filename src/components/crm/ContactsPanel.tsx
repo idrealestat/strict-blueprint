@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Lock,
   Loader2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDeviceContacts } from "@/hooks/useDeviceContacts";
@@ -69,7 +70,18 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
     isNativePlatform,
     requestPermission,
     fetchContacts: fetchDeviceContacts,
+    saveContactToDevice,
+    isSaving,
   } = useDeviceContacts();
+
+  // تصدير جهة اتصال من التطبيق إلى الجهاز
+  const handleExportToDevice = async (contact: Contact) => {
+    const success = await saveContactToDevice({
+      name: contact.name,
+      phone: contact.phone,
+      email: contact.email,
+    });
+  };
 
   // تحويل جهات اتصال التطبيق للصيغة الموحدة
   const formattedAppContacts: Contact[] = useMemo(() => 
@@ -350,6 +362,23 @@ const ContactsPanel: React.FC<ContactsPanelProps> = ({
 
                     {/* أزرار الإجراءات */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* زر التصدير للجهاز - فقط لجهات اتصال التطبيق */}
+                      {contact.source === 'app' && isNativePlatform && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleExportToDevice(contact)}
+                          disabled={isSaving}
+                          className="h-8 w-8 p-0 text-purple-600 hover:bg-purple-50"
+                          title="تصدير للجهاز"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                        </Button>
+                      )}
                       {contact.source !== 'app' && (
                         <Button
                           size="sm"

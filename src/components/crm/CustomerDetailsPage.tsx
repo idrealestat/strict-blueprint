@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import GeneralInfoTab from "./GeneralInfoTab";
+import AddTaskDialog from "./AddTaskDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,8 @@ import { toast } from "sonner";
 import PropertyDetailsDialog from "./PropertyDetailsDialog";
 import PDFPreviewDialog from "./PDFPreviewDialog";
 import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
+import { useCRMTasks } from "@/hooks/useCRMTasks";
+import { useDeviceContacts } from "@/hooks/useDeviceContacts";
 
 interface Customer {
   id: string;
@@ -284,6 +287,23 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', priority: 'medium' });
   const [newReminder, setNewReminder] = useState({ title: '', description: '', date: '', priority: 'medium' });
   const [isSaving, setIsSaving] = useState(false);
+  const [showAddCRMTask, setShowAddCRMTask] = useState(false);
+  
+  // استخدام hook المهام من قاعدة البيانات
+  const { tasks: crmTasks, getTasksByCustomer, fetchTasks: refreshTasks } = useCRMTasks();
+  const customerTasks = getTasksByCustomer(customer.id);
+  
+  // استخدام hook تصدير جهات الاتصال
+  const { saveContactToDevice, isNativePlatform, isSaving: isSavingContact } = useDeviceContacts();
+  
+  // تصدير جهة اتصال العميل للجهاز
+  const handleExportContactToDevice = async () => {
+    const success = await saveContactToDevice({
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+    });
+  };
   
   // عروض الأسعار للعميل من صفحة العروض
   const [priceQuotes, setPriceQuotes] = useState<any[]>([]);
@@ -1351,8 +1371,15 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                     <CheckCircle className="w-5 h-5" />
                     مهام العميل
+                    {customerTasks.length > 0 && (
+                      <Badge className="bg-[#01411C] text-white text-xs">{customerTasks.length}</Badge>
+                    )}
                   </CardTitle>
-                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white" onClick={() => setShowAddTask(true)}>
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-white hover:from-[#065f41] hover:to-[#01411C]" 
+                    onClick={() => setShowAddCRMTask(true)}
+                  >
                     <Plus className="w-4 h-4 ml-1" />
                     مهمة جديدة
                   </Button>
@@ -1417,10 +1444,79 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       </tbody>
                     </table>
                   </div>
-                  {tasks.length === 0 && (
+                  {/* المهام من قاعدة البيانات */}
+                  {customerTasks.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-[#01411C] rounded-full"></span>
+                        مهام من قاعدة البيانات ({customerTasks.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {customerTasks.map((task) => (
+                          <div 
+                            key={task.id} 
+                            className={`p-3 rounded-lg border ${
+                              task.status === 'completed' 
+                                ? 'bg-gray-50 border-gray-200 opacity-60' 
+                                : task.priority === 'urgent_important'
+                                  ? 'bg-red-50 border-red-200'
+                                  : task.priority === 'important_not_urgent'
+                                    ? 'bg-orange-50 border-orange-200'
+                                    : task.priority === 'urgent_not_important'
+                                      ? 'bg-yellow-50 border-yellow-200'
+                                      : 'bg-gray-50 border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h5 className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                  {task.title}
+                                </h5>
+                                {task.description && (
+                                  <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                                )}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Badge className={
+                                    task.priority === 'urgent_important' ? 'bg-red-100 text-red-700' :
+                                    task.priority === 'important_not_urgent' ? 'bg-orange-100 text-orange-700' :
+                                    task.priority === 'urgent_not_important' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-gray-100 text-gray-600'
+                                  }>
+                                    {task.priority === 'urgent_important' ? 'مهم وعاجل' :
+                                     task.priority === 'important_not_urgent' ? 'مهم وغير عاجل' :
+                                     task.priority === 'urgent_not_important' ? 'عاجل وغير مهم' :
+                                     'غير مهم وغير عاجل'}
+                                  </Badge>
+                                  {task.due_date && (
+                                    <span className="text-xs text-gray-500">
+                                      📅 {new Date(task.due_date).toLocaleDateString('ar-SA')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Badge className={task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}>
+                                {task.status === 'completed' ? '✅ مكتمل' : '⏳ قيد الانتظار'}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {tasks.length === 0 && customerTasks.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <CheckCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p>لا توجد مهام</p>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="mt-3"
+                        onClick={() => setShowAddCRMTask(true)}
+                      >
+                        <Plus className="w-4 h-4 ml-1" />
+                        إضافة مهمة
+                      </Button>
                     </div>
                   )}
                 </CardContent>
@@ -2820,6 +2916,15 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           setSelectedPropertyForPDF(null);
         }}
         property={selectedPropertyForPDF}
+      />
+
+      {/* مكون إضافة مهمة جديدة */}
+      <AddTaskDialog
+        isOpen={showAddCRMTask}
+        onClose={() => setShowAddCRMTask(false)}
+        customerId={customer.id}
+        customerName={customer.name}
+        onTaskCreated={refreshTasks}
       />
     </div>
   );
