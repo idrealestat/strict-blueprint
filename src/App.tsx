@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatformComplete from "./components/platform/MyPlatformComplete";
-import MyPlatformSmartPaths from "./components/platform/MyPlatformSmartPaths";
+
 import BusinessCardProfile from "./components/business-card/BusinessCardProfile";
 import BusinessCardEdit from "./components/business-card/BusinessCardEdit";
 import { ReportsAnalytics } from "./components/analytics";
@@ -338,8 +338,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return <><EnhancedBrokerCRM onBack={handleBack} user={userData} /><AIFloatingButton /></>;
     case "dashboard-main-252":
       return <><MyPlatformComplete onBack={handleBack} onNavigate={handleNavigate} user={userData} /><AIFloatingButton /></>;
-    case "my-platform-smart":
-      return <><MyPlatformSmartPaths onBack={handleBack} user={userData} /><AIFloatingButton /></>;
+    case "business-card-profile":
     case "business-card-profile":
       return <><BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={userData} /><AIFloatingButton /></>;
     case "official-business-card":
