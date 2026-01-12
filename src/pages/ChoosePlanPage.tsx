@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Building2, User, Check, Sparkles, Clock } from 'lucide-react';
@@ -51,11 +51,19 @@ const plans: {
 export default function ChoosePlanPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { updatePlan, daysRemaining } = useEntitlementsContext();
-  const [isLoading, setIsLoading] = useState<PlanCode | null>(null);
+  const { updatePlan, daysRemaining, planCode, isLoading } = useEntitlementsContext();
+  const [isSubmitting, setIsSubmitting] = useState<PlanCode | null>(null);
+
+  // إذا المستخدم لديه باقة مسبقاً، أعده للداشبورد
+  useEffect(() => {
+    if (!isLoading && planCode) {
+      console.log('[ChoosePlanPage] User already has plan, redirecting to dashboard');
+      navigate('/app/dashboard', { replace: true });
+    }
+  }, [planCode, isLoading, navigate]);
 
   const handleSelectPlan = async (planCode: PlanCode) => {
-    setIsLoading(planCode);
+    setIsSubmitting(planCode);
     
     try {
       const success = await updatePlan(planCode);
@@ -76,9 +84,21 @@ export default function ChoosePlanPage() {
         variant: 'destructive'
       });
     } finally {
-      setIsLoading(null);
+      setIsSubmitting(null);
     }
   };
+
+  // لا تعرض الصفحة إذا التحميل جاري أو المستخدم لديه باقة
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center p-4">
@@ -148,10 +168,10 @@ export default function ChoosePlanPage() {
                   {/* زر الاختيار */}
                   <Button
                     onClick={() => handleSelectPlan(plan.code)}
-                    disabled={isLoading !== null}
+                    disabled={isSubmitting !== null}
                     className={`w-full h-12 text-base font-medium bg-gradient-to-r ${plan.color} hover:opacity-90 transition-opacity`}
                   >
-                    {isLoading === plan.code ? (
+                    {isSubmitting === plan.code ? (
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>جاري الحفظ...</span>

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEntitlementsContext } from '@/context/EntitlementsContext';
 import { useAuthContext } from '@/context/AuthContext';
@@ -35,33 +35,63 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
     planCode, 
     onboardingCompleted, 
     isLoading: entitlementLoading,
-    needsPlanSelection,
-    needsOnboarding
   } = useEntitlementsContext();
 
   const currentPath = location.pathname;
+  const [hasRedirected, setHasRedirected] = useState(false);
+  
+  // نعتبر التحميل منتهي فقط عندما ينتهي كلاهما
   const isLoading = authLoading || entitlementLoading;
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated) return;
+    // لا تفعل redirect أثناء التحميل
+    if (isLoading) {
+      setHasRedirected(false);
+      return;
+    }
+    
+    // لا تفعل redirect إذا المستخدم غير مسجل
+    if (!isAuthenticated) return;
+    
+    // تجنب redirect متكرر
+    if (hasRedirected) return;
 
     // التحقق من المسارات المسموحة دائماً
     if (ALWAYS_ALLOWED.some(path => currentPath.startsWith(path))) {
       return;
     }
 
-    // إذا لم يختر باقة بعد
-    if (needsPlanSelection()) {
+    // الحالة 1: لم يختر باقة بعد
+    // plan_code = null يعني يحتاج اختيار باقة
+    if (planCode === null) {
       if (!ALLOWED_BEFORE_PLAN.some(path => currentPath.startsWith(path))) {
+        console.log('[OnboardingGuard] Redirecting to choose-plan - no plan selected');
+        setHasRedirected(true);
         navigate('/app/choose-plan', { replace: true });
         return;
       }
+      return;
     }
 
-    // إذا اختار باقة لكن لم يكمل البطاقة
-    if (planCode && needsOnboarding()) {
+    // الحالة 2: اختار باقة لكن لم يكمل الـ onboarding
+    // planCode موجود لكن onboardingCompleted = false
+    if (planCode && !onboardingCompleted) {
       if (!ALLOWED_BEFORE_ONBOARDING.some(path => currentPath.startsWith(path))) {
+        console.log('[OnboardingGuard] Redirecting to businesscard/edit - onboarding not complete');
+        setHasRedirected(true);
         navigate('/app/businesscard/edit', { replace: true });
+        return;
+      }
+      return;
+    }
+
+    // الحالة 3: planCode موجود و onboardingCompleted = true
+    // منع الوصول لصفحة choose-plan
+    if (planCode && onboardingCompleted) {
+      if (currentPath === '/app/choose-plan') {
+        console.log('[OnboardingGuard] Redirecting from choose-plan to dashboard - already has plan');
+        setHasRedirected(true);
+        navigate('/app/dashboard', { replace: true });
         return;
       }
     }
@@ -71,10 +101,14 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
     currentPath,
     planCode,
     onboardingCompleted,
-    needsPlanSelection,
-    needsOnboarding,
+    hasRedirected,
     navigate
   ]);
+
+  // Reset redirect flag when path changes
+  useEffect(() => {
+    setHasRedirected(false);
+  }, [currentPath]);
 
   // عرض مؤشر تحميل أثناء التحقق
   if (isLoading && isAuthenticated) {

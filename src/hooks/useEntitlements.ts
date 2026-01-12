@@ -55,7 +55,8 @@ const FEATURES_CONFIG: Record<string, Record<string, FeatureKey[]>> = {
 };
 
 export function useEntitlements() {
-  const { user, isAuthenticated } = useAuthContext();
+  const { user, isAuthenticated, loading: authLoading } = useAuthContext();
+  const [hasFetched, setHasFetched] = useState(false);
   const [entitlement, setEntitlement] = useState<UserEntitlement>({
     planCode: null,
     status: 'trial',
@@ -68,6 +69,7 @@ export function useEntitlements() {
   const fetchEntitlement = useCallback(async () => {
     if (!user?.id) {
       setEntitlement(prev => ({ ...prev, isLoading: false }));
+      setHasFetched(true);
       return;
     }
 
@@ -98,6 +100,10 @@ export function useEntitlements() {
             onboardingCompleted: directData.onboarding_completed,
             isLoading: false
           });
+          setHasFetched(true);
+        } else {
+          setEntitlement(prev => ({ ...prev, isLoading: false }));
+          setHasFetched(true);
         }
         return;
       }
@@ -112,20 +118,28 @@ export function useEntitlements() {
           onboardingCompleted: result.onboarding_completed || false,
           isLoading: false
         });
+      } else {
+        setEntitlement(prev => ({ ...prev, isLoading: false }));
       }
+      setHasFetched(true);
     } catch (err) {
       console.error('Error in fetchEntitlement:', err);
       setEntitlement(prev => ({ ...prev, isLoading: false }));
+      setHasFetched(true);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
+    // انتظر حتى انتهاء تحميل المصادقة
+    if (authLoading) return;
+    
+    if (isAuthenticated && user?.id && !hasFetched) {
       fetchEntitlement();
-    } else {
+    } else if (!isAuthenticated && !hasFetched) {
       setEntitlement(prev => ({ ...prev, isLoading: false }));
+      setHasFetched(true);
     }
-  }, [isAuthenticated, user?.id, fetchEntitlement]);
+  }, [isAuthenticated, authLoading, user?.id, hasFetched, fetchEntitlement]);
 
   // التحقق من صلاحية ميزة معينة
   const canUseFeature = useCallback((feature: FeatureKey): boolean => {
