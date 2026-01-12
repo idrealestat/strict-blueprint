@@ -1,7 +1,8 @@
-import { Building2, Menu, Bell, PanelLeft } from "lucide-react";
+import { Building2, Menu, Bell, PanelLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDomainNotifications } from "@/hooks/useDomainNotifications";
 import { useNotificationSystem } from "@/hooks/useNotificationSystem";
+import { useSmartOpportunities } from "@/hooks/useSmartOpportunities";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 
@@ -14,9 +15,10 @@ interface MainHeaderProps {
 const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: MainHeaderProps) => {
   const { unreadCount: domainUnreadCount } = useDomainNotifications();
   const { unreadCount: systemUnreadCount } = useNotificationSystem();
+  const { unviewedCount: smartOpportunityCount } = useSmartOpportunities();
   const [isPublished, setIsPublished] = useState<boolean | null>(null);
   
-  const totalUnreadCount = domainUnreadCount + systemUnreadCount;
+  const totalUnreadCount = domainUnreadCount + systemUnreadCount + smartOpportunityCount;
 
   // جلب حالة النشر من قاعدة البيانات
   useEffect(() => {
