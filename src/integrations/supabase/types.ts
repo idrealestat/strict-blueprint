@@ -1817,6 +1817,66 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_entitlements: {
+        Row: {
+          created_at: string
+          id: string
+          onboarding_completed: boolean
+          plan_code: Database["public"]["Enums"]["plan_code"] | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string
+          trial_starts_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          onboarding_completed?: boolean
+          plan_code?: Database["public"]["Enums"]["plan_code"] | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string
+          trial_starts_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          onboarding_completed?: boolean
+          plan_code?: Database["public"]["Enums"]["plan_code"] | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string
+          trial_starts_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_feature_overrides: {
         Row: {
           business_card_add_colleague_enabled: boolean | null
@@ -2007,6 +2067,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_use_feature: {
+        Args: { p_feature: string; p_user_id: string }
+        Returns: boolean
+      }
       check_business_card_ownership: {
         Args: {
           card_email: string
@@ -2016,6 +2080,16 @@ export type Database = {
           card_user_id: string
         }
         Returns: boolean
+      }
+      get_user_entitlement_status: {
+        Args: { p_user_id: string }
+        Returns: {
+          days_remaining: number
+          onboarding_completed: boolean
+          plan_code: Database["public"]["Enums"]["plan_code"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string
+        }[]
       }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -2028,6 +2102,8 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "user"
+      plan_code: "INDIVIDUAL" | "OFFICE"
+      subscription_status: "trial" | "active" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2156,6 +2232,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "user"],
+      plan_code: ["INDIVIDUAL", "OFFICE"],
+      subscription_status: ["trial", "active", "expired"],
     },
   },
 } as const
