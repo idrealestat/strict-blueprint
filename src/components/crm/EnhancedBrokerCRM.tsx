@@ -32,6 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ArrowRight,
   Search,
@@ -1675,24 +1676,131 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     <div className="flex items-start justify-between gap-2 mb-2">
                                       {/* التاقات - يمين الشاشة (لأنها أول عنصر في RTL) */}
                                       <div className="order-1 flex flex-wrap items-start gap-0.5 justify-end max-w-[140px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
-                                        {/* زر إضافة تاق */}
-                                        <button
-                                          type="button"
-                                          className="inline-flex items-center justify-center h-4 w-4 rounded border border-dashed border-muted-foreground text-muted-foreground"
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            const tag = window.prompt('اكتب اسم التاق');
-                                            const trimmed = (tag || '').trim();
-                                            if (!trimmed) return;
-
-                                            const nextTags = Array.from(new Set([...(customer.tags || []), trimmed]));
-                                            setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
-                                            await dbUpdateCustomer(customer.id, { tags: nextTags });
-                                          }}
-                                          title="إضافة تاق"
-                                        >
-                                          <Plus className="h-3 w-3" />
-                                        </button>
+                                        {/* زر إضافة تاق مع قائمة منسدلة */}
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <button
+                                              type="button"
+                                              className="inline-flex items-center justify-center h-4 w-4 rounded border border-dashed border-muted-foreground text-muted-foreground hover:bg-muted/50 transition-colors"
+                                              onClick={(e) => e.stopPropagation()}
+                                              title="إضافة تاق"
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </button>
+                                          </PopoverTrigger>
+                                          <PopoverContent 
+                                            dir="rtl" 
+                                            className="w-56 p-2" 
+                                            align="end"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <div className="space-y-2">
+                                              <p className="text-xs font-medium text-muted-foreground mb-2">اختر تاق أو أضف جديد</p>
+                                              
+                                              {/* التاقات المتاحة من الشريط السفلي */}
+                                              <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                                                {customTags.map((tag) => {
+                                                  const isSelected = (customer.tags || []).includes(tag.name);
+                                                  return (
+                                                    <button
+                                                      key={tag.name}
+                                                      type="button"
+                                                      className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border transition-all ${
+                                                        isSelected 
+                                                          ? 'opacity-50 cursor-not-allowed' 
+                                                          : 'hover:scale-105 cursor-pointer'
+                                                      }`}
+                                                      style={{
+                                                        backgroundColor: tag.color + '20',
+                                                        borderColor: tag.color,
+                                                        color: tag.color,
+                                                      }}
+                                                      disabled={isSelected}
+                                                      onClick={async () => {
+                                                        if (isSelected) return;
+                                                        const nextTags = Array.from(new Set([...(customer.tags || []), tag.name]));
+                                                        setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
+                                                        await dbUpdateCustomer(customer.id, { tags: nextTags });
+                                                        toast.success(`تم إضافة تاق "${tag.name}"`);
+                                                      }}
+                                                    >
+                                                      <span 
+                                                        className="w-2 h-2 rounded-full" 
+                                                        style={{ backgroundColor: tag.color }}
+                                                      />
+                                                      {tag.name}
+                                                      {isSelected && <Check className="w-3 h-3" />}
+                                                    </button>
+                                                  );
+                                                })}
+                                                
+                                                {customTags.length === 0 && (
+                                                  <p className="text-xs text-muted-foreground w-full text-center py-2">
+                                                    لا توجد تاقات. أضف من الشريط السفلي
+                                                  </p>
+                                                )}
+                                              </div>
+                                              
+                                              {/* فاصل */}
+                                              <div className="border-t my-2" />
+                                              
+                                              {/* إضافة تاق جديد */}
+                                              <div className="flex gap-1">
+                                                <Input
+                                                  placeholder="تاق جديد..."
+                                                  className="h-7 text-xs flex-1"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  onKeyDown={async (e) => {
+                                                    if (e.key === 'Enter') {
+                                                      e.preventDefault();
+                                                      const input = e.currentTarget;
+                                                      const trimmed = input.value.trim();
+                                                      if (!trimmed) return;
+                                                      
+                                                      // أضف للتاقات العامة إن لم تكن موجودة
+                                                      if (!customTags.find(t => t.name === trimmed)) {
+                                                        const randomColor = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+                                                        setCustomTags(prev => [...prev, { name: trimmed, color: randomColor }]);
+                                                      }
+                                                      
+                                                      // أضف للعميل
+                                                      const nextTags = Array.from(new Set([...(customer.tags || []), trimmed]));
+                                                      setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
+                                                      await dbUpdateCustomer(customer.id, { tags: nextTags });
+                                                      input.value = '';
+                                                      toast.success(`تم إضافة تاق "${trimmed}"`);
+                                                    }
+                                                  }}
+                                                />
+                                                <Button
+                                                  size="sm"
+                                                  className="h-7 w-7 p-0 bg-[#01411C]"
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                                    const trimmed = input?.value?.trim();
+                                                    if (!trimmed) return;
+                                                    
+                                                    // أضف للتاقات العامة إن لم تكن موجودة
+                                                    if (!customTags.find(t => t.name === trimmed)) {
+                                                      const randomColor = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+                                                      setCustomTags(prev => [...prev, { name: trimmed, color: randomColor }]);
+                                                    }
+                                                    
+                                                    // أضف للعميل
+                                                    const nextTags = Array.from(new Set([...(customer.tags || []), trimmed]));
+                                                    setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, tags: nextTags } : c));
+                                                    await dbUpdateCustomer(customer.id, { tags: nextTags });
+                                                    if (input) input.value = '';
+                                                    toast.success(`تم إضافة تاق "${trimmed}"`);
+                                                  }}
+                                                >
+                                                  <Plus className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </PopoverContent>
+                                        </Popover>
 
                                         {(customer.tags || []).slice(0, expandedCardId === customer.id ? 9 : 4).map((tag, idx) => {
                                           const tagColor = getTagColor(tag);
