@@ -1,9 +1,10 @@
 /**
  * PublicPriceQuoteForm.tsx
  * صفحة إرسال طلب عرض سعر من العميل
+ * يحفظ البيانات في قاعدة البيانات مع الإشعارات و Push Notifications
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Send, Loader2, CheckCircle, FileText, User, Home, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { triggerQuoteNotification } from '@/utils/notificationTriggers';
+import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 const getMockBroker = (brokerId: string): BrokerInfo => ({
   id: brokerId,
@@ -55,11 +59,45 @@ interface FormData {
 }
 
 export default function PublicPriceQuoteForm() {
-  const { brokerId } = useParams<{ brokerId: string }>();
+  const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [brokerUserId, setBrokerUserId] = useState<string | null>(null);
+  const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
   
-  const broker = getMockBroker(brokerId || '1');
+  // جلب بيانات الوسيط من business_card إذا كان slug موجود
+  useEffect(() => {
+    const fetchBrokerData = async () => {
+      const identifier = slug || brokerId;
+      if (identifier) {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('user_id, data')
+          .eq('slug', identifier)
+          .eq('published', true)
+          .single();
+        
+        if (data) {
+          setBrokerUserId(data.user_id);
+          const cardData = data.data as Record<string, any>;
+          setFetchedBroker({
+            id: identifier,
+            name: cardData?.name || 'وسيط عقاري',
+            company: cardData?.company || '',
+            phone: cardData?.phone || '',
+            email: cardData?.email || '',
+            location: cardData?.city || 'الرياض',
+            licenseNumber: cardData?.falLicenseNumber || '',
+            rating: 4.8,
+            verified: true,
+          });
+        }
+      }
+    };
+    fetchBrokerData();
+  }, [brokerId, slug]);
+  
+  const broker = fetchedBroker || getMockBroker(brokerId || slug || '1');
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
@@ -102,56 +140,78 @@ export default function PublicPriceQuoteForm() {
         status: 'pending',
       };
 
-      // Save submission
+      // حفظ في قاعدة البيانات إذا كان الوسيط موجود
+      if (brokerUserId) {
+        // البحث عن العميل برقم الجوال
+        const { data: existingCustomer } = await supabase
+          .from('crm_customers')
+          .select('*')
+          .eq('user_id', brokerUserId)
+          .or(`phone.eq.${formData.clientPhone}`)
+          .maybeSingle();
+
+        let customerId: string;
+
+        if (existingCustomer) {
+          customerId = existingCustomer.id;
+          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
+          const existingQuotes = currentMetadata.price_quotes || [];
+          
+          await supabase
+            .from('crm_customers')
+            .update({
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                ...currentMetadata,
+                price_quotes: [...existingQuotes, submissionData],
+                hasUnreadQuote: true,
+                lastQuoteAt: new Date().toISOString(),
+              },
+            })
+            .eq('id', customerId);
+        } else {
+          const { data: newCustomer } = await supabase
+            .from('crm_customers')
+            .insert([{
+              user_id: brokerUserId,
+              name: formData.clientName,
+              phone: formData.clientPhone,
+              email: formData.clientEmail || null,
+              status: 'جديد',
+              priority: 'عادي',
+              source: 'نموذج عرض سعر',
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                price_quotes: [submissionData],
+                hasUnreadQuote: true,
+                isNewCard: true,
+                lastQuoteAt: new Date().toISOString(),
+              } as Record<string, any>,
+            }])
+            .select()
+            .single();
+
+          customerId = newCustomer?.id || '';
+        }
+
+        // إرسال إشعار مع Push Notification
+        await triggerQuoteNotification(brokerUserId, {
+          clientName: formData.clientName,
+          serviceType: formData.serviceType,
+          propertyType: formData.propertyType,
+          quoteId: quoteId,
+        });
+
+        markAsNew('quote', quoteId);
+        if (customerId) {
+          markAsNew('customer', customerId);
+        }
+      }
+
+      // حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
       existingSubmissions.push(submissionData);
       localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
-
-      // Create notification
-      const notification = {
-        id: `notif_${Date.now()}`,
-        type: 'new_quote',
-        title: 'طلب عرض سعر جديد',
-        message: `تم استلام طلب عرض سعر من ${formData.clientName} - ${formData.serviceType}`,
-        data: submissionData,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      };
-      
-      const notifications = JSON.parse(localStorage.getItem('broker_notifications') || '[]');
-      notifications.unshift(notification);
-      localStorage.setItem('broker_notifications', JSON.stringify(notifications));
-
-      // Add/update customer in CRM
-      const customerData = {
-        id: `cust_${Date.now()}`,
-        name: formData.clientName,
-        phone: formData.clientPhone,
-        email: formData.clientEmail,
-        type: 'prospect',
-        source: 'public_form',
-        status: 'new',
-        createdAt: new Date().toISOString(),
-        tabs: [{
-          id: `tab_${Date.now()}`,
-          name: 'عرض سعر',
-          type: 'price_quote',
-          data: submissionData,
-          createdAt: new Date().toISOString(),
-        }],
-      };
-
-      const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-      const existingCustomer = customers.find((c: any) => c.phone === formData.clientPhone);
-      
-      if (existingCustomer) {
-        existingCustomer.tabs = existingCustomer.tabs || [];
-        existingCustomer.tabs.push(customerData.tabs[0]);
-        localStorage.setItem('crm_customers', JSON.stringify(customers));
-      } else {
-        customers.push(customerData);
-        localStorage.setItem('crm_customers', JSON.stringify(customers));
-      }
 
       setIsSubmitted(true);
       toast.success('تم إرسال طلب عرض السعر بنجاح');

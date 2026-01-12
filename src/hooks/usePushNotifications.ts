@@ -140,7 +140,68 @@ export function usePushNotifications() {
     
     return sendLocalNotification(title, body, {
       type: 'new_offer',
+      actionUrl: '/app/crm',
       ...offerInfo,
+    });
+  }, [sendLocalNotification]);
+
+  // إرسال إشعار طلب عقاري جديد
+  const sendRequestNotification = useCallback(async (
+    requestInfo: {
+      clientName: string;
+      propertyType: string;
+      purpose: string;
+      city?: string;
+      requestId?: string;
+      customerId?: string;
+    }
+  ) => {
+    const title = `🔍 طلب عقاري جديد`;
+    const body = `${requestInfo.clientName} - ${requestInfo.propertyType} ${requestInfo.purpose}${requestInfo.city ? ` في ${requestInfo.city}` : ''}`;
+    
+    return sendLocalNotification(title, body, {
+      type: 'new_request',
+      actionUrl: '/app/crm',
+      ...requestInfo,
+    });
+  }, [sendLocalNotification]);
+
+  // إرسال إشعار موعد جديد
+  const sendAppointmentNotification = useCallback(async (
+    appointmentInfo: {
+      customerName: string;
+      appointmentType: string;
+      date: string;
+      time: string;
+      appointmentId?: string;
+    }
+  ) => {
+    const title = `📅 موعد جديد`;
+    const body = `${appointmentInfo.customerName} - ${appointmentInfo.appointmentType} في ${appointmentInfo.date} ${appointmentInfo.time}`;
+    
+    return sendLocalNotification(title, body, {
+      type: 'new_appointment',
+      actionUrl: '/app/calendar',
+      ...appointmentInfo,
+    });
+  }, [sendLocalNotification]);
+
+  // إرسال إشعار طلب عرض سعر جديد
+  const sendQuoteNotification = useCallback(async (
+    quoteInfo: {
+      clientName: string;
+      serviceType: string;
+      propertyType?: string;
+      quoteId?: string;
+    }
+  ) => {
+    const title = `💰 طلب عرض سعر جديد`;
+    const body = `${quoteInfo.clientName} - ${quoteInfo.serviceType}${quoteInfo.propertyType ? ` لـ ${quoteInfo.propertyType}` : ''}`;
+    
+    return sendLocalNotification(title, body, {
+      type: 'new_quote',
+      actionUrl: '/app/crm',
+      ...quoteInfo,
     });
   }, [sendLocalNotification]);
 
@@ -194,6 +255,9 @@ export function usePushNotifications() {
     sendLocalNotification,
     sendViewNotification,
     sendOfferNotification,
+    sendRequestNotification,
+    sendAppointmentNotification,
+    sendQuoteNotification,
     sendSmartOpportunityNotification,
     unsubscribe,
   };
