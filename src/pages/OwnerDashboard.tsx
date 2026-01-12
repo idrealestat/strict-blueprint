@@ -22,7 +22,8 @@ import {
   Shield, Check, X, Clock, Search, RefreshCw, Users, Settings,
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
-  ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2
+  ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2,
+  Download, Upload, FileJson, FileSpreadsheet
 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -181,6 +182,11 @@ const OwnerDashboard: React.FC = () => {
   // Domain Settings
   const [domainSettings, setDomainSettings] = useState<DomainSettingsData | null>(null);
   
+  // Import state
+  const [importLoading, setImportLoading] = useState(false);
+  const blacklistFileInputRef = React.useRef<HTMLInputElement>(null);
+  const patternsFileInputRef = React.useRef<HTMLInputElement>(null);
+  
   // Dialogs
   const [approveDialog, setApproveDialog] = useState<{ open: boolean; request: DomainRequest | null }>({ open: false, request: null });
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; request: DomainRequest | null; reason: string }>({ open: false, request: null, reason: "" });
@@ -291,6 +297,172 @@ const OwnerDashboard: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ============ EXPORT/IMPORT UTILITIES ============
+  const exportToJSON = (data: any[], filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('تم تصدير البيانات بنجاح (JSON)');
+  };
+
+  const exportToCSV = (data: any[], filename: string, headers: string[]) => {
+    const csvRows = [headers.join(',')];
+    data.forEach(item => {
+      const values = headers.map(h => {
+        const val = item[h];
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) {
+          return `"${val.replace(/"/g, '""')}"`;
+        }
+        return String(val);
+      });
+      csvRows.push(values.join(','));
+    });
+    const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('تم تصدير البيانات بنجاح (CSV)');
+  };
+
+  const handleBlacklistImport = async (file: File) => {
+    setImportLoading(true);
+    try {
+      const text = await file.text();
+      let entries: Partial<BlacklistEntry>[] = [];
+      
+      if (file.name.endsWith('.json')) {
+        entries = JSON.parse(text);
+      } else if (file.name.endsWith('.csv')) {
+        const lines = text.split('\n').filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"')) || [];
+          const entry: any = {};
+          headers.forEach((h, idx) => {
+            if (values[idx] !== undefined && values[idx] !== '') {
+              if (h === 'is_active') {
+                entry[h] = values[idx].toLowerCase() === 'true';
+              } else if (h === 'confidence_level') {
+                entry[h] = Number(values[idx]) || null;
+              } else {
+                entry[h] = values[idx];
+              }
+            }
+          });
+          if (entry.company_name) entries.push(entry);
+        }
+      }
+
+      if (entries.length === 0) {
+        toast.error('لم يتم العثور على بيانات صالحة');
+        return;
+      }
+
+      // Remove id fields to create new entries, ensure company_name exists
+      const cleanedEntries = entries
+        .filter(e => e.company_name) // Only include entries with company_name
+        .map(({ id, created_at, ...rest }) => ({
+          company_name: rest.company_name as string,
+          company_name_en: rest.company_name_en || null,
+          domain: rest.domain || null,
+          domain_root: rest.domain_root || null,
+          city: rest.city || null,
+          category: rest.category || null,
+          source: rest.source || null,
+          confidence_level: rest.confidence_level || null,
+          is_active: rest.is_active ?? true,
+        }));
+
+      if (cleanedEntries.length === 0) {
+        toast.error('لم يتم العثور على سجلات صالحة');
+        return;
+      }
+
+      const { error } = await supabase.from('domain_blacklist').insert(cleanedEntries);
+      if (error) throw error;
+
+      toast.success(`تم استيراد ${cleanedEntries.length} سجل بنجاح`);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'حدث خطأ أثناء الاستيراد');
+    } finally {
+      setImportLoading(false);
+      if (blacklistFileInputRef.current) blacklistFileInputRef.current.value = '';
+    }
+  };
+
+  const handlePatternsImport = async (file: File) => {
+    setImportLoading(true);
+    try {
+      const text = await file.text();
+      let entries: Partial<ForbiddenPattern>[] = [];
+      
+      if (file.name.endsWith('.json')) {
+        entries = JSON.parse(text);
+      } else if (file.name.endsWith('.csv')) {
+        const lines = text.split('\n').filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"')) || [];
+          const entry: any = {};
+          headers.forEach((h, idx) => {
+            if (values[idx] !== undefined && values[idx] !== '') {
+              if (h === 'is_active') {
+                entry[h] = values[idx].toLowerCase() === 'true';
+              } else {
+                entry[h] = values[idx];
+              }
+            }
+          });
+          if (entry.pattern) entries.push(entry);
+        }
+      }
+
+      if (entries.length === 0) {
+        toast.error('لم يتم العثور على بيانات صالحة');
+        return;
+      }
+
+      // Remove id fields, ensure pattern exists
+      const cleanedEntries = entries
+        .filter(e => e.pattern) // Only include entries with pattern
+        .map(({ id, created_at, ...rest }) => ({
+          pattern: rest.pattern as string,
+          pattern_type: rest.pattern_type || 'contains',
+          description: rest.description || null,
+          is_active: rest.is_active ?? true,
+        }));
+
+      if (cleanedEntries.length === 0) {
+        toast.error('لم يتم العثور على أنماط صالحة');
+        return;
+      }
+
+      const { error } = await supabase.from('forbidden_patterns').insert(cleanedEntries);
+      if (error) throw error;
+
+      toast.success(`تم استيراد ${cleanedEntries.length} نمط بنجاح`);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'حدث خطأ أثناء الاستيراد');
+    } finally {
+      setImportLoading(false);
+      if (patternsFileInputRef.current) patternsFileInputRef.current.value = '';
+    }
+  };
 
   // جلب سجل التغييرات
   const fetchChangeLog = async () => {
@@ -1478,12 +1650,53 @@ const OwnerDashboard: React.FC = () => {
           {/* =============== TAB: DOMAIN BLACKLIST =============== */}
           <TabsContent value="blacklist">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Ban className="w-5 h-5 text-red-600" />
-                  القائمة السوداء للنطاقات
-                </CardTitle>
-                <CardDescription>الشركات والمكاتب المحظورة من حجز نطاقات مطابقة لأسمائها</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between flex-wrap gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Ban className="w-5 h-5 text-red-600" />
+                    القائمة السوداء للنطاقات
+                  </CardTitle>
+                  <CardDescription>الشركات والمكاتب المحظورة من حجز نطاقات مطابقة لأسمائها ({blacklist.length} سجل)</CardDescription>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportToJSON(blacklist, 'domain_blacklist')}
+                    disabled={blacklist.length === 0}
+                  >
+                    <FileJson className="w-4 h-4 ml-1" />
+                    JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportToCSV(blacklist, 'domain_blacklist', ['company_name', 'company_name_en', 'domain', 'domain_root', 'city', 'category', 'source', 'is_active', 'confidence_level'])}
+                    disabled={blacklist.length === 0}
+                  >
+                    <FileSpreadsheet className="w-4 h-4 ml-1" />
+                    CSV
+                  </Button>
+                  <input
+                    type="file"
+                    ref={blacklistFileInputRef}
+                    accept=".json,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleBlacklistImport(file);
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => blacklistFileInputRef.current?.click()}
+                    disabled={importLoading}
+                  >
+                    <Upload className="w-4 h-4 ml-1" />
+                    استيراد
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Add new entry */}
@@ -1608,12 +1821,53 @@ const OwnerDashboard: React.FC = () => {
           {/* =============== TAB: FORBIDDEN PATTERNS =============== */}
           <TabsContent value="patterns">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileWarning className="w-5 h-5 text-amber-600" />
-                  الأنماط المحظورة
-                </CardTitle>
-                <CardDescription>أنماط النصوص الممنوعة في الـ Slugs والمحتوى</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileWarning className="w-5 h-5 text-amber-600" />
+                    الأنماط المحظورة
+                  </CardTitle>
+                  <CardDescription>أنماط النصوص الممنوعة في الـ Slugs والمحتوى ({patterns.length} نمط)</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportToJSON(patterns, 'forbidden_patterns')}
+                    disabled={patterns.length === 0}
+                  >
+                    <FileJson className="w-4 h-4 ml-1" />
+                    JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportToCSV(patterns, 'forbidden_patterns', ['pattern', 'pattern_type', 'description', 'is_active'])}
+                    disabled={patterns.length === 0}
+                  >
+                    <FileSpreadsheet className="w-4 h-4 ml-1" />
+                    CSV
+                  </Button>
+                  <input
+                    type="file"
+                    ref={patternsFileInputRef}
+                    accept=".json,.csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePatternsImport(file);
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => patternsFileInputRef.current?.click()}
+                    disabled={importLoading}
+                  >
+                    <Upload className="w-4 h-4 ml-1" />
+                    استيراد
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Add new pattern */}
