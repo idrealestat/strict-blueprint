@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import DashboardBottomNav from "./DashboardBottomNav";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Menu, Bell, PanelLeft, Building2, Globe, Users, Star, Phone, Calendar, MessageSquare, Component, TrendingUp, Sparkles, Calculator, Layers, LucideIcon, X } from "lucide-react";
+import { Menu, Bell, PanelLeft, Building2, Globe, Users, Star, Phone, Calendar, MessageSquare, Component, TrendingUp, Sparkles, Calculator, Layers, LucideIcon, X, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
@@ -50,6 +51,7 @@ interface ServiceItem {
   description: string;
   icon: LucideIcon;
   navigateTo: string;
+  routePath?: string; // مسار React Router مباشر
   badge?: string;
   badgeClass?: string;
   flagKey?: keyof import("@/context/FeatureFlagsContext").FeatureFlags;
@@ -60,6 +62,7 @@ export default function SimpleDashboard({
   user,
   onNavigate
 }: SimpleDashboardProps) {
+  const routerNavigate = useNavigate();
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -143,11 +146,12 @@ export default function SimpleDashboard({
   }, {
     id: "offers-requests",
     title: "العروض والطلبات",
-    description: "تواصل مع الملاك والباحثين عن عقارات وقدم خدماتك",
-    icon: TrendingUp,
-    navigateTo: "marketplace-page",
+    description: "إدارة العروض والطلبات المقبولة من الفرص الذكية",
+    icon: FileText,
+    navigateTo: "offers-requests",
+    routePath: "/app/offers-requests",
     badge: "جديد",
-    badgeClass: "bg-gradient-to-r from-[#D4AF37] to-[#f1c40f] text-[#01411C] animate-pulse",
+    badgeClass: "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
     flagKey: "offers_requests_enabled"
   }, {
     id: "analytics",
@@ -161,8 +165,9 @@ export default function SimpleDashboard({
     description: "تطابق ذكي بين عروضك وطلباتك مع الوسطاء الآخرين",
     icon: Sparkles,
     navigateTo: "smart-matches",
+    routePath: "/app/smart-opportunities",
     badge: "✨ ذكاء اصطناعي",
-    badgeClass: "bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse"
+    badgeClass: "bg-gradient-to-r from-amber-500 to-orange-500 text-white animate-pulse"
   }, {
     id: "calendar",
     title: "التقويم والمواعيد",
@@ -310,7 +315,14 @@ export default function SimpleDashboard({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {visibleServices.map(service => {
               const IconComponent = service.icon;
-              return <Card key={service.id} onClick={() => onNavigate(service.navigateTo)} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
+              const handleServiceClick = () => {
+                if (service.routePath) {
+                  routerNavigate(service.routePath);
+                } else {
+                  onNavigate(service.navigateTo);
+                }
+              };
+              return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
                     <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
                       {service.badge && <div className="absolute top-2 right-2">
                           <Badge className={`text-xs ${service.badgeClass || "bg-[#D4AF37] text-[#01411C]"}`}>
