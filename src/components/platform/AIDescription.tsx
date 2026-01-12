@@ -236,10 +236,22 @@ export default function AIDescription({
         neighborhoods: neighborhoodSuggestions
       });
 
-      setSelectedTitle(titleSuggestions[0]);
-      setSelectedDescription(mainDescription);
-      setIsOpen(true);
-      setActiveTab('titles'); // بدء بتبويب العناوين
+      // تعبئة الحقول تلقائياً بدون فتح نافذة منبثقة
+      const bestTitle = titleSuggestions[0];
+      const bestDescription = mainDescription;
+      
+      setSelectedTitle(bestTitle);
+      setSelectedDescription(bestDescription);
+      
+      // تطبيق الاختيار مباشرة
+      if (bestTitle && onTitleSelect) {
+        onTitleSelect(bestTitle);
+      }
+      if (bestDescription) {
+        onDescriptionSelect(bestDescription);
+      }
+      
+      toast.success('تم توليد العنوان والوصف تلقائياً');
 
     } catch (err) {
       console.error('Error generating content:', err);
