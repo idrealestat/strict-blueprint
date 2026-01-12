@@ -48,6 +48,7 @@ interface AssistantState {
   pageContext: PageContext | null;
   showQuickOptions: boolean;
   showPageDescriptionOptions: boolean;
+  showRatingForm: boolean;
   currentPagePath: string;
 }
 
@@ -188,6 +189,7 @@ export function useSmartAssistant() {
     pageContext: null,
     showQuickOptions: true,
     showPageDescriptionOptions: false,
+    showRatingForm: false,
     currentPagePath: '',
   });
   
@@ -266,6 +268,7 @@ export function useSmartAssistant() {
       pageContext,
       showQuickOptions: !isWelcomePage,
       showPageDescriptionOptions: isWelcomePage && triggerReason === 'page_visit',
+      showRatingForm: false,
       currentPagePath: location.pathname,
     });
   }, [silentMode, location.pathname, sessionId, pageContext, updateContext]);
@@ -296,6 +299,7 @@ export function useSmartAssistant() {
         pageContext,
         showQuickOptions: true,
         showPageDescriptionOptions: false,
+        showRatingForm: false,
         currentPagePath: location.pathname,
       });
     };
@@ -374,6 +378,7 @@ export function useSmartAssistant() {
           pageContext,
           showQuickOptions: false,
           showPageDescriptionOptions: welcome.showDescriptionChoice,
+          showRatingForm: false,
           currentPagePath: location.pathname,
         });
       }, 1500);
@@ -381,6 +386,45 @@ export function useSmartAssistant() {
       return () => clearTimeout(timer);
     }
   }, [location.pathname, silentMode, pageContext]);
+
+  // Show rating form after spending time on a page (60 seconds)
+  const ratingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const ratingShownPagesRef = useRef<Set<string>>(new Set());
+  
+  useEffect(() => {
+    const isWelcomePage = WELCOME_PAGES.some(p => location.pathname.includes(p));
+    
+    // Only show rating on welcome pages after 60 seconds
+    if (isWelcomePage && !ratingShownPagesRef.current.has(location.pathname) && !silentMode) {
+      ratingTimerRef.current = setTimeout(() => {
+        if (!ratingShownPagesRef.current.has(location.pathname)) {
+          ratingShownPagesRef.current.add(location.pathname);
+          
+          const knowledge = getPageKnowledge(location.pathname);
+          const pageName = knowledge?.arabicName || 'الصفحة';
+          
+          const ratingMessage: AssistantMessage = {
+            role: 'assistant',
+            content: `شكراً لاستخدامك "${pageName}"! 📊\n\nنود أن نعرف رأيك لتحسين تجربتك. هل يمكنك تقييم الصفحة؟`,
+            timestamp: new Date().toISOString(),
+          };
+
+          setState(prev => ({
+            ...prev,
+            isVisible: true,
+            messages: [...prev.messages, ratingMessage],
+            showRatingForm: true,
+            showQuickOptions: false,
+            showPageDescriptionOptions: false,
+          }));
+        }
+      }, 60000); // Show after 60 seconds
+    }
+
+    return () => {
+      if (ratingTimerRef.current) clearTimeout(ratingTimerRef.current);
+    };
+  }, [location.pathname, silentMode]);
 
   // Handle page description option selection
   const handlePageDescriptionOption = useCallback((optionId: string) => {
@@ -597,6 +641,7 @@ export function useSmartAssistant() {
       pageContext: null,
       showQuickOptions: true,
       showPageDescriptionOptions: false,
+      showRatingForm: false,
       currentPagePath: '',
     });
   }, [state.conversationId, state.signalId, sessionId]);
@@ -620,9 +665,28 @@ export function useSmartAssistant() {
       pageContext: null,
       showQuickOptions: true,
       showPageDescriptionOptions: false,
+      showRatingForm: false,
       currentPagePath: '',
     });
   }, [state.conversationId]);
+
+  // Show rating form
+  const showRatingForm = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      showRatingForm: true,
+      showQuickOptions: false,
+      showPageDescriptionOptions: false,
+    }));
+  }, []);
+
+  // Handle rating submission
+  const handleRatingSubmit = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      showRatingForm: false,
+    }));
+  }, []);
 
   return {
     isVisible: state.isVisible,
@@ -632,11 +696,14 @@ export function useSmartAssistant() {
     pageContext: state.pageContext,
     showQuickOptions: state.showQuickOptions,
     showPageDescriptionOptions: state.showPageDescriptionOptions,
+    showRatingForm: state.showRatingForm,
     currentPagePath: state.currentPagePath,
     sendMessage,
     handleQuickOption,
     dismiss,
     enableSilentMode,
     showAssistant,
+    showRatingFormFn: showRatingForm,
+    handleRatingSubmit,
   };
 }
