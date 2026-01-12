@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.recover-domain]
 verify_jwt = false
+
+[functions.owner-admin]
+verify_jwt = false
