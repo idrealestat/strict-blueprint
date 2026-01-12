@@ -46,6 +46,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureFlags, FeatureFlags } from "@/context/FeatureFlagsContext";
 import { useAuthContext } from "@/context/AuthContext";
 import OfficialCardMiniPreview from "@/components/business-card/OfficialCardMiniPreview";
+import { useFinancialDocuments } from "@/hooks/useFinancialDocuments";
+import FinancialDocumentsPanel from "./FinancialDocumentsPanel";
 
 interface Broker {
   id: number;
@@ -136,17 +138,17 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     badge: "📁",
   },
   {
-    id: "calendar",
+    id: "quotations",
     icon: FileText,
     label: "عروض الأسعار",
-    path: "/calendar",
+    path: "action:quotations",
     color: "#01411C",
   },
   {
     id: "receipts",
     icon: Receipt,
     label: "سندات القبض",
-    path: "/receipts",
+    path: "action:receipts",
     color: "#D4AF37",
   },
   {
@@ -272,10 +274,13 @@ export default function RightSliderComplete({
   );
   const [activeBroker, setActiveBroker] = useState<Broker | null>(null);
   const [brokers] = useState<Broker[]>(SAMPLE_BROKERS);
+  const [showQuotationsPanel, setShowQuotationsPanel] = useState(false);
+  const [showReceiptsPanel, setShowReceiptsPanel] = useState(false);
   const navigate = useNavigate();
   const { signOut, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { flags } = useFeatureFlags();
+  const { customersWithQuotations, customersWithReceipts, totalQuotations, totalReceipts } = useFinancialDocuments();
 
   // Filter menu items based on feature flags
   const visibleMenuItems = useMemo(() => {
@@ -515,6 +520,46 @@ export default function RightSliderComplete({
     </div>
   );
 
+  const handleItemClick = (item: SidebarItem) => {
+    // Handle action items (quotations, receipts)
+    if (item.path === 'action:quotations') {
+      setShowQuotationsPanel(true);
+      return;
+    }
+    if (item.path === 'action:receipts') {
+      setShowReceiptsPanel(true);
+      return;
+    }
+    
+    // Normal navigation
+    if (item.path.startsWith("/")) {
+      onNavigate(item.path.substring(1));
+    } else {
+      onNavigate(item.path);
+    }
+    onClose();
+  };
+
+  const handleNavigateToCustomer = (customerId: string, customerName: string) => {
+    // إغلاق البانلات
+    setShowQuotationsPanel(false);
+    setShowReceiptsPanel(false);
+    
+    // إرسال حدث للتنقل إلى بطاقة العميل
+    window.dispatchEvent(new CustomEvent('openCustomerDetails', {
+      detail: { customerId, customerName }
+    }));
+    
+    onClose();
+  };
+
+  // Get count for menu items
+  const getItemCount = (itemId: string): number | undefined => {
+    if (itemId === 'quotations') return totalQuotations;
+    if (itemId === 'receipts') return totalReceipts;
+    return undefined;
+  };
+
   const NavigationView = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-[#01411C]">القائمة الرئيسية</h3>
@@ -522,26 +567,28 @@ export default function RightSliderComplete({
       <div className="grid grid-cols-1 gap-3">
         {visibleMenuItems.map((item) => {
           const IconComponent = item.icon;
+          const itemCount = getItemCount(item.id);
           return (
             <div
               key={item.id}
               className="flex items-center justify-center text-xs bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-[#D4AF37] border-l-4 cursor-pointer hover:shadow-lg transition-all duration-200 group"
               style={{ borderLeftColor: item.color }}
-              onClick={() => {
-                if (item.path.startsWith("/")) {
-                  onNavigate(item.path.substring(1));
-                } else {
-                  onNavigate(item.path);
-                }
-                onClose();
-              }}
+              onClick={() => handleItemClick(item)}
             >
               <div className="flex items-center gap-3 flex-1">
                 <div
-                  className="p-2 rounded-lg transition-colors"
+                  className="p-2 rounded-lg transition-colors relative"
                   style={{ backgroundColor: `${item.color}15`, color: item.color }}
                 >
                   <IconComponent className="w-5 h-5" />
+                  {itemCount !== undefined && itemCount > 0 && (
+                    <span 
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold"
+                      style={{ backgroundColor: item.color }}
+                    >
+                      {itemCount}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -550,6 +597,14 @@ export default function RightSliderComplete({
                     </span>
                     {(item as any).badge && (
                       <span className="text-sm">{(item as any).badge}</span>
+                    )}
+                    {itemCount !== undefined && itemCount > 0 && (
+                      <Badge 
+                        className="text-white text-xs"
+                        style={{ backgroundColor: item.color }}
+                      >
+                        {itemCount} {item.id === 'quotations' ? 'عرض' : 'سند'}
+                      </Badge>
                     )}
                   </div>
                   {(item as any).description && (
@@ -717,6 +772,20 @@ export default function RightSliderComplete({
               </div>
             </div>
           </motion.div>
+
+          {/* Financial Documents Panels */}
+          <FinancialDocumentsPanel
+            type="quotations"
+            isOpen={showQuotationsPanel}
+            onClose={() => setShowQuotationsPanel(false)}
+            onNavigateToCustomer={handleNavigateToCustomer}
+          />
+          <FinancialDocumentsPanel
+            type="receipts"
+            isOpen={showReceiptsPanel}
+            onClose={() => setShowReceiptsPanel(false)}
+            onNavigateToCustomer={handleNavigateToCustomer}
+          />
         </>
       )}
     </AnimatePresence>

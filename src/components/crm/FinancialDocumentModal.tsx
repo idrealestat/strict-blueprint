@@ -102,6 +102,7 @@ export default function FinancialDocumentModal({
       id: `doc_${Date.now()}`,
       type: docType,
       typeName: docType === 'quotation' ? 'عرض سعر' : 'سند قبض',
+      customerId, // إضافة معرف العميل للوصول السريع
       customerName,
       customerPhone,
       items,
