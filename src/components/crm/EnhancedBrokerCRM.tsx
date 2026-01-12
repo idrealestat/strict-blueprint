@@ -2734,27 +2734,27 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       {/* Bottom Bar - ⚠️ تحذير: هذا الشريط محمي - لا تعدله بدون إذن صريح من صاحب المشروع */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#01411C] to-[#065f41] border-t-2 border-[#D4AF37] backdrop-blur-md">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-around gap-2">
-            {/* 1. زر المهام (أقصى اليسار) */}
+          <div className="flex items-center justify-around gap-2 flex-row-reverse">
+            {/* 1. زر الرجوع للصفحة الرئيسية (أقصى اليمين) */}
             <button
-              onClick={() => setShowTasksPanel(true)}
+              onClick={onBack}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
               <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <CheckSquare className="w-5 h-5 text-[#D4AF37]" />
+                <ArrowRight className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">المهام</span>
+              <span className="text-xs text-white/90">الرئيسية</span>
             </button>
             
-            {/* 2. زر التاقات */}
+            {/* 2. زر جهات الاتصال */}
             <button
-              onClick={() => setShowTagsManager(true)}
+              onClick={() => setShowContactsPanel(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
               <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Tag className="w-5 h-5 text-[#D4AF37]" />
+                <Users className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">التاقات</span>
+              <span className="text-xs text-white/90">جهات الاتصال</span>
             </button>
             
             {/* 3. زر إضافة عميل (في الوسط - الأبرز) */}
@@ -2768,26 +2768,26 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               <span className="text-xs text-white font-medium">إضافة عميل</span>
             </button>
             
-            {/* 4. زر جهات الاتصال */}
+            {/* 4. زر التاقات */}
             <button
-              onClick={() => setShowContactsPanel(true)}
+              onClick={() => setShowTagsManager(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
               <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Users className="w-5 h-5 text-[#D4AF37]" />
+                <Tag className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">جهات الاتصال</span>
+              <span className="text-xs text-white/90">التاقات</span>
             </button>
             
-            {/* 5. زر الرجوع للصفحة الرئيسية (أقصى اليمين) */}
+            {/* 5. زر المهام (أقصى اليسار) */}
             <button
-              onClick={onBack}
+              onClick={() => setShowTasksPanel(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
               <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ArrowRight className="w-5 h-5 text-[#D4AF37]" />
+                <CheckSquare className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">الرئيسية</span>
+              <span className="text-xs text-white/90">المهام</span>
             </button>
           </div>
         </div>
