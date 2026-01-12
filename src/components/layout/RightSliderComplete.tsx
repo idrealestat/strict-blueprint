@@ -277,18 +277,24 @@ export default function RightSliderComplete({
   const [showQuotationsPanel, setShowQuotationsPanel] = useState(false);
   const [showReceiptsPanel, setShowReceiptsPanel] = useState(false);
   const navigate = useNavigate();
-  const { signOut, isAuthenticated } = useAuth();
+  const { signOut, isAuthenticated, isOwner } = useAuth();
   const { toast } = useToast();
   const { flags } = useFeatureFlags();
   const { customersWithQuotations, customersWithReceipts, totalQuotations, totalReceipts } = useFinancialDocuments();
 
-  // Filter menu items based on feature flags
+  // Filter menu items based on feature flags AND role restrictions
   const visibleMenuItems = useMemo(() => {
     return RIGHT_SIDEBAR_ITEMS.filter(item => {
+      // Owner Panel is ONLY visible to users with role='owner'
+      if (item.id === 'owner-panel') {
+        return isOwner;
+      }
+      
+      // Check feature flags for other items
       if (!item.flagKey) return true;
       return flags[item.flagKey] === true;
     });
-  }, [flags]);
+  }, [flags, isOwner]);
 
   // Handle logout
   const handleLogout = async () => {
