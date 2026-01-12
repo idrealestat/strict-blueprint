@@ -376,6 +376,8 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return <><AdPublishingSections onBack={handleBack} /><AIFloatingButton /></>;
     case "calendar-system-complete":
       return <><CalendarAppointments onBack={handleBack} linkedCustomer={linkedCustomerForAppointment} /><AIFloatingButton /></>;
+    case "analytics-dashboard":
+      return <><ReportsAnalytics onBack={handleBack} /><AIFloatingButton /></>;
     case "owner":
       // Redirect to owner dashboard
       window.location.href = '/app/owner';
