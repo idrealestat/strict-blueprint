@@ -35,6 +35,7 @@ import {
   Building,
   Target,
   Star,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -155,6 +156,15 @@ export function LeftSliderComplete({
       action: () => onNavigate?.("settings"),
       color: "text-gray-600",
       bgColor: "bg-gray-50",
+    },
+    {
+      icon: Settings2,
+      title: "تخصيص الشريط السفلي",
+      description: "اختر الأزرار التي تظهر في الشريط السفلي",
+      action: () => onNavigate?.("bottom-nav-customization"),
+      color: "text-amber-600",
+      bgColor: "bg-amber-50",
+      badge: "جديد",
     },
   ];
 
