@@ -74,6 +74,7 @@ import {
   HardDrive,
   Link,
   Settings,
+  CheckSquare,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -94,7 +95,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import CustomerDetailsPage from "./CustomerDetailsPage";
+import ContactsPanel from "./ContactsPanel";
+import TasksPanel from "./TasksPanel";
 import { useCallLogs } from "@/hooks/useCallLogs";
+import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { clientTypes, interestLevels, reportCategories, ClientType, InterestLevel } from "@/types/offer";
 
 // Types
@@ -460,6 +464,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [searchTab, setSearchTab] = useState<'all' | 'offers' | 'requests'>('all');
   const [showColleagueDialog, setShowColleagueDialog] = useState(false);
   const [colleagueCustomer, setColleagueCustomer] = useState<Customer | null>(null);
+  const [showContactsPanel, setShowContactsPanel] = useState(false);
+  const [showTasksPanel, setShowTasksPanel] = useState(false);
+  
+  // استخدام hook المهام
+  const { 
+    tasks: crmTasks, 
+    isLoading: tasksLoading, 
+    toggleComplete: toggleTaskComplete 
+  } = useCRMTasks();
   
   // قائمة الزملاء (Mock)
   const colleagues = [
@@ -2250,67 +2263,110 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         </Tabs>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#1a1d29] to-[#232639] border-t border-[#374151] backdrop-blur-md">
+      {/* Bottom Bar - ⚠️ تحذير: هذا الشريط محمي - لا تعدله بدون إذن صريح من صاحب المشروع */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#01411C] to-[#065f41] border-t-2 border-[#D4AF37] backdrop-blur-md">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-around gap-2">
-            {/* 1. زر إضافة عميل */}
+            {/* 1. زر المهام (أقصى اليسار) */}
             <button
-              onClick={() => setShowAddCustomer(true)}
+              onClick={() => setShowTasksPanel(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#01411C] to-[#065f41] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <UserPlus className="w-5 h-5 text-[#D4AF37]" />
+              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CheckSquare className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-gray-300">إضافة عميل</span>
+              <span className="text-xs text-white/90">المهام</span>
             </button>
             
-            {/* 2. زر استيراد */}
-            <button
-              onClick={() => setShowImport(true)}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Upload className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xs text-gray-300">استيراد</span>
-            </button>
-            
-            {/* 3. زر التاقات */}
+            {/* 2. زر التاقات */}
             <button
               onClick={() => setShowTagsManager(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Tag className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Tag className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-gray-300">التاقات</span>
+              <span className="text-xs text-white/90">التاقات</span>
             </button>
             
-            {/* 4. زر الألوان */}
+            {/* 3. زر إضافة عميل (في الوسط - الأبرز) */}
             <button
-              onClick={() => setShowColorsManager(true)}
+              onClick={() => setShowAddCustomer(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-600 to-pink-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <div className="w-5 h-5 rounded-full border-2 border-white"></div>
+              <div className="w-12 h-12 rounded-full bg-[#D4AF37] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                <Plus className="w-6 h-6 text-[#01411C]" />
               </div>
-              <span className="text-xs text-gray-300">الألوان</span>
+              <span className="text-xs text-white font-medium">إضافة عميل</span>
             </button>
             
-            {/* 5. زر الفلاتر */}
+            {/* 4. زر جهات الاتصال */}
             <button
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => setShowContactsPanel(true)}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <SlidersHorizontal className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-gray-300">فلاتر</span>
+              <span className="text-xs text-white/90">جهات الاتصال</span>
+            </button>
+            
+            {/* 5. زر الرجوع للصفحة الرئيسية (أقصى اليمين) */}
+            <button
+              onClick={onBack}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ArrowRight className="w-5 h-5 text-[#D4AF37]" />
+              </div>
+              <span className="text-xs text-white/90">الرئيسية</span>
             </button>
           </div>
         </div>
       </div>
+
+      {/* Contacts Panel */}
+      <ContactsPanel
+        isOpen={showContactsPanel}
+        onClose={() => setShowContactsPanel(false)}
+        appContacts={customers.map(c => ({ id: c.id, name: c.name, phone: c.phone, email: c.email }))}
+        onImportContact={(contact) => {
+          setNewCustomer({
+            name: contact.name,
+            phone: contact.phone,
+            email: contact.email || '',
+            company: '',
+            type: 'buyer',
+            interestLevel: 'moderate',
+            propertyType: '',
+            budget: '',
+            location: '',
+            notes: '',
+            tags: [],
+          });
+          setShowAddCustomer(true);
+        }}
+      />
+
+      {/* Tasks Panel */}
+      <TasksPanel
+        isOpen={showTasksPanel}
+        onClose={() => setShowTasksPanel(false)}
+        tasks={crmTasks.map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          priority: t.priority,
+          status: t.status,
+          customerId: t.customer_id,
+          customerName: customers.find(c => c.id === t.customer_id)?.name,
+          dueDate: t.due_date,
+          completedAt: t.completed_at,
+          createdAt: t.created_at,
+        }))}
+        onToggleComplete={toggleTaskComplete}
+        customers={customers.map(c => ({ id: c.id, name: c.name }))}
+      />
 
       {/* Add Customer Dialog */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
