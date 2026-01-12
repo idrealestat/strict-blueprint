@@ -199,10 +199,9 @@ export default function PublicPriceQuoteForm() {
           clientName: formData.clientName,
           serviceType: formData.serviceType,
           propertyType: formData.propertyType,
-          quoteId: quoteId,
+          quoteId: submissionData.id,
         });
 
-        markAsNew('quote', quoteId);
         if (customerId) {
           markAsNew('customer', customerId);
         }

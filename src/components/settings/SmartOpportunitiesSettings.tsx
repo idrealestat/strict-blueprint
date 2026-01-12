@@ -3,7 +3,7 @@
  * إعدادات إشعارات الفرص الذكية مع تخصيص الصوت
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -33,15 +33,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { playNotificationSoundByName } from '@/utils/notificationSounds';
 
 // أصوات متاحة للإشعارات
 export const NOTIFICATION_SOUNDS = [
-  { id: 'default', name: 'الافتراضي', file: '/sounds/notification.mp3' },
-  { id: 'bell', name: 'جرس', file: '/sounds/bell.mp3' },
-  { id: 'chime', name: 'رنة', file: '/sounds/chime.mp3' },
-  { id: 'success', name: 'نجاح', file: '/sounds/success.mp3' },
-  { id: 'alert', name: 'تنبيه', file: '/sounds/alert.mp3' },
-  { id: 'opportunity', name: 'فرصة', file: '/sounds/opportunity.mp3' },
+  { id: 'default', name: 'الافتراضي', description: 'نغمة بسيطة' },
+  { id: 'bell', name: 'جرس', description: 'صوت جرس واضح' },
+  { id: 'chime', name: 'رنة', description: 'نغمة موسيقية' },
+  { id: 'success', name: 'نجاح', description: 'صوت إيجابي' },
+  { id: 'alert', name: 'تنبيه', description: 'صوت تنبيه قوي' },
+  { id: 'opportunity', name: 'فرصة', description: 'نغمة مميزة للفرص' },
 ];
 
 export interface SmartOpportunitiesPreferences {
@@ -96,14 +97,11 @@ export function getSmartOpportunitiesPreferences(): SmartOpportunitiesPreference
 }
 
 // دالة لتشغيل صوت الإشعار
-export function playNotificationSound(preferences?: SmartOpportunitiesPreferences) {
+export async function playNotificationSound(preferences?: SmartOpportunitiesPreferences) {
   const prefs = preferences || getSmartOpportunitiesPreferences();
   if (!prefs.soundEnabled) return;
   
-  const sound = NOTIFICATION_SOUNDS.find(s => s.id === prefs.selectedSound) || NOTIFICATION_SOUNDS[0];
-  const audio = new Audio(sound.file);
-  audio.volume = prefs.soundVolume / 100;
-  audio.play().catch(e => console.log('Could not play sound:', e));
+  await playNotificationSoundByName(prefs.selectedSound, prefs.soundVolume);
 }
 
 export default function SmartOpportunitiesSettings() {
@@ -111,22 +109,11 @@ export default function SmartOpportunitiesSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { isSupported, permission, requestPermission } = usePushNotifications();
 
   useEffect(() => {
     const saved = getSmartOpportunitiesPreferences();
     setPreferences(saved);
-  }, []);
-
-  // إيقاف الصوت عند تغيير المكون
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
   }, []);
 
   const handleEnablePushNotifications = async () => {
@@ -145,67 +132,15 @@ export default function SmartOpportunitiesSettings() {
   };
 
   // معاينة الصوت
-  const previewSound = (soundId: string) => {
-    // إيقاف الصوت السابق
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
+  const previewSound = async (soundId: string) => {
     if (isPlaying === soundId) {
       setIsPlaying(null);
       return;
     }
 
-    const sound = NOTIFICATION_SOUNDS.find(s => s.id === soundId);
-    if (!sound) return;
-
-    const audio = new Audio(sound.file);
-    audio.volume = preferences.soundVolume / 100;
-    audioRef.current = audio;
     setIsPlaying(soundId);
-
-    audio.onended = () => {
-      setIsPlaying(null);
-      audioRef.current = null;
-    };
-
-    audio.onerror = () => {
-      // إذا لم يكن الملف موجوداً، نستخدم صوت بديل
-      const fallbackAudio = new Audio();
-      fallbackAudio.volume = preferences.soundVolume / 100;
-      
-      // إنشاء صوت بسيط باستخدام Web Audio API
-      try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = soundId === 'bell' ? 800 : 
-                                     soundId === 'chime' ? 600 : 
-                                     soundId === 'success' ? 1000 : 
-                                     soundId === 'alert' ? 400 : 
-                                     soundId === 'opportunity' ? 700 : 500;
-        
-        gainNode.gain.value = preferences.soundVolume / 100;
-        
-        oscillator.start();
-        setTimeout(() => {
-          oscillator.stop();
-          setIsPlaying(null);
-        }, 300);
-      } catch (e) {
-        console.log('Could not play fallback sound');
-        setIsPlaying(null);
-      }
-    };
-
-    audio.play().catch(() => {
-      setIsPlaying(null);
-    });
+    await playNotificationSoundByName(soundId, preferences.soundVolume);
+    setIsPlaying(null);
   };
 
   const savePreferences = async () => {
