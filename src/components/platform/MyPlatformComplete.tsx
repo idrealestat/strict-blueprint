@@ -494,6 +494,60 @@ export default function MyPlatformComplete({
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
+  // ✅ جلب بيانات بطاقة العمل لتوحيد الهيدر
+  const [businessCardData, setBusinessCardData] = useState<{
+    profileImage?: string;
+    coverImage?: string;
+    logoImage?: string;
+    userName?: string;
+    companyName?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const loadBusinessCardData = async () => {
+      try {
+        // أولاً: جلب من قاعدة البيانات
+        if (user?.id) {
+          const { data: businessCard } = await supabase
+            .from('business_cards')
+            .select('data')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (businessCard?.data) {
+            const cardData = businessCard.data as Record<string, any>;
+            setBusinessCardData({
+              profileImage: cardData.profileImage || '',
+              coverImage: cardData.coverImage || '',
+              logoImage: cardData.logoImage || '',
+              userName: cardData.userName || cardData.name || '',
+              companyName: cardData.companyName || '',
+            });
+            return;
+          }
+        }
+        
+        // ثانياً: جلب من localStorage كـ fallback
+        const localKey = user?.id ? `business_card_${user.id}` : 'business_card_data';
+        const localData = localStorage.getItem(localKey);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          setBusinessCardData({
+            profileImage: parsed.profileImage || '',
+            coverImage: parsed.coverImage || '',
+            logoImage: parsed.logoImage || '',
+            userName: parsed.userName || parsed.name || '',
+            companyName: parsed.companyName || '',
+          });
+        }
+      } catch (error) {
+        console.error('[MyPlatformComplete] Error loading business card:', error);
+      }
+    };
+    
+    loadBusinessCardData();
+  }, [user?.id]);
+
   // slug المستخدم للمنصة العامة + مزامنة تلقائية لقاعدة البيانات
   const currentSlug = useMemo(
     () => localStorage.getItem('public_platform_slug') || 'default',
@@ -1602,15 +1656,27 @@ export default function MyPlatformComplete({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white" dir="rtl">
-      {/* Header - مرتبط بالبطاقة الرقمية */}
+      {/* Header - موحد مع بطاقة العمل الرقمية */}
       <header 
-        className="sticky top-0 z-40 border-b-4 shadow-lg"
+        className="sticky top-0 z-40 border-b-4 shadow-lg relative overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${digitalCardHeader?.primaryColor || '#01411C'} 0%, ${digitalCardHeader?.primaryColor || '#01411C'}dd 100%)`,
           borderColor: digitalCardHeader?.secondaryColor || '#D4AF37',
         }}
       >
-        <div className="container mx-auto px-4 py-4">
+        {/* صورة الخلفية من بطاقة العمل */}
+        {businessCardData?.coverImage && (
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `url(${businessCardData.coverImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        )}
+        
+        <div className="container mx-auto px-4 py-4 relative z-10">
           <div className="flex items-center justify-between">
             <Button
               onClick={onBack}
@@ -1623,15 +1689,20 @@ export default function MyPlatformComplete({
             </Button>
             
             <div className="flex items-center gap-3">
-              {digitalCardHeader?.logo && (
-                <img src={digitalCardHeader.logo} alt="Logo" className="w-10 h-10 rounded-full" />
+              {/* الشعار أو صورة البروفايل من بطاقة العمل */}
+              {(businessCardData?.logoImage || businessCardData?.profileImage || digitalCardHeader?.logo) && (
+                <img 
+                  src={businessCardData?.logoImage || businessCardData?.profileImage || digitalCardHeader?.logo} 
+                  alt="Logo" 
+                  className="w-12 h-12 rounded-full border-2 border-white/50 object-cover shadow-lg" 
+                />
               )}
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                   <Home className="w-6 h-6" />
-                  منصتي
+                  {businessCardData?.companyName || 'منصتي'}
                 </h1>
-                <p className="text-xs text-white/80">{platformUrl}</p>
+                <p className="text-xs text-white/80">{businessCardData?.userName || platformUrl}</p>
               </div>
             </div>
             
