@@ -12,6 +12,11 @@ const config: CapacitorConfig = {
     // سجل المكالمات - Call Log Plugin
     CallLog: {
       // يتطلب إذن READ_CALL_LOG على Android
+    },
+    // جهات الاتصال - Contacts Plugin
+    Contacts: {
+      // يتطلب إذن READ_CONTACTS على Android
+      // يتطلب إذن NSContactsUsageDescription على iOS
     }
   },
   android: {
