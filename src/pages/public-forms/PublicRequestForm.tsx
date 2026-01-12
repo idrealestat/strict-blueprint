@@ -60,22 +60,24 @@ const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
   };
   
   const headerColors = {
-    green: 'text-green-800 border-green-300',
-    blue: 'text-blue-800 border-blue-300',
-    amber: 'text-amber-800 border-amber-300',
-    purple: 'text-purple-800 border-purple-300',
-    rose: 'text-rose-800 border-rose-300',
-    cyan: 'text-cyan-800 border-cyan-300',
-    orange: 'text-orange-800 border-orange-300',
+    green: 'bg-green-100 text-green-800 border-green-300',
+    blue: 'bg-blue-100 text-blue-800 border-blue-300',
+    amber: 'bg-amber-100 text-amber-800 border-amber-300',
+    purple: 'bg-purple-100 text-purple-800 border-purple-300',
+    rose: 'bg-rose-100 text-rose-800 border-rose-300',
+    cyan: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+    orange: 'bg-orange-100 text-orange-800 border-orange-300',
   };
 
   return (
-    <div className={`rounded-xl border-2 ${colorClasses[color]} p-4`}>
-      <h3 className={`font-bold flex items-center gap-2 pb-2 mb-4 border-b ${headerColors[color]}`}>
+    <div className={`rounded-xl border-2 overflow-hidden ${colorClasses[color]}`}>
+      <div className={`px-4 py-3 border-b-2 flex items-center gap-2 font-bold ${headerColors[color]}`}>
         {icon}
         {title}
-      </h3>
-      {children}
+      </div>
+      <div className="p-4">
+        {children}
+      </div>
     </div>
   );
 };
