@@ -36,8 +36,13 @@ export function AIFloatingButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [panelSize, setPanelSize] = useState(getDefaultSize);
   const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const constraintsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Threshold for distinguishing drag from click (in pixels)
+  const DRAG_THRESHOLD = 10;
 
   // إعادة حساب الحجم عند تغيير حجم الشاشة أو الفتح
   useEffect(() => {
@@ -147,9 +152,32 @@ export function AIFloatingButton() {
             exit={{ scale: 0, opacity: 0 }}
             className="fixed bottom-6 left-6 z-50 cursor-grab active:cursor-grabbing touch-none"
             whileDrag={{ scale: 1.1 }}
+            onDragStart={(event, info) => {
+              setIsDragging(true);
+              setDragStartPos({ x: info.point.x, y: info.point.y });
+            }}
+            onDragEnd={(event, info) => {
+              const dragDistance = Math.sqrt(
+                Math.pow(info.point.x - dragStartPos.x, 2) + 
+                Math.pow(info.point.y - dragStartPos.y, 2)
+              );
+              // Only open if it was a tap (not a drag)
+              if (dragDistance < DRAG_THRESHOLD) {
+                setIsOpen(true);
+              }
+              setIsDragging(false);
+            }}
           >
             <Button
-              onClick={() => setIsOpen(true)}
+              onClick={(e) => {
+                // Prevent click if we just finished dragging
+                if (isDragging) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
+                setIsOpen(true);
+              }}
               className="h-16 w-16 rounded-full shadow-2xl relative group pointer-events-auto"
               style={{
                 background: "linear-gradient(135deg, #01411C 0%, #065f41 100%)",
