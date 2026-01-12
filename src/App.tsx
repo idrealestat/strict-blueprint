@@ -486,17 +486,9 @@ const App = () => {
                     </BusinessCardGuard>
                   } />
                   
-                  <Route path="/app/offers-requests" element={
-                    <BusinessCardGuard>
-                      <OffersRequestsPage />
-                    </BusinessCardGuard>
-                  } />
-                  
-                  <Route path="/app/smart-opportunities" element={
-                    <BusinessCardGuard>
-                      <SmartOpportunitiesPage />
-                    </BusinessCardGuard>
-                  } />
+                  {/* تجاوز مؤقت للاختبار - يجب إعادة الحماية لاحقاً */}
+                  <Route path="/app/offers-requests" element={<OffersRequestsPage />} />
+                  <Route path="/app/smart-opportunities" element={<SmartOpportunitiesPage />} />
                   
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
