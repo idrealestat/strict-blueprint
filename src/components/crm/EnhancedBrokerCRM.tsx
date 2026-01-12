@@ -661,6 +661,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const touchDragRef = useRef<HTMLDivElement | null>(null);
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
+  const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [showDragHint, setShowDragHint] = useState(false);
+  const [dragHintDismissed, setDragHintDismissed] = useState(() => {
+    return localStorage.getItem('crm_drag_hint_dismissed') === 'true';
+  });
   const [showFullDetails, setShowFullDetails] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1131,7 +1136,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     }, 300);
   }, []);
 
-  // Touch move handler
+  // Touch move handler with auto-scroll
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
@@ -1148,12 +1153,39 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       }
     }
     
-    // If we're in drag mode, find drop target
+    // If we're in drag mode, find drop target and handle auto-scroll
     if (touchDragCustomer && isLongPressRef.current) {
       e.preventDefault();
       const target = findColumnAtPoint(touch.clientX, touch.clientY);
       if (target) {
         setDropIndicator(target);
+      }
+      
+      // Auto-scroll horizontally when near edges
+      const container = kanbanContainerRef.current;
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        const edgeThreshold = 80; // pixels from edge to trigger scroll
+        const scrollSpeed = 15; // pixels per frame
+        
+        // Clear existing auto-scroll
+        if (autoScrollIntervalRef.current) {
+          clearInterval(autoScrollIntervalRef.current);
+          autoScrollIntervalRef.current = null;
+        }
+        
+        // Check if near left edge
+        if (touch.clientX < containerRect.left + edgeThreshold) {
+          autoScrollIntervalRef.current = setInterval(() => {
+            container.scrollLeft -= scrollSpeed;
+          }, 16);
+        }
+        // Check if near right edge
+        else if (touch.clientX > containerRect.right - edgeThreshold) {
+          autoScrollIntervalRef.current = setInterval(() => {
+            container.scrollLeft += scrollSpeed;
+          }, 16);
+        }
       }
     }
   }, [touchStartPos, touchDragCustomer, findColumnAtPoint]);
@@ -1194,6 +1226,12 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       toast.success('تم نقل العميل بنجاح');
     }
     
+    // Clear auto-scroll
+    if (autoScrollIntervalRef.current) {
+      clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+    
     // Reset touch state
     setTouchDragCustomer(null);
     setDraggedCustomer(null);
@@ -1203,11 +1241,32 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     isLongPressRef.current = false;
   }, [touchDragCustomer, dropIndicator]);
 
+  // Show drag hint on first load for mobile users
+  useEffect(() => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile && !dragHintDismissed && customers.length > 0) {
+      const timer = setTimeout(() => {
+        setShowDragHint(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [dragHintDismissed, customers.length]);
+
+  // Dismiss drag hint
+  const dismissDragHint = useCallback(() => {
+    setShowDragHint(false);
+    setDragHintDismissed(true);
+    localStorage.setItem('crm_drag_hint_dismissed', 'true');
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (touchTimeoutRef.current) {
         clearTimeout(touchTimeoutRef.current);
+      }
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
       }
     };
   }, []);
@@ -1558,7 +1617,49 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           </TabsList>
 
           {/* Kanban View */}
-          <TabsContent value="kanban" className="mt-0">
+          <TabsContent value="kanban" className="mt-0 relative">
+            {/* Mobile Drag Hint Overlay */}
+            <AnimatePresence>
+              {showDragHint && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="absolute top-0 left-0 right-0 z-40 mx-4"
+                >
+                  <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-white rounded-xl p-4 shadow-2xl border-2 border-[#D4AF37]">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-12 h-12 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
+                        <GripVertical className="w-6 h-6 text-[#D4AF37] animate-pulse" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm mb-1">💡 نقل بطاقات العملاء</h4>
+                        <p className="text-xs text-white/90 leading-relaxed">
+                          اضغط مطولاً على أي بطاقة عميل لمدة ثانية واحدة، ثم اسحبها إلى العمود المطلوب
+                        </p>
+                        <div className="flex items-center gap-2 mt-2 text-[10px] text-[#D4AF37]">
+                          <span>👆</span>
+                          <span>ضغط مطول</span>
+                          <span>→</span>
+                          <span>👋</span>
+                          <span>سحب</span>
+                          <span>→</span>
+                          <span>✅</span>
+                          <span>إفلات</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={dismissDragHint}
+                        className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {isLoading ? (
               // Loading Skeleton
               <div className="overflow-x-auto pb-4">
