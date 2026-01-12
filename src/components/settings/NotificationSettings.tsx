@@ -37,7 +37,8 @@ import {
   Send,
   Download,
   Trash2,
-  History
+  History,
+  Sparkles
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -45,6 +46,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import jsPDF from 'jspdf';
 import { MessagesLog } from './MessagesLog';
 import FloatingBubbleSettings from './FloatingBubbleSettings';
+import SmartOpportunitiesSettings from './SmartOpportunitiesSettings';
 
 interface NotificationPreferences {
   // إعدادات الصوت
@@ -690,10 +692,14 @@ export default function NotificationSettings() {
 
       {/* Tabs */}
       <Tabs defaultValue="settings" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="w-4 h-4" />
             الإعدادات
+          </TabsTrigger>
+          <TabsTrigger value="smart-opportunities" className="gap-2">
+            <Sparkles className="w-4 h-4" />
+            الفرص الذكية
           </TabsTrigger>
           <TabsTrigger value="floating-bubble" className="gap-2">
             <Smartphone className="w-4 h-4" />
@@ -1369,6 +1375,10 @@ export default function NotificationSettings() {
           {isSaving ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات'}
         </Button>
       </div>
+        </TabsContent>
+
+        <TabsContent value="smart-opportunities">
+          <SmartOpportunitiesSettings />
         </TabsContent>
 
         <TabsContent value="floating-bubble">
