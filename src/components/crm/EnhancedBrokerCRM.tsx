@@ -1136,7 +1136,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     }, 300);
   }, []);
 
-  // Touch move handler with auto-scroll
+  // Touch move handler
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
@@ -1153,39 +1153,12 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       }
     }
     
-    // If we're in drag mode, find drop target and handle auto-scroll
+    // If we're in drag mode, find drop target
     if (touchDragCustomer && isLongPressRef.current) {
       e.preventDefault();
       const target = findColumnAtPoint(touch.clientX, touch.clientY);
       if (target) {
         setDropIndicator(target);
-      }
-      
-      // Auto-scroll horizontally when near edges
-      const container = kanbanContainerRef.current;
-      if (container) {
-        const containerRect = container.getBoundingClientRect();
-        const edgeThreshold = 80; // pixels from edge to trigger scroll
-        const scrollSpeed = 15; // pixels per frame
-        
-        // Clear existing auto-scroll
-        if (autoScrollIntervalRef.current) {
-          clearInterval(autoScrollIntervalRef.current);
-          autoScrollIntervalRef.current = null;
-        }
-        
-        // Check if near left edge
-        if (touch.clientX < containerRect.left + edgeThreshold) {
-          autoScrollIntervalRef.current = setInterval(() => {
-            container.scrollLeft -= scrollSpeed;
-          }, 16);
-        }
-        // Check if near right edge
-        else if (touch.clientX > containerRect.right - edgeThreshold) {
-          autoScrollIntervalRef.current = setInterval(() => {
-            container.scrollLeft += scrollSpeed;
-          }, 16);
-        }
       }
     }
   }, [touchStartPos, touchDragCustomer, findColumnAtPoint]);
