@@ -329,7 +329,7 @@ const SlugQuotePage = () => {
   return (
     <>
       <Helmet>
-        <title>طلب عرض سعر - {brokerName}</title>
+        <title>عرض سعر - {brokerName}</title>
         <meta name="description" content={`اطلب عرض سعر من ${brokerName}`} />
         <link rel="canonical" href={`${window.location.origin}/${slug}/quote`} />
       </Helmet>
@@ -393,7 +393,7 @@ const SlugQuotePage = () => {
               {/* عنوان المستند */}
               <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
                 <FileText className="w-8 h-8 text-blue-600 mx-auto mb-1" />
-                <h2 className="text-xl font-bold text-[#01411C]">طلب عرض سعر</h2>
+                <h2 className="text-xl font-bold text-[#01411C]">عرض سعر</h2>
                 <p className="text-xs text-gray-500 mt-1">{new Date().toLocaleDateString('ar-SA')}</p>
               </div>
 
