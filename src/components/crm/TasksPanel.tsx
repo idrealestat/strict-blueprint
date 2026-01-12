@@ -30,6 +30,7 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
+  Phone,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -48,6 +49,7 @@ interface Task {
   status: TaskStatus;
   customerId?: string;
   customerName?: string;
+  customerPhone?: string;
   dueDate?: string;
   completedAt?: string;
   createdAt: string;
@@ -60,7 +62,8 @@ interface TasksPanelProps {
   onToggleComplete: (taskId: string, completed: boolean) => void;
   onUpdateTask: (taskId: string, input: UpdateTaskInput) => Promise<boolean>;
   onDeleteTask: (taskId: string) => Promise<boolean>;
-  customers: Array<{ id: string; name: string }>;
+  onViewCustomer?: (customerId: string) => void;
+  customers: Array<{ id: string; name: string; phone?: string }>;
 }
 
 // تكوينات الأولوية
@@ -113,6 +116,7 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
   onToggleComplete,
   onUpdateTask,
   onDeleteTask,
+  onViewCustomer,
   customers,
 }) => {
   const [editingTask, setEditingTask] = useState<CRMTask | null>(null);
@@ -201,13 +205,34 @@ const TasksPanel: React.FC<TasksPanelProps> = ({
               </p>
             )}
 
-            <div className="flex items-center gap-3 text-xs">
-              {/* العميل */}
+            <div className="flex items-center gap-2 text-xs flex-wrap">
+              {/* العميل - قابل للنقر */}
               {customerName && (
-                <Badge variant="outline" className="gap-1 py-0 text-[10px]">
+                <Badge 
+                  variant="outline" 
+                  className={`gap-1 py-0.5 text-[10px] ${onViewCustomer && task.customerId ? 'cursor-pointer hover:bg-[#01411C]/10 hover:border-[#01411C]' : ''}`}
+                  onClick={() => {
+                    if (onViewCustomer && task.customerId) {
+                      onClose();
+                      onViewCustomer(task.customerId);
+                    }
+                  }}
+                >
                   <User className="w-3 h-3" />
                   {customerName}
                 </Badge>
+              )}
+
+              {/* هاتف العميل */}
+              {task.customerPhone && (
+                <a 
+                  href={`tel:${task.customerPhone}`}
+                  className="inline-flex items-center gap-1 text-[10px] text-gray-500 hover:text-[#01411C]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Phone className="w-3 h-3" />
+                  {task.customerPhone}
+                </a>
               )}
 
               {/* الأولوية */}

@@ -2354,22 +2354,33 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       <TasksPanel
         isOpen={showTasksPanel}
         onClose={() => setShowTasksPanel(false)}
-        tasks={crmTasks.map(t => ({
-          id: t.id,
-          title: t.title,
-          description: t.description,
-          priority: t.priority,
-          status: t.status,
-          customerId: t.customer_id,
-          customerName: customers.find(c => c.id === t.customer_id)?.name,
-          dueDate: t.due_date,
-          completedAt: t.completed_at,
-          createdAt: t.created_at,
-        }))}
+        tasks={crmTasks.map(t => {
+          const customer = customers.find(c => c.id === t.customer_id);
+          return {
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            priority: t.priority,
+            status: t.status,
+            customerId: t.customer_id,
+            customerName: customer?.name,
+            customerPhone: customer?.phone,
+            dueDate: t.due_date,
+            completedAt: t.completed_at,
+            createdAt: t.created_at,
+          };
+        })}
         onToggleComplete={toggleTaskComplete}
         onUpdateTask={updateCRMTask}
         onDeleteTask={deleteCRMTask}
-        customers={customers.map(c => ({ id: c.id, name: c.name }))}
+        onViewCustomer={(customerId) => {
+          const customer = customers.find(c => c.id === customerId);
+          if (customer) {
+            setSelectedCustomer(customer);
+            setShowTasksPanel(false);
+          }
+        }}
+        customers={customers.map(c => ({ id: c.id, name: c.name, phone: c.phone }))}
       />
 
       {/* Add Customer Dialog */}
