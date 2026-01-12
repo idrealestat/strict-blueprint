@@ -1,6 +1,6 @@
 /**
  * Enhanced useSmartAssistant.ts
- * Hook for managing the context-aware smart assistant
+ * Hook for managing the context-aware smart assistant with full knowledge base
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -8,6 +8,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useBehavioralTracking } from './useBehavioralTracking';
 import { usePageContextTracker, PageContext } from './usePageContextTracker';
+import { getPageKnowledge, generateContextualHelp, findAnswer, getPageTips } from '@/data/assistantKnowledge';
 
 export interface AssistantMessage {
   role: 'assistant' | 'user';
@@ -38,96 +39,126 @@ interface AssistantState {
   showQuickOptions: boolean;
 }
 
-// Contextual messages based on trigger reason and page context
+// Contextual messages based on trigger reason and page context with knowledge base
 const getContextualMessage = (
   triggerReason: string, 
   context: PageContext
 ): string => {
-  const { pageName, formProgress, currentField, fields, timeOnPage } = context;
+  const { pageName, formProgress, currentField, fields, timeOnPage, pagePath } = context;
+  const knowledge = getPageKnowledge(pagePath);
 
-  // Page-specific messages
-  if (context.pagePath.includes('publish-ad')) {
+  // Use knowledge base for contextual help
+  if (knowledge) {
+    return generateContextualHelp(pagePath, {
+      formProgress,
+      currentField: currentField?.label || currentField?.name,
+      timeOnPage,
+      triggerReason
+    });
+  }
+
+  // Page-specific messages with knowledge
+  if (pagePath.includes('publish-ad')) {
     if (formProgress < 30 && timeOnPage > 30) {
-      return `لاحظت إنك في صفحة ${pageName}. هل تحتاج مساعدة في ملء بيانات العقار؟`;
+      return `مرحباً! أنت في صفحة نشر إعلان. ابدأ بتعبئة البيانات الأساسية: العنوان، نوع العقار، السعر. هل تحتاج مساعدة؟`;
     }
     if (formProgress >= 30 && formProgress < 70) {
       const emptyFields = fields.filter(f => f.isRequired && !f.isFilled);
       if (emptyFields.length > 0) {
-        return `أنت في منتصف الطريق! باقي ${emptyFields.length} حقول لإكمال الإعلان. هل تحتاج مساعدة؟`;
+        return `ممتاز! أنت في منتصف الطريق. باقي ${emptyFields.length} حقول لإكمال الإعلان. نصيحة: الصور الواضحة تزيد من فرص البيع بنسبة 40%!`;
       }
     }
     if (formProgress >= 70) {
-      return 'رائع! أوشكت على الانتهاء. هل كل شيء واضح؟';
+      return 'رائع! أوشكت على الانتهاء. راجع البيانات ثم اضغط "نشر الإعلان". تأكد من إضافة رقم الترخيص الإعلاني.';
     }
   }
 
-  if (context.pagePath.includes('crm')) {
-    return 'هل تحتاج مساعدة في إدارة العملاء؟ أقدر أساعدك في إضافة عميل جديد أو متابعة العملاء الحاليين.';
+  if (pagePath.includes('crm')) {
+    return 'أهلاً! أنت في إدارة العملاء (CRM). يمكنك سحب البطاقات بين الأعمدة لتحديث حالة العميل. الألوان العلوية تدل على نوع العميل (أزرق=مالك، أخضر=باحث).';
   }
 
-  if (context.pagePath.includes('platform')) {
-    return 'هل تبحث عن عروض معينة أو تريد إضافة عرض جديد؟';
+  if (pagePath.includes('platform')) {
+    return 'هذه منصتك العامة التي يراها العملاء. يمكنك مشاركة رابطها: wasata.com/اسمك. العروض المثبتة تظهر أولاً!';
   }
 
-  // Trigger-based messages
+  if (pagePath.includes('business-card')) {
+    return 'بطاقة أعمالك الرقمية تظهر في هيدر منصتك. أكمل التحقق من رخصة فال لزيادة ثقة العملاء!';
+  }
+
+  // Trigger-based messages with helpful tips
   switch (triggerReason) {
     case 'freeze':
       if (currentField) {
-        return `لاحظت إنك متوقف عند حقل "${currentField.label || currentField.name}". هل تحتاج مساعدة في تعبئته؟`;
+        const tips = getPageTips(pagePath);
+        const tip = tips.length > 0 ? ` نصيحة: ${tips[0]}` : '';
+        return `لاحظت إنك متوقف عند "${currentField.label || currentField.name}". كيف أقدر أساعدك؟${tip}`;
       }
-      return `يبدو إنك متوقف في صفحة ${pageName}. كيف أقدر أساعدك؟`;
+      return `يبدو إنك متوقف في ${pageName}. هل تحتاج توضيح لأي شي؟`;
     
     case 'rapid_navigation':
-      return 'يبدو إنك تبحث عن شي معين. وش الي تدور عليه؟ خلني أوجهك للمكان الصحيح.';
-    
-    case 'repeated_errors':
-      return 'لاحظت إن في مشكلة متكررة. خلني أساعدك في حلها.';
-    
-    case 'typing_hesitation':
-      if (currentField) {
-        return `هل تحتاج مساعدة في تعبئة "${currentField.label || currentField.name}"؟`;
-      }
-      return 'هل تحتاج مساعدة في تعبئة البيانات؟';
+      return 'يبدو إنك تبحث عن شي معين. أخبرني وش تدور عليه وأوجهك للمكان الصحيح!';
     
     case 'incomplete_form':
-      return `لاحظت إنك أكملت ${formProgress}% من النموذج. هل تحتاج مساعدة لإكماله؟`;
+      return `لاحظت إنك أكملت ${formProgress}% من النموذج. إذا واجهت صعوبة في أي حقل، اسألني!`;
     
     case 'exit_intent':
-      return 'هل أنت متأكد من الخروج؟ لم يتم حفظ البيانات بعد.';
+      return 'هل أنت متأكد من الخروج؟ لم يتم حفظ البيانات بعد. يمكنك "حفظ كمسودة" للإكمال لاحقاً.';
     
     default:
-      return `مرحباً! أنا هنا لمساعدتك في صفحة ${pageName}. كيف أقدر أخدمك؟`;
+      return knowledge?.mainPurpose 
+        ? `مرحباً! ${knowledge.mainPurpose}. كيف أقدر أخدمك؟`
+        : `مرحباً! أنا مساعدك الذكي في ${pageName}. اسألني أي سؤال!`;
   }
 };
 
-// Follow-up messages based on user response
+// Follow-up messages based on user response with knowledge base
 const getFollowUpMessage = (
   userMessage: string,
   context: PageContext
 ): string => {
   const lowerMessage = userMessage.toLowerCase();
+  const knowledge = getPageKnowledge(context.pagePath);
+
+  // Try to find answer from knowledge base first
+  const knowledgeAnswer = findAnswer(userMessage);
+  if (knowledgeAnswer) {
+    return knowledgeAnswer;
+  }
 
   // Analyze user intent
   if (lowerMessage.includes('مشكلة') || lowerMessage.includes('خطأ') || lowerMessage.includes('ما يشتغل')) {
-    return 'أفهم. هل تقدر تصف لي المشكلة بالتفصيل؟ أو اختر من الخيارات أدناه لنساعدك بشكل أسرع.';
+    return 'أفهم. صف لي المشكلة بالتفصيل أو اختر من الخيارات أدناه. سنسجلها ونتواصل معك.';
   }
 
   if (lowerMessage.includes('كيف') || lowerMessage.includes('وين') || lowerMessage.includes('أين')) {
-    if (context.pagePath.includes('publish-ad')) {
-      return 'لنشر إعلان، ابدأ بتعبئة البيانات الأساسية: العنوان، نوع العقار، السعر، والموقع. ثم أضف الصور والتفاصيل.';
+    if (knowledge?.howToUse?.length) {
+      return knowledge.howToUse.slice(0, 2).join(' ثم ');
     }
     return 'أقدر أوجهك! وش بالضبط تبي توصل له؟';
   }
 
   if (lowerMessage.includes('سعر') || lowerMessage.includes('تسعير')) {
-    return 'للمساعدة في التسعير، يمكنك استخدام الحاسبة الذكية أو الاطلاع على أسعار العقارات المشابهة في المنطقة.';
+    return 'للمساعدة في التسعير، استخدم الحاسبة الذكية أو راجع أسعار العقارات المشابهة. السعر التنافسي يجذب المزيد من المشاهدات!';
+  }
+
+  if (lowerMessage.includes('ترخيص') || lowerMessage.includes('فال')) {
+    return 'رقم الترخيص الإعلاني يصدر من الهيئة العامة للعقار (فال) وهو ضروري لجميع الإعلانات العقارية.';
+  }
+
+  if (lowerMessage.includes('crm') || lowerMessage.includes('عملاء')) {
+    return 'في إدارة العملاء (CRM): اسحب البطاقات بين الأعمدة لتحديث الحالة. الألوان تدل على نوع العميل ودرجة الاهتمام.';
   }
 
   if (lowerMessage.includes('شكر') || lowerMessage.includes('تمام') || lowerMessage.includes('اوكي')) {
     return 'العفو! إذا احتجت أي مساعدة ثانية، أنا موجود 👋';
   }
 
-  // Default response with options
+  // Default with page tips
+  const tips = knowledge?.tips || [];
+  if (tips.length > 0) {
+    return `تمام! نصيحة: ${tips[0]}. كيف أقدر أساعدك أكثر؟`;
+  }
+
   return 'تمام! كيف أقدر أساعدك أكثر؟ اختر من الخيارات أو اكتب لي.';
 };
 
