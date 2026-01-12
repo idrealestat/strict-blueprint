@@ -224,7 +224,7 @@ export default function PublicPriceQuoteForm() {
 
   if (isSubmitted) {
     return (
-      <PublicFormLayout broker={broker} title="طلب عرض سعر">
+      <PublicFormLayout broker={broker} title="عرض سعر">
         <div className="p-8 text-center">
           <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-10 h-10 text-green-600" />
@@ -245,7 +245,7 @@ export default function PublicPriceQuoteForm() {
   }
 
   return (
-    <PublicFormLayout broker={broker} title="طلب عرض سعر">
+    <PublicFormLayout broker={broker} title="عرض سعر">
       <div className="p-6 space-y-6">
         {/* معلومات العميل */}
         <div className="space-y-4">
