@@ -2,6 +2,7 @@
  * PublicPriceQuoteForm.tsx
  * صفحة إرسال طلب عرض سعر من العميل
  * يحفظ البيانات في قاعدة البيانات مع الإشعارات و Push Notifications
+ * تصميم موحد مع باقي الصفحات العامة
  */
 
 import { useState, useEffect } from 'react';
@@ -12,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Send, Loader2, CheckCircle, FileText, User, Home, Calculator } from 'lucide-react';
+import { Send, Loader2, CheckCircle, FileText, User, Home, Calculator, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +44,48 @@ const serviceTypes = [
 ];
 
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "محل تجاري", "مكتب"];
+
+// ===================== Section Wrapper Component =====================
+interface SectionProps {
+  title: string;
+  icon: React.ReactNode;
+  color: 'green' | 'blue' | 'amber' | 'purple' | 'rose' | 'cyan' | 'orange';
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
+  const colorClasses = {
+    green: 'bg-green-50 border-green-200',
+    blue: 'bg-blue-50 border-blue-200',
+    amber: 'bg-amber-50 border-amber-200',
+    purple: 'bg-purple-50 border-purple-200',
+    rose: 'bg-rose-50 border-rose-200',
+    cyan: 'bg-cyan-50 border-cyan-200',
+    orange: 'bg-orange-50 border-orange-200',
+  };
+  
+  const headerColors = {
+    green: 'bg-green-100 text-green-800 border-green-300',
+    blue: 'bg-blue-100 text-blue-800 border-blue-300',
+    amber: 'bg-amber-100 text-amber-800 border-amber-300',
+    purple: 'bg-purple-100 text-purple-800 border-purple-300',
+    rose: 'bg-rose-100 text-rose-800 border-rose-300',
+    cyan: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+    orange: 'bg-orange-100 text-orange-800 border-orange-300',
+  };
+
+  return (
+    <div className={`rounded-xl border-2 overflow-hidden ${colorClasses[color]}`}>
+      <div className={`px-4 py-3 border-b-2 flex items-center gap-2 font-bold ${headerColors[color]}`}>
+        {icon}
+        {title}
+      </div>
+      <div className="p-4">
+        {children}
+      </div>
+    </div>
+  );
+};
 
 interface FormData {
   clientName: string;
@@ -82,12 +125,12 @@ export default function PublicPriceQuoteForm() {
           const cardData = data.data as Record<string, any>;
           setFetchedBroker({
             id: identifier,
-            name: cardData?.name || 'وسيط عقاري',
-            company: cardData?.company || '',
-            phone: cardData?.phone || '',
+            name: cardData?.name || cardData?.userName || 'وسيط عقاري',
+            company: cardData?.company || cardData?.companyName || '',
+            phone: cardData?.phone || cardData?.primaryPhone || '',
             email: cardData?.email || '',
-            location: cardData?.city || 'الرياض',
-            licenseNumber: cardData?.falLicenseNumber || '',
+            location: cardData?.city || cardData?.location || 'الرياض',
+            licenseNumber: cardData?.falLicenseNumber || cardData?.falLicense || '',
             rating: 4.8,
             verified: true,
           });
@@ -247,13 +290,15 @@ export default function PublicPriceQuoteForm() {
   return (
     <PublicFormLayout broker={broker} title="عرض سعر">
       <div className="p-6 space-y-6">
-        {/* معلومات العميل */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <User className="w-5 h-5 text-[#D4AF37]" />
-            معلوماتك
-          </h3>
-          
+        {/* عنوان المستند */}
+        <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
+          <FileText className="w-8 h-8 text-[#D4AF37] mx-auto mb-1" />
+          <h2 className="text-xl font-bold text-[#01411C]">طلب عرض سعر</h2>
+          <p className="text-xs text-gray-500 mt-1">{new Date().toLocaleDateString('ar-SA')}</p>
+        </div>
+
+        {/* القسم 1: معلومات العميل */}
+        <Section title="معلوماتك" icon={<User className="w-5 h-5" />} color="green">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>الاسم الكامل *</Label>
@@ -261,6 +306,7 @@ export default function PublicPriceQuoteForm() {
                 value={formData.clientName}
                 onChange={(e) => updateField('clientName', e.target.value)}
                 placeholder="أدخل اسمك الكامل"
+                className="bg-white"
               />
             </div>
             <div>
@@ -270,6 +316,7 @@ export default function PublicPriceQuoteForm() {
                 onChange={(e) => updateField('clientPhone', e.target.value)}
                 placeholder="05xxxxxxxx"
                 dir="ltr"
+                className="bg-white"
               />
             </div>
             <div>
@@ -280,12 +327,16 @@ export default function PublicPriceQuoteForm() {
                 onChange={(e) => updateField('clientEmail', e.target.value)}
                 placeholder="email@example.com"
                 dir="ltr"
+                className="bg-white"
               />
             </div>
             <div>
-              <Label>وقت التواصل المفضل</Label>
+              <Label className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                وقت التواصل المفضل
+              </Label>
               <Select value={formData.preferredContactTime} onValueChange={(v) => updateField('preferredContactTime', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر الوقت المناسب" />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,19 +348,14 @@ export default function PublicPriceQuoteForm() {
               </Select>
             </div>
           </div>
-        </div>
+        </Section>
 
-        {/* نوع الخدمة */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <Calculator className="w-5 h-5 text-[#D4AF37]" />
-            نوع الخدمة المطلوبة
-          </h3>
-
+        {/* القسم 2: نوع الخدمة */}
+        <Section title="نوع الخدمة المطلوبة" icon={<Calculator className="w-5 h-5" />} color="blue">
           <div>
             <Label>نوع الخدمة *</Label>
             <Select value={formData.serviceType} onValueChange={(v) => updateField('serviceType', v)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue placeholder="اختر نوع الخدمة" />
               </SelectTrigger>
               <SelectContent>
@@ -319,20 +365,15 @@ export default function PublicPriceQuoteForm() {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </Section>
 
-        {/* معلومات العقار */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <Home className="w-5 h-5 text-[#D4AF37]" />
-            معلومات العقار (إن وجد)
-          </h3>
-
+        {/* القسم 3: معلومات العقار */}
+        <Section title="معلومات العقار (إن وجد)" icon={<Home className="w-5 h-5" />} color="amber">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>نوع العقار</Label>
               <Select value={formData.propertyType} onValueChange={(v) => updateField('propertyType', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر نوع العقار" />
                 </SelectTrigger>
                 <SelectContent>
@@ -348,6 +389,7 @@ export default function PublicPriceQuoteForm() {
                 value={formData.propertyLocation}
                 onChange={(e) => updateField('propertyLocation', e.target.value)}
                 placeholder="المدينة - الحي"
+                className="bg-white"
               />
             </div>
             <div>
@@ -357,6 +399,7 @@ export default function PublicPriceQuoteForm() {
                 value={formData.propertyArea}
                 onChange={(e) => updateField('propertyArea', e.target.value)}
                 placeholder="المساحة التقريبية"
+                className="bg-white"
               />
             </div>
             <div>
@@ -366,23 +409,28 @@ export default function PublicPriceQuoteForm() {
                 value={formData.estimatedValue}
                 onChange={(e) => updateField('estimatedValue', e.target.value)}
                 placeholder="بالريال السعودي"
+                className="bg-white"
               />
             </div>
           </div>
+        </Section>
 
+        {/* القسم 4: تفاصيل إضافية */}
+        <Section title="تفاصيل إضافية" icon={<FileText className="w-5 h-5" />} color="purple">
           <div>
-            <Label>تفاصيل إضافية</Label>
+            <Label>اشرح طلبك بالتفصيل</Label>
             <Textarea
               value={formData.details}
               onChange={(e) => updateField('details', e.target.value)}
-              placeholder="اشرح طلبك بالتفصيل..."
+              placeholder="اكتب أي تفاصيل إضافية تود مشاركتها..."
               rows={4}
+              className="bg-white"
             />
           </div>
-        </div>
+        </Section>
 
         {/* الموافقة */}
-        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border">
           <Checkbox
             id="terms"
             checked={formData.agreeToTerms}

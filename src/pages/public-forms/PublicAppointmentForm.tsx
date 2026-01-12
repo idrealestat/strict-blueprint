@@ -1,6 +1,7 @@
 /**
  * PublicAppointmentForm.tsx
  * صفحة إنشاء موعد من العميل
+ * تصميم موحد مع باقي الصفحات العامة
  */
 
 import { useState, useEffect } from 'react';
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Send, Loader2, CheckCircle, Calendar, User, Clock, MapPin } from 'lucide-react';
+import { Send, Loader2, CheckCircle, Calendar, User, Clock, MapPin, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +68,48 @@ const timeSlots = [
   "20:00",
 ];
 
+// ===================== Section Wrapper Component =====================
+interface SectionProps {
+  title: string;
+  icon: React.ReactNode;
+  color: 'green' | 'blue' | 'amber' | 'purple' | 'rose' | 'cyan' | 'orange';
+  children: React.ReactNode;
+}
+
+const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
+  const colorClasses = {
+    green: 'bg-green-50 border-green-200',
+    blue: 'bg-blue-50 border-blue-200',
+    amber: 'bg-amber-50 border-amber-200',
+    purple: 'bg-purple-50 border-purple-200',
+    rose: 'bg-rose-50 border-rose-200',
+    cyan: 'bg-cyan-50 border-cyan-200',
+    orange: 'bg-orange-50 border-orange-200',
+  };
+  
+  const headerColors = {
+    green: 'bg-green-100 text-green-800 border-green-300',
+    blue: 'bg-blue-100 text-blue-800 border-blue-300',
+    amber: 'bg-amber-100 text-amber-800 border-amber-300',
+    purple: 'bg-purple-100 text-purple-800 border-purple-300',
+    rose: 'bg-rose-100 text-rose-800 border-rose-300',
+    cyan: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+    orange: 'bg-orange-100 text-orange-800 border-orange-300',
+  };
+
+  return (
+    <div className={`rounded-xl border-2 overflow-hidden ${colorClasses[color]}`}>
+      <div className={`px-4 py-3 border-b-2 flex items-center gap-2 font-bold ${headerColors[color]}`}>
+        {icon}
+        {title}
+      </div>
+      <div className="p-4">
+        {children}
+      </div>
+    </div>
+  );
+};
+
 interface FormData {
   clientName: string;
   clientPhone: string;
@@ -112,12 +155,12 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
           const cardData = data.data as Record<string, any>;
           setFetchedBroker({
             id: data.id,
-            name: cardData?.userName || 'وسيط عقاري',
+            name: cardData?.userName || cardData?.name || 'وسيط عقاري',
             company: cardData?.companyName || cardData?.company || 'شركة عقارية',
             phone: cardData?.primaryPhone || cardData?.phone || '',
             email: cardData?.email || '',
-            location: cardData?.location || cardData?.officeAddress || '',
-            licenseNumber: cardData?.falLicense || '',
+            location: cardData?.location || cardData?.officeAddress || cardData?.city || '',
+            licenseNumber: cardData?.falLicense || cardData?.falLicenseNumber || '',
             rating: cardData?.rating || 4.5,
             verified: cardData?.verified || true,
           });
@@ -197,7 +240,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
         notes: formData.notes,
         source: 'client_form',
         status: 'pending',
-        isNew: true, // للعلامة الحمراء النابضة
+        isNew: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -213,7 +256,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
         message: `طلب موعد جديد من ${formData.clientName} - ${formData.appointmentType}`,
         data: submissionData,
         isRead: false,
-        isPulsing: true, // للعلامة الحمراء النابضة
+        isPulsing: true,
         createdAt: new Date().toISOString(),
       };
       
@@ -257,7 +300,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
       newItems.appointments.push(appointmentId);
       localStorage.setItem('wasata_new_items', JSON.stringify(newItems));
 
-      // Track event - UNIFIED EVENT NAME
+      // Track event
       track({
         eventName: 'appointment_create',
         channel: 'public_web',
@@ -328,13 +371,9 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
           <h2 className="text-xl font-bold text-[#01411C]">إنشاء موعد</h2>
           <p className="text-xs text-gray-500 mt-1">{new Date().toLocaleDateString('ar-SA')}</p>
         </div>
-        {/* معلومات العميل */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <User className="w-5 h-5 text-[#D4AF37]" />
-            معلوماتك
-          </h3>
-          
+
+        {/* القسم 1: معلومات العميل */}
+        <Section title="معلوماتك" icon={<User className="w-5 h-5" />} color="green">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>الاسم الكامل *</Label>
@@ -342,6 +381,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
                 value={formData.clientName}
                 onChange={(e) => updateField('clientName', e.target.value)}
                 placeholder="أدخل اسمك الكامل"
+                className="bg-white"
               />
             </div>
             <div>
@@ -351,71 +391,77 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
                 onChange={(e) => updateField('clientPhone', e.target.value)}
                 placeholder="05xxxxxxxx"
                 dir="ltr"
+                className="bg-white"
               />
             </div>
           </div>
-        </div>
+        </Section>
 
-        {/* نوع الموعد */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <Calendar className="w-5 h-5 text-[#D4AF37]" />
-            تفاصيل الموعد
-          </h3>
-
-          <div>
-            <Label>نوع الموعد *</Label>
-            <Select value={formData.appointmentType} onValueChange={(v) => updateField('appointmentType', v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر نوع الموعد" />
-              </SelectTrigger>
-              <SelectContent>
-                {appointmentTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* القسم 2: تفاصيل الموعد */}
+        <Section title="تفاصيل الموعد" icon={<Calendar className="w-5 h-5" />} color="blue">
+          <div className="space-y-4">
             <div>
-              <Label>التاريخ المفضل *</Label>
-              <Input
-                type="date"
-                value={formData.preferredDate}
-                onChange={(e) => updateField('preferredDate', e.target.value)}
-                min={getMinDate()}
-              />
-            </div>
-            <div>
-              <Label>الوقت المفضل *</Label>
-              <Select value={formData.preferredTime} onValueChange={(v) => updateField('preferredTime', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الوقت" />
+              <Label>نوع الموعد *</Label>
+              <Select value={formData.appointmentType} onValueChange={(v) => updateField('appointmentType', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="اختر نوع الموعد" />
                 </SelectTrigger>
                 <SelectContent>
-                  {timeSlots.map(time => (
-                    <SelectItem key={time} value={time}>{time}</SelectItem>
+                  {appointmentTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>التاريخ المفضل *</Label>
+                <Input
+                  type="date"
+                  value={formData.preferredDate}
+                  onChange={(e) => updateField('preferredDate', e.target.value)}
+                  min={getMinDate()}
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  الوقت المفضل *
+                </Label>
+                <Select value={formData.preferredTime} onValueChange={(v) => updateField('preferredTime', v)}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="اختر الوقت" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map(time => (
+                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* القسم 3: موعد بديل */}
+        <Section title="موعد بديل (اختياري)" icon={<Clock className="w-5 h-5" />} color="amber">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label>تاريخ بديل (اختياري)</Label>
+              <Label>تاريخ بديل</Label>
               <Input
                 type="date"
                 value={formData.alternativeDate}
                 onChange={(e) => updateField('alternativeDate', e.target.value)}
                 min={getMinDate()}
+                className="bg-white"
               />
             </div>
             <div>
-              <Label>وقت بديل (اختياري)</Label>
+              <Label>وقت بديل</Label>
               <Select value={formData.alternativeTime} onValueChange={(v) => updateField('alternativeTime', v)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر الوقت" />
                 </SelectTrigger>
                 <SelectContent>
@@ -426,37 +472,36 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
               </Select>
             </div>
           </div>
-        </div>
+        </Section>
 
-        {/* مكان الاجتماع */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 border-b pb-2">
-            <MapPin className="w-5 h-5 text-[#D4AF37]" />
-            مكان الاجتماع
-          </h3>
-
+        {/* القسم 4: مكان الاجتماع */}
+        <Section title="مكان الاجتماع" icon={<MapPin className="w-5 h-5" />} color="purple">
           <div>
             <Label>مكان الاجتماع المفضل</Label>
             <Input
               value={formData.meetingLocation}
               onChange={(e) => updateField('meetingLocation', e.target.value)}
               placeholder="المكتب، موقع العقار، أو حدد مكاناً آخر..."
+              className="bg-white"
             />
           </div>
+        </Section>
 
+        {/* القسم 5: ملاحظات */}
+        <Section title="ملاحظات إضافية" icon={<FileText className="w-5 h-5" />} color="cyan">
           <div>
-            <Label>ملاحظات إضافية</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => updateField('notes', e.target.value)}
-              placeholder="أي ملاحظات أو تفاصيل إضافية..."
+              placeholder="أي ملاحظات أو تفاصيل إضافية تود مشاركتها..."
               rows={3}
+              className="bg-white"
             />
           </div>
-        </div>
+        </Section>
 
         {/* الموافقة */}
-        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border">
           <Checkbox
             id="terms"
             checked={formData.agreeToTerms}
