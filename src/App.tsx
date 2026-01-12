@@ -18,6 +18,8 @@ import { TasksManagement } from "./components/tasks";
 import { MapSystemDashboard } from "./components/map";
 import { AdPublishingSections } from "./components/advertising";
 import CustomersListPage from "./pages/CustomersListPage";
+import OffersRequestsPage from "./pages/OffersRequestsPage";
+import SmartOpportunitiesPage from "./pages/SmartOpportunitiesPage";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import RentedPropertiesReport from "./components/reports/RentedPropertiesReport";
@@ -481,6 +483,18 @@ const App = () => {
                   <Route path="/app/domain-requests/:requestId" element={
                     <BusinessCardGuard>
                       <DomainRequestDetailsPage />
+                    </BusinessCardGuard>
+                  } />
+                  
+                  <Route path="/app/offers-requests" element={
+                    <BusinessCardGuard>
+                      <OffersRequestsPage />
+                    </BusinessCardGuard>
+                  } />
+                  
+                  <Route path="/app/smart-opportunities" element={
+                    <BusinessCardGuard>
+                      <SmartOpportunitiesPage />
                     </BusinessCardGuard>
                   } />
                   

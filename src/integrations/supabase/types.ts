@@ -1500,6 +1500,63 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_opportunity_acceptances: {
+        Row: {
+          created_at: string
+          id: string
+          matched_features: Json | null
+          other_broker_info: Json | null
+          other_item_data: Json | null
+          other_item_id: string
+          other_user_id: string | null
+          owner_item_data: Json | null
+          owner_item_id: string
+          owner_user_id: string
+          similarity_score: number | null
+          source: string | null
+          status: string | null
+          type: string
+          updated_at: string
+          viewed_by_owner: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matched_features?: Json | null
+          other_broker_info?: Json | null
+          other_item_data?: Json | null
+          other_item_id: string
+          other_user_id?: string | null
+          owner_item_data?: Json | null
+          owner_item_id: string
+          owner_user_id: string
+          similarity_score?: number | null
+          source?: string | null
+          status?: string | null
+          type: string
+          updated_at?: string
+          viewed_by_owner?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matched_features?: Json | null
+          other_broker_info?: Json | null
+          other_item_data?: Json | null
+          other_item_id?: string
+          other_user_id?: string | null
+          owner_item_data?: Json | null
+          owner_item_id?: string
+          owner_user_id?: string
+          similarity_score?: number | null
+          source?: string | null
+          status?: string | null
+          type?: string
+          updated_at?: string
+          viewed_by_owner?: boolean | null
+        }
+        Relationships: []
+      }
       sms_logs: {
         Row: {
           appointment_id: string | null

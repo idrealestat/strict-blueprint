@@ -28,15 +28,24 @@ const MainServices = () => {
   const services: Service[] = [
     {
       id: 1,
-      icon: '📊',
-      title: 'لوحة التحكم',
-      description: 'نظرة شاملة على أداء الأعمال',
-      color: 'from-blue-500 to-cyan-500',
-      link: '/dashboard',
-      stat: '10 تحديثات جديدة'
+      icon: '✨',
+      title: 'الفرص الذكية',
+      description: 'فرص مطابقة لعروضك وطلباتك من وسطاء آخرين',
+      color: 'from-amber-500 to-orange-500',
+      link: '/app/smart-opportunities',
+      stat: 'AI مدعوم'
     },
     {
       id: 2,
+      icon: '📋',
+      title: 'العروض والطلبات',
+      description: 'إدارة العروض والطلبات المقبولة',
+      color: 'from-emerald-500 to-teal-500',
+      link: '/app/offers-requests',
+      stat: 'المقبولات'
+    },
+    {
+      id: 3,
       icon: '👥',
       title: 'إدارة العملاء',
       description: 'نظام متكامل لإدارة علاقات العملاء',
@@ -45,20 +54,11 @@ const MainServices = () => {
       stat: '45 عميل نشط'
     },
     {
-      id: 3,
-      icon: '💰',
-      title: 'المعاملات المالية',
-      description: 'إدارة التحويلات والمدفوعات',
-      color: 'from-green-500 to-emerald-500',
-      link: '/transactions',
-      stat: '150 معاملة'
-    },
-    {
       id: 4,
       icon: '📈',
       title: 'التقارير والتحليلات',
       description: 'تقارير مفصلة وإحصائيات ذكية',
-      color: 'from-orange-500 to-red-500',
+      color: 'from-blue-500 to-cyan-500',
       link: '/analytics',
       stat: '25 تقرير'
     },
