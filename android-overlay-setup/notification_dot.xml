@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    notification_dot.xml
+    نقطة الإشعار الحمراء
+    
+    يجب نسخه إلى:
+    android/app/src/main/res/drawable/notification_dot.xml
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    
+    <solid android:color="#EF4444" />
+    
+    <stroke
+        android:width="1dp"
+        android:color="#FFFFFF" />
+        
+</shape>

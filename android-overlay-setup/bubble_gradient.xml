@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bubble_gradient.xml
+    خلفية الفقاعة بتدرج لوني
+    
+    يجب نسخه إلى:
+    android/app/src/main/res/drawable/bubble_gradient.xml
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    
+    <gradient
+        android:type="linear"
+        android:angle="135"
+        android:startColor="#01411C"
+        android:endColor="#065f41" />
+    
+    <stroke
+        android:width="3dp"
+        android:color="#D4AF37" />
+        
+</shape>
