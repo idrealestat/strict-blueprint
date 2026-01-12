@@ -20,10 +20,11 @@ import {
   Brain, Activity, TrendingUp, AlertTriangle, CheckCircle2,
   XCircle, Clock, Users, MessageCircle, Lightbulb, Target,
   BarChart3, PieChart, ArrowUpRight, ArrowDownRight, RefreshCw,
-  Eye, Zap, Shield, Award,
+  Eye, Zap, Shield, Award, PlayCircle,
 } from 'lucide-react';
 import { format, subDays, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 // Types
 interface OverviewStats {
@@ -255,6 +256,20 @@ export function BehavioralDashboard() {
           <p className="text-gray-600 text-sm">تحليلات متقدمة لفهم سلوك المستخدمين وتحسين التجربة</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              // Dispatch custom event to trigger assistant
+              window.dispatchEvent(new CustomEvent('trigger-smart-assistant', {
+                detail: { reason: 'manual_test', message: 'هذا اختبار يدوي للمساعد الذكي. هل تحتاج مساعدة؟' }
+              }));
+              toast.success('تم إطلاق المساعد الذكي! سيظهر في أسفل الشاشة');
+            }}
+            className="bg-gradient-to-l from-[#01411C] to-[#065f41] text-white hover:opacity-90"
+          >
+            <PlayCircle className="w-4 h-4 ml-2" />
+            اختبار المساعد
+          </Button>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-32">
               <SelectValue />

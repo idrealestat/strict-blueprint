@@ -137,6 +137,33 @@ export function useSmartAssistant() {
     });
   }, [silentMode, location.pathname, sessionId]);
 
+  // Listen for manual test trigger from Owner Dashboard
+  useEffect(() => {
+    const handleManualTrigger = (event: CustomEvent) => {
+      const { reason, message } = event.detail || {};
+      
+      // Force show assistant for testing
+      const testMessage: AssistantMessage = {
+        role: 'assistant',
+        content: message || 'هذا اختبار للمساعد الذكي. كيف يمكنني مساعدتك؟',
+        timestamp: new Date().toISOString(),
+      };
+
+      setState({
+        isVisible: true,
+        triggerReason: reason || 'manual_test',
+        signalId: null,
+        messages: [testMessage],
+        conversationId: null,
+      });
+    };
+
+    window.addEventListener('trigger-smart-assistant', handleManualTrigger as EventListener);
+    return () => {
+      window.removeEventListener('trigger-smart-assistant', handleManualTrigger as EventListener);
+    };
+  }, []);
+
   // Monitor for triggers
   useEffect(() => {
     if (silentMode) return;
