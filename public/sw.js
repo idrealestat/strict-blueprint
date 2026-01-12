@@ -30,6 +30,33 @@ function getNotificationStyle(type) {
         vibrate: [300, 100, 300, 100, 300], // اهتزاز قوي للعروض الجديدة
         requireInteraction: true, // يبقى حتى يتفاعل المستخدم
       };
+    case 'new_request':
+    case 'request':
+      return {
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'new-request',
+        vibrate: [300, 100, 300, 100, 300],
+        requireInteraction: true,
+      };
+    case 'new_appointment':
+    case 'calendar':
+      return {
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'new-appointment',
+        vibrate: [400, 100, 200, 100, 400],
+        requireInteraction: true,
+      };
+    case 'new_quote':
+    case 'quote':
+      return {
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'new-quote',
+        vibrate: [300, 100, 300],
+        requireInteraction: true,
+      };
     case 'smart_opportunity':
       return {
         icon: '/favicon.ico',
@@ -45,22 +72,6 @@ function getNotificationStyle(type) {
         tag: 'offer-view',
         vibrate: [200, 100, 200],
         requireInteraction: false,
-      };
-    case 'calendar':
-      return {
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'calendar',
-        vibrate: [200, 100, 200],
-        requireInteraction: true,
-      };
-    case 'request':
-      return {
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'request',
-        vibrate: [300, 100, 300],
-        requireInteraction: true,
       };
     default:
       return {
@@ -102,7 +113,25 @@ function getActionsForType(type) {
     case 'offer':
       return [
         { action: 'view_customer', title: '👤 عرض العميل' },
-        { action: 'view', title: '📋 عرض التفاصيل' },
+        { action: 'view', title: '🏠 عرض العرض' },
+      ];
+    case 'new_request':
+    case 'request':
+      return [
+        { action: 'view_customer', title: '👤 عرض العميل' },
+        { action: 'view', title: '🔍 عرض الطلب' },
+      ];
+    case 'new_appointment':
+    case 'calendar':
+      return [
+        { action: 'view', title: '📅 عرض الموعد' },
+        { action: 'dismiss', title: 'إغلاق' },
+      ];
+    case 'new_quote':
+    case 'quote':
+      return [
+        { action: 'view_customer', title: '👤 عرض العميل' },
+        { action: 'view', title: '💰 عرض الطلب' },
       ];
     case 'smart_opportunity':
       return [
@@ -112,16 +141,6 @@ function getActionsForType(type) {
     case 'offer_view':
       return [
         { action: 'view_stats', title: '📊 الإحصائيات' },
-        { action: 'dismiss', title: 'إغلاق' },
-      ];
-    case 'calendar':
-      return [
-        { action: 'view', title: '📅 عرض الموعد' },
-        { action: 'dismiss', title: 'إغلاق' },
-      ];
-    case 'request':
-      return [
-        { action: 'view', title: '📝 عرض الطلب' },
         { action: 'dismiss', title: 'إغلاق' },
       ];
     default:

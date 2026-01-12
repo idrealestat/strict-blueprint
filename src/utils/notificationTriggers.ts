@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { showPushNotification } from '@/hooks/usePushNotifications';
 
 interface NotificationPayload {
   userId: string;
@@ -18,10 +19,12 @@ interface NotificationPayload {
   relatedEntityId?: string;
   actionUrl?: string;
   metadata?: Record<string, any>;
+  sendPush?: boolean;
+  pushData?: any;
 }
 
 /**
- * إنشاء إشعار في قاعدة البيانات
+ * إنشاء إشعار في قاعدة البيانات مع دعم Push Notifications
  */
 export async function createNotification(payload: NotificationPayload): Promise<boolean> {
   try {
@@ -45,6 +48,15 @@ export async function createNotification(payload: NotificationPayload): Promise<
       return false;
     }
 
+    // إرسال إشعار Push إذا تم طلبه
+    if (payload.sendPush) {
+      await showPushNotification(payload.title, payload.message, {
+        type: payload.notificationType,
+        actionUrl: payload.actionUrl,
+        ...payload.pushData,
+      });
+    }
+
     return true;
   } catch (e) {
     console.error('[NotificationTrigger] Exception:', e);
@@ -55,81 +67,113 @@ export async function createNotification(payload: NotificationPayload): Promise<
 // ==================== Trigger Functions ====================
 
 /**
- * إشعار استلام طلب جديد
+ * إشعار استلام طلب جديد مع Push Notification
  */
 export async function triggerRequestNotification(
   userId: string,
-  requestData: { clientName: string; propertyType?: string; city?: string }
+  requestData: { clientName: string; propertyType?: string; city?: string; purpose?: string; requestId?: string; customerId?: string }
 ): Promise<void> {
+  const message = `استلمت طلب من ${requestData.clientName}${requestData.propertyType ? ` - ${requestData.propertyType}` : ''}${requestData.city ? ` في ${requestData.city}` : ''}`;
+  
   await createNotification({
     userId,
-    title: '📋 طلب جديد',
-    message: `استلمت طلب من ${requestData.clientName}${requestData.propertyType ? ` - ${requestData.propertyType}` : ''}${requestData.city ? ` في ${requestData.city}` : ''}`,
+    title: '🔍 طلب عقاري جديد',
+    message,
     notificationType: 'request',
     category: 'incoming',
     priority: 'high',
     relatedEntityType: 'request',
+    actionUrl: '/app/crm',
     metadata: requestData,
+    sendPush: true,
+    pushData: {
+      type: 'new_request',
+      ...requestData,
+    },
   });
 }
 
 /**
- * إشعار عرض جديد مُستلَم
+ * إشعار عرض جديد مُستلَم مع Push Notification
  */
 export async function triggerOfferNotification(
   userId: string,
-  offerData: { ownerName: string; propertyType?: string; city?: string }
+  offerData: { ownerName: string; propertyType?: string; city?: string; purpose?: string; offerId?: string; customerId?: string }
 ): Promise<void> {
+  const message = `استلمت عرض من ${offerData.ownerName}${offerData.propertyType ? ` - ${offerData.propertyType}` : ''}${offerData.city ? ` في ${offerData.city}` : ''}`;
+  
   await createNotification({
     userId,
     title: '🏠 عرض عقاري جديد',
-    message: `استلمت عرض من ${offerData.ownerName}${offerData.propertyType ? ` - ${offerData.propertyType}` : ''}`,
+    message,
     notificationType: 'offer',
     category: 'incoming',
     priority: 'high',
     relatedEntityType: 'offer_form',
+    actionUrl: '/app/crm',
     metadata: offerData,
+    sendPush: true,
+    pushData: {
+      type: 'new_offer',
+      ...offerData,
+    },
   });
 }
 
 /**
- * إشعار طلب عرض سعر
+ * إشعار طلب عرض سعر مع Push Notification
  */
 export async function triggerQuoteNotification(
   userId: string,
-  quoteData: { clientName: string; propertyType?: string }
+  quoteData: { clientName: string; serviceType?: string; propertyType?: string; quoteId?: string }
 ): Promise<void> {
+  const message = `${quoteData.clientName} يطلب عرض سعر${quoteData.serviceType ? ` - ${quoteData.serviceType}` : ''}${quoteData.propertyType ? ` لـ ${quoteData.propertyType}` : ''}`;
+  
   await createNotification({
     userId,
-    title: '💰 طلب عرض سعر',
-    message: `${quoteData.clientName} يطلب عرض سعر${quoteData.propertyType ? ` لـ ${quoteData.propertyType}` : ''}`,
+    title: '💰 طلب عرض سعر جديد',
+    message,
     notificationType: 'offer',
     category: 'quote',
-    priority: 'normal',
+    priority: 'high',
     relatedEntityType: 'quote_form',
+    actionUrl: '/app/crm',
     metadata: quoteData,
+    sendPush: true,
+    pushData: {
+      type: 'new_quote',
+      ...quoteData,
+    },
   });
 }
 
 /**
- * إشعار حجز موعد جديد
+ * إشعار حجز موعد جديد مع Push Notification
  */
 export async function triggerCalendarNotification(
   userId: string,
-  appointmentData: { customerName: string; date: string; time: string; type?: string }
+  appointmentData: { customerName: string; date: string; time: string; type?: string; appointmentId?: string }
 ): Promise<void> {
+  const message = `${appointmentData.customerName} حجز موعد ${appointmentData.type || 'معاينة'} - ${appointmentData.date} ${appointmentData.time}`;
+  
   await createNotification({
     userId,
     title: '📅 موعد جديد',
-    message: `${appointmentData.customerName} حجز موعد ${appointmentData.type || 'معاينة'} - ${appointmentData.date} ${appointmentData.time}`,
+    message,
     notificationType: 'calendar',
     category: 'appointment',
     priority: 'high',
     relatedEntityType: 'calendar',
     actionUrl: '/app/calendar',
     metadata: appointmentData,
+    sendPush: true,
+    pushData: {
+      type: 'new_appointment',
+      ...appointmentData,
+    },
   });
 }
+
 
 /**
  * إشعار تغيير CRM

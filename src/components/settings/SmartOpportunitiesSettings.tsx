@@ -1,9 +1,9 @@
 /**
  * SmartOpportunitiesSettings.tsx
- * إعدادات إشعارات الفرص الذكية
+ * إعدادات إشعارات الفرص الذكية مع تخصيص الصوت
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -25,10 +25,24 @@ import {
   RotateCcw,
   Smartphone,
   Check,
-  X
+  X,
+  Volume2,
+  VolumeX,
+  Play,
+  Music
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+
+// أصوات متاحة للإشعارات
+export const NOTIFICATION_SOUNDS = [
+  { id: 'default', name: 'الافتراضي', file: '/sounds/notification.mp3' },
+  { id: 'bell', name: 'جرس', file: '/sounds/bell.mp3' },
+  { id: 'chime', name: 'رنة', file: '/sounds/chime.mp3' },
+  { id: 'success', name: 'نجاح', file: '/sounds/success.mp3' },
+  { id: 'alert', name: 'تنبيه', file: '/sounds/alert.mp3' },
+  { id: 'opportunity', name: 'فرصة', file: '/sounds/opportunity.mp3' },
+];
 
 export interface SmartOpportunitiesPreferences {
   // تفعيل الإشعارات
@@ -49,6 +63,8 @@ export interface SmartOpportunitiesPreferences {
   
   // صوت الإشعارات
   soundEnabled: boolean;
+  selectedSound: string;
+  soundVolume: number;
 }
 
 const defaultPreferences: SmartOpportunitiesPreferences = {
@@ -61,6 +77,8 @@ const defaultPreferences: SmartOpportunitiesPreferences = {
   notifyForResidential: true,
   notifyForCommercial: true,
   soundEnabled: true,
+  selectedSound: 'default',
+  soundVolume: 80,
 };
 
 const STORAGE_KEY = 'smart_opportunities_preferences';
@@ -77,15 +95,38 @@ export function getSmartOpportunitiesPreferences(): SmartOpportunitiesPreference
   return defaultPreferences;
 }
 
+// دالة لتشغيل صوت الإشعار
+export function playNotificationSound(preferences?: SmartOpportunitiesPreferences) {
+  const prefs = preferences || getSmartOpportunitiesPreferences();
+  if (!prefs.soundEnabled) return;
+  
+  const sound = NOTIFICATION_SOUNDS.find(s => s.id === prefs.selectedSound) || NOTIFICATION_SOUNDS[0];
+  const audio = new Audio(sound.file);
+  audio.volume = prefs.soundVolume / 100;
+  audio.play().catch(e => console.log('Could not play sound:', e));
+}
+
 export default function SmartOpportunitiesSettings() {
   const [preferences, setPreferences] = useState<SmartOpportunitiesPreferences>(defaultPreferences);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { isSupported, permission, requestPermission } = usePushNotifications();
 
   useEffect(() => {
     const saved = getSmartOpportunitiesPreferences();
     setPreferences(saved);
+  }, []);
+
+  // إيقاف الصوت عند تغيير المكون
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
 
   const handleEnablePushNotifications = async () => {
@@ -101,6 +142,70 @@ export default function SmartOpportunitiesSettings() {
   ) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
+  };
+
+  // معاينة الصوت
+  const previewSound = (soundId: string) => {
+    // إيقاف الصوت السابق
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    if (isPlaying === soundId) {
+      setIsPlaying(null);
+      return;
+    }
+
+    const sound = NOTIFICATION_SOUNDS.find(s => s.id === soundId);
+    if (!sound) return;
+
+    const audio = new Audio(sound.file);
+    audio.volume = preferences.soundVolume / 100;
+    audioRef.current = audio;
+    setIsPlaying(soundId);
+
+    audio.onended = () => {
+      setIsPlaying(null);
+      audioRef.current = null;
+    };
+
+    audio.onerror = () => {
+      // إذا لم يكن الملف موجوداً، نستخدم صوت بديل
+      const fallbackAudio = new Audio();
+      fallbackAudio.volume = preferences.soundVolume / 100;
+      
+      // إنشاء صوت بسيط باستخدام Web Audio API
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = soundId === 'bell' ? 800 : 
+                                     soundId === 'chime' ? 600 : 
+                                     soundId === 'success' ? 1000 : 
+                                     soundId === 'alert' ? 400 : 
+                                     soundId === 'opportunity' ? 700 : 500;
+        
+        gainNode.gain.value = preferences.soundVolume / 100;
+        
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+          setIsPlaying(null);
+        }, 300);
+      } catch (e) {
+        console.log('Could not play fallback sound');
+        setIsPlaying(null);
+      }
+    };
+
+    audio.play().catch(() => {
+      setIsPlaying(null);
+    });
   };
 
   const savePreferences = async () => {
@@ -300,22 +405,87 @@ export default function SmartOpportunitiesSettings() {
 
           <Separator />
 
-          {/* صوت الإشعارات */}
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-            <div className="flex items-center gap-3">
-              <Settings className="w-5 h-5 text-muted-foreground" />
-              <div>
+          {/* تخصيص الصوت */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {preferences.soundEnabled ? (
+                  <Volume2 className="w-5 h-5 text-primary" />
+                ) : (
+                  <VolumeX className="w-5 h-5 text-muted-foreground" />
+                )}
                 <Label className="text-base font-medium">صوت الإشعارات</Label>
-                <p className="text-sm text-muted-foreground">
-                  تشغيل صوت عند وصول فرصة جديدة
-                </p>
               </div>
+              <Switch
+                checked={preferences.soundEnabled}
+                onCheckedChange={(checked) => handleChange('soundEnabled', checked)}
+                disabled={!preferences.notificationsEnabled}
+              />
             </div>
-            <Switch
-              checked={preferences.soundEnabled}
-              onCheckedChange={(checked) => handleChange('soundEnabled', checked)}
-              disabled={!preferences.notificationsEnabled}
-            />
+
+            {preferences.soundEnabled && preferences.notificationsEnabled && (
+              <>
+                {/* اختيار الصوت */}
+                <div className="space-y-3 p-4 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <Music className="w-4 h-4 text-muted-foreground" />
+                    <Label className="text-sm">اختر الصوت</Label>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {NOTIFICATION_SOUNDS.map((sound) => (
+                      <div
+                        key={sound.id}
+                        className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${
+                          preferences.selectedSound === sound.id
+                            ? 'border-primary bg-primary/10'
+                            : 'hover:border-primary/50'
+                        }`}
+                        onClick={() => handleChange('selectedSound', sound.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {preferences.selectedSound === sound.id && (
+                            <Check className="w-3 h-3 text-primary" />
+                          )}
+                          <span className="text-sm">{sound.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            previewSound(sound.id);
+                          }}
+                        >
+                          <Play className={`w-3 h-3 ${isPlaying === sound.id ? 'text-primary animate-pulse' : ''}`} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* مستوى الصوت */}
+                <div className="space-y-3 p-4 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">مستوى الصوت</Label>
+                    <Badge variant="outline">{preferences.soundVolume}%</Badge>
+                  </div>
+                  <Slider
+                    value={[preferences.soundVolume]}
+                    onValueChange={([value]) => handleChange('soundVolume', value)}
+                    min={10}
+                    max={100}
+                    step={10}
+                    className="mt-2"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>منخفض</span>
+                    <span>متوسط</span>
+                    <span>عالي</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <Separator />
