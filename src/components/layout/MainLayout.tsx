@@ -4,6 +4,7 @@ import RightSlider from "./RightSlider";
 import LeftSlider from "./LeftSlider";
 import NotificationsSidebar from "@/components/NotificationsSidebar";
 import { SecurityWarningBanner } from "@/components/security/SecurityWarningBanner";
+import { SmartAssistantBubble } from "@/components/behavioral/SmartAssistantBubble";
 import { useAuthContext } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTaskReminders } from "@/hooks/useTaskReminders";
@@ -59,6 +60,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
       />
+
+      {/* Smart Assistant Bubble - Behavioral Intelligence */}
+      <SmartAssistantBubble />
     </div>
   );
 };
