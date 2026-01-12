@@ -129,6 +129,10 @@ interface CardDisplaySettings {
   showEmail: boolean;
   showCity: boolean;
   showDistrict: boolean;
+  
+  // Display name type for documents (personal / company / platform)
+  displayNameType: 'personal' | 'company' | 'platform';
+  platformNameArabic: string;
 }
 
 interface BusinessCardData {
@@ -162,6 +166,7 @@ interface BusinessCardData {
   birthDate: string;
   accountType: string;
   displayOptions: CardDisplaySettings;
+  platformNameArabic: string; // اسم المنصة بالعربية
 }
 
 // Zod validation schema for business card
@@ -215,6 +220,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     showEmail: true,
     showCity: true,
     showDistrict: false,
+    displayNameType: 'personal',
+    platformNameArabic: '',
   };
 
   // Default form data
@@ -272,7 +279,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     nationalId: "",
     birthDate: "",
     accountType: "individual",
-    displayOptions: defaultDisplayOptions
+    displayOptions: defaultDisplayOptions,
+    platformNameArabic: "",
   };
 
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
