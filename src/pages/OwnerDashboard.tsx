@@ -22,7 +22,7 @@ import {
   Shield, Check, X, Clock, Search, RefreshCw, Users, Settings,
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
-  ToggleLeft, ToggleRight, History
+  ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2
 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -97,6 +97,37 @@ interface FirstNameException {
   notes: string | null;
 }
 
+interface BlacklistEntry {
+  id: string;
+  company_name: string;
+  company_name_en: string | null;
+  domain: string | null;
+  domain_root: string | null;
+  city: string | null;
+  category: string | null;
+  source: string | null;
+  is_active: boolean | null;
+  confidence_level: number | null;
+  created_at: string;
+}
+
+interface ForbiddenPattern {
+  id: string;
+  pattern: string;
+  pattern_type: string | null;
+  description: string | null;
+  is_active: boolean | null;
+  created_at: string;
+}
+
+interface DomainSettingsData {
+  id: string;
+  pricing_enabled: boolean | null;
+  default_price: number | null;
+  priority_warning_enabled: boolean | null;
+  priority_warning_message: string | null;
+}
+
 // ============ COMPONENT ============
 const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -133,6 +164,22 @@ const OwnerDashboard: React.FC = () => {
   // Settings Change Log
   const [changeLog, setChangeLog] = useState<any[]>([]);
   const [logLoading, setLogLoading] = useState(false);
+  
+  // Quick Search for Feature Flags
+  const [featureSearch, setFeatureSearch] = useState("");
+  const [highlightedFlag, setHighlightedFlag] = useState<string | null>(null);
+  
+  // Domain Blacklist
+  const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
+  const [blacklistSearch, setBlacklistSearch] = useState("");
+  const [newBlacklistEntry, setNewBlacklistEntry] = useState({ company_name: "", domain: "", city: "", category: "" });
+  
+  // Forbidden Patterns
+  const [patterns, setPatterns] = useState<ForbiddenPattern[]>([]);
+  const [newPattern, setNewPattern] = useState({ pattern: "", pattern_type: "contains", description: "" });
+  
+  // Domain Settings
+  const [domainSettings, setDomainSettings] = useState<DomainSettingsData | null>(null);
   
   // Dialogs
   const [approveDialog, setApproveDialog] = useState<{ open: boolean; request: DomainRequest | null }>({ open: false, request: null });
@@ -207,6 +254,31 @@ const OwnerDashboard: React.FC = () => {
         .order('created_at', { ascending: false });
       
       setExceptions(exceptionsData || []);
+
+      // Domain Blacklist
+      const { data: blacklistData } = await supabase
+        .from('domain_blacklist')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      setBlacklist(blacklistData || []);
+
+      // Forbidden Patterns
+      const { data: patternsData } = await supabase
+        .from('forbidden_patterns')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      setPatterns(patternsData || []);
+
+      // Domain Settings
+      const { data: settingsData } = await supabase
+        .from('domain_settings')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      
+      setDomainSettings(settingsData);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -721,13 +793,19 @@ const OwnerDashboard: React.FC = () => {
     triState?: boolean;
   }) => {
     const isDifferent = showDiffIndicator && value !== null && value !== undefined && value !== globalValue;
+    const isHighlighted = highlightedFlag === flagKey;
     
     if (triState) {
       // Three-state toggle: null (follow global), true, false
       const currentState = value === null || value === undefined ? 'global' : (value ? 'enabled' : 'disabled');
       
       return (
-        <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <div 
+          id={`flag-${flagKey}`}
+          className={`flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-all ${
+            isHighlighted ? 'bg-amber-100 ring-2 ring-amber-400 animate-pulse' : ''
+          }`}
+        >
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{FEATURE_FLAG_LABELS[flagKey]}</span>
             {isDifferent && (
@@ -772,7 +850,12 @@ const OwnerDashboard: React.FC = () => {
     }
     
     return (
-      <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
+      <div 
+        id={`flag-${flagKey}`}
+        className={`flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-all ${
+          isHighlighted ? 'bg-amber-100 ring-2 ring-amber-400 animate-pulse' : ''
+        }`}
+      >
         <span className="text-sm font-medium">{FEATURE_FLAG_LABELS[flagKey]}</span>
         <Switch 
           checked={!!value} 
@@ -817,34 +900,90 @@ const OwnerDashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
+        {/* Quick Feature Search */}
+        <div className="mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="ابحث عن ميزة بالاسم للتنقل السريع..."
+              value={featureSearch}
+              onChange={(e) => {
+                setFeatureSearch(e.target.value);
+                if (e.target.value.length >= 2) {
+                  // Find matching flag
+                  const searchLower = e.target.value.toLowerCase();
+                  const matchingKey = FEATURE_FLAG_KEYS.find(key => 
+                    FEATURE_FLAG_LABELS[key].toLowerCase().includes(searchLower)
+                  );
+                  if (matchingKey) {
+                    setHighlightedFlag(matchingKey);
+                    setActiveTab("global");
+                    // Scroll to element after a brief delay
+                    setTimeout(() => {
+                      const element = document.getElementById(`flag-${matchingKey}`);
+                      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                  } else {
+                    setHighlightedFlag(null);
+                  }
+                } else {
+                  setHighlightedFlag(null);
+                }
+              }}
+              className="pr-10"
+            />
+            {featureSearch && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                onClick={() => {
+                  setFeatureSearch("");
+                  setHighlightedFlag(null);
+                }}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-9 mb-6 overflow-x-auto">
             <TabsTrigger value="global" className="flex items-center gap-1 text-xs">
               <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">الإعدادات العامة</span>
+              <span className="hidden sm:inline">الإعدادات</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-1 text-xs">
               <User className="w-4 h-4" />
-              <span className="hidden sm:inline">استثناءات المستخدمين</span>
+              <span className="hidden sm:inline">المستخدمين</span>
             </TabsTrigger>
             <TabsTrigger value="business" className="flex items-center gap-1 text-xs">
               <Building2 className="w-4 h-4" />
-              <span className="hidden sm:inline">قواعد الأعمال</span>
+              <span className="hidden sm:inline">الأعمال</span>
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">طلبات Slugs</span>
+              <span className="hidden sm:inline">الطلبات</span>
               {requests.filter(r => r.status === 'pending').length > 0 && (
                 <Badge className="bg-red-500 text-white text-xs ml-1">{requests.filter(r => r.status === 'pending').length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="slugs" className="flex items-center gap-1 text-xs">
               <Layers className="w-4 h-4" />
-              <span className="hidden sm:inline">إدارة Slugs</span>
+              <span className="hidden sm:inline">Slugs</span>
             </TabsTrigger>
-            <TabsTrigger value="exceptions" className="flex items-center gap-1 text-xs">
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">استثناءات</span>
+            <TabsTrigger value="blacklist" className="flex items-center gap-1 text-xs">
+              <Ban className="w-4 h-4" />
+              <span className="hidden sm:inline">القائمة السوداء</span>
+            </TabsTrigger>
+            <TabsTrigger value="patterns" className="flex items-center gap-1 text-xs">
+              <FileWarning className="w-4 h-4" />
+              <span className="hidden sm:inline">الأنماط</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-1 text-xs">
+              <Cog className="w-4 h-4" />
+              <span className="hidden sm:inline">الإعدادات</span>
             </TabsTrigger>
             <TabsTrigger 
               value="changelog" 
@@ -852,7 +991,7 @@ const OwnerDashboard: React.FC = () => {
               onClick={() => fetchChangeLog()}
             >
               <History className="w-4 h-4" />
-              <span className="hidden sm:inline">سجل التغييرات</span>
+              <span className="hidden sm:inline">السجل</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1332,6 +1471,330 @@ const OwnerDashboard: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* =============== TAB: DOMAIN BLACKLIST =============== */}
+          <TabsContent value="blacklist">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Ban className="w-5 h-5 text-red-600" />
+                  القائمة السوداء للنطاقات
+                </CardTitle>
+                <CardDescription>الشركات والمكاتب المحظورة من حجز نطاقات مطابقة لأسمائها</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add new entry */}
+                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
+                  <Input
+                    placeholder="اسم الشركة..."
+                    value={newBlacklistEntry.company_name}
+                    onChange={(e) => setNewBlacklistEntry(prev => ({ ...prev, company_name: e.target.value }))}
+                    className="flex-1 min-w-[150px]"
+                  />
+                  <Input
+                    placeholder="النطاق (اختياري)..."
+                    value={newBlacklistEntry.domain}
+                    onChange={(e) => setNewBlacklistEntry(prev => ({ ...prev, domain: e.target.value }))}
+                    className="w-[150px]"
+                  />
+                  <Input
+                    placeholder="المدينة..."
+                    value={newBlacklistEntry.city}
+                    onChange={(e) => setNewBlacklistEntry(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-[120px]"
+                  />
+                  <Select value={newBlacklistEntry.category} onValueChange={(v) => setNewBlacklistEntry(prev => ({ ...prev, category: v }))}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="الفئة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="real_estate">عقارات</SelectItem>
+                      <SelectItem value="banking">بنوك</SelectItem>
+                      <SelectItem value="government">حكومي</SelectItem>
+                      <SelectItem value="other">أخرى</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={async () => {
+                      if (!newBlacklistEntry.company_name.trim()) {
+                        toast.error('يرجى إدخال اسم الشركة');
+                        return;
+                      }
+                      try {
+                        const { error } = await supabase.from('domain_blacklist').insert({
+                          company_name: newBlacklistEntry.company_name,
+                          domain: newBlacklistEntry.domain || null,
+                          city: newBlacklistEntry.city || null,
+                          category: newBlacklistEntry.category || null,
+                          is_active: true,
+                        });
+                        if (error) throw error;
+                        toast.success('تمت الإضافة بنجاح');
+                        setNewBlacklistEntry({ company_name: "", domain: "", city: "", category: "" });
+                        fetchData();
+                      } catch (err: any) {
+                        toast.error(err.message || 'حدث خطأ');
+                      }
+                    }}
+                    className="bg-[#01411C] hover:bg-[#065f41]"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Search */}
+                <div className="relative max-w-sm">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="بحث في القائمة السوداء..."
+                    value={blacklistSearch}
+                    onChange={(e) => setBlacklistSearch(e.target.value)}
+                    className="pr-10"
+                  />
+                </div>
+
+                {/* List */}
+                <div className="max-h-[400px] overflow-y-auto space-y-2">
+                  {blacklist
+                    .filter(b => 
+                      b.company_name.toLowerCase().includes(blacklistSearch.toLowerCase()) ||
+                      (b.domain?.toLowerCase().includes(blacklistSearch.toLowerCase()))
+                    )
+                    .map(entry => (
+                      <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                        <div className="flex-1">
+                          <p className="font-medium">{entry.company_name}</p>
+                          <div className="flex gap-2 text-xs text-gray-500">
+                            {entry.domain && <span className="font-mono">{entry.domain}</span>}
+                            {entry.city && <span>• {entry.city}</span>}
+                            {entry.category && <Badge variant="outline" className="text-xs">{entry.category}</Badge>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={entry.is_active ?? true}
+                            onCheckedChange={async (v) => {
+                              const { error } = await supabase.from('domain_blacklist').update({ is_active: v }).eq('id', entry.id);
+                              if (!error) {
+                                setBlacklist(prev => prev.map(b => b.id === entry.id ? { ...b, is_active: v } : b));
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={async () => {
+                              const { error } = await supabase.from('domain_blacklist').delete().eq('id', entry.id);
+                              if (!error) {
+                                setBlacklist(prev => prev.filter(b => b.id !== entry.id));
+                                toast.success('تم الحذف');
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* =============== TAB: FORBIDDEN PATTERNS =============== */}
+          <TabsContent value="patterns">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileWarning className="w-5 h-5 text-amber-600" />
+                  الأنماط المحظورة
+                </CardTitle>
+                <CardDescription>أنماط النصوص الممنوعة في الـ Slugs والمحتوى</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add new pattern */}
+                <div className="flex gap-2 p-4 bg-gray-50 rounded-lg">
+                  <Input
+                    placeholder="النمط..."
+                    value={newPattern.pattern}
+                    onChange={(e) => setNewPattern(prev => ({ ...prev, pattern: e.target.value }))}
+                    className="flex-1"
+                  />
+                  <Select value={newPattern.pattern_type} onValueChange={(v) => setNewPattern(prev => ({ ...prev, pattern_type: v }))}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contains">يحتوي</SelectItem>
+                      <SelectItem value="exact">مطابق</SelectItem>
+                      <SelectItem value="starts_with">يبدأ بـ</SelectItem>
+                      <SelectItem value="ends_with">ينتهي بـ</SelectItem>
+                      <SelectItem value="regex">تعبير نمطي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="الوصف..."
+                    value={newPattern.description}
+                    onChange={(e) => setNewPattern(prev => ({ ...prev, description: e.target.value }))}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={async () => {
+                      if (!newPattern.pattern.trim()) {
+                        toast.error('يرجى إدخال النمط');
+                        return;
+                      }
+                      try {
+                        const { error } = await supabase.from('forbidden_patterns').insert({
+                          pattern: newPattern.pattern,
+                          pattern_type: newPattern.pattern_type,
+                          description: newPattern.description || null,
+                          is_active: true,
+                        });
+                        if (error) throw error;
+                        toast.success('تمت الإضافة بنجاح');
+                        setNewPattern({ pattern: "", pattern_type: "contains", description: "" });
+                        fetchData();
+                      } catch (err: any) {
+                        toast.error(err.message || 'حدث خطأ');
+                      }
+                    }}
+                    className="bg-[#01411C] hover:bg-[#065f41]"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* List */}
+                <div className="space-y-2">
+                  {patterns.map(pattern => (
+                    <div key={pattern.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                      <div className="flex-1">
+                        <p className="font-mono font-medium">{pattern.pattern}</p>
+                        <div className="flex gap-2 text-xs text-gray-500">
+                          <Badge variant="outline">{pattern.pattern_type || 'contains'}</Badge>
+                          {pattern.description && <span>{pattern.description}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={pattern.is_active ?? true}
+                          onCheckedChange={async (v) => {
+                            const { error } = await supabase.from('forbidden_patterns').update({ is_active: v }).eq('id', pattern.id);
+                            if (!error) {
+                              setPatterns(prev => prev.map(p => p.id === pattern.id ? { ...p, is_active: v } : p));
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={async () => {
+                            const { error } = await supabase.from('forbidden_patterns').delete().eq('id', pattern.id);
+                            if (!error) {
+                              setPatterns(prev => prev.filter(p => p.id !== pattern.id));
+                              toast.success('تم الحذف');
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* =============== TAB: DOMAIN SETTINGS =============== */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cog className="w-5 h-5 text-[#01411C]" />
+                  إعدادات النطاقات
+                </CardTitle>
+                <CardDescription>إعدادات عامة للتسعير والتحذيرات</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {domainSettings ? (
+                  <>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">تفعيل التسعير</p>
+                        <p className="text-sm text-gray-500">السماح بتحديد أسعار للنطاقات المميزة</p>
+                      </div>
+                      <Switch
+                        checked={domainSettings.pricing_enabled ?? false}
+                        onCheckedChange={async (v) => {
+                          const { error } = await supabase.from('domain_settings').update({ pricing_enabled: v }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, pricing_enabled: v } : null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-4 border rounded-lg space-y-3">
+                      <Label>السعر الافتراضي (ريال)</Label>
+                      <Input
+                        type="number"
+                        value={domainSettings.default_price || ''}
+                        onChange={async (e) => {
+                          const value = e.target.value ? Number(e.target.value) : null;
+                          const { error } = await supabase.from('domain_settings').update({ default_price: value }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, default_price: value } : null);
+                        }}
+                        className="max-w-[200px]"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">تحذير الأولوية</p>
+                        <p className="text-sm text-gray-500">عرض تحذير عند محاولة حجز نطاق له أولوية</p>
+                      </div>
+                      <Switch
+                        checked={domainSettings.priority_warning_enabled ?? false}
+                        onCheckedChange={async (v) => {
+                          const { error } = await supabase.from('domain_settings').update({ priority_warning_enabled: v }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, priority_warning_enabled: v } : null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-4 border rounded-lg space-y-3">
+                      <Label>رسالة تحذير الأولوية</Label>
+                      <Textarea
+                        value={domainSettings.priority_warning_message || ''}
+                        onChange={async (e) => {
+                          const { error } = await supabase.from('domain_settings').update({ priority_warning_message: e.target.value }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, priority_warning_message: e.target.value } : null);
+                        }}
+                        placeholder="الرسالة التي ستظهر للمستخدم..."
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Cog className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لم يتم العثور على إعدادات النطاقات</p>
+                    <Button 
+                      className="mt-4"
+                      onClick={async () => {
+                        const { data, error } = await supabase.from('domain_settings').insert({}).select().single();
+                        if (!error && data) setDomainSettings(data);
+                      }}
+                    >
+                      إنشاء الإعدادات
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
