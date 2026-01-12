@@ -319,6 +319,147 @@ export function useCRMCustomers() {
       .eq('id', id);
   }, []);
 
+  // Log customer activity to metadata
+  type ActivityType = 
+    | 'call' 
+    | 'whatsapp' 
+    | 'email' 
+    | 'tab_update' 
+    | 'property_published' 
+    | 'quote_received' 
+    | 'request_received' 
+    | 'document_added' 
+    | 'task_added' 
+    | 'appointment_added' 
+    | 'offer_received' 
+    | 'offer_published';
+
+  interface ActivityDetails {
+    title?: string;
+    description?: string;
+    tabName?: string;
+    docType?: 'quote' | 'receipt';
+    isPublished?: boolean;
+    [key: string]: any;
+  }
+
+  const logActivity = useCallback(async (
+    customerId: string,
+    activityType: ActivityType,
+    details?: ActivityDetails
+  ): Promise<void> => {
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    const timestamp = new Date().toISOString();
+    const currentMetadata = (customer.metadata as Record<string, any>) || {};
+    
+    // Determine which metadata field to update based on activity type
+    let metadataUpdate: Record<string, any> = { ...currentMetadata };
+    
+    switch (activityType) {
+      case 'call':
+      case 'whatsapp':
+      case 'email':
+        // Also update last_contact for communication activities
+        metadataUpdate.lastCall = { 
+          type: activityType,
+          timestamp,
+          ...details 
+        };
+        await supabase
+          .from('crm_customers')
+          .update({ 
+            last_contact: timestamp.split('T')[0],
+            metadata: metadataUpdate as Json
+          })
+          .eq('id', customerId);
+        break;
+        
+      case 'tab_update':
+        metadataUpdate.lastTabUpdate = { 
+          timestamp,
+          tabName: details?.tabName || 'تحديث',
+          ...details 
+        };
+        break;
+        
+      case 'property_published':
+        metadataUpdate.lastPropertyPublished = { 
+          timestamp,
+          title: details?.title || 'عقار جديد',
+          ...details 
+        };
+        break;
+        
+      case 'quote_received':
+        metadataUpdate.lastQuoteReceived = { 
+          timestamp,
+          title: details?.title || 'عرض سعر',
+          ...details 
+        };
+        break;
+        
+      case 'request_received':
+        metadataUpdate.lastRequestReceived = { 
+          timestamp,
+          title: details?.title || 'طلب عقار',
+          ...details 
+        };
+        break;
+        
+      case 'document_added':
+        metadataUpdate.lastDocumentAdded = { 
+          timestamp,
+          docType: details?.docType || 'quote',
+          title: details?.title || 'مستند جديد',
+          ...details 
+        };
+        break;
+        
+      case 'task_added':
+        metadataUpdate.lastTaskAdded = { 
+          timestamp,
+          title: details?.title || 'مهمة جديدة',
+          ...details 
+        };
+        break;
+        
+      case 'appointment_added':
+        metadataUpdate.lastAppointmentAdded = { 
+          timestamp,
+          title: details?.title || 'موعد جديد',
+          ...details 
+        };
+        break;
+        
+      case 'offer_received':
+      case 'offer_published':
+        metadataUpdate.lastOfferActivity = { 
+          timestamp,
+          isPublished: activityType === 'offer_published',
+          title: details?.title || 'عرض',
+          ...details 
+        };
+        break;
+    }
+    
+    // Update metadata in database
+    if (activityType !== 'call' && activityType !== 'whatsapp' && activityType !== 'email') {
+      await supabase
+        .from('crm_customers')
+        .update({ metadata: metadataUpdate as Json })
+        .eq('id', customerId);
+    }
+    
+    // Update local state
+    setCustomers(prev => prev.map(c => 
+      c.id === customerId 
+        ? { ...c, metadata: metadataUpdate as Json }
+        : c
+    ));
+  }, [customers]);
+
   // Initialize
   useEffect(() => {
     if (user) {
@@ -379,6 +520,7 @@ export function useCRMCustomers() {
     findByPhone,
     findOrCreate,
     updateLastContact,
+    logActivity,
     refetch: fetchCustomers,
   };
 }
