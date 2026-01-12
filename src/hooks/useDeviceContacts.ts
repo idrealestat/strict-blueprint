@@ -6,7 +6,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Contacts, ContactPayload, PhonePayload, EmailPayload } from '@capacitor-community/contacts';
+import { Contacts, ContactPayload, PhonePayload, EmailPayload, PhoneType, EmailType } from '@capacitor-community/contacts';
 import { toast } from 'sonner';
 
 export interface DeviceContact {
@@ -28,11 +28,14 @@ interface UseDeviceContactsReturn {
   requestPermission: () => Promise<boolean>;
   fetchContacts: () => Promise<void>;
   searchContacts: (query: string) => DeviceContact[];
+  saveContactToDevice: (contact: { name: string; phone: string; email?: string }) => Promise<boolean>;
+  isSaving: boolean;
 }
 
 export function useDeviceContacts(): UseDeviceContactsReturn {
   const [contacts, setContacts] = useState<DeviceContact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
 
@@ -156,6 +159,60 @@ export function useDeviceContacts(): UseDeviceContactsReturn {
     );
   }, [contacts]);
 
+  // حفظ جهة اتصال في دفتر الهاتف
+  const saveContactToDevice = useCallback(async (contact: { name: string; phone: string; email?: string }): Promise<boolean> => {
+    if (!isNativePlatform) {
+      toast.error('هذه الميزة متاحة فقط على التطبيق الأصلي');
+      return false;
+    }
+
+    try {
+      setIsSaving(true);
+
+      // طلب صلاحية الكتابة إذا لم تكن متوفرة
+      const permissionStatus = await Contacts.requestPermissions();
+      if (permissionStatus.contacts !== 'granted') {
+        toast.error('يجب السماح بالوصول لجهات الاتصال');
+        return false;
+      }
+
+      // إنشاء جهة الاتصال
+      await Contacts.createContact({
+        contact: {
+          name: {
+            given: contact.name.split(' ')[0],
+            family: contact.name.split(' ').slice(1).join(' ') || '',
+          },
+          phones: [
+            {
+              type: PhoneType.Mobile,
+              number: contact.phone,
+            }
+          ],
+          emails: contact.email ? [
+            {
+              type: EmailType.Work,
+              address: contact.email,
+            }
+          ] : undefined,
+        }
+      });
+
+      toast.success(`تم حفظ ${contact.name} في دفتر الهاتف`);
+      
+      // تحديث قائمة جهات الاتصال
+      await fetchContacts();
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error saving contact:', err);
+      toast.error('فشل في حفظ جهة الاتصال');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isNativePlatform, fetchContacts]);
+
   // التحقق من الصلاحيات عند التحميل
   useEffect(() => {
     checkPermission();
@@ -164,11 +221,13 @@ export function useDeviceContacts(): UseDeviceContactsReturn {
   return {
     contacts,
     isLoading,
+    isSaving,
     error,
     hasPermission,
     isNativePlatform,
     requestPermission,
     fetchContacts,
     searchContacts,
+    saveContactToDevice,
   };
 }
