@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users } from 'lucide-react';
+import { getDisplayName } from '@/components/business-card/DisplayNameSettings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OfferDetailsPage from './OfferDetailsPage';
@@ -129,6 +130,9 @@ interface BusinessCardData {
   profileImage: string;
   coverImage: string;
   logoImage: string;
+  // إعدادات اسم العرض
+  displayNameType?: 'personal' | 'company' | 'platform';
+  platformNameArabic?: string;
 }
 
 interface MyPublicPlatformContentProps {
@@ -888,8 +892,15 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
           {/* Profile Info - نفس التنسيق في بطاقة الأعمال */}
           <div className="pt-4 pb-8 px-4 text-center">
-            {/* Name and Badge */}
-            <h1 className="text-2xl font-bold text-white">{effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي'}</h1>
+            {/* Name and Badge - استخدام getDisplayName للحصول على الاسم حسب الإعدادات */}
+            <h1 className="text-2xl font-bold text-white">
+              {getDisplayName(
+                effectiveBusinessCardData?.displayNameType || 'personal',
+                effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي',
+                effectiveBusinessCardData?.companyName || '',
+                effectiveBusinessCardData?.platformNameArabic || ''
+              )}
+            </h1>
             <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
               <span 
                 className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm"
@@ -909,8 +920,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               )}
             </div>
 
-            {/* Company */}
-            {effectiveBusinessCardData?.companyName && (
+            {/* Company - يُعرض فقط إذا لم يكن نوع العرض هو الشركة (لتجنب التكرار) */}
+            {effectiveBusinessCardData?.companyName && effectiveBusinessCardData?.displayNameType !== 'company' && (
               <p className="mt-2 text-white/90 flex items-center justify-center gap-1">
                 <Building2 className="w-4 h-4" />
                 {effectiveBusinessCardData.companyName}
