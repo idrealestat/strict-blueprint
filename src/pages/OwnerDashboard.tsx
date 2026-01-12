@@ -1304,13 +1304,13 @@ const OwnerDashboard: React.FC = () => {
                   <Input
                     placeholder="الاسم الأول..."
                     value={newException.name}
-                    onChange={(e) => setNewException(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setNewException((prev) => ({ ...prev, name: e.target.value }))}
                     className="flex-1"
                   />
                   <Input
                     placeholder="ملاحظات (اختياري)..."
                     value={newException.notes}
-                    onChange={(e) => setNewException(prev => ({ ...prev, notes: e.target.value }))}
+                    onChange={(e) => setNewException((prev) => ({ ...prev, notes: e.target.value }))}
                     className="flex-1"
                   />
                   <Button onClick={handleAddException} className="bg-[#01411C] hover:bg-[#065f41]">
@@ -1319,16 +1319,11 @@ const OwnerDashboard: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {exceptions.map(exception => (
-                    <div
-                      key={exception.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
+                  {exceptions.map((exception) => (
+                    <div key={exception.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{exception.first_name_normalized}</p>
-                        {exception.notes && (
-                          <p className="text-xs text-gray-500">{exception.notes}</p>
-                        )}
+                        {exception.notes && <p className="text-xs text-gray-500">{exception.notes}</p>}
                       </div>
                       <Switch
                         checked={exception.is_enabled}
@@ -1340,53 +1335,6 @@ const OwnerDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* =============== DIALOGS =============== */}
-      
-      {/* User Override Dialog */}
-      <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
-        <DialogContent className="max-w-lg" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              استثناءات المستخدم
-            </DialogTitle>
-            <DialogDescription>
-              {selectedUserOverride?.user_name} - {selectedUserOverride?.email || selectedUserOverride?.fal_license_number}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedUserOverride && (
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {FEATURE_FLAG_KEYS.map(key => (
-                <FeatureToggleRow
-                  key={key}
-                  flagKey={key}
-                  value={selectedUserOverride[key] as boolean | null}
-                  globalValue={globalDefaults?.[key] as boolean}
-                  onChange={(v) => handleUserOverrideChange(selectedUserOverride.user_id, key, v)}
-                  showDiffIndicator
-                  triState
-                />
-              ))}
-            </div>
-          )}
-          
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="destructive"
-              onClick={() => selectedUserOverride && handleDeleteUserOverride(selectedUserOverride.user_id)}
-            >
-              حذف الاستثناء
-            </Button>
-            <Button variant="outline" onClick={() => setShowUserDialog(false)}>
-              إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
           {/* =============== TAB: CHANGE LOG =============== */}
           <TabsContent value="changelog">
@@ -1396,9 +1344,7 @@ const OwnerDashboard: React.FC = () => {
                   <History className="w-5 h-5 text-[#01411C]" />
                   سجل تغييرات الإعدادات
                 </CardTitle>
-                <CardDescription>
-                  تتبع جميع التغييرات التي تمت على إعدادات الميزات
-                </CardDescription>
+                <CardDescription>تتبع جميع التغييرات التي تمت على إعدادات الميزات</CardDescription>
               </CardHeader>
               <CardContent>
                 {logLoading ? (
@@ -1414,10 +1360,10 @@ const OwnerDashboard: React.FC = () => {
                 ) : (
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {changeLog.map((log) => (
-                      <div 
-                        key={log.id} 
+                      <div
+                        key={log.id}
                         className={`p-3 rounded-lg border ${
-                          log.new_value ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'
+                          log.new_value ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -1432,39 +1378,37 @@ const OwnerDashboard: React.FC = () => {
                             </span>
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {log.change_type === 'global_default' && 'إعداد عام'}
-                            {log.change_type === 'user_override' && 'استثناء مستخدم'}
-                            {log.change_type === 'business_rule' && 'قاعدة أعمال'}
+                            {log.change_type === "global_default" && "إعداد عام"}
+                            {log.change_type === "user_override" && "استثناء مستخدم"}
+                            {log.change_type === "business_rule" && "قاعدة أعمال"}
                           </Badge>
                         </div>
                         <div className="mt-2 text-xs text-gray-600 flex items-center justify-between">
                           <span>
                             {log.old_value !== null ? (
-                              <span className={log.old_value ? 'text-green-600' : 'text-red-600'}>
-                                {log.old_value ? 'مفعّل' : 'معطّل'}
+                              <span className={log.old_value ? "text-green-600" : "text-red-600"}>
+                                {log.old_value ? "مفعّل" : "معطّل"}
                               </span>
                             ) : (
                               <span className="text-gray-400">-</span>
                             )}
-                            {' '}→{' '}
-                            <span className={log.new_value ? 'text-green-600' : 'text-red-600'}>
-                              {log.new_value ? 'مفعّل' : 'معطّل'}
+                            {" "}→{" "}
+                            <span className={log.new_value ? "text-green-600" : "text-red-600"}>
+                              {log.new_value ? "مفعّل" : "معطّل"}
                             </span>
                           </span>
                           <span className="text-gray-400">
-                            {new Date(log.created_at).toLocaleString('ar-SA', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
+                            {new Date(log.created_at).toLocaleString("ar-SA", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
                             })}
                           </span>
                         </div>
                         {log.target_account_type && (
-                          <div className="mt-1 text-xs text-gray-500">
-                            نوع الحساب: {log.target_account_type}
-                          </div>
+                          <div className="mt-1 text-xs text-gray-500">نوع الحساب: {log.target_account_type}</div>
                         )}
                       </div>
                     ))}
@@ -1473,6 +1417,54 @@ const OwnerDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* =============== DIALOGS =============== */}
+
+      {/* User Override Dialog */}
+      <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              استثناءات المستخدم
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUserOverride?.user_name} - {selectedUserOverride?.email || selectedUserOverride?.fal_license_number}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUserOverride && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              {FEATURE_FLAG_KEYS.map((key) => (
+                <FeatureToggleRow
+                  key={key}
+                  flagKey={key}
+                  value={selectedUserOverride[key] as boolean | null}
+                  globalValue={globalDefaults?.[key] as boolean}
+                  onChange={(v) => handleUserOverrideChange(selectedUserOverride.user_id, key, v)}
+                  showDiffIndicator
+                  triState
+                />
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="destructive"
+              onClick={() => selectedUserOverride && handleDeleteUserOverride(selectedUserOverride.user_id)}
+            >
+              حذف الاستثناء
+            </Button>
+            <Button variant="outline" onClick={() => setShowUserDialog(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Approve Request Dialog */}
       <Dialog open={approveDialog.open} onOpenChange={(v) => !v && setApproveDialog({ open: false, request: null })}>
