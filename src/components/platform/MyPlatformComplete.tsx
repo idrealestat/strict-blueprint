@@ -2,7 +2,7 @@
  * MyPlatformComplete.tsx
  * منصتي - النسخة الكاملة مع 3 تبويبات + نظام العروض الهرمي
  * التبويبات: المنصة (in-app preview) / العروض / الطلبات
- * "نشر عقار" هو زر في الـ header وليس تبويب
+ * "نشر إعلان" هو زر في الـ header يفتح صفحة كاملة
  */
 
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -1636,7 +1636,7 @@ export default function MyPlatformComplete({
             </div>
             
             <Button
-              onClick={() => setShowPublishDialog(true)}
+              onClick={() => window.location.href = '/app/publish-ad'}
               className="text-white"
               style={{ 
                 backgroundColor: digitalCardHeader?.secondaryColor || '#D4AF37',
@@ -1644,7 +1644,7 @@ export default function MyPlatformComplete({
               }}
             >
               <Plus className="w-4 h-4 ml-2" />
-              نشر عقار
+              نشر إعلان
             </Button>
           </div>
         </div>
@@ -2400,7 +2400,7 @@ export default function MyPlatformComplete({
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Plus className="w-6 h-6 text-[#01411C]" />
-              نشر عقار جديد
+              نشر إعلان جديد
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 pt-4">

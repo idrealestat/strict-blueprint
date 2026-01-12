@@ -497,7 +497,7 @@ export function LeftSliderComplete({
       <div className="grid grid-cols-2 gap-4">
         <ToolCard
           icon={<Upload className="w-6 h-6 text-[#01411C]" />}
-          label="نشر عقار"
+          label="نشر إعلان"
           onClick={() => {
             onNavigate?.("property-upload-complete");
             onClose();

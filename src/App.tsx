@@ -38,6 +38,7 @@ import RecoverDomainPage from "./pages/RecoverDomainPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
 import DomainRequestsListPage from "./pages/DomainRequestsListPage";
 import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
+import PublishAdPage from "./pages/PublishAdPage";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
@@ -433,6 +434,12 @@ const App = () => {
                   <Route path="/app/dashboard" element={
                     <BusinessCardGuard>
                       <DashboardContent isNewUser={isNewUser} />
+                    </BusinessCardGuard>
+                  } />
+                  
+                  <Route path="/app/publish-ad" element={
+                    <BusinessCardGuard>
+                      <PublishAdPage />
                     </BusinessCardGuard>
                   } />
                   
