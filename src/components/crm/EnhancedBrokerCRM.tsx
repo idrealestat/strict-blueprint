@@ -1621,7 +1621,34 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     
                                     {/* 3. نوع العميل + درجة الاهتمام (يسار) + التاقات (يمين) */}
                                     <div className="flex items-start justify-between gap-2 mb-2">
-                                      {/* اليسار: نوع العميل + درجة الاهتمام */}
+                                      {/* اليمين (في RTL): التاقات (سطرين كحد أقصى) */}
+                                      {customer.tags && customer.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-0.5 justify-start max-w-[120px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
+                                          {(expandedCardId === customer.id ? customer.tags.slice(0, 9) : customer.tags.slice(0, 4)).map((tag, idx) => {
+                                            const tagColor = getTagColor(tag);
+                                            return (
+                                              <Badge 
+                                                key={idx}
+                                                style={{ 
+                                                  backgroundColor: tagColor.bg,
+                                                  color: tagColor.text,
+                                                  borderColor: tagColor.border
+                                                }}
+                                                className="text-[8px] px-1 py-0 border h-4"
+                                              >
+                                                {tag}
+                                              </Badge>
+                                            );
+                                          })}
+                                          {customer.tags.length > (expandedCardId === customer.id ? 9 : 4) && (
+                                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-dashed">
+                                              +{customer.tags.length - (expandedCardId === customer.id ? 9 : 4)}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      {/* اليسار (في RTL): نوع العميل + درجة الاهتمام */}
                                       <div className="flex flex-col gap-1">
                                         {/* نوع العميل - مطابق للصورة */}
                                         <Select
@@ -1711,33 +1738,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      
-                                      {/* اليمين: التاقات (سطرين كحد أقصى) */}
-                                      {customer.tags && customer.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-0.5 justify-end max-w-[120px]" style={{ maxHeight: expandedCardId === customer.id ? '72px' : '36px', overflow: 'hidden' }}>
-                                          {(expandedCardId === customer.id ? customer.tags.slice(0, 9) : customer.tags.slice(0, 4)).map((tag, idx) => {
-                                            const tagColor = getTagColor(tag);
-                                            return (
-                                              <Badge 
-                                                key={idx}
-                                                style={{ 
-                                                  backgroundColor: tagColor.bg,
-                                                  color: tagColor.text,
-                                                  borderColor: tagColor.border
-                                                }}
-                                                className="text-[8px] px-1 py-0 border h-4"
-                                              >
-                                                {tag}
-                                              </Badge>
-                                            );
-                                          })}
-                                          {customer.tags.length > (expandedCardId === customer.id ? 9 : 4) && (
-                                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-dashed">
-                                              +{customer.tags.length - (expandedCardId === customer.id ? 9 : 4)}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      )}
                                     </div>
                                     
                                     {/* 4. زر إضافة زميل للمتابعة */}
