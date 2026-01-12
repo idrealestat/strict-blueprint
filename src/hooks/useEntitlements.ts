@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export type PlanCode = 'INDIVIDUAL' | 'OFFICE';
 export type SubscriptionStatus = 'trial' | 'active' | 'expired';
@@ -55,7 +55,7 @@ const FEATURES_CONFIG: Record<string, Record<string, FeatureKey[]>> = {
 };
 
 export function useEntitlements() {
-  const { user, isAuthenticated, loading: authLoading } = useAuthContext();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [hasFetched, setHasFetched] = useState(false);
   const [entitlement, setEntitlement] = useState<UserEntitlement>({
     planCode: null,
