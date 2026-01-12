@@ -23,8 +23,9 @@ import {
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
   ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2,
-  Download, Upload, FileJson, FileSpreadsheet
+  Download, Upload, FileJson, FileSpreadsheet, Brain
 } from "lucide-react";
+import { BehavioralDashboard } from "@/components/behavioral";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -1121,7 +1122,11 @@ const OwnerDashboard: React.FC = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-9 mb-6 overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-10 mb-6 overflow-x-auto">
+            <TabsTrigger value="behavioral" className="flex items-center gap-1 text-xs">
+              <Brain className="w-4 h-4" />
+              <span className="hidden sm:inline">الذكاء</span>
+            </TabsTrigger>
             <TabsTrigger value="global" className="flex items-center gap-1 text-xs">
               <Globe className="w-4 h-4" />
               <span className="hidden sm:inline">الإعدادات</span>
@@ -1166,6 +1171,11 @@ const OwnerDashboard: React.FC = () => {
               <span className="hidden sm:inline">السجل</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* =============== TAB: BEHAVIORAL INTELLIGENCE =============== */}
+          <TabsContent value="behavioral">
+            <BehavioralDashboard />
+          </TabsContent>
 
           {/* =============== TAB: GLOBAL DEFAULTS (LAYER 1) =============== */}
           <TabsContent value="global">
