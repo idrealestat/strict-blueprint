@@ -4,13 +4,24 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, VolumeX, ThumbsUp, ThumbsDown, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSmartAssistant } from '@/hooks/useSmartAssistant';
 
+// Pages where the assistant should NOT appear
+const EXCLUDED_PAGES = [
+  '/app/settings',
+  '/app/business-card/edit',
+  '/app/platform/edit',
+  '/app/owner-dashboard',
+  '/edit',
+];
+
 export function SmartAssistantBubble() {
+  const location = useLocation();
   const {
     isVisible,
     messages,
@@ -29,6 +40,11 @@ export function SmartAssistantBubble() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Check if current page is excluded
+  const isExcludedPage = EXCLUDED_PAGES.some(page => 
+    location.pathname.includes(page) || location.pathname.endsWith('/edit')
+  );
+
   const handleSend = () => {
     if (!inputValue.trim()) return;
     sendMessage(inputValue);
@@ -42,7 +58,8 @@ export function SmartAssistantBubble() {
     }
   };
 
-  if (silentMode || !isVisible) return null;
+  // Don't show on excluded pages
+  if (silentMode || !isVisible || isExcludedPage) return null;
 
   return (
     <AnimatePresence>
