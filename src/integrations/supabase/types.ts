@@ -14,6 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
+      assistant_conversations: {
+        Row: {
+          analysis: Json | null
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          messages: Json | null
+          outcome: string | null
+          page_path: string
+          session_id: string
+          signal_id: string | null
+          trigger_reason: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          messages?: Json | null
+          outcome?: string | null
+          page_path: string
+          session_id: string
+          signal_id?: string | null
+          trigger_reason: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          messages?: Json | null
+          outcome?: string | null
+          page_path?: string
+          session_id?: string
+          signal_id?: string | null
+          trigger_reason?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_conversations_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "behavioral_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      behavioral_insights: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          implementation_priority: string | null
+          insight_type: string
+          metadata: Json | null
+          occurrence_count: number | null
+          page_path: string | null
+          severity: string | null
+          status: string | null
+          suggested_improvement: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          implementation_priority?: string | null
+          insight_type: string
+          metadata?: Json | null
+          occurrence_count?: number | null
+          page_path?: string | null
+          severity?: string | null
+          status?: string | null
+          suggested_improvement?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          implementation_priority?: string | null
+          insight_type?: string
+          metadata?: Json | null
+          occurrence_count?: number | null
+          page_path?: string | null
+          severity?: string | null
+          status?: string | null
+          suggested_improvement?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      behavioral_sessions: {
+        Row: {
+          assistant_interventions: number | null
+          ended_at: string | null
+          exit_reason: string | null
+          exit_type: string | null
+          id: string
+          metadata: Json | null
+          pages_visited: string[] | null
+          session_id: string
+          started_at: string | null
+          total_signals: number | null
+          user_id: string | null
+          was_rescued: boolean | null
+          was_stuck: boolean | null
+        }
+        Insert: {
+          assistant_interventions?: number | null
+          ended_at?: string | null
+          exit_reason?: string | null
+          exit_type?: string | null
+          id?: string
+          metadata?: Json | null
+          pages_visited?: string[] | null
+          session_id: string
+          started_at?: string | null
+          total_signals?: number | null
+          user_id?: string | null
+          was_rescued?: boolean | null
+          was_stuck?: boolean | null
+        }
+        Update: {
+          assistant_interventions?: number | null
+          ended_at?: string | null
+          exit_reason?: string | null
+          exit_type?: string | null
+          id?: string
+          metadata?: Json | null
+          pages_visited?: string[] | null
+          session_id?: string
+          started_at?: string | null
+          total_signals?: number | null
+          user_id?: string | null
+          was_rescued?: boolean | null
+          was_stuck?: boolean | null
+        }
+        Relationships: []
+      }
+      behavioral_signals: {
+        Row: {
+          assistant_intervened: boolean | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          intervention_result: string | null
+          metadata: Json | null
+          page_name: string | null
+          page_path: string
+          session_id: string
+          signal_type: string
+          user_id: string | null
+        }
+        Insert: {
+          assistant_intervened?: boolean | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          intervention_result?: string | null
+          metadata?: Json | null
+          page_name?: string | null
+          page_path: string
+          session_id: string
+          signal_type: string
+          user_id?: string | null
+        }
+        Update: {
+          assistant_intervened?: boolean | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          intervention_result?: string | null
+          metadata?: Json | null
+          page_name?: string | null
+          page_path?: string
+          session_id?: string
+          signal_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       business_cards: {
         Row: {
           created_at: string
