@@ -957,12 +957,47 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           </Button>
         </div>
 
+        {/* شريط الرابط مع زر النسخ - مطابق لبطاقة الأعمال */}
+        <div className="relative z-10 mx-4 mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <svg className="w-4 h-4 text-[#D4AF37] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <span className="text-xs text-white/70">الرابط:</span>
+              <span className="text-sm font-medium text-white truncate" dir="ltr">
+                {getPlatformUrl()}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(getPlatformUrl());
+                toast.success("تم نسخ الرابط!");
+              }}
+              className="text-white hover:bg-white/20 px-2 py-1 h-auto flex-shrink-0"
+            >
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
         <div className="max-w-7xl mx-auto text-center relative z-10">
-          {/* Profile Image - نفس الحجم والتنسيق في بطاقة الأعمال */}
+          {/* Profile Image - نفس الحجم والتنسيق في بطاقة الأعمال مع دعم التبديل */}
           <div className="flex justify-center pt-6">
-            <div className="relative">
+            <div 
+              className="relative cursor-pointer group select-none"
+              onClick={() => {
+                if (effectiveBusinessCardData?.profileImage && effectiveBusinessCardData?.logoImage) {
+                  setIsSwapped(!isSwapped);
+                }
+              }}
+            >
               {/* Main Image - الصورة الكبيرة حسب حالة التبديل */}
-              <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden bg-gradient-to-br from-white/20 to-white/10 transition-all duration-300">
+              <div className="w-36 h-36 rounded-full border-4 border-[#D4AF37] shadow-2xl overflow-hidden bg-gradient-to-br from-white/20 to-white/10 transition-all duration-300 ease-out transform hover:scale-105">
                 {mainImage ? (
                   <img 
                     src={mainImage} 
@@ -975,13 +1010,34 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                   </div>
                 )}
               </div>
-              {/* لا يتم عرض الصورة الصغيرة في منصتي - فقط الصورة الكبيرة */}
+              
+              {/* Small Logo/Profile Badge - الصورة الصغيرة للتبديل */}
+              <div className="absolute bottom-0 right-0 w-12 h-12 rounded-full border-2 border-white shadow-lg bg-[#D4AF37] flex items-center justify-center text-white text-sm overflow-hidden transition-all duration-300 ease-out transform hover:scale-110">
+                {(isSwapped ? effectiveBusinessCardData?.profileImage : effectiveBusinessCardData?.logoImage) ? (
+                  <img 
+                    src={isSwapped ? effectiveBusinessCardData?.profileImage : effectiveBusinessCardData?.logoImage} 
+                    alt={isSwapped ? "Profile" : "Logo"} 
+                    className="w-full h-full object-cover transition-opacity duration-300" 
+                  />
+                ) : (
+                  <span className="transition-all duration-300">
+                    {isSwapped ? (effectiveBusinessCardData?.userName?.charAt(0) || 'و') : "🏢"}
+                  </span>
+                )}
+              </div>
+              
+              {/* Swap indicator - مؤشر التبديل */}
+              {effectiveBusinessCardData?.profileImage && effectiveBusinessCardData?.logoImage && (
+                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-white/90 text-[#01411C] text-xs px-2 py-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  اضغط للتبديل
+                </div>
+              )}
             </div>
           </div>
 
           {/* Profile Info - نفس التنسيق في بطاقة الأعمال */}
           <div className="pt-4 pb-8 px-4 text-center">
-            {/* Name and Badge - استخدام getDisplayName للحصول على الاسم حسب الإعدادات */}
+            {/* Name */}
             <h1 className="text-2xl font-bold text-white">
               {getDisplayName(
                 effectiveBusinessCardData?.displayNameType || 'personal',
@@ -990,6 +1046,15 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                 effectiveBusinessCardData?.platformNameArabic || ''
               )}
             </h1>
+            
+            {/* User Title - المسمى الوظيفي */}
+            <p className="text-white/80 mt-1">
+              {(effectiveBusinessCardData as any)?.userTitle && (effectiveBusinessCardData as any).userTitle !== currentSlug 
+                ? (effectiveBusinessCardData as any).userTitle 
+                : 'وسيط عقاري معتمد'}
+            </p>
+            
+            {/* Badge */}
             <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
               <span 
                 className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm"
