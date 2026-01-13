@@ -227,9 +227,15 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات + localStorage كـ fallback
     if (isPublicViewer) {
       // بطاقة الوسيط للزائر تأتي من businessCardOverride (من الـ backend)
+      // ملاحظة: businessCardOverride قد يكون صف DB يحتوي على data، لذلك نطبعّه لشكل BusinessCardData المتوقع.
       if (typeof businessCardOverride !== 'undefined' && businessCardOverride !== null) {
-        setBusinessCardData(businessCardOverride);
-        setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
+        const overrideAny = businessCardOverride as any;
+        const normalizedCard = overrideAny?.data && typeof overrideAny.data === 'object'
+          ? overrideAny.data
+          : overrideAny;
+
+        setBusinessCardData(normalizedCard);
+        setIsSwapped(Boolean(overrideAny?.data?.swapState ?? overrideAny?.swapState));
       }
 
       if (publicDbError) {
@@ -313,8 +319,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
     if (typeof businessCardOverride !== 'undefined') {
       if (businessCardOverride !== null) {
-        setBusinessCardData(businessCardOverride);
-        setIsSwapped(Boolean((businessCardOverride as any)?.swapState));
+        const overrideAny = businessCardOverride as any;
+        const normalizedCard = overrideAny?.data && typeof overrideAny.data === 'object'
+          ? overrideAny.data
+          : overrideAny;
+
+        setBusinessCardData(normalizedCard);
+        setIsSwapped(Boolean(overrideAny?.data?.swapState ?? overrideAny?.swapState));
       }
       return () => {
         clearInterval(autoRefreshInterval);
