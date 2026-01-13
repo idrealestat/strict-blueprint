@@ -766,7 +766,8 @@ const buildListingKey = (row: any) =>
   `${String(row.title ?? '').trim()}__${String(row.price ?? '').trim()}__${String(row.city ?? '').trim()}__${String(row.district ?? '').trim()}__${String(row.property_type ?? '').trim()}__${String(row.smart_path ?? '').trim()}`;
 
 // Hook للصفحة العامة (قراءة فقط + تحديث لحظي)
-export function usePublicPlatformListings(slug?: string) {
+// يدعم البحث بـ slug أو user_id
+export function usePublicPlatformListings(slug?: string, userId?: string) {
   const [listings, setListings] = useState<PlatformListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -785,7 +786,8 @@ export function usePublicPlatformListings(slug?: string) {
   };
 
   useEffect(() => {
-    if (!slug) {
+    // نحتاج على الأقل slug أو userId
+    if (!slug && !userId) {
       setListings([]);
       setLoading(false);
       return;
@@ -795,12 +797,21 @@ export function usePublicPlatformListings(slug?: string) {
       setLoading(true);
 
       try {
-        const { data, error: fetchError } = await supabase
+        let query = supabase
           .from('platform_listings')
           .select('*')
-          .eq('slug', slug)
           .eq('status', 'published')
           .eq('is_hidden', false)
+          .is('deleted_at', null);
+        
+        // البحث بـ slug أولاً، ثم user_id كخيار ثانٍ
+        if (slug) {
+          query = query.eq('slug', slug);
+        } else if (userId) {
+          query = query.eq('user_id', userId);
+        }
+        
+        const { data, error: fetchError } = await query
           .order('is_pinned', { ascending: false })
           .order('created_at', { ascending: false });
 
@@ -818,15 +829,19 @@ export function usePublicPlatformListings(slug?: string) {
     fetchPublicListings();
 
     // ✅ تحديث لحظي (Realtime) - الزائر يرى التغييرات فوراً
+    const channelId = slug ? `public-listings-${slug}` : `public-listings-user-${userId}`;
+    const filterKey = slug ? 'slug' : 'user_id';
+    const filterValue = slug || userId;
+    
     const channel = supabase
-      .channel(`public-listings-${slug}`)
+      .channel(channelId)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'platform_listings',
-          filter: `slug=eq.${slug}`,
+          filter: `${filterKey}=eq.${filterValue}`,
         },
         (payload) => {
           console.log('Realtime public update:', payload);
@@ -870,7 +885,7 @@ export function usePublicPlatformListings(slug?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [slug]);
+  }, [slug, userId]);
 
   return { listings, loading, error };
 }

@@ -179,8 +179,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const STORAGE_KEY = `business_card_${userId}`;
   const SWAP_KEY = `business_card_swap_${userId}`;
 
-  // تحديد وضع الصفحة العامة للزائر (ليس نفس متصفح/جهاز المالك)
-  const isPublicViewer = userId === 'public';
+  // تحديد وضع الصفحة العامة للزائر
+  // الزائر: عندما يكون هناك platformSlug أو businessCardOverride (يأتي من صفحة خارجية)
+  const isPublicViewer = Boolean(platformSlug && businessCardOverride);
   
   // تحديد القناة: in_app_preview للمالك، public_web للزائر
   const trackingChannel = isPublicViewer ? 'public_web' : 'in_app_preview';
@@ -191,11 +192,15 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const { syncFromLocalStorage } = usePlatformListings(!isPublicViewer ? currentSlug : undefined);
 
   // جلب العروض للزوار من قاعدة البيانات (حتى تظهر على أي جهاز)
+  // يستخدم slug أولاً، ثم user_id كخيار ثانٍ
   const {
     listings: publicDbListings,
     loading: publicDbLoading,
     error: publicDbError,
-  } = usePublicPlatformListings(isPublicViewer ? currentSlug : undefined);
+  } = usePublicPlatformListings(
+    isPublicViewer ? currentSlug : undefined,
+    isPublicViewer && userId && userId !== 'default' ? userId : undefined
+  );
   
   // تتبع مشاهدة صفحة المنصة (مرة واحدة عند التحميل)
   useEffect(() => {
@@ -218,7 +223,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // ===== تحميل العروض =====
   useEffect(() => {
-    // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات
+    // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات + localStorage كـ fallback
     if (isPublicViewer) {
       // بطاقة الوسيط للزائر تأتي من businessCardOverride (من الـ backend)
       if (typeof businessCardOverride !== 'undefined' && businessCardOverride !== null) {
@@ -232,9 +237,42 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
       if (publicDbLoading) return;
 
-      const hierarchy = buildHierarchy(publicDbListings as any[]);
-      setHierarchyData(hierarchy);
-      setAllListings(flattenListings(hierarchy));
+      // إذا وجدنا عروض في قاعدة البيانات نستخدمها
+      if (publicDbListings && publicDbListings.length > 0) {
+        const hierarchy = buildHierarchy(publicDbListings as any[]);
+        setHierarchyData(hierarchy);
+        setAllListings(flattenListings(hierarchy));
+      } else {
+        // Fallback: جلب من localStorage (مؤقتاً حتى تتم المزامنة)
+        try {
+          const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+          const visibility = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
+          
+          if (Array.isArray(publishedAds) && publishedAds.length > 0) {
+            const visibleAds = publishedAds.filter((ad: any) => {
+              const isHidden = visibility[`offer_${ad.id}`] ?? ad.isHidden ?? false;
+              const status = ad.status ?? 'published';
+              return !isHidden && status === 'published';
+            });
+            
+            if (visibleAds.length > 0) {
+              const hierarchy = buildHierarchy(visibleAds);
+              setHierarchyData(hierarchy);
+              setAllListings(flattenListings(hierarchy));
+            } else {
+              setHierarchyData([]);
+              setAllListings([]);
+            }
+          } else {
+            setHierarchyData([]);
+            setAllListings([]);
+          }
+        } catch (e) {
+          console.error('Error loading from localStorage:', e);
+          setHierarchyData([]);
+          setAllListings([]);
+        }
+      }
       return;
     }
 
