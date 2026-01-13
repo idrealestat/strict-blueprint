@@ -976,13 +976,37 @@ export default function PublicOfferForm() {
             <div className="mb-4">
               <Label className="text-cyan-800 mb-2 block">حدد موقع العقار على الخريطة</Label>
               <LocationPickerMap
-                onLocationSelect={(lat, lng) => {
+                onLocationSelect={async (lat, lng) => {
+                  // تحديث الإحداثيات فوراً
                   setFormData(prev => ({
                     ...prev,
                     locationLat: lat.toString(),
                     locationLng: lng.toString(),
                     googleMapsUrl: `https://www.google.com/maps?q=${lat},${lng}`
                   }));
+                  
+                  // جلب العنوان من Nominatim (Reverse Geocoding)
+                  try {
+                    const response = await fetch(
+                      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar&addressdetails=1`
+                    );
+                    const data = await response.json();
+                    
+                    if (data && data.address) {
+                      const addr = data.address;
+                      setFormData(prev => ({
+                        ...prev,
+                        locationCity: addr.city || addr.town || addr.village || addr.state || '',
+                        locationDistrict: addr.suburb || addr.neighbourhood || addr.district || addr.county || '',
+                        locationStreet: addr.road || addr.street || '',
+                        locationPostalCode: addr.postcode || '',
+                        // رقم المبني والرقم الإضافي قد لا يتوفران دائماً
+                        locationBuilding: addr.house_number || '',
+                      }));
+                    }
+                  } catch (error) {
+                    console.error('Error fetching address:', error);
+                  }
                 }}
                 initialLat={formData.locationLat ? parseFloat(formData.locationLat) : 24.7136}
                 initialLng={formData.locationLng ? parseFloat(formData.locationLng) : 46.6753}
