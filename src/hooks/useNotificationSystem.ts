@@ -1,10 +1,13 @@
 /**
  * useNotificationSystem.ts
  * نظام الإشعارات مع التذكير بالمهام المتأخرة والمواعيد القادمة
- * مع صوت تنبيه
+ * مع صوت تنبيه و Realtime من قاعدة البيانات و Push Notifications
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { showPushNotification } from './usePushNotifications';
+import { markAsNew } from './usePublishedAdsManager';
 
 // Types
 export interface SystemNotification {
@@ -160,26 +163,72 @@ export function useNotificationSystem() {
     return newNotification;
   }, [soundEnabled]);
 
-  // Mark as read
-  const markAsRead = useCallback((id: string) => {
+  // Mark as read - with database sync
+  const markAsRead = useCallback(async (id: string) => {
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    
+    // تحديث في قاعدة البيانات
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id);
+    } catch (e) {
+      console.error('Error marking notification as read:', e);
+    }
   }, []);
 
-  // Mark all as read
-  const markAllAsRead = useCallback(() => {
+  // Mark all as read - with database sync
+  const markAllAsRead = useCallback(async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    
+    // تحديث في قاعدة البيانات
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('user_id', user.id);
+      }
+    } catch (e) {
+      console.error('Error marking all notifications as read:', e);
+    }
   }, []);
 
-  // Delete notification
-  const deleteNotification = useCallback((id: string) => {
+  // Delete notification - with database sync
+  const deleteNotification = useCallback(async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+    
+    // حذف من قاعدة البيانات
+    try {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+    } catch (e) {
+      console.error('Error deleting notification:', e);
+    }
   }, []);
 
-  // Delete all notifications
-  const deleteAllNotifications = useCallback(() => {
+  // Delete all notifications - with database sync
+  const deleteAllNotifications = useCallback(async () => {
     setNotifications([]);
+    
+    // حذف من قاعدة البيانات
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', user.id);
+      }
+    } catch (e) {
+      console.error('Error deleting all notifications:', e);
+    }
   }, []);
 
   // Check for overdue tasks
@@ -405,7 +454,7 @@ export function useNotificationSystem() {
     soundManager.playNotificationSound('default');
   }, []);
 
-  // Initialize - load preferences and notifications only once
+  // Initialize - load preferences and fetch notifications from database
   useEffect(() => {
     // Load sound preference
     const savedPref = localStorage.getItem('notificationSoundEnabled');
@@ -415,20 +464,204 @@ export function useNotificationSystem() {
       soundManager.setEnabled(enabled);
     }
 
-    // Load saved notifications
-    const savedNotifications = localStorage.getItem('systemNotifications');
-    if (savedNotifications) {
-      try {
-        const parsed = JSON.parse(savedNotifications);
-        setNotifications(parsed.map((n: any) => ({
-          ...n,
-          createdAt: new Date(n.createdAt),
-        })));
-      } catch (e) {
-        console.error('Error loading notifications:', e);
+    // جلب الإشعارات من قاعدة البيانات
+    const fetchNotificationsFromDB = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // إذا لم يكن هناك مستخدم، جلب من localStorage كاحتياط
+        const savedNotifications = localStorage.getItem('systemNotifications');
+        if (savedNotifications) {
+          try {
+            const parsed = JSON.parse(savedNotifications);
+            setNotifications(parsed.map((n: any) => ({
+              ...n,
+              createdAt: new Date(n.createdAt),
+            })));
+          } catch (e) {
+            console.error('Error loading notifications:', e);
+          }
+        }
+        return;
       }
-    }
+
+      try {
+        const { data: dbNotifications, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) {
+          console.error('Error fetching notifications:', error);
+          return;
+        }
+
+        if (dbNotifications && dbNotifications.length > 0) {
+          const mappedNotifs: SystemNotification[] = dbNotifications.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            time: formatTimeAgo(new Date(n.created_at)),
+            type: mapPriorityToTypeStatic(n.priority),
+            category: mapCategoryToSystemStatic(n.category),
+            read: n.is_read || false,
+            createdAt: new Date(n.created_at),
+            relatedId: n.related_entity_id,
+            actionType: n.notification_type,
+          }));
+
+          setNotifications(mappedNotifs);
+          console.log('[NotificationSystem] Loaded', mappedNotifs.length, 'notifications from DB');
+        }
+      } catch (e) {
+        console.error('Error fetching notifications:', e);
+      }
+    };
+
+    fetchNotificationsFromDB();
   }, []);
+
+  // دوال مساعدة ثابتة (خارج useCallback)
+  function mapPriorityToTypeStatic(priority: string): SystemNotification['type'] {
+    switch (priority) {
+      case 'urgent': return 'error';
+      case 'high': return 'warning';
+      case 'low': return 'info';
+      default: return 'success';
+    }
+  }
+
+  function mapCategoryToSystemStatic(category: string): SystemNotification['category'] {
+    if (category?.includes('customer') || category?.includes('crm')) return 'customer';
+    if (category?.includes('appointment') || category?.includes('calendar')) return 'appointment';
+    if (category?.includes('task')) return 'task';
+    return 'system';
+  }
+
+  function formatTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'الآن';
+    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+    if (diffDays < 7) return `منذ ${diffDays} يوم`;
+    return date.toLocaleDateString('ar-SA');
+  }
+
+  // ==================== REALTIME SUBSCRIPTION ====================
+  // الاشتراك في الوقت الفعلي لجدول notifications
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupRealtimeSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel('db-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('[NotificationSystem] New DB notification:', payload);
+            const newNotif = payload.new as any;
+            
+            // إضافة الإشعار للقائمة
+            const systemNotif: SystemNotification = {
+              id: newNotif.id,
+              title: newNotif.title,
+              message: newNotif.message,
+              time: 'الآن',
+              type: mapPriorityToType(newNotif.priority),
+              category: mapCategoryToSystem(newNotif.category),
+              read: false,
+              createdAt: new Date(newNotif.created_at),
+              relatedId: newNotif.related_entity_id,
+            };
+
+            setNotifications(prev => [systemNotif, ...prev]);
+
+            // تشغيل الصوت
+            if (soundEnabledRef.current) {
+              if (newNotif.priority === 'high' || newNotif.priority === 'urgent') {
+                soundManager.playNotificationSound('urgent');
+              } else {
+                soundManager.playNotificationSound('default');
+              }
+            }
+
+            // إرسال Push Notification للجوال
+            showPushNotification(newNotif.title, newNotif.message, {
+              type: newNotif.notification_type,
+              actionUrl: newNotif.action_url,
+            });
+
+            // تحديث الدوائر النابضة
+            const metadata = newNotif.metadata as Record<string, any> || {};
+            if (metadata.customerId) {
+              markAsNew('customer', metadata.customerId);
+            }
+            if (newNotif.related_entity_id) {
+              markAsNew('offer', newNotif.related_entity_id);
+            }
+            if (metadata.isPulsing) {
+              if (newNotif.notification_type === 'offer') {
+                markAsNew('tab', 'property-offer');
+              } else if (newNotif.notification_type === 'request') {
+                markAsNew('tab', 'property-request');
+              }
+            }
+
+            // إطلاق حدث للمكونات الأخرى
+            window.dispatchEvent(new CustomEvent('dbNotificationReceived', { 
+              detail: { notification: newNotif } 
+            }));
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtimeSubscription();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, []);
+
+  // Ref لتتبع حالة الصوت
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  // دوال مساعدة لتحويل الأنواع
+  function mapPriorityToType(priority: string): SystemNotification['type'] {
+    switch (priority) {
+      case 'urgent': return 'error';
+      case 'high': return 'warning';
+      case 'low': return 'info';
+      default: return 'success';
+    }
+  }
+
+  function mapCategoryToSystem(category: string): SystemNotification['category'] {
+    if (category?.includes('customer') || category?.includes('crm')) return 'customer';
+    if (category?.includes('appointment') || category?.includes('calendar')) return 'appointment';
+    if (category?.includes('task')) return 'task';
+    return 'system';
+  }
 
   // Separate effect for interval - use refs to avoid recreating interval
   const checkOverdueTasksRef = useRef(checkOverdueTasks);

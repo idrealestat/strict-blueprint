@@ -348,7 +348,7 @@ export default function PublicRequestForm() {
           }
         }
 
-        // 4. إنشاء إشعار في قاعدة البيانات
+        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
         await createNotification({
           userId: brokerUserId,
           title: '🔍 طلب عقاري جديد',
@@ -358,6 +358,7 @@ export default function PublicRequestForm() {
           priority: 'high',
           relatedEntityType: 'request_form',
           relatedEntityId: requestId,
+          actionUrl: '/app/crm',
           metadata: {
             clientName: formData.clientName,
             clientPhone: formData.clientPhone,
@@ -367,6 +368,12 @@ export default function PublicRequestForm() {
             customerId: customerId!,
             isNewCustomer,
             isPulsing: true,
+          },
+          sendPush: true,
+          pushData: {
+            type: 'new_request',
+            clientName: formData.clientName,
+            propertyType: formData.propertyType,
           },
         });
 
