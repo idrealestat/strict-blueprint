@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { toast } from "@/hooks/use-toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -301,7 +302,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          toast.error('يرجى تسجيل الدخول');
+          toast({ title: 'يرجى تسجيل الدخول', variant: 'destructive' });
           return;
         }
 
