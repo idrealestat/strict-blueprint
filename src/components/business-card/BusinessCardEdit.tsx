@@ -1480,15 +1480,65 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     className="mt-1"
                   />
                 </div>
-                <div>
-                  <Label>اسم الشركة / المكتب</Label>
-                  <Input
-                    value={formData.companyName}
-                    onChange={(e) => handleInputChange("companyName", e.target.value)}
-                    className="mt-1"
-                    placeholder="اسم الشركة أو المكتب العقاري"
-                  />
-                </div>
+                {/* حقول الشركة - تظهر فقط للمكاتب والشركات */}
+                {(formData.accountType === 'office' || formData.accountType === 'company') ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label>نوع الحساب</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={formData.accountType === 'office' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handleInputChange("accountType", "office")}
+                          className={formData.accountType === 'office' ? 'bg-[#01411C]' : ''}
+                        >
+                          <Building className="w-4 h-4 ml-1" />
+                          مكتب
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={formData.accountType === 'company' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handleInputChange("accountType", "company")}
+                          className={formData.accountType === 'company' ? 'bg-[#01411C]' : ''}
+                        >
+                          <Building className="w-4 h-4 ml-1" />
+                          شركة
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>اسم {formData.accountType === 'office' ? 'المكتب' : 'الشركة'}</Label>
+                      <Input
+                        value={formData.companyName}
+                        onChange={(e) => handleInputChange("companyName", e.target.value)}
+                        className="mt-1"
+                        placeholder={`اسم ${formData.accountType === 'office' ? 'المكتب' : 'الشركة'} العقاري${formData.accountType === 'company' ? 'ة' : ''}`}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  // زر طلب ترقية الحساب للأفراد
+                  <Card className="border-2 border-dashed border-amber-400 bg-amber-50">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-amber-800">حسابك حالياً: فرد</p>
+                          <p className="text-xs text-amber-600">قم بترقية حسابك للوصول إلى ميزات المكتب والشركة</p>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => window.location.href = '/app/choose-plan'}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                        >
+                          <Building className="w-4 h-4 ml-1" />
+                          ترقية الحساب
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 <div>
                   <Label>رابط الموقع الإلكتروني</Label>
                   <Input
@@ -1547,25 +1597,29 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>رقم السجل التجاري</Label>
-                    <Input
-                      value={formData.commercialRegistration}
-                      onChange={(e) => handleInputChange("commercialRegistration", e.target.value)}
-                      className="mt-1"
-                    />
+                
+                {/* حقول السجل التجاري - تظهر فقط للمكاتب والشركات */}
+                {(formData.accountType === 'office' || formData.accountType === 'company') && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>رقم السجل التجاري</Label>
+                      <Input
+                        value={formData.commercialRegistration}
+                        onChange={(e) => handleInputChange("commercialRegistration", e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label>تاريخ انتهاء السجل</Label>
+                      <Input
+                        type="date"
+                        value={formData.commercialExpiryDate}
+                        onChange={(e) => handleInputChange("commercialExpiryDate", e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label>تاريخ انتهاء السجل</Label>
-                    <Input
-                      type="date"
-                      value={formData.commercialExpiryDate}
-                      onChange={(e) => handleInputChange("commercialExpiryDate", e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1594,14 +1648,6 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                       className="mt-1"
                     />
                   </div>
-                </div>
-                <div>
-                  <Label>نوع الحساب</Label>
-                  <Input
-                    value={formData.accountType === 'individual' ? 'فرد' : formData.accountType === 'office' ? 'مكتب' : 'شركة'}
-                    className="mt-1 bg-gray-100"
-                    disabled
-                  />
                 </div>
               </CardContent>
             </Card>
