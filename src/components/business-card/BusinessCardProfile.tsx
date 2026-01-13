@@ -164,39 +164,53 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
 
   // Load data from localStorage - runs on mount and when returning from edit
-  useEffect(() => {
-    const loadData = () => {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          // Merge with defaults to ensure all fields exist
-          setFormData(prev => ({
-            ...defaultFormData,
-            ...parsed,
-            // Ensure images are properly loaded
-            profileImage: parsed.profileImage || "",
-            coverImage: parsed.coverImage || "",
-            logoImage: parsed.logoImage || ""
-          }));
-        } catch (error) {
-          console.error("Error loading saved data:", error);
-        }
+  const loadData = React.useCallback(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    console.log('[BusinessCardProfile] Loading data, STORAGE_KEY:', STORAGE_KEY, 'Data exists:', !!savedData);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        console.log('[BusinessCardProfile] Parsed data - profileImage:', !!parsed.profileImage, 'logoImage:', !!parsed.logoImage);
+        // Merge with defaults to ensure all fields exist
+        setFormData({
+          ...defaultFormData,
+          ...parsed,
+          // Ensure images are properly loaded
+          profileImage: parsed.profileImage || "",
+          coverImage: parsed.coverImage || "",
+          logoImage: parsed.logoImage || ""
+        });
+      } catch (error) {
+        console.error("Error loading saved data:", error);
       }
-    };
-    
+    }
+  }, [STORAGE_KEY]);
+
+  useEffect(() => {
+    // Load immediately on mount
     loadData();
     
-    // Listen for storage changes (when edit page saves)
+    // Listen for storage changes from OTHER tabs
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
         loadData();
       }
     };
     
+    // Listen for custom event from SAME tab (when returning from edit)
+    const handleBusinessCardUpdate = () => {
+      console.log('[BusinessCardProfile] businessCardUpdated event received');
+      loadData();
+    };
+    
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [STORAGE_KEY]);
+    window.addEventListener('businessCardUpdated', handleBusinessCardUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('businessCardUpdated', handleBusinessCardUpdate);
+    };
+  }, [STORAGE_KEY, loadData]);
 
   // Get badge level based on deals and experience
   const getBadgeLevel = () => {
