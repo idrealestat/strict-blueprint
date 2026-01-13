@@ -1,10 +1,13 @@
 /**
  * useBusinessCardData.ts
- * Hook لجلب بيانات البطاقة من مصدر واحد
- * يُستخدم لكل من البطاقة الرسمية والرقمية
+ * Hook لجلب بيانات البطاقة من مصدر واحد - جدول business_cards
+ * يُستخدم لكل من البطاقة الرسمية والرقمية وجميع الصفحات المرتبطة
+ * 
+ * ✅ الحماية: جميع البيانات تُجلب من قاعدة البيانات فقط
+ * أي تعديل في صفحة التحرير → يُحفظ في business_cards → يظهر هنا تلقائياً
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BusinessCardSourceOfTruth } from '@/types/businessCard';
 
@@ -32,101 +35,150 @@ export function useBusinessCardData() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          // Try localStorage fallback
-          const localKey = Object.keys(localStorage).find(k => k.startsWith('business_card_'));
-          if (localKey) {
-            const localData = localStorage.getItem(localKey);
-            if (localData) {
-              const parsed = JSON.parse(localData);
-              setData(mapLocalDataToSource(parsed));
-            }
-          }
-          setLoading(false);
-          return;
-        }
-
-        setUserId(user.id);
-
-        // Fetch from Supabase
-        const { data: businessCard } = await supabase
-          .from('business_cards')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (businessCard) {
-          const cardData = businessCard.data as Record<string, any>;
-          setData(mapSupabaseDataToSource(cardData, businessCard.slug || ''));
-        } else {
-          // Fallback to localStorage
-          const localData = localStorage.getItem(`business_card_${user.id}`);
-          if (localData) {
-            const parsed = JSON.parse(localData);
-            setData(mapLocalDataToSource(parsed));
-          }
-        }
-      } catch (error) {
-        console.error('[useBusinessCardData] Error:', error);
-      } finally {
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setData(defaultData);
         setLoading(false);
+        return;
       }
-    };
 
-    fetchData();
+      setUserId(user.id);
 
-    // Listen for changes
-    const handleStorageChange = () => {
-      fetchData();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('businessCardSwapped', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('businessCardSwapped', handleStorageChange);
-    };
+      // ✅ جلب البيانات من قاعدة البيانات فقط - المصدر الوحيد للحقيقة
+      const { data: businessCard, error } = await supabase
+        .from('business_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[useBusinessCardData] Error fetching:', error);
+        setData(defaultData);
+        setLoading(false);
+        return;
+      }
+
+      if (businessCard && businessCard.data) {
+        const cardData = businessCard.data as Record<string, any>;
+        setData(mapSupabaseDataToSource(cardData, businessCard.slug || ''));
+      } else {
+        // لا توجد بطاقة محفوظة - استخدم القيم الافتراضية
+        setData(defaultData);
+      }
+    } catch (error) {
+      console.error('[useBusinessCardData] Error:', error);
+      setData(defaultData);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { data, loading, userId, refetch: () => {} };
+  useEffect(() => {
+    fetchData();
+
+    // الاستماع للتحديثات عند حفظ البطاقة
+    const handleBusinessCardUpdate = () => {
+      console.log('[useBusinessCardData] Business card updated, refetching...');
+      fetchData();
+    };
+    
+    window.addEventListener('businessCardUpdated', handleBusinessCardUpdate);
+    
+    // الاستماع للتغييرات في الوقت الحقيقي من Supabase
+    const channel = supabase
+      .channel('business_cards_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'business_cards',
+        },
+        (payload) => {
+          console.log('[useBusinessCardData] Realtime update:', payload);
+          fetchData();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      window.removeEventListener('businessCardUpdated', handleBusinessCardUpdate);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData]);
+
+  return { data, loading, userId, refetch: fetchData };
 }
 
-// Map localStorage data to source of truth
-function mapLocalDataToSource(localData: Record<string, any>): BusinessCardSourceOfTruth {
-  // Check swap state
-  const swapKey = Object.keys(localStorage).find(k => k.startsWith('business_card_swap_'));
-  const isSwapped = swapKey ? localStorage.getItem(swapKey) === 'true' : false;
+/**
+ * Hook لجلب بيانات البطاقة عبر user_id (للاستخدام في المنصة)
+ */
+export function useBusinessCardDataByUserId(targetUserId: string | undefined) {
+  const [data, setData] = useState<BusinessCardSourceOfTruth | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  return {
-    name: localData.userName || localData.name || '',
-    title: localData.userTitle || localData.title || 'وسيط عقاري معتمد',
-    companyName: localData.companyName || '',
-    rating: localData.rating || 4.5,
-    phone: localData.primaryPhone || localData.phone || '',
-    whatsapp: localData.displayOptions?.whatsappNumber || '',
-    email: localData.email || '',
-    city: localData.location || localData.city || '',
-    district: localData.officeAddressDetails?.district || localData.district || '',
-    location: localData.officeAddress || localData.location || '',
-    slug: localData.userTitle || localData.slug || '',
-    identityMode: isSwapped ? 'logo' : 'profile',
-    profileImageUrl: localData.profileImage || null,
-    logoUrl: localData.logoImage || null,
-    bio: localData.bio || '',
-    falLicense: localData.falLicense || '',
-    website: localData.websiteUrl || localData.domain || '',
-    displayOptions: localData.displayOptions || undefined,
-  };
+  const fetchData = useCallback(async () => {
+    if (!targetUserId) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const { data: businessCard, error } = await supabase
+        .from('business_cards')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[useBusinessCardDataByUserId] Error:', error);
+        setData(null);
+        setLoading(false);
+        return;
+      }
+
+      if (businessCard && businessCard.data) {
+        const cardData = businessCard.data as Record<string, any>;
+        setData(mapSupabaseDataToSource(cardData, businessCard.slug || ''));
+      } else {
+        setData(null);
+      }
+    } catch (error) {
+      console.error('[useBusinessCardDataByUserId] Error:', error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [targetUserId]);
+
+  useEffect(() => {
+    fetchData();
+
+    // الاستماع للتحديثات
+    const handleBusinessCardUpdate = () => {
+      fetchData();
+    };
+    
+    window.addEventListener('businessCardUpdated', handleBusinessCardUpdate);
+    
+    return () => {
+      window.removeEventListener('businessCardUpdated', handleBusinessCardUpdate);
+    };
+  }, [fetchData]);
+
+  return { data, loading, refetch: fetchData };
 }
 
 // Map Supabase data to source of truth
 function mapSupabaseDataToSource(cardData: Record<string, any>, slug: string): BusinessCardSourceOfTruth {
-  // Check swap state from cardData or localStorage
+  // Check swap state from cardData
   const isSwapped = cardData.swapState === true;
 
   return {
@@ -144,6 +196,7 @@ function mapSupabaseDataToSource(cardData: Record<string, any>, slug: string): B
     identityMode: isSwapped ? 'logo' : 'profile',
     profileImageUrl: cardData.profileImage || null,
     logoUrl: cardData.logoImage || null,
+    coverImageUrl: cardData.coverImage || null,
     bio: cardData.bio || '',
     falLicense: cardData.falLicense || '',
     website: cardData.websiteUrl || cardData.domain || '',

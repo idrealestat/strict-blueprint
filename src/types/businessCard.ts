@@ -51,6 +51,7 @@ export interface BusinessCardSourceOfTruth {
   identityMode: 'profile' | 'logo';
   profileImageUrl: string | null;
   logoUrl: string | null;
+  coverImageUrl?: string | null;
   
   // Additional Fields
   bio?: string;
