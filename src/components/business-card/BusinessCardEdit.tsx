@@ -566,6 +566,36 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       // ❌ لا نشر تلقائي - يجب استخدام زر النشر المنفصل
       // حفظ slug لا يغير حالة النشر
 
+      // ✅ التحقق من عدم تكرار رخصة فال (لا يمكن تعديلها إلا بإذن المالك)
+      if (formData.falLicense?.trim()) {
+        const { data: existingFal } = await supabase
+          .from('business_cards')
+          .select('id, user_id')
+          .eq('fal_license_number', formData.falLicense.trim())
+          .neq('user_id', authUser.id)
+          .maybeSingle();
+        
+        if (existingFal) {
+          toast.error('رقم رخصة فال مستخدم في حساب آخر. لا يمكن استخدام نفس الرخصة في أكثر من حساب.');
+          return;
+        }
+      }
+      
+      // ✅ التحقق من عدم تكرار رقم الهوية (لا يمكن تعديله إلا بإذن المالك)
+      if (formData.nationalId?.trim()) {
+        const { data: existingId } = await supabase
+          .from('business_cards')
+          .select('id, user_id')
+          .eq('national_id', formData.nationalId.trim())
+          .neq('user_id', authUser.id)
+          .maybeSingle();
+        
+        if (existingId) {
+          toast.error('رقم الهوية مستخدم في حساب آخر. لا يمكن استخدام نفس الرقم في أكثر من حساب.');
+          return;
+        }
+      }
+
       // 2) إعداد بيانات الحفظ
       const cardDataPayload = JSON.parse(JSON.stringify({
         ...formData,
