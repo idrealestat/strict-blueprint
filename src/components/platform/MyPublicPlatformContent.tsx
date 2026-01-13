@@ -209,6 +209,14 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     }
   }, [currentSlug, trackingChannel, trackPageView]);
 
+  // ✅ مزامنة تلقائية للعروض من localStorage إلى قاعدة البيانات (للمالك فقط)
+  useEffect(() => {
+    if (!isPublicViewer && currentSlug && currentSlug !== 'default' && syncFromLocalStorage) {
+      // مزامنة صامتة في الخلفية
+      syncFromLocalStorage(currentSlug, { silent: true }).catch(console.error);
+    }
+  }, [isPublicViewer, currentSlug, syncFromLocalStorage]);
+
 
   // استخراج جميع العروض المسطحة من التسلسل الهرمي
   const flattenListings = (hierarchy: CityGroup[]): Listing[] => {
