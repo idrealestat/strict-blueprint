@@ -691,7 +691,7 @@ export default function GeneralInfoTab({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500">رقم المبنى</Label>
+                  <Label className="text-xs text-gray-500">الرقم الإضافي</Label>
                   <Input 
                     value={addressDetails.buildingNumber} 
                     onChange={(e) => setAddressDetails({...addressDetails, buildingNumber: e.target.value})}
@@ -701,7 +701,7 @@ export default function GeneralInfoTab({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-500">الرقم الإضافي</Label>
+                  <Label className="text-xs text-gray-500">رقم المبنى</Label>
                   <Input 
                     value={addressDetails.additionalNumber} 
                     onChange={(e) => setAddressDetails({...addressDetails, additionalNumber: e.target.value})}

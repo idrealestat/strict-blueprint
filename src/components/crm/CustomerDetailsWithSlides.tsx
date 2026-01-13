@@ -1186,7 +1186,7 @@ const InfoSlide = ({ customer }: { customer: Customer }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">رقم المبنى</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">الرقم الإضافي</label>
             <input 
               type="text" 
               value={locationData.building}
@@ -1195,7 +1195,7 @@ const InfoSlide = ({ customer }: { customer: Customer }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">الرقم الإضافي</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">رقم المبنى</label>
             <input 
               type="text" 
               value={locationData.additionalNumber}

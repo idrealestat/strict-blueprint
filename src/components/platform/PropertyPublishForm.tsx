@@ -1339,7 +1339,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 />
               </div>
               <div>
-                <Label className="text-[#01411C]">رقم المبنى</Label>
+                <Label className="text-[#01411C]">الرقم الإضافي</Label>
                 <Input
                   value={propertyData.locationDetails.buildingNumber}
                   onChange={(e) => setPropertyData(prev => ({ 
@@ -1352,7 +1352,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 />
               </div>
               <div>
-                <Label className="text-[#01411C]">الرقم الإضافي</Label>
+                <Label className="text-[#01411C]">رقم المبنى</Label>
                 <Input
                   value={propertyData.locationDetails.additionalNumber}
                   onChange={(e) => setPropertyData(prev => ({ 
