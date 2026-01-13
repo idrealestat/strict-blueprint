@@ -294,31 +294,44 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
 
   // Listen for opening customer details
   useEffect(() => {
-    const handleOpenCustomerDetails = (event: CustomEvent) => {
+    const handleOpenCustomerDetails = async (event: CustomEvent) => {
       const { customerId, activeTab } = event.detail || {};
 
-      const customers = (() => {
-        try {
-          return JSON.parse(localStorage.getItem('crm_customers') || '[]');
-        } catch {
-          return [];
+      // الأفضل: جلب العميل من قاعدة البيانات (بدلاً من localStorage) لضمان ظهور عروض/طلبات/مواعيد النماذج العامة
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error('يرجى تسجيل الدخول');
+          return;
         }
-      })();
 
-      const found = customers.find((c: any) => c.id === customerId);
-      const customer = found || {
-        id: customerId,
-        name: 'عميل',
-        phone: '',
-        email: '',
-        type: 'owner',
-        status: 'active',
-        columnId: 'active',
-        createdAt: new Date().toISOString(),
-      };
+        const { data: dbCustomer, error } = await supabase
+          .from('crm_customers')
+          .select('*')
+          .eq('id', customerId)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      setSelectedCustomerForDetails({ ...customer, activeTab: activeTab || 'overview' });
-      setCurrentPage('customer-details');
+        if (error) {
+          console.error('[App] Failed to fetch customer:', error);
+        }
+
+        const customer = dbCustomer || {
+          id: customerId,
+          name: 'عميل',
+          phone: '',
+          email: '',
+          type: 'owner',
+          status: 'active',
+          columnId: 'active',
+          createdAt: new Date().toISOString(),
+        };
+
+        setSelectedCustomerForDetails({ ...customer, activeTab: activeTab || 'overview' });
+        setCurrentPage('customer-details');
+      } catch (e) {
+        console.error('[App] handleOpenCustomerDetails error:', e);
+      }
     };
 
     window.addEventListener('openCustomerDetails', handleOpenCustomerDetails as EventListener);

@@ -309,33 +309,37 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // عروض الأسعار للعميل من صفحة العروض
   const [priceQuotes, setPriceQuotes] = useState<any[]>([]);
   
-  // تحميل عروض الأسعار للعميل
+  // تحميل عروض الأسعار للعميل (من قاعدة البيانات أولاً ثم localStorage كاحتياط)
   useEffect(() => {
-    const loadPriceQuotes = () => {
+    const fromDb = ((customer as any).metadata?.price_quotes as any[]) || [];
+    if (fromDb.length > 0) {
+      setPriceQuotes(fromDb);
+      return;
+    }
+
+    const loadFromLocal = () => {
       try {
         const allCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-        const foundCustomer = allCustomers.find((c: any) => 
+        const foundCustomer = allCustomers.find((c: any) =>
           c.phone === customer.phone || c.whatsapp === customer.phone || c.id === customer.id
         );
-        if (foundCustomer && foundCustomer.priceQuotes) {
+        if (foundCustomer?.priceQuotes) {
           setPriceQuotes(foundCustomer.priceQuotes);
+        } else {
+          setPriceQuotes([]);
         }
       } catch (e) {
         console.error('Error loading price quotes:', e);
         setPriceQuotes([]);
       }
     };
-    
-    loadPriceQuotes();
-    
-    // Listen for updates
-    const handleStorageChange = () => loadPriceQuotes();
+
+    loadFromLocal();
+
+    const handleStorageChange = () => loadFromLocal();
     window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [customer.id, customer.phone]);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [customer.id, customer.phone, (customer as any).metadata]);
   
   // العقارات المنشورة للعميل
   const [publishedAds, setPublishedAds] = useState<any[]>([]);
@@ -2587,31 +2591,142 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                   🎯 عروض العميل
+                  {(((customer as any).metadata?.property_offers as any[]) || []).length > 0 && (
+                    <Badge className="bg-[#D4AF37] text-[#01411C]">{(((customer as any).metadata?.property_offers as any[]) || []).length}</Badge>
+                  )}
                 </CardTitle>
-                <Button size="sm" className="bg-[#01411C] hover:bg-[#065f41]">
-                  <Plus className="w-4 h-4 ml-1" />
-                  عرض جديد
-                </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockCustomerOffers.map((offer) => (
-                    <div key={offer.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-[#01411C]">{offer.title}</h4>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                            <span className="font-bold text-[#D4AF37]">{offer.price} ريال</span>
-                            <span>| {offer.date}</span>
+                {(((customer as any).metadata?.property_offers as any[]) || []).length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Home className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لا توجد عروض مستلمة من هذا العميل</p>
+                    <p className="text-sm mt-1">ستظهر هنا العروض المرسلة من صفحة (إرسال عرض) في بطاقة أعمالك الرقمية</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(((customer as any).metadata?.property_offers as any[]) || []).slice().reverse().map((offer: any) => {
+                      const title = `${offer.propertyType || 'عقار'} ${offer.purpose || ''}`.trim();
+                      const price = offer.price ? `${offer.price} ريال` : '';
+                      const date = offer.submittedAt ? new Date(offer.submittedAt).toLocaleDateString('ar-SA') : '';
+
+                      return (
+                        <div key={offer.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
+                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
+                                {price && <span className="font-bold text-[#D4AF37]">{price}</span>}
+                                {offer.city && <span>• {offer.city}</span>}
+                                {offer.district && <span>• {offer.district}</span>}
+                                {date && <span>• {date}</span>}
+                              </div>
+                            </div>
+
+                            <Badge className={offer.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}>
+                              {offer.status === 'pending' ? 'جديد' : (offer.status || 'معلق')}
+                            </Badge>
+                          </div>
+
+                          {/* أزرار (نشر إعلان) و (PDF) مثل النظام القديم */}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-[#01411C] hover:bg-[#065f41]"
+                              onClick={() => {
+                                // تجهيز بيانات إعادة النشر لنموذج النشر (نفس فكرة TabActionsPanel)
+                                const republishData = {
+                                  ownerName: offer.ownerName || customer.name,
+                                  ownerPhone: offer.ownerPhone || customer.phone,
+                                  ownerIdNumber: offer.ownerIdNumber || '',
+                                  ownerNationalAddress: offer.ownerNationalAddress || '',
+                                  ownerCity: offer.ownerCity || '',
+                                  deedNumber: offer.deedNumber || '',
+                                  deedDate: offer.deedDate || '',
+                                  deedCity: offer.deedCity || '',
+                                  propertyType: offer.propertyType || '',
+                                  purpose: offer.purpose || '',
+                                  area: offer.area || '',
+                                  price: offer.price || '',
+                                  paymentPrices: offer.paymentPrices || { onePayment: '', twoPayments: '', fourPayments: '', monthly: '' },
+                                  locationDetails: {
+                                    city: offer.city || '',
+                                    district: offer.district || '',
+                                    street: offer.street || '',
+                                    buildingNumber: '',
+                                    postalCode: '',
+                                    additionalNumber: '',
+                                    latitude: 24.7136,
+                                    longitude: 46.6753,
+                                  },
+                                  floors: offer.floors || '',
+                                  floorNumber: offer.floorNumber || '',
+                                  bedrooms: offer.bedrooms || '',
+                                  bathrooms: offer.bathrooms || '',
+                                  livingRooms: offer.livingRooms || '',
+                                  councils: offer.councils || '',
+                                  streetWidth: offer.streetWidth || '',
+                                  facade: offer.facade || '',
+                                  furnishing: offer.furnishing || '',
+                                  propertyAge: offer.propertyAge || '',
+                                  entrances: offer.entrances || '',
+                                  warehouses: offer.warehouses || '',
+                                  hasLaundryRoom: offer.hasLaundryRoom || false,
+                                  balconies: offer.balconies || '',
+                                  acUnits: offer.acUnits || '',
+                                  hasExtraKitchen: offer.hasExtraKitchen || false,
+                                  warranties: offer.warranties || [],
+                                  media: offer.media || [],
+                                  tour3DUrl: offer.tour3dUrl || offer.tour3DUrl || '',
+                                  aiDescription: offer.description || '',
+                                  source: 'customer_metadata',
+                                  originalOfferId: offer.id,
+                                };
+
+                                localStorage.setItem('wasata_republish_data', JSON.stringify(republishData));
+                                window.location.href = '/app/platform?action=publish';
+                              }}
+                            >
+                              <Send className="w-4 h-4 ml-1" />
+                              نشر إعلان
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#D4AF37] text-[#01411C]"
+                              onClick={async () => {
+                                try {
+                                  const pdfData = {
+                                    title: title,
+                                    ownerName: offer.ownerName || customer.name,
+                                    ownerPhone: offer.ownerPhone || customer.phone,
+                                    city: offer.city,
+                                    district: offer.district,
+                                    propertyType: offer.propertyType,
+                                    purpose: offer.purpose,
+                                    price: offer.price,
+                                    area: offer.area,
+                                    description: offer.description,
+                                    images: (offer.media || []).filter((m: any) => m.type === 'image').map((m: any) => m.url),
+                                  };
+                                  await generatePropertyPDF(pdfData as any);
+                                  toast.success('تم تحميل ملف PDF');
+                                } catch (e) {
+                                  console.error('PDF error', e);
+                                  toast.error('تعذر إنشاء PDF');
+                                }
+                              }}
+                            >
+                              <Download className="w-4 h-4 ml-1" />
+                              PDF
+                            </Button>
                           </div>
                         </div>
-                        <Badge className={offer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-                          {offer.status === 'active' ? 'نشط' : 'معلق'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -2622,32 +2737,46 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                   📋 طلبات العميل
+                  {(((customer as any).metadata?.property_requests as any[]) || []).length > 0 && (
+                    <Badge className="bg-[#D4AF37] text-[#01411C]">{(((customer as any).metadata?.property_requests as any[]) || []).length}</Badge>
+                  )}
                 </CardTitle>
-                <Button size="sm" className="bg-[#01411C] hover:bg-[#065f41]">
-                  <Plus className="w-4 h-4 ml-1" />
-                  طلب جديد
-                </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockCustomerRequests.map((request) => (
-                    <div key={request.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-[#01411C]">{request.title}</h4>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                            <Badge variant="outline">{request.type}</Badge>
-                            <span className="font-bold text-[#D4AF37]">الميزانية: {request.budget} ريال</span>
-                            <span>| {request.date}</span>
+                {(((customer as any).metadata?.property_requests as any[]) || []).length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لا توجد طلبات مستلمة من هذا العميل</p>
+                    <p className="text-sm mt-1">ستظهر هنا الطلبات المرسلة من صفحة (إرسال طلب) في بطاقة أعمالك الرقمية</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(((customer as any).metadata?.property_requests as any[]) || []).slice().reverse().map((request: any) => {
+                      const title = `${request.propertyType || 'عقار'} ${request.purpose || ''}`.trim();
+                      const city = request.preferredCity || request.city;
+                      const budget = request.maxBudget || request.budget;
+                      const date = request.submittedAt ? new Date(request.submittedAt).toLocaleDateString('ar-SA') : '';
+
+                      return (
+                        <div key={request.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
+                              <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
+                                {city && <Badge variant="outline">{city}</Badge>}
+                                {budget && <span className="font-bold text-[#D4AF37]">الميزانية: {budget}</span>}
+                                {date && <span>• {date}</span>}
+                              </div>
+                            </div>
+                            <Badge className={request.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}>
+                              {request.status === 'pending' ? 'جديد' : (request.status || 'معلق')}
+                            </Badge>
                           </div>
                         </div>
-                        <Badge className={request.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-                          {request.status === 'active' ? 'نشط' : 'معلق'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

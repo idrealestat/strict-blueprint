@@ -189,77 +189,59 @@ export default function PublicPriceQuoteForm() {
         status: 'pending',
       };
 
-      // حفظ في قاعدة البيانات إذا كان الوسيط موجود
-      if (brokerUserId) {
-        // البحث عن العميل برقم الجوال
-        const { data: existingCustomer } = await supabase
-          .from('crm_customers')
-          .select('*')
-          .eq('user_id', brokerUserId)
-          .or(`phone.eq.${formData.clientPhone}`)
-          .maybeSingle();
+      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
+      const identifier = slug || brokerId;
+      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
+        body: {
+          slug: identifier,
+          formType: 'quote',
+          data: submissionData,
+        },
+      });
 
-        let customerId: string;
-
-        if (existingCustomer) {
-          customerId = existingCustomer.id;
-          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
-          const existingQuotes = currentMetadata.price_quotes || [];
-          
-          await supabase
-            .from('crm_customers')
-            .update({
-              last_contact: new Date().toISOString().split('T')[0],
-              metadata: {
-                ...currentMetadata,
-                price_quotes: [...existingQuotes, submissionData],
-                hasUnreadQuote: true,
-                lastQuoteAt: new Date().toISOString(),
-              },
-            })
-            .eq('id', customerId);
-        } else {
-          const { data: newCustomer } = await supabase
-            .from('crm_customers')
-            .insert([{
-              user_id: brokerUserId,
-              name: formData.clientName,
-              phone: formData.clientPhone,
-              email: formData.clientEmail || null,
-              status: 'جديد',
-              priority: 'عادي',
-              source: 'نموذج عرض سعر',
-              last_contact: new Date().toISOString().split('T')[0],
-              metadata: {
-                price_quotes: [submissionData],
-                hasUnreadQuote: true,
-                isNewCard: true,
-                lastQuoteAt: new Date().toISOString(),
-              } as Record<string, any>,
-            }])
-            .select()
-            .single();
-
-          customerId = newCustomer?.id || '';
-        }
-
-        // إرسال إشعار مع Push Notification
-        await triggerQuoteNotification(brokerUserId, {
-          clientName: formData.clientName,
-          serviceType: formData.serviceType,
-          propertyType: formData.propertyType,
-          quoteId: submissionData.id,
-        });
-
-        if (customerId) {
-          markAsNew('customer', customerId);
-        }
+      if (submitError) {
+        console.error('Public quote submit error:', submitError);
       }
+
+      const customerId = (submitResult as any)?.customerId as string | undefined;
 
       // حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
       existingSubmissions.push(submissionData);
       localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
+
+      // تحديث localStorage للعملاء للتوافق
+      const localCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+      const existingLocalCustomer = localCustomers.find((c: any) => c.phone === formData.clientPhone);
+      if (!existingLocalCustomer) {
+        localCustomers.push({
+          id: customerId || `cust_${Date.now()}`,
+          name: formData.clientName,
+          phone: formData.clientPhone,
+          email: formData.clientEmail,
+          type: 'buyer',
+          source: 'public_form',
+          status: 'new',
+          isNewCard: true,
+          createdAt: new Date().toISOString(),
+          priceQuotes: [submissionData],
+        });
+      } else {
+        existingLocalCustomer.priceQuotes = existingLocalCustomer.priceQuotes || [];
+        existingLocalCustomer.priceQuotes.push(submissionData);
+      }
+      localStorage.setItem('crm_customers', JSON.stringify(localCustomers));
+
+      // إطلاق حدث UI محلي
+      window.dispatchEvent(new CustomEvent('addNotification', {
+        detail: {
+          title: '💰 طلب عرض سعر جديد',
+          message: `تم استلام طلب عرض سعر من ${formData.clientName}`,
+          type: 'success',
+          category: 'customer',
+          isPulsing: true,
+        }
+      }));
 
       setIsSubmitted(true);
       toast.success('تم إرسال طلب عرض السعر بنجاح');
