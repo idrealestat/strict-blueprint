@@ -517,6 +517,9 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         title: formData.companyName || 'وسيط عقاري معتمد'
       };
       localStorage.setItem('wasata_business_card_data', JSON.stringify(platformData));
+      
+      // إرسال حدث لتحديث البطاقة في نفس التبويب
+      window.dispatchEvent(new CustomEvent('businessCardUpdated'));
 
       // الحصول على user id
       const { data: { user: authUser } } = await supabase.auth.getUser();
