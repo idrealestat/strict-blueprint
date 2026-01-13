@@ -241,7 +241,7 @@ export default function OfficeLocationMap({
 
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <Label className="text-xs text-gray-500">رقم المبنى</Label>
+          <Label className="text-xs text-gray-500">الرقم الإضافي</Label>
           <Input
             value={addressDetails.buildingNumber}
             className="mt-1 bg-gray-50"
@@ -249,7 +249,7 @@ export default function OfficeLocationMap({
           />
         </div>
         <div>
-          <Label className="text-xs text-gray-500">الرقم الإضافي</Label>
+          <Label className="text-xs text-gray-500">رقم المبنى</Label>
           <Input
             value={addressDetails.additionalNumber}
             className="mt-1 bg-gray-50"

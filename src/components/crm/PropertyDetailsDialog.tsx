@@ -155,7 +155,8 @@ ${property.aiDescription || ''}
                   <InfoRow label="المدينة" value={property.locationDetails?.city || '-'} />
                   <InfoRow label="الحي" value={property.locationDetails?.district || '-'} />
                   <InfoRow label="الشارع" value={property.locationDetails?.street || '-'} />
-                  <InfoRow label="رقم المبنى" value={property.locationDetails?.buildingNumber || '-'} />
+                  <InfoRow label="الرقم الإضافي" value={property.locationDetails?.buildingNumber || '-'} />
+                  <InfoRow label="رقم المبنى" value={property.locationDetails?.additionalNumber || '-'} />
                   <InfoRow label="الرمز البريدي" value={property.locationDetails?.postalCode || '-'} />
                 </div>
               </div>
