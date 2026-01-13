@@ -107,6 +107,7 @@ interface UserData {
 interface BusinessCardData {
   userName: string;
   companyName: string;
+  accountType?: 'individual' | 'office' | 'company'; // نوع الحساب
   falLicense: string;
   falExpiry: string;
   commercialRegistration: string;
@@ -358,6 +359,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
             setBusinessCardData({
               userName: cardData.userName || cardData.name || '',
               companyName: cardData.companyName || '',
+              accountType: cardData.accountType || 'individual',
               falLicense: cardData.falLicense || '',
               falExpiry: cardData.falExpiry || '',
               commercialRegistration: cardData.commercialRegistration || '',
@@ -1047,15 +1049,29 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
           {/* Profile Info - نفس التنسيق في بطاقة الأعمال */}
           <div className="pt-4 pb-8 px-4 text-center">
-            {/* Name */}
-            <h1 className="text-2xl font-bold text-white">
-              {getDisplayName(
-                effectiveBusinessCardData?.displayNameType || 'personal',
-                effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي',
-                effectiveBusinessCardData?.companyName || '',
-                effectiveBusinessCardData?.platformNameArabic || ''
-              )}
-            </h1>
+            {/* تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب */}
+            {(() => {
+              const accountType = effectiveBusinessCardData?.accountType || (businessCardOverride as any)?.accountType || 'individual';
+              const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
+              const primaryName = isOfficeOrCompany && effectiveBusinessCardData?.companyName 
+                ? effectiveBusinessCardData.companyName 
+                : (effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي');
+              const secondaryName = isOfficeOrCompany && effectiveBusinessCardData?.companyName 
+                ? effectiveBusinessCardData?.userName 
+                : null;
+              
+              return (
+                <>
+                  {/* Primary Name - اسم الشركة للمكاتب/الشركات، اسم المستخدم للأفراد */}
+                  <h1 className="text-2xl font-bold text-white">{primaryName}</h1>
+                  
+                  {/* Secondary Name - اسم المستخدم للمكاتب/الشركات */}
+                  {secondaryName && (
+                    <p className="text-lg text-white/90 mt-1">{secondaryName}</p>
+                  )}
+                </>
+              );
+            })()}
             
             {/* User Title - المسمى الوظيفي */}
             <p className="text-white/80 mt-1">
@@ -1084,8 +1100,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               )}
             </div>
 
-            {/* Company - يُعرض فقط إذا لم يكن نوع العرض هو الشركة (لتجنب التكرار) */}
-            {effectiveBusinessCardData?.companyName && effectiveBusinessCardData?.displayNameType !== 'company' && (
+            {/* Company - يُعرض فقط للأفراد (لأن الشركات تظهر الاسم أعلى) */}
+            {effectiveBusinessCardData?.companyName && 
+             effectiveBusinessCardData?.accountType !== 'office' && 
+             effectiveBusinessCardData?.accountType !== 'company' && (
               <p className="mt-2 text-white/90 flex items-center justify-center gap-1">
                 <Building2 className="w-4 h-4" />
                 {effectiveBusinessCardData.companyName}
