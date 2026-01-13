@@ -28,6 +28,7 @@ import OfficialBusinessCardPage from "./pages/OfficialBusinessCardPage";
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
+import PushNotificationPrompt from "./components/notifications/PushNotificationPrompt";
 import CustomerDetailsPage from "./components/crm/CustomerDetailsPage";
 import SlugOffersPage from "./pages/SlugOffersPage";
 import NotificationSettings from "./components/settings/NotificationSettings";
@@ -406,7 +407,13 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return null;
     case "dashboard":
     default:
-      return <><SimpleDashboard user={userData} onNavigate={handleNavigate} /><AIFloatingButton /></>;
+      return (
+        <>
+          <SimpleDashboard user={userData} onNavigate={handleNavigate} />
+          <AIFloatingButton />
+          <PushNotificationPrompt />
+        </>
+      );
   }
 };
 
