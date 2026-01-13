@@ -287,15 +287,28 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
                   
                   {/* Name & Title */}
                   <div className="flex-1">
-                    <h2 className="text-[#01411C] font-bold text-lg leading-tight">{data.name}</h2>
-                    {displayOptions.showNameEnglish && displayOptions.nameEnglish && (
-                      <p className="text-[#01411C]/70 text-xs">{displayOptions.nameEnglish}</p>
+                    {/* For company/office accounts: Company name first (large), then user name (small) */}
+                    {(data.identityMode === 'logo' || displayOptions.primaryDisplayName === 'company') && data.companyName ? (
+                      <>
+                        <h2 className="text-[#01411C] font-bold text-lg leading-tight">{data.companyName}</h2>
+                        <p className="text-[#01411C]/70 text-xs">{data.name}</p>
+                        {displayOptions.showNameEnglish && displayOptions.nameEnglish && (
+                          <p className="text-[#01411C]/60 text-xs">{displayOptions.nameEnglish}</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-[#01411C] font-bold text-lg leading-tight">{data.name}</h2>
+                        {displayOptions.showNameEnglish && displayOptions.nameEnglish && (
+                          <p className="text-[#01411C]/70 text-xs">{displayOptions.nameEnglish}</p>
+                        )}
+                        {data.companyName && (
+                          <p className="text-[#01411C]/70 text-xs">{data.companyName}</p>
+                        )}
+                      </>
                     )}
                     {jobTitle && (
                       <p className="text-[#D4AF37] text-sm">{jobTitle}</p>
-                    )}
-                    {data.companyName && (
-                      <p className="text-[#01411C]/70 text-xs">{data.companyName}</p>
                     )}
                     {/* Rating */}
                     {displayOptions.showRating && (
