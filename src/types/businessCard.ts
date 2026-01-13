@@ -25,6 +25,9 @@ export interface CardDisplayOptions {
   showEmail: boolean;
   showCity: boolean;
   showDistrict: boolean;
+  
+  // Primary display name option for company/office accounts
+  primaryDisplayName?: 'company' | 'user';
 }
 
 export interface BusinessCardSourceOfTruth {
