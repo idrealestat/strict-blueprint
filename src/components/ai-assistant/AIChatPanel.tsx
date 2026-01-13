@@ -78,25 +78,13 @@ const bankRates = {
   inma: { name: 'مصرف الإنماء', rate: '5.10%', type: 'ثابت' }
 };
 
-// الحصول على اسم المستخدم من البطاقة الرقمية
-const getUserName = (): string => {
-  try {
-    // محاولة الحصول على الاسم من localStorage (البطاقة الرقمية)
-    const keys = Object.keys(localStorage);
-    for (const key of keys) {
-      if (key.startsWith('business_card_')) {
-        const data = JSON.parse(localStorage.getItem(key) || '{}');
-        if (data.userName) return data.userName;
-      }
-    }
-  } catch (e) {
-    console.error('Error getting user name:', e);
-  }
+// الحصول على اسم المستخدم - سيتم تحميله من قاعدة البيانات
+const getDefaultUserName = (): string => {
   return 'صديقي';
 };
 
 export function AIChatPanel({ onClose }: AIChatPanelProps) {
-  const userName = getUserName();
+  const userName = getDefaultUserName();
   const { isLoading: aiLoading, error: aiError, sendMessage } = useWasataAI();
   const { isRecording, recordingDuration, startRecording, stopRecording, cancelRecording, audioLevel } = useVoiceRecorder({
     silenceTimeout: 2000, // 2 ثانية صمت قبل الإيقاف التلقائي

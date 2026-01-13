@@ -100,10 +100,9 @@ interface BusinessCardData {
 }
 
 const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEditClick, user }) => {
-  const STORAGE_KEY = `business_card_${user.id}`;
   const SWAP_KEY = `business_card_swap_${user.id}`;
   
-  // تحميل حالة التبديل من localStorage
+  // تحميل حالة التبديل من localStorage (هذا مسموح لأنه حالة عرض فقط وليس بيانات)
   const [showSwappedImage, setShowSwappedImage] = useState(() => {
     const saved = localStorage.getItem(SWAP_KEY);
     return saved === 'true';
@@ -113,6 +112,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Default form data
   const defaultFormData: BusinessCardData = {
@@ -163,14 +163,26 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   const [formData, setFormData] = useState<BusinessCardData>(defaultFormData);
 
-  // Load data from localStorage - runs on mount and when returning from edit
-  const loadData = React.useCallback(() => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    console.log('[BusinessCardProfile] Loading data, STORAGE_KEY:', STORAGE_KEY, 'Data exists:', !!savedData);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        console.log('[BusinessCardProfile] Parsed data - profileImage:', !!parsed.profileImage, 'logoImage:', !!parsed.logoImage);
+  // Load data from database - مصدر الحقيقة الوحيد
+  const loadData = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      console.log('[BusinessCardProfile] Loading data from DB for user:', user.id);
+      const { data: businessCard, error } = await supabase
+        .from('business_cards')
+        .select('data')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('[BusinessCardProfile] Error loading from DB:', error);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (businessCard?.data) {
+        const parsed = businessCard.data as Record<string, any>;
+        console.log('[BusinessCardProfile] Loaded from DB - profileImage:', !!parsed.profileImage, 'logoImage:', !!parsed.logoImage);
         // Merge with defaults to ensure all fields exist
         setFormData({
           ...defaultFormData,
@@ -180,22 +192,19 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
           coverImage: parsed.coverImage || "",
           logoImage: parsed.logoImage || ""
         });
-      } catch (error) {
-        console.error("Error loading saved data:", error);
+      } else {
+        console.log('[BusinessCardProfile] No business card found in DB');
       }
+    } catch (error) {
+      console.error("Error loading data from DB:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [STORAGE_KEY]);
+  }, [user.id]);
 
   useEffect(() => {
     // Load immediately on mount
     loadData();
-    
-    // Listen for storage changes from OTHER tabs
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        loadData();
-      }
-    };
     
     // Listen for custom event from SAME tab (when returning from edit)
     const handleBusinessCardUpdate = () => {
@@ -203,14 +212,12 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
       loadData();
     };
     
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('businessCardUpdated', handleBusinessCardUpdate);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('businessCardUpdated', handleBusinessCardUpdate);
     };
-  }, [STORAGE_KEY, loadData]);
+  }, [loadData]);
 
   // Get badge level based on deals and experience
   const getBadgeLevel = () => {
@@ -236,14 +243,24 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
     return "bg-red-100 text-red-800";
   };
 
-  // Handle manual save
-  const handleManualSave = () => {
+  // Handle manual save - حفظ في قاعدة البيانات
+  const handleManualSave = async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      const { error } = await supabase
+        .from('business_cards')
+        .update({ data: JSON.parse(JSON.stringify(formData)) })
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
       toast.success("تم حفظ التغييرات بنجاح!");
+      
+      // إرسال حدث لتحديث الصفحات الأخرى
+      window.dispatchEvent(new CustomEvent('businessCardUpdated'));
     } catch (error) {
+      console.error('Error saving to DB:', error);
       setShowError(true);
       setErrorMessage("حدث خطأ في الحفظ");
       toast.error("فشل الحفظ!");
@@ -312,17 +329,8 @@ END:VCARD`;
 
   // Get slug (الأولوية للـ slug من DB)
   const getSlug = () => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    let fromSaved: any = undefined;
-    if (savedData) {
-      try {
-        const data = JSON.parse(savedData);
-        fromSaved = data.slug;
-      } catch (e) {}
-    }
-
-    // لا نسمح أبداً بإظهار رقم مثل /1 كرابط عام
-    return getPublicPlatformSlug([dbSlug, fromSaved]);
+    // نستخدم فقط dbSlug من قاعدة البيانات
+    return getPublicPlatformSlug([dbSlug]);
   };
 
   // Share business card
