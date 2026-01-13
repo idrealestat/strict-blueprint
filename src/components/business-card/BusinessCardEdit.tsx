@@ -1510,11 +1510,60 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     className="mt-1"
                   />
                 </div>
+                {/* مؤشر نوع الحساب */}
+                <Card className={`border-2 ${
+                  formData.accountType === 'office' || formData.accountType === 'company' 
+                    ? 'border-[#01411C] bg-green-50' 
+                    : 'border-dashed border-amber-400 bg-amber-50'
+                }`}>
+                  <CardContent className="py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${
+                          formData.accountType === 'office' || formData.accountType === 'company'
+                            ? 'bg-[#01411C]'
+                            : 'bg-amber-500'
+                        }`}>
+                          <Building className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className={`font-bold ${
+                            formData.accountType === 'office' || formData.accountType === 'company'
+                              ? 'text-[#01411C]'
+                              : 'text-amber-800'
+                          }`}>
+                            نوع الحساب: {
+                              formData.accountType === 'company' ? '🏢 شركة' :
+                              formData.accountType === 'office' ? '🏬 مكتب' : '👤 فرد'
+                            }
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formData.accountType === 'office' || formData.accountType === 'company'
+                              ? 'حسابك يتضمن ميزات المكتب والشركة'
+                              : 'قم بترقية حسابك للوصول إلى ميزات المكتب والشركة'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      {!(formData.accountType === 'office' || formData.accountType === 'company') && (
+                        <Button
+                          type="button"
+                          onClick={() => window.location.href = '/app/choose-plan'}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                        >
+                          <Building className="w-4 h-4 ml-1" />
+                          ترقية الحساب
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                
                 {/* حقول الشركة - تظهر فقط للمكاتب والشركات */}
-                {(formData.accountType === 'office' || formData.accountType === 'company') ? (
+                {(formData.accountType === 'office' || formData.accountType === 'company') && (
                   <>
                     <div className="flex items-center gap-2 mb-2">
-                      <Label>نوع الحساب</Label>
+                      <Label>تغيير نوع الحساب</Label>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -1548,26 +1597,6 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                       />
                     </div>
                   </>
-                ) : (
-                  // زر طلب ترقية الحساب للأفراد
-                  <Card className="border-2 border-dashed border-amber-400 bg-amber-50">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-amber-800">حسابك حالياً: فرد</p>
-                          <p className="text-xs text-amber-600">قم بترقية حسابك للوصول إلى ميزات المكتب والشركة</p>
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={() => window.location.href = '/app/choose-plan'}
-                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                        >
-                          <Building className="w-4 h-4 ml-1" />
-                          ترقية الحساب
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
                 )}
                 <div>
                   <Label>رابط الموقع الإلكتروني</Label>
