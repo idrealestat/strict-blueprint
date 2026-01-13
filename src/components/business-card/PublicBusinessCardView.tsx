@@ -103,10 +103,27 @@ const PublicBusinessCardView: React.FC<PublicBusinessCardViewProps> = ({ data, s
   // إذا كان userTitle يساوي الـ slug أو فارغ، نستخدم المسمى الافتراضي
   const userTitle = (data.userTitle && data.userTitle !== slug) ? data.userTitle : "وسيط عقاري معتمد";
   
-  // تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب
+  // خيارات العرض
+  const displayOptions = data.displayOptions || {};
+  const primaryDisplayName = displayOptions.primaryDisplayName || 'company'; // الافتراضي: اسم الشركة بالأعلى
+  
+  // تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب وخيار العرض
   const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
-  const primaryName = isOfficeOrCompany && companyName ? companyName : userName;
-  const secondaryName = isOfficeOrCompany && companyName ? userName : null;
+  
+  // للمكاتب والشركات: نستخدم خيار primaryDisplayName
+  // للأفراد: الاسم الشخصي دائماً بالأعلى
+  let primaryName = userName;
+  let secondaryName: string | null = null;
+  
+  if (isOfficeOrCompany && companyName) {
+    if (primaryDisplayName === 'company') {
+      primaryName = companyName;
+      secondaryName = userName;
+    } else {
+      primaryName = userName;
+      secondaryName = companyName;
+    }
+  }
   
   const achievements = data.achievements || {
     totalDeals: 0,

@@ -531,19 +531,33 @@ END:VCARD`;
 
         {/* Profile Info - All on green background */}
         <div className="relative z-10 pt-4 pb-8 px-4 text-center">
-          {/* تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب */}
+          {/* تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب وخيار العرض */}
           {(() => {
             const accountType = (formData as any).accountType || user.type || 'individual';
+            const displayOptions = (formData as any).displayOptions || {};
+            const primaryDisplayName = displayOptions.primaryDisplayName || 'company'; // الافتراضي: اسم الشركة بالأعلى
+            
             const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
-            const primaryName = isOfficeOrCompany && formData.companyName ? formData.companyName : formData.userName;
-            const secondaryName = isOfficeOrCompany && formData.companyName ? formData.userName : null;
+            
+            let primaryName = formData.userName;
+            let secondaryName: string | null = null;
+            
+            if (isOfficeOrCompany && formData.companyName) {
+              if (primaryDisplayName === 'company') {
+                primaryName = formData.companyName;
+                secondaryName = formData.userName;
+              } else {
+                primaryName = formData.userName;
+                secondaryName = formData.companyName;
+              }
+            }
             
             return (
               <>
-                {/* Primary Name - اسم الشركة للمكاتب/الشركات، اسم المستخدم للأفراد */}
+                {/* Primary Name - الاسم الرئيسي حسب الاختيار */}
                 <h1 className="text-2xl font-bold text-white">{primaryName}</h1>
                 
-                {/* Secondary Name - اسم المستخدم للمكاتب/الشركات */}
+                {/* Secondary Name - الاسم الثانوي */}
                 {secondaryName && (
                   <p className="text-lg text-white/90 mt-1">{secondaryName}</p>
                 )}
