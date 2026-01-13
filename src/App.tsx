@@ -352,12 +352,11 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
     case "dashboard-main-252":
       return <><MyPlatformComplete onBack={handleBack} onNavigate={handleNavigate} user={userData} /><AIFloatingButton /></>;
     case "business-card-profile":
-    case "business-card-profile":
       return <><BusinessCardProfile onBack={handleBack} onEditClick={() => setCurrentPage("business-card-edit")} user={userData} /><AIFloatingButton /></>;
     case "official-business-card":
       return <><OfficialBusinessCardPage onBack={handleBack} /><AIFloatingButton /></>;
     case "business-card-edit":
-      return <><BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={userData} isNewUser={isNewUser} /><AIFloatingButton /></>;
+      return <><BusinessCardEdit onBack={handleBack} user={userData} isNewUser={isNewUser} /><AIFloatingButton /></>;
     case "reports-analytics":
       return <><ReportsAnalytics onBack={handleBack} /><AIFloatingButton /></>;
     case "digital-card":
