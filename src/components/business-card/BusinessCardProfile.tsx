@@ -531,8 +531,26 @@ END:VCARD`;
 
         {/* Profile Info - All on green background */}
         <div className="relative z-10 pt-4 pb-8 px-4 text-center">
-          {/* Name and Badge */}
-          <h1 className="text-2xl font-bold text-white">{formData.userName}</h1>
+          {/* تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب */}
+          {(() => {
+            const accountType = (formData as any).accountType || user.type || 'individual';
+            const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
+            const primaryName = isOfficeOrCompany && formData.companyName ? formData.companyName : formData.userName;
+            const secondaryName = isOfficeOrCompany && formData.companyName ? formData.userName : null;
+            
+            return (
+              <>
+                {/* Primary Name - اسم الشركة للمكاتب/الشركات، اسم المستخدم للأفراد */}
+                <h1 className="text-2xl font-bold text-white">{primaryName}</h1>
+                
+                {/* Secondary Name - اسم المستخدم للمكاتب/الشركات */}
+                {secondaryName && (
+                  <p className="text-lg text-white/90 mt-1">{secondaryName}</p>
+                )}
+              </>
+            );
+          })()}
+          
           <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
             <span 
               className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white cursor-pointer transition-transform hover:scale-110 backdrop-blur-sm"
@@ -552,8 +570,10 @@ END:VCARD`;
             )}
           </div>
 
-          {/* Company */}
-          {formData.companyName && (
+          {/* Company - يُعرض فقط للأفراد */}
+          {formData.companyName && 
+           (formData as any).accountType !== 'office' && 
+           (formData as any).accountType !== 'company' && (
             <p className="mt-2 text-white/90 flex items-center justify-center gap-1">
               <Building className="w-4 h-4" />
               {formData.companyName}

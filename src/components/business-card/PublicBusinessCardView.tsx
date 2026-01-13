@@ -88,6 +88,7 @@ const PublicBusinessCardView: React.FC<PublicBusinessCardViewProps> = ({ data, s
 
   const userName = data.userName || "";
   const companyName = data.companyName || "";
+  const accountType = data.accountType || "individual"; // نوع الحساب: individual أو office أو company
   const phone = data.primaryPhone || data.phone || "";
   const email = data.email || "";
   const location = data.location || data.officeAddress || "";
@@ -101,6 +102,11 @@ const PublicBusinessCardView: React.FC<PublicBusinessCardViewProps> = ({ data, s
   const commercialRegistration = data.commercialRegistration || "";
   // إذا كان userTitle يساوي الـ slug أو فارغ، نستخدم المسمى الافتراضي
   const userTitle = (data.userTitle && data.userTitle !== slug) ? data.userTitle : "وسيط عقاري معتمد";
+  
+  // تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب
+  const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
+  const primaryName = isOfficeOrCompany && companyName ? companyName : userName;
+  const secondaryName = isOfficeOrCompany && companyName ? userName : null;
   
   const achievements = data.achievements || {
     totalDeals: 0,
@@ -272,8 +278,14 @@ END:VCARD`;
 
         {/* Profile Info */}
         <div className="relative z-10 pt-4 pb-8 px-4 text-center">
-          {/* Name and Badge */}
-          <h1 className="text-2xl font-bold text-white">{userName}</h1>
+          {/* Primary Name (Company for office/company, User for individual) */}
+          <h1 className="text-2xl font-bold text-white">{primaryName}</h1>
+          
+          {/* Secondary Name (User name for office/company) */}
+          {secondaryName && (
+            <p className="text-lg text-white/90 mt-1">{secondaryName}</p>
+          )}
+          
           <p className="text-white/80 mt-1">{userTitle}</p>
           
           <div className="mt-2 inline-flex items-center gap-2 flex-wrap justify-center">
