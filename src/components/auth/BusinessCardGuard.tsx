@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useEntitlementsContext } from '@/context/EntitlementsContext';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -23,10 +24,23 @@ type GuardState =
  * 1. المستخدم مسجل
  * 2. يوجد سجل business_cards
  * 3. slug غير فارغ وغير NULL
+ *
+ * ملاحظة: أثناء الـ onboarding (onboarding_completed = false) نسمح بدخول /app/dashboard
+ * حتى يعمل زر "عودة" من صفحة تحرير البطاقة بدون أن يحصل redirect loop.
  */
 export default function BusinessCardGuard({ children }: BusinessCardGuardProps) {
   const { isAuthenticated, user, loading: authLoading, isEmailVerified } = useAuth();
+  const { onboardingCompleted, isLoading: entitlementLoading } = useEntitlementsContext();
   const location = useLocation();
+
+  const bypassSlugForDashboard =
+    !authLoading &&
+    !entitlementLoading &&
+    isAuthenticated &&
+    !!user &&
+    isEmailVerified &&
+    onboardingCompleted === false &&
+    location.pathname.startsWith('/app/dashboard');
   
   const [guardState, setGuardState] = useState<GuardState>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -130,6 +144,12 @@ export default function BusinessCardGuard({ children }: BusinessCardGuardProps) 
   }, [guardState]);
 
   useEffect(() => {
+    // أثناء الـ onboarding نسمح بالدخول للوحة التحكم بدون فرض slug
+    if (bypassSlugForDashboard) {
+      setGuardState('has_slug');
+      return;
+    }
+
     // انتظار انتهاء تحميل Auth
     if (authLoading) {
       setGuardState('loading');
@@ -150,7 +170,7 @@ export default function BusinessCardGuard({ children }: BusinessCardGuardProps) 
 
     // مسجل وموثق -> فحص business_cards
     checkBusinessCard(user.id);
-  }, [authLoading, isAuthenticated, user, isEmailVerified, checkBusinessCard]);
+  }, [authLoading, isAuthenticated, user, isEmailVerified, checkBusinessCard, bypassSlugForDashboard]);
 
   // عرض رسالة الخطأ
   useEffect(() => {
