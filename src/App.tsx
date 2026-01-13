@@ -145,9 +145,14 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
     );
   }
 
+  const handleBack = () => {
+    // التنقل للواجهة الرئيسية بطريقة موثوقة
+    navigate('/app/dashboard', { replace: true });
+  };
+
   return (
     <BusinessCardEdit 
-      onBack={() => navigate('/app/dashboard')} 
+      onBack={handleBack} 
       user={userData} 
       isNewUser={isNewUser} 
     />
