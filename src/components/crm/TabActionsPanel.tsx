@@ -842,13 +842,39 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                   <div><span className="text-gray-500">نوع العقار:</span> <span className="font-medium">{tab.data.propertyType || '-'}</span></div>
                   <div><span className="text-gray-500">الغرض:</span> <span className="font-medium">{tab.data.purpose || '-'}</span></div>
-                  <div><span className="text-gray-500">المدينة:</span> <span className="font-medium">{tab.data.city || '-'}</span></div>
-                  <div><span className="text-gray-500">الحي:</span> <span className="font-medium">{tab.data.district || '-'}</span></div>
-                  {tab.data.street && <div><span className="text-gray-500">الشارع:</span> <span className="font-medium">{tab.data.street}</span></div>}
                   {tab.data.area && <div><span className="text-gray-500">المساحة:</span> <span className="font-medium">{tab.data.area} م²</span></div>}
                   {tab.data.price && <div><span className="text-gray-500">السعر:</span> <span className="font-medium text-green-600">{Number(tab.data.price).toLocaleString()} ريال</span></div>}
                 </div>
               </div>
+
+              {/* قسم موقع العقار */}
+              {(tab.data.locationCity || tab.data.locationLat || tab.data.googleMapsUrl) && (
+                <div className="bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl p-4 border border-cyan-200">
+                  <h4 className="font-bold text-cyan-800 mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    موقع العقار
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mb-3">
+                    {tab.data.locationCity && <div><span className="text-gray-500">المدينة:</span> <span className="font-medium">{tab.data.locationCity}</span></div>}
+                    {tab.data.locationDistrict && <div><span className="text-gray-500">الحي:</span> <span className="font-medium">{tab.data.locationDistrict}</span></div>}
+                    {tab.data.locationStreet && <div><span className="text-gray-500">الشارع:</span> <span className="font-medium">{tab.data.locationStreet}</span></div>}
+                    {tab.data.locationBuilding && <div><span className="text-gray-500">رقم المبنى:</span> <span className="font-medium">{tab.data.locationBuilding}</span></div>}
+                    {tab.data.locationAdditionalNumber && <div><span className="text-gray-500">الرقم الإضافي:</span> <span className="font-medium">{tab.data.locationAdditionalNumber}</span></div>}
+                    {tab.data.locationPostalCode && <div><span className="text-gray-500">الرمز البريدي:</span> <span className="font-medium">{tab.data.locationPostalCode}</span></div>}
+                  </div>
+                  {tab.data.googleMapsUrl && (
+                    <a 
+                      href={tab.data.googleMapsUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      فتح في خرائط جوجل
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* خيارات الدفعات للإيجار */}
               {tab.data.purpose === 'للإيجار' && tab.data.paymentPrices && (
