@@ -503,50 +503,84 @@ export default function MyPlatformComplete({
     companyName?: string;
   } | null>(null);
 
-  useEffect(() => {
-    const loadBusinessCardData = async () => {
-      try {
-        // أولاً: جلب من قاعدة البيانات
-        if (user?.id) {
-          const { data: businessCard } = await supabase
-            .from('business_cards')
-            .select('data')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (businessCard?.data) {
-            const cardData = businessCard.data as Record<string, any>;
-            setBusinessCardData({
-              profileImage: cardData.profileImage || '',
-              coverImage: cardData.coverImage || '',
-              logoImage: cardData.logoImage || '',
-              userName: cardData.userName || cardData.name || '',
-              companyName: cardData.companyName || '',
-            });
-            return;
-          }
-        }
+  // دالة تحميل بيانات بطاقة العمل - مستخرجة للاستخدام المتكرر
+  const loadBusinessCardData = useCallback(async () => {
+    try {
+      // أولاً: جلب من قاعدة البيانات
+      if (user?.id) {
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('data')
+          .eq('user_id', user.id)
+          .maybeSingle();
         
-        // ثانياً: جلب من localStorage كـ fallback
-        const localKey = user?.id ? `business_card_${user.id}` : 'business_card_data';
-        const localData = localStorage.getItem(localKey);
-        if (localData) {
-          const parsed = JSON.parse(localData);
-          setBusinessCardData({
-            profileImage: parsed.profileImage || '',
-            coverImage: parsed.coverImage || '',
-            logoImage: parsed.logoImage || '',
-            userName: parsed.userName || parsed.name || '',
-            companyName: parsed.companyName || '',
+        if (businessCard?.data) {
+          const cardData = businessCard.data as Record<string, any>;
+          console.log('[MyPlatformComplete] Loaded from DB:', {
+            hasProfileImage: !!cardData.profileImage,
+            hasCoverImage: !!cardData.coverImage,
+            hasLogoImage: !!cardData.logoImage,
           });
+          setBusinessCardData({
+            profileImage: cardData.profileImage || '',
+            coverImage: cardData.coverImage || '',
+            logoImage: cardData.logoImage || '',
+            userName: cardData.userName || cardData.name || '',
+            companyName: cardData.companyName || '',
+          });
+          return;
         }
-      } catch (error) {
-        console.error('[MyPlatformComplete] Error loading business card:', error);
+      }
+      
+      // ثانياً: جلب من localStorage كـ fallback
+      const localKey = user?.id ? `business_card_${user.id}` : 'business_card_data';
+      const localData = localStorage.getItem(localKey);
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        console.log('[MyPlatformComplete] Loaded from localStorage:', {
+          hasProfileImage: !!parsed.profileImage,
+          hasCoverImage: !!parsed.coverImage,
+          hasLogoImage: !!parsed.logoImage,
+        });
+        setBusinessCardData({
+          profileImage: parsed.profileImage || '',
+          coverImage: parsed.coverImage || '',
+          logoImage: parsed.logoImage || '',
+          userName: parsed.userName || parsed.name || '',
+          companyName: parsed.companyName || '',
+        });
+      }
+    } catch (error) {
+      console.error('[MyPlatformComplete] Error loading business card:', error);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    // تحميل البيانات عند التركيب
+    loadBusinessCardData();
+    
+    // الاستماع لتحديثات بطاقة العمل (من نفس التبويب أو تبويب آخر)
+    const handleBusinessCardUpdate = () => {
+      console.log('[MyPlatformComplete] businessCardUpdated event received, reloading...');
+      loadBusinessCardData();
+    };
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.includes('business_card')) {
+        loadBusinessCardData();
       }
     };
     
-    loadBusinessCardData();
-  }, [user?.id]);
+    window.addEventListener('businessCardUpdated', handleBusinessCardUpdate);
+    window.addEventListener('businessCardSwapped', handleBusinessCardUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('businessCardUpdated', handleBusinessCardUpdate);
+      window.removeEventListener('businessCardSwapped', handleBusinessCardUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadBusinessCardData]);
 
   // slug المستخدم للمنصة العامة + مزامنة تلقائية لقاعدة البيانات
   const currentSlug = useMemo(
