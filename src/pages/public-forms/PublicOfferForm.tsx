@@ -34,6 +34,9 @@ const getMockBroker = (brokerId: string): BrokerInfo => ({
   licenseNumber: 'FAL-12345678',
   rating: 4.8,
   verified: true,
+  profileImage: '',
+  coverImage: '',
+  logoImage: '',
 });
 
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب", "مستودع", "استراحة"];
@@ -171,7 +174,8 @@ const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
 };
 
 export default function PublicOfferForm() {
-  const { brokerId } = useParams<{ brokerId: string }>();
+  const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
+  const brokerSlug = slug || brokerId;
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -180,8 +184,45 @@ export default function PublicOfferForm() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerSlug || '1'));
   
-  const broker = getMockBroker(brokerId || '1');
+  // تحميل بيانات الوسيط مع الصور من قاعدة البيانات
+  useEffect(() => {
+    const loadBrokerData = async () => {
+      if (!brokerSlug) return;
+      
+      try {
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('data, user_id')
+          .eq('slug', brokerSlug)
+          .eq('published', true)
+          .single();
+
+        if (businessCard?.data) {
+          const cardData = businessCard.data as Record<string, any>;
+          setBroker({
+            id: brokerSlug,
+            name: cardData.name || cardData.userName || 'وسيط عقاري',
+            company: cardData.company || cardData.companyName || '',
+            phone: cardData.phone || cardData.primaryPhone || '',
+            email: cardData.email || '',
+            location: cardData.city || cardData.location || '',
+            licenseNumber: cardData.falLicenseNumber || cardData.falLicense || '',
+            rating: 4.8,
+            verified: true,
+            profileImage: cardData.profileImage || '',
+            coverImage: cardData.coverImage || '',
+            logoImage: cardData.logoImage || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading broker data:', error);
+      }
+    };
+    
+    loadBrokerData();
+  }, [brokerSlug]);
 
   const [formData, setFormData] = useState<FormData>({
     ownerName: '',

@@ -33,6 +33,9 @@ const getMockBroker = (brokerId: string): BrokerInfo => ({
   licenseNumber: 'FAL-12345678',
   rating: 4.8,
   verified: true,
+  profileImage: '',
+  coverImage: '',
+  logoImage: '',
 });
 
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب", "مستودع", "استراحة"];
@@ -167,6 +170,9 @@ export default function PublicRequestForm() {
             licenseNumber: cardData.falLicenseNumber || cardData.falLicense || '',
             rating: 4.8,
             verified: true,
+            profileImage: cardData.profileImage || '',
+            coverImage: cardData.coverImage || '',
+            logoImage: cardData.logoImage || '',
           });
         }
       } catch (error) {

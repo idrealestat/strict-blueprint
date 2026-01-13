@@ -30,6 +30,9 @@ const getMockBroker = (brokerId: string): BrokerInfo => ({
   licenseNumber: 'FAL-12345678',
   rating: 4.8,
   verified: true,
+  profileImage: '',
+  coverImage: '',
+  logoImage: '',
 });
 
 const serviceTypes = [
@@ -133,6 +136,9 @@ export default function PublicPriceQuoteForm() {
             licenseNumber: cardData?.falLicenseNumber || cardData?.falLicense || '',
             rating: 4.8,
             verified: true,
+            profileImage: cardData?.profileImage || '',
+            coverImage: cardData?.coverImage || '',
+            logoImage: cardData?.logoImage || '',
           });
         }
       }
