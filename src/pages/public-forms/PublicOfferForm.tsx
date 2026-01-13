@@ -502,7 +502,7 @@ export default function PublicOfferForm() {
           }
         }
 
-        // 4. إنشاء إشعار في قاعدة البيانات
+        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
         await createNotification({
           userId: brokerUserId,
           title: '🏠 عرض عقاري جديد',
@@ -512,6 +512,7 @@ export default function PublicOfferForm() {
           priority: 'high',
           relatedEntityType: 'offer_form',
           relatedEntityId: offerId,
+          actionUrl: '/app/crm',
           metadata: {
             ownerName: formData.ownerName,
             ownerPhone: formData.ownerPhone,
@@ -521,6 +522,12 @@ export default function PublicOfferForm() {
             customerId: customerId!,
             isNewCustomer,
             isPulsing: true,
+          },
+          sendPush: true,
+          pushData: {
+            type: 'new_offer',
+            ownerName: formData.ownerName,
+            propertyType: formData.propertyType,
           },
         });
 
