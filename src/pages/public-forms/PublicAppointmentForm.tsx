@@ -29,6 +29,9 @@ const getMockBroker = (brokerId: string): BrokerInfo => ({
   licenseNumber: 'FAL-12345678',
   rating: 4.8,
   verified: true,
+  profileImage: '',
+  coverImage: '',
+  logoImage: '',
 });
 
 const appointmentTypes = [
@@ -151,7 +154,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
           // Track page view
           trackPageView('calendar', data.id, 'public_web');
           
-          // استخراج بيانات الوسيط من البطاقة
+          // استخراج بيانات الوسيط من البطاقة مع الصور
           const cardData = data.data as Record<string, any>;
           setFetchedBroker({
             id: data.id,
@@ -163,6 +166,9 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
             licenseNumber: cardData?.falLicense || cardData?.falLicenseNumber || '',
             rating: cardData?.rating || 4.5,
             verified: cardData?.verified || true,
+            profileImage: cardData?.profileImage || '',
+            coverImage: cardData?.coverImage || '',
+            logoImage: cardData?.logoImage || '',
           });
         }
       } else if (brokerInfo) {
