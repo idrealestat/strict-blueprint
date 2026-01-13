@@ -400,10 +400,6 @@ export function usePlatformListings(slug?: string) {
     const silent = Boolean(options?.silent);
 
     try {
-      // الحصول على user_id الحالي
-      const { data: sessionData } = await supabase.auth.getSession();
-      const currentUserId = sessionData?.session?.user?.id;
-
       // قراءة البيانات من localStorage
       const localData = localStorage.getItem('wasata_platform_complete');
       const publishedAds = localStorage.getItem('published_ads_list');
@@ -526,7 +522,6 @@ export function usePlatformListings(slug?: string) {
 
         const base: any = {
           slug: currentSlug,
-          user_id: currentUserId || null, // إضافة user_id للعروض
           title,
           description: description ? String(description) : null,
           price: Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0,
