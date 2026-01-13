@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlementsContext, PlanCode } from '@/context/EntitlementsContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const plans: {
   code: PlanCode;
@@ -62,16 +63,27 @@ export default function ChoosePlanPage() {
     }
   }, [planCode, isLoading, navigate]);
 
-  const handleSelectPlan = async (planCode: PlanCode) => {
-    setIsSubmitting(planCode);
+  const handleSelectPlan = async (selectedPlanCode: PlanCode) => {
+    setIsSubmitting(selectedPlanCode);
     
     try {
-      const success = await updatePlan(planCode);
+      const success = await updatePlan(selectedPlanCode);
       
       if (success) {
+        // إذا اختار باقة المكتب، نحدث نوع الحساب إلى office
+        if (selectedPlanCode === 'OFFICE') {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('profiles')
+              .update({ account_type: 'office' })
+              .eq('user_id', user.id);
+          }
+        }
+        
         toast({
           title: 'تم اختيار الباقة بنجاح!',
-          description: `مرحباً بك في ${planCode === 'INDIVIDUAL' ? 'باقة الأفراد' : 'باقة المكتب'}`,
+          description: `مرحباً بك في ${selectedPlanCode === 'INDIVIDUAL' ? 'باقة الأفراد' : 'باقة المكتب'}`,
         });
         navigate('/app/businesscard/edit');
       } else {
