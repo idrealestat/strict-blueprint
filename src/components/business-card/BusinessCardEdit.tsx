@@ -509,10 +509,11 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       // حفظ بالمفتاح الأساسي
       localStorage.setItem(STORAGE_KEY, dataToSave);
 
-      // حفظ نسخة للربط مع منصتي - صورة البروفايل فقط
+      // حفظ نسخة للربط مع منصتي - جميع الصور
       const platformData = {
-        profileImage: formData.profileImage, // صورة البروفايل فقط للمنصة
+        profileImage: formData.profileImage,
         coverImage: formData.coverImage,
+        logoImage: formData.logoImage, // إضافة الشعار للربط الكامل
         name: formData.userName,
         title: formData.companyName || 'وسيط عقاري معتمد'
       };
