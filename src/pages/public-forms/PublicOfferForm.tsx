@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { triggerOfferNotification, createNotification } from '@/utils/notificationTriggers';
 import { markAsNew } from '@/hooks/usePublishedAdsManager';
+import LocationPickerMap from '@/components/auth/LocationPickerMap';
 
 // Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
@@ -83,11 +84,19 @@ interface FormData {
   // معلومات العقار الأساسية
   propertyType: string;
   purpose: string;
-  city: string;
-  district: string;
-  street: string;
   area: string;
   price: string;
+  
+  // بيانات الموقع من الخريطة
+  locationLat: string;
+  locationLng: string;
+  locationCity: string;
+  locationDistrict: string;
+  locationStreet: string;
+  locationBuilding: string;
+  locationAdditionalNumber: string;
+  locationPostalCode: string;
+  googleMapsUrl: string;
   
   // خيارات الدفعات للإيجار
   paymentPrices: {
@@ -236,11 +245,17 @@ export default function PublicOfferForm() {
     tour3dUrl: '',
     propertyType: '',
     purpose: '',
-    city: '',
-    district: '',
-    street: '',
     area: '',
     price: '',
+    locationLat: '',
+    locationLng: '',
+    locationCity: '',
+    locationDistrict: '',
+    locationStreet: '',
+    locationBuilding: '',
+    locationAdditionalNumber: '',
+    locationPostalCode: '',
+    googleMapsUrl: '',
     paymentPrices: {
       onePayment: '',
       twoPayments: '',
@@ -480,7 +495,7 @@ export default function PublicOfferForm() {
               priority: 'عالي',
               property_type: 'owner',
               source: 'نموذج عرض عقاري',
-              location: formData.city || null,
+              location: formData.locationCity || null,
               notes: `عرض عقاري: ${formData.propertyType} ${formData.purpose}`,
               last_contact: new Date().toISOString().split('T')[0],
               metadata: {
@@ -518,7 +533,7 @@ export default function PublicOfferForm() {
             ownerPhone: formData.ownerPhone,
             propertyType: formData.propertyType,
             purpose: formData.purpose,
-            city: formData.city,
+            city: formData.locationCity,
             customerId: customerId!,
             isNewCustomer,
             isPulsing: true,
@@ -855,31 +870,12 @@ export default function PublicOfferForm() {
               </Select>
             </div>
             <div>
-              <Label className="text-amber-800">المدينة</Label>
-              <Select value={formData.city} onValueChange={(v) => updateField('city', v)}>
-                <SelectTrigger className="border-amber-200">
-                  <SelectValue placeholder="اختر المدينة" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-amber-800">الحي</Label>
+              <Label className="text-amber-800">المساحة (م²)</Label>
               <Input
-                value={formData.district}
-                onChange={(e) => updateField('district', e.target.value)}
-                placeholder="اسم الحي"
-                className="border-amber-200 focus:border-amber-400"
-              />
-            </div>
-            <div>
-              <Label className="text-amber-800">الشارع</Label>
-              <Input
-                value={formData.street}
-                onChange={(e) => updateField('street', e.target.value)}
-                placeholder="اسم الشارع"
+                type="number"
+                value={formData.area}
+                onChange={(e) => updateField('area', e.target.value)}
+                placeholder="المساحة بالمتر المربع"
                 className="border-amber-200 focus:border-amber-400"
               />
             </div>
@@ -968,6 +964,104 @@ export default function PublicOfferForm() {
                     />
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        </Section>
+
+        {/* ===== قسم تحديد موقع العقار ===== */}
+        <Section title="تحديد موقع العقار" icon={<MapPin className="w-5 h-5" />} color="cyan">
+          <div className="space-y-4">
+            {/* الخريطة */}
+            <div className="mb-4">
+              <Label className="text-cyan-800 mb-2 block">حدد موقع العقار على الخريطة</Label>
+              <LocationPickerMap
+                onLocationSelect={(lat, lng) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    locationLat: lat.toString(),
+                    locationLng: lng.toString(),
+                    googleMapsUrl: `https://www.google.com/maps?q=${lat},${lng}`
+                  }));
+                }}
+                initialLat={formData.locationLat ? parseFloat(formData.locationLat) : 24.7136}
+                initialLng={formData.locationLng ? parseFloat(formData.locationLng) : 46.6753}
+              />
+            </div>
+
+            {/* الحقول التلقائية */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-cyan-800">المدينة</Label>
+                <Input
+                  value={formData.locationCity}
+                  onChange={(e) => updateField('locationCity', e.target.value)}
+                  placeholder="المدينة"
+                  className="border-cyan-200 focus:border-cyan-400"
+                />
+              </div>
+              <div>
+                <Label className="text-cyan-800">الحي</Label>
+                <Input
+                  value={formData.locationDistrict}
+                  onChange={(e) => updateField('locationDistrict', e.target.value)}
+                  placeholder="الحي"
+                  className="border-cyan-200 focus:border-cyan-400"
+                />
+              </div>
+              <div>
+                <Label className="text-cyan-800">اسم الشارع</Label>
+                <Input
+                  value={formData.locationStreet}
+                  onChange={(e) => updateField('locationStreet', e.target.value)}
+                  placeholder="اسم الشارع"
+                  className="border-cyan-200 focus:border-cyan-400"
+                />
+              </div>
+              <div>
+                <Label className="text-cyan-800">رقم المبنى</Label>
+                <Input
+                  value={formData.locationBuilding}
+                  onChange={(e) => updateField('locationBuilding', e.target.value)}
+                  placeholder="رقم المبنى"
+                  className="border-cyan-200 focus:border-cyan-400"
+                />
+              </div>
+              <div>
+                <Label className="text-cyan-800">الرقم الإضافي</Label>
+                <Input
+                  value={formData.locationAdditionalNumber}
+                  onChange={(e) => updateField('locationAdditionalNumber', e.target.value)}
+                  placeholder="الرقم الإضافي"
+                  className="border-cyan-200 focus:border-cyan-400"
+                />
+              </div>
+              <div>
+                <Label className="text-cyan-800">الرمز البريدي</Label>
+                <Input
+                  value={formData.locationPostalCode}
+                  onChange={(e) => updateField('locationPostalCode', e.target.value)}
+                  placeholder="الرمز البريدي"
+                  className="border-cyan-200 focus:border-cyan-400"
+                />
+              </div>
+            </div>
+
+            {/* رابط خرائط جوجل */}
+            {formData.googleMapsUrl && (
+              <div className="mt-4 p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+                <Label className="text-cyan-800 mb-2 block flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  رابط الموقع على خرائط جوجل
+                </Label>
+                <a 
+                  href={formData.googleMapsUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-600 hover:text-cyan-800 underline text-sm break-all"
+                >
+                  {formData.googleMapsUrl}
+                </a>
               </div>
             )}
           </div>
