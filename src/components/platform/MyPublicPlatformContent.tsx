@@ -333,13 +333,24 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     }
 
     const loadCardData = async () => {
-      // أولاً: محاولة الجلب من قاعدة البيانات
-      if (userId && userId !== 'default' && userId !== 'public') {
+      // ✅ الحماية: جلب بيانات البطاقة من قاعدة البيانات فقط
+      // أي تعديل في صفحة التحرير → يظهر هنا تلقائياً
+      
+      // الحصول على user_id من المستخدم الحالي إذا لم يكن متاحاً
+      let targetUserId = userId;
+      if (!targetUserId || targetUserId === 'default' || targetUserId === 'public') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          targetUserId = user.id;
+        }
+      }
+      
+      if (targetUserId && targetUserId !== 'default' && targetUserId !== 'public') {
         try {
           const { data: businessCard } = await supabase
             .from('business_cards')
             .select('data')
-            .eq('user_id', userId)
+            .eq('user_id', targetUserId)
             .maybeSingle();
           
           if (businessCard?.data) {
@@ -372,32 +383,20 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               coverImage: cardData.coverImage || '',
               logoImage: cardData.logoImage || '',
               displayNameType: cardData.displayNameType || 'personal',
-              platformNameArabic: cardData.platformNameArabic || ''
+              platformNameArabic: cardData.platformNameArabic || '',
             });
-            return;
+            // جلب حالة التبديل من البيانات
+            setIsSwapped(Boolean(cardData.swapState));
+          } else {
+            setBusinessCardData(null);
           }
         } catch (error) {
-          console.error('[MyPublicPlatformContent] Error loading from DB:', error);
-        }
-      }
-      
-      // ثانياً: جلب من localStorage كـ fallback
-      const savedBusinessCard = localStorage.getItem(STORAGE_KEY);
-
-      if (savedBusinessCard) {
-        try {
-          const data = JSON.parse(savedBusinessCard);
-          setBusinessCardData(data);
-        } catch (error) {
-          console.error('خطأ في تحميل بيانات البطاقة:', error);
+          console.error('[MyPublicPlatformContent] Error loading card from DB:', error);
           setBusinessCardData(null);
         }
       } else {
         setBusinessCardData(null);
       }
-
-      const swapState = localStorage.getItem(SWAP_KEY);
-      setIsSwapped(swapState === 'true');
     };
 
     loadCardData();
