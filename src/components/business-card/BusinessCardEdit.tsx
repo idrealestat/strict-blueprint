@@ -133,6 +133,11 @@ interface CardDisplaySettings {
   // Display name type for documents (personal / company / platform)
   displayNameType: 'personal' | 'company' | 'platform';
   platformNameArabic: string;
+  
+  // اختيار الاسم الرئيسي في الهيدر (للمكاتب والشركات)
+  // 'company' = اسم الشركة/المكتب بالأعلى (الافتراضي)
+  // 'personal' = اسم المستخدم بالأعلى
+  primaryDisplayName: 'company' | 'personal';
 }
 
 interface BusinessCardData {
@@ -222,6 +227,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     showDistrict: false,
     displayNameType: 'personal',
     platformNameArabic: '',
+    primaryDisplayName: 'company', // الافتراضي: اسم الشركة بالأعلى للمكاتب والشركات
   };
 
   // Default form data
@@ -1332,6 +1338,53 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                       className="mt-1"
                       dir="ltr"
                     />
+                  </div>
+                )}
+
+                {/* Primary Display Name Toggle - للمكاتب والشركات فقط */}
+                {(formData.accountType === 'office' || formData.accountType === 'company') && (
+                  <div className="py-2 border-b border-[#D4AF37]/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building className="w-4 h-4 text-[#D4AF37]" />
+                      <div>
+                        <span className="text-sm font-medium">الاسم الرئيسي في الهيدر</span>
+                        <p className="text-xs text-muted-foreground">اختر أي اسم يظهر بالأعلى بشكل كبير</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mr-6 mt-2">
+                      <Button
+                        type="button"
+                        variant={formData.displayOptions.primaryDisplayName === 'company' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, primaryDisplayName: 'company' }
+                        }))}
+                        className={formData.displayOptions.primaryDisplayName === 'company' ? 'bg-[#01411C]' : ''}
+                      >
+                        <Building className="w-4 h-4 ml-1" />
+                        اسم {formData.accountType === 'office' ? 'المكتب' : 'الشركة'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={formData.displayOptions.primaryDisplayName === 'personal' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          displayOptions: { ...prev.displayOptions, primaryDisplayName: 'personal' }
+                        }))}
+                        className={formData.displayOptions.primaryDisplayName === 'personal' ? 'bg-[#01411C]' : ''}
+                      >
+                        <User className="w-4 h-4 ml-1" />
+                        اسم المستخدم
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 mr-6">
+                      {formData.displayOptions.primaryDisplayName === 'company' 
+                        ? `سيظهر "${formData.companyName || 'اسم الشركة'}" بالأعلى و "${formData.userName}" بالأسفل`
+                        : `سيظهر "${formData.userName}" بالأعلى و "${formData.companyName || 'اسم الشركة'}" بالأسفل`
+                      }
+                    </p>
                   </div>
                 )}
 

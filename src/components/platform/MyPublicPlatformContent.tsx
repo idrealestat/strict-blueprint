@@ -1049,23 +1049,33 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
           {/* Profile Info - نفس التنسيق في بطاقة الأعمال */}
           <div className="pt-4 pb-8 px-4 text-center">
-            {/* تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب */}
+            {/* تحديد الاسم الرئيسي والفرعي بناءً على نوع الحساب وخيار العرض */}
             {(() => {
               const accountType = effectiveBusinessCardData?.accountType || (businessCardOverride as any)?.accountType || 'individual';
+              const displayOptions = (effectiveBusinessCardData as any)?.displayOptions || {};
+              const primaryDisplayName = displayOptions.primaryDisplayName || 'company'; // الافتراضي: اسم الشركة بالأعلى
+              
               const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
-              const primaryName = isOfficeOrCompany && effectiveBusinessCardData?.companyName 
-                ? effectiveBusinessCardData.companyName 
-                : (effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي');
-              const secondaryName = isOfficeOrCompany && effectiveBusinessCardData?.companyName 
-                ? effectiveBusinessCardData?.userName 
-                : null;
+              
+              let primaryName = effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي';
+              let secondaryName: string | null = null;
+              
+              if (isOfficeOrCompany && effectiveBusinessCardData?.companyName) {
+                if (primaryDisplayName === 'company') {
+                  primaryName = effectiveBusinessCardData.companyName;
+                  secondaryName = effectiveBusinessCardData.userName || null;
+                } else {
+                  primaryName = effectiveBusinessCardData.userName || currentUser?.name || 'مستخدم تجريبي';
+                  secondaryName = effectiveBusinessCardData.companyName;
+                }
+              }
               
               return (
                 <>
-                  {/* Primary Name - اسم الشركة للمكاتب/الشركات، اسم المستخدم للأفراد */}
+                  {/* Primary Name - الاسم الرئيسي حسب الاختيار */}
                   <h1 className="text-2xl font-bold text-white">{primaryName}</h1>
                   
-                  {/* Secondary Name - اسم المستخدم للمكاتب/الشركات */}
+                  {/* Secondary Name - الاسم الثانوي */}
                   {secondaryName && (
                     <p className="text-lg text-white/90 mt-1">{secondaryName}</p>
                   )}
