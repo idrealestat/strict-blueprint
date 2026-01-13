@@ -352,6 +352,62 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
+      // ✅ التحقق من عدم تكرار رخصة فال
+      if (data.falLicenseNumber?.trim()) {
+        const { data: existingFal } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .eq('fal_license_number', data.falLicenseNumber.trim())
+          .maybeSingle();
+        
+        if (existingFal) {
+          toast({
+            title: 'رخصة فال مسجلة مسبقاً',
+            description: 'لا يمكنك إنشاء حساب جديد بنفس رخصة فال. لديك حساب آخر بالفعل. هل تريد تسجيل الدخول؟',
+            variant: 'destructive',
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsLogin(true)}
+              >
+                تسجيل الدخول
+              </Button>
+            )
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // ✅ التحقق من عدم تكرار رقم الهوية
+      if (data.nationalId?.trim()) {
+        const { data: existingId } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .eq('national_id', data.nationalId.trim())
+          .maybeSingle();
+        
+        if (existingId) {
+          toast({
+            title: 'رقم الهوية مسجل مسبقاً',
+            description: 'لا يمكنك إنشاء حساب جديد بنفس رقم الهوية. لديك حساب آخر بالفعل. هل تريد تسجيل الدخول؟',
+            variant: 'destructive',
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsLogin(true)}
+              >
+                تسجيل الدخول
+              </Button>
+            )
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+      
       const fullName = `${data.firstName} ${data.secondName} ${data.lastName}`;
       
       // التسجيل مباشرة بدون Magic Link
@@ -418,6 +474,10 @@ export default function AuthPage() {
           user_id: userId,
           slug: null,
           published: false,
+          fal_license_number: data.falLicenseNumber,
+          national_id: data.nationalId,
+          email: data.email,
+          phone: data.phone,
           data: {
             name: fullName,
             phone: data.phone,
