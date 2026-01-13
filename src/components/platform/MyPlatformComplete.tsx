@@ -503,52 +503,41 @@ export default function MyPlatformComplete({
     companyName?: string;
   } | null>(null);
 
-  // دالة تحميل بيانات بطاقة العمل - مستخرجة للاستخدام المتكرر
+  // دالة تحميل بيانات بطاقة العمل - من قاعدة البيانات فقط (مصدر الحقيقة الوحيد)
   const loadBusinessCardData = useCallback(async () => {
     try {
-      // أولاً: جلب من قاعدة البيانات
-      if (user?.id) {
-        const { data: businessCard } = await supabase
-          .from('business_cards')
-          .select('data')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (businessCard?.data) {
-          const cardData = businessCard.data as Record<string, any>;
-          console.log('[MyPlatformComplete] Loaded from DB:', {
-            hasProfileImage: !!cardData.profileImage,
-            hasCoverImage: !!cardData.coverImage,
-            hasLogoImage: !!cardData.logoImage,
-          });
-          setBusinessCardData({
-            profileImage: cardData.profileImage || '',
-            coverImage: cardData.coverImage || '',
-            logoImage: cardData.logoImage || '',
-            userName: cardData.userName || cardData.name || '',
-            companyName: cardData.companyName || '',
-          });
-          return;
-        }
+      if (!user?.id) {
+        console.log('[MyPlatformComplete] No user ID, skipping DB fetch');
+        return;
       }
       
-      // ثانياً: جلب من localStorage كـ fallback
-      const localKey = user?.id ? `business_card_${user.id}` : 'business_card_data';
-      const localData = localStorage.getItem(localKey);
-      if (localData) {
-        const parsed = JSON.parse(localData);
-        console.log('[MyPlatformComplete] Loaded from localStorage:', {
-          hasProfileImage: !!parsed.profileImage,
-          hasCoverImage: !!parsed.coverImage,
-          hasLogoImage: !!parsed.logoImage,
+      const { data: businessCard, error } = await supabase
+        .from('business_cards')
+        .select('data')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('[MyPlatformComplete] Error fetching from DB:', error);
+        return;
+      }
+      
+      if (businessCard?.data) {
+        const cardData = businessCard.data as Record<string, any>;
+        console.log('[MyPlatformComplete] Loaded from DB:', {
+          hasProfileImage: !!cardData.profileImage,
+          hasCoverImage: !!cardData.coverImage,
+          hasLogoImage: !!cardData.logoImage,
         });
         setBusinessCardData({
-          profileImage: parsed.profileImage || '',
-          coverImage: parsed.coverImage || '',
-          logoImage: parsed.logoImage || '',
-          userName: parsed.userName || parsed.name || '',
-          companyName: parsed.companyName || '',
+          profileImage: cardData.profileImage || '',
+          coverImage: cardData.coverImage || '',
+          logoImage: cardData.logoImage || '',
+          userName: cardData.userName || cardData.name || '',
+          companyName: cardData.companyName || '',
         });
+      } else {
+        console.log('[MyPlatformComplete] No business card found in DB for user:', user.id);
       }
     } catch (error) {
       console.error('[MyPlatformComplete] Error loading business card:', error);
