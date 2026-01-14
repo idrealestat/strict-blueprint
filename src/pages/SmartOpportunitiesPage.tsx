@@ -8,8 +8,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-// MainLayout removed from this page - uses simple wrapper instead
-import { Sparkles, ArrowRight, RefreshCw, Loader2, Home } from 'lucide-react';
+import { LeftSliderComplete } from '@/components/layout/LeftSliderComplete';
+import RightSliderComplete from '@/components/layout/RightSliderComplete';
+import NotificationsSidebar from '@/components/NotificationsSidebar';
+import { Sparkles, ArrowRight, RefreshCw, Loader2, Home, Menu, PanelLeft, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
 import { useSmartOpportunityNotifications } from '@/hooks/useSmartOpportunityNotifications';
@@ -33,6 +35,11 @@ const SmartOpportunitiesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filters, setFilters] = useState<OpportunityFiltersState>(defaultFilters);
+  
+  // حالة السلايدرز والإشعارات
+  const [rightMenuOpen, setRightMenuOpen] = useState(false);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // استخراج المدن والأحياء المتاحة من الفرص
   const availableCities = useMemo(() => {
@@ -364,25 +371,61 @@ const SmartOpportunitiesPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <div className="container mx-auto px-4 py-6 space-y-6 min-h-screen">
-        {/* زر العودة والعنوان */}
-        <div className="flex items-center gap-3 mb-4">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={() => navigate('/app/dashboard')}
-            className="border-2 border-amber-500 hover:bg-amber-50 text-amber-600"
-          >
-            <Home className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              الفرص الذكية
-            </h1>
-            <p className="text-xs text-gray-500">اسحب يميناً للقبول أو يساراً للرفض</p>
+      {/* شريط التنقل المصغر */}
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] backdrop-blur-md border-b-2 border-[#D4AF37] shadow-lg">
+        <div className="container mx-auto px-4 py-2">
+          <div className="flex items-center justify-between">
+            {/* Right: Burger Menu */}
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => setRightMenuOpen(true)} 
+              className="border-2 border-[#D4AF37] hover:bg-white/20 bg-white/10 text-white h-9 w-9"
+            >
+              <Menu className="w-4 h-4" />
+            </Button>
+
+            {/* Center: Title + Home */}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => navigate('/app/dashboard')}
+                className="text-[#D4AF37] hover:bg-white/20"
+              >
+                <Home className="w-5 h-5" />
+              </Button>
+              <div className="inline-flex items-center gap-2 bg-white/10 text-white px-3 py-1 rounded-full border border-[#D4AF37]">
+                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                <span className="font-bold text-sm">الفرص الذكية</span>
+              </div>
+            </div>
+
+            {/* Left: Left Sidebar + Bell */}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setLeftSidebarOpen(true)} 
+                className="border-2 border-[#D4AF37] hover:bg-white/20 bg-white/10 text-white h-9 w-9"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setNotificationsOpen(true)} 
+                className="border-2 border-[#D4AF37] hover:bg-white/20 bg-white/10 text-white relative h-9 w-9"
+              >
+                <Bell className="w-5 h-5" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              </Button>
+            </div>
           </div>
         </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-6 space-y-6">
 
         {/* أزرار التحكم */}
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -547,6 +590,32 @@ const SmartOpportunitiesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Right Slider */}
+      <RightSliderComplete
+        isOpen={rightMenuOpen}
+        onClose={() => setRightMenuOpen(false)}
+        onNavigate={(page) => {
+          setRightMenuOpen(false);
+          navigate(`/app/${page}`);
+        }}
+      />
+
+      {/* Left Slider */}
+      <LeftSliderComplete
+        isOpen={leftSidebarOpen}
+        onClose={() => setLeftSidebarOpen(false)}
+        onNavigate={(page) => {
+          setLeftSidebarOpen(false);
+          navigate(`/app/${page}`);
+        }}
+      />
+
+      {/* Notifications Sidebar */}
+      <NotificationsSidebar
+        isOpen={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
     </div>
   );
 };
