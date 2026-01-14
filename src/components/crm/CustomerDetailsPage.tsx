@@ -272,7 +272,7 @@ const mockInvoices = [
 
 export default function CustomerDetailsPage({ customer, onBack, onUpdate }: CustomerDetailsPageProps) {
   // استخدام التبويب من بيانات العميل إذا تم تحديده (مثلاً من المساعد الذكي)
-  const initialTab = (customer as any).activeTab || 'overview';
+  const initialTab = (customer as any).activeTab || 'published_ads';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditing, setIsEditing] = useState(false);
   const [editedCustomer, setEditedCustomer] = useState<Customer>(customer);
@@ -398,24 +398,20 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     return [];
   });
   
-  // Default tabs
+  // Default tabs - مرتبة حسب الطلب: عقار منشور، الطلبات، العروض، عرض سعر، المهام
   const defaultTabs = [
-    { id: 'overview', name: '📊 نظرة شاملة', removable: false },
-    { id: 'personal_info', name: '👤 المعلومات', removable: false },
     { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
-    { id: 'price_quotes', name: '💵 عروض الأسعار', removable: false },
+    { id: 'requests', name: '📋 الطلبات', removable: false },
+    { id: 'offers', name: '🎯 العروض', removable: false },
+    { id: 'price_quotes', name: '💵 عرض سعر', removable: false },
+    { id: 'tasks', name: '✅ المهام', removable: false },
+    { id: 'overview', name: '📊 المعلومات العامة', removable: false },
     { id: 'transactions', name: '💰 المعاملات', removable: true },
     { id: 'activity', name: '💬 التفاعلات', removable: false },
-    { id: 'reminders', name: '⏰ التذكيرات', removable: true },
     { id: 'analytics', name: '📈 التحليلات', removable: true },
     { id: 'properties', name: '🏘️ العقارات', removable: true },
     { id: 'rented', name: '🏠 عقار مؤجر', removable: true },
-    { id: 'offers', name: '🎯 العروض', removable: true },
-    { id: 'requests', name: '📋 الطلبات', removable: true },
     { id: 'invoices', name: '🧾 الفواتير', removable: true },
-    { id: 'tasks', name: '✅ المهام', removable: true },
-    { id: 'notes', name: '📝 الملاحظات', removable: true },
-    { id: 'documents', name: '📁 المستندات', removable: true },
     { id: 'history', name: '⏳ السجل', removable: true },
     { id: 'settings', name: '⚙️ الإعدادات', removable: false },
   ];
