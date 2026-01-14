@@ -715,11 +715,10 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               ) : (
                 <Button
                   onClick={() => setActiveTab('settings')}
-                  variant="outline"
-                  className="border-[#D4AF37] text-white hover:bg-white/20"
+                  className="bg-[#01411C] text-white border-2 border-[#D4AF37] hover:bg-[#026129] shadow-lg"
                 >
                   <Settings className="w-4 h-4 ml-1" />
-                  الإعدادات
+                  إعدادات خاصة
                 </Button>
               )}
             </div>
