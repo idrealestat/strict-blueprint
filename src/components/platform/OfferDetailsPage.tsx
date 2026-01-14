@@ -739,7 +739,8 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   allListings = [], 
   brokerPhone,
   userId,
-  trackingChannel = 'public_web'
+  trackingChannel = 'public_web',
+  platformSlug
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -1482,11 +1483,13 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         listing={listing}
+        platformSlug={platformSlug}
       />
       <SendQuoteModal
         isOpen={showQuoteModal}
         onClose={() => setShowQuoteModal(false)}
         listing={listing}
+        platformSlug={platformSlug}
       />
       <PayDepositModal
         isOpen={showDepositModal}
