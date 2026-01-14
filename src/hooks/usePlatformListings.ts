@@ -126,6 +126,9 @@ export interface PlatformListing {
   deedNumber?: string;
   deedDate?: string;
   adLicense?: string;
+  adLicenseDate?: string;
+  adLicenseDuration?: number;
+  adLicenseExpiresAt?: string;
   brokerPhone?: string;
   lat?: number;
   lng?: number;
@@ -211,6 +214,9 @@ const mapDbToListing = (row: any): PlatformListing => {
     deedNumber: row.deed_number,
     deedDate: row.deed_date,
     adLicense: row.ad_license,
+    adLicenseDate: row.ad_license_date,
+    adLicenseDuration: row.ad_license_duration,
+    adLicenseExpiresAt: row.ad_license_expires_at,
     brokerPhone: row.broker_phone,
     lat: row.lat ? Number(row.lat) : undefined,
     lng: row.lng ? Number(row.lng) : undefined,
@@ -271,6 +277,8 @@ const mapListingToDb = (listing: Partial<PlatformListing>) => ({
   deed_number: listing.deedNumber,
   deed_date: listing.deedDate,
   ad_license: listing.adLicense,
+  ad_license_date: listing.adLicenseDate,
+  ad_license_duration: listing.adLicenseDuration,
   broker_phone: listing.brokerPhone,
   lat: listing.lat,
   lng: listing.lng,

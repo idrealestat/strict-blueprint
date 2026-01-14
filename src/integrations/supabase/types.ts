@@ -1197,6 +1197,9 @@ export type Database = {
         Row: {
           ac_units: string | null
           ad_license: string | null
+          ad_license_date: string | null
+          ad_license_duration: number | null
+          ad_license_expires_at: string | null
           age: number | null
           area: number | null
           balconies: string | null
@@ -1257,6 +1260,9 @@ export type Database = {
         Insert: {
           ac_units?: string | null
           ad_license?: string | null
+          ad_license_date?: string | null
+          ad_license_duration?: number | null
+          ad_license_expires_at?: string | null
           age?: number | null
           area?: number | null
           balconies?: string | null
@@ -1317,6 +1323,9 @@ export type Database = {
         Update: {
           ac_units?: string | null
           ad_license?: string | null
+          ad_license_date?: string | null
+          ad_license_duration?: number | null
+          ad_license_expires_at?: string | null
           age?: number | null
           area?: number | null
           balconies?: string | null
@@ -2064,7 +2073,198 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      active_platform_listings: {
+        Row: {
+          ac_units: string | null
+          ad_license: string | null
+          ad_license_date: string | null
+          ad_license_duration: number | null
+          ad_license_expires_at: string | null
+          age: number | null
+          area: number | null
+          balconies: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          broker_phone: string | null
+          category: string | null
+          city: string | null
+          corner_type: string | null
+          councils: string | null
+          created_at: string | null
+          curtains: string | null
+          custom_hashtags: string[] | null
+          deed_date: string | null
+          deed_number: string | null
+          deleted_at: string | null
+          description: string | null
+          direction: string | null
+          district: string | null
+          entrances: string | null
+          extra_kitchen_appliances: string | null
+          features: string[] | null
+          floor_number: string | null
+          floors: string | null
+          furnishing: string | null
+          has_extra_kitchen: boolean | null
+          has_laundry_room: boolean | null
+          hashtags: string[] | null
+          id: string | null
+          image: string | null
+          images: string[] | null
+          is_hidden: boolean | null
+          is_pinned: boolean | null
+          lat: number | null
+          living_rooms: string | null
+          lng: number | null
+          owner_name: string | null
+          owner_phone: string | null
+          payment_option: string | null
+          payment_prices: Json | null
+          price: number | null
+          property_type: string | null
+          purpose: string | null
+          slug: string | null
+          smart_path: string | null
+          status: string | null
+          street: string | null
+          street_width: string | null
+          title: string | null
+          tour_3d_url: string | null
+          updated_at: string | null
+          user_id: string | null
+          video_url: string | null
+          views: number | null
+          warehouses: string | null
+          warranties: Json | null
+        }
+        Insert: {
+          ac_units?: string | null
+          ad_license?: string | null
+          ad_license_date?: string | null
+          ad_license_duration?: number | null
+          ad_license_expires_at?: string | null
+          age?: number | null
+          area?: number | null
+          balconies?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_phone?: string | null
+          category?: string | null
+          city?: string | null
+          corner_type?: string | null
+          councils?: string | null
+          created_at?: string | null
+          curtains?: string | null
+          custom_hashtags?: string[] | null
+          deed_date?: string | null
+          deed_number?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          direction?: string | null
+          district?: string | null
+          entrances?: string | null
+          extra_kitchen_appliances?: string | null
+          features?: string[] | null
+          floor_number?: string | null
+          floors?: string | null
+          furnishing?: string | null
+          has_extra_kitchen?: boolean | null
+          has_laundry_room?: boolean | null
+          hashtags?: string[] | null
+          id?: string | null
+          image?: string | null
+          images?: string[] | null
+          is_hidden?: boolean | null
+          is_pinned?: boolean | null
+          lat?: number | null
+          living_rooms?: string | null
+          lng?: number | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          payment_option?: string | null
+          payment_prices?: Json | null
+          price?: number | null
+          property_type?: string | null
+          purpose?: string | null
+          slug?: string | null
+          smart_path?: string | null
+          status?: string | null
+          street?: string | null
+          street_width?: string | null
+          title?: string | null
+          tour_3d_url?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+          views?: number | null
+          warehouses?: string | null
+          warranties?: Json | null
+        }
+        Update: {
+          ac_units?: string | null
+          ad_license?: string | null
+          ad_license_date?: string | null
+          ad_license_duration?: number | null
+          ad_license_expires_at?: string | null
+          age?: number | null
+          area?: number | null
+          balconies?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_phone?: string | null
+          category?: string | null
+          city?: string | null
+          corner_type?: string | null
+          councils?: string | null
+          created_at?: string | null
+          curtains?: string | null
+          custom_hashtags?: string[] | null
+          deed_date?: string | null
+          deed_number?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          direction?: string | null
+          district?: string | null
+          entrances?: string | null
+          extra_kitchen_appliances?: string | null
+          features?: string[] | null
+          floor_number?: string | null
+          floors?: string | null
+          furnishing?: string | null
+          has_extra_kitchen?: boolean | null
+          has_laundry_room?: boolean | null
+          hashtags?: string[] | null
+          id?: string | null
+          image?: string | null
+          images?: string[] | null
+          is_hidden?: boolean | null
+          is_pinned?: boolean | null
+          lat?: number | null
+          living_rooms?: string | null
+          lng?: number | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          payment_option?: string | null
+          payment_prices?: Json | null
+          price?: number | null
+          property_type?: string | null
+          purpose?: string | null
+          slug?: string | null
+          smart_path?: string | null
+          status?: string | null
+          street?: string | null
+          street_width?: string | null
+          title?: string | null
+          tour_3d_url?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+          views?: number | null
+          warehouses?: string | null
+          warranties?: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_use_feature: {

@@ -42,6 +42,7 @@ import {
   Plus,
   DollarSign,
   Calendar,
+  Clock,
   Trash2,
   ExternalLink,
   Info,
@@ -145,6 +146,8 @@ interface PropertyData {
   // 12. مولد الوصف والعنوان
   brokerPhone: string;
   adLicense: string;
+  adLicenseDate: string; // تاريخ الترخيص الإعلاني
+  adLicenseDuration: string; // مدة الترخيص بالأيام
   descriptionLength: string;
   descriptionLanguage: string;
   descriptionStyle: string;
@@ -272,6 +275,8 @@ const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
   customHashtags: [],
   brokerPhone: userPhone || '',
   adLicense: '',
+  adLicenseDate: '', // تاريخ الترخيص الإعلاني
+  adLicenseDuration: '30', // مدة الترخيص بالأيام (افتراضي 30 يوم)
   descriptionLength: 'متوسط',
   descriptionLanguage: 'عربي',
   descriptionStyle: 'احترافي',
@@ -907,6 +912,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         deedNumber: propertyData.deedNumber,
         deedDate: propertyData.deedDate,
         deedCity: propertyData.deedCity,
+        adLicense: propertyData.adLicense,
+        adLicenseDate: propertyData.adLicenseDate,
+        adLicenseDuration: propertyData.adLicenseDuration,
         images: propertyData.media.filter(m => m.type === 'image').map(m => m.url),
         videos: propertyData.media.filter(m => m.type === 'video').map(m => m.url),
         tour3DUrl: propertyData.tour3DUrl,
@@ -2135,6 +2143,53 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   placeholder="رقم الترخيص الإعلاني"
                   className="border-[#D4AF37]"
                 />
+              </div>
+            </div>
+
+            {/* حقول تاريخ ومدة الترخيص الإعلاني */}
+            <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div>
+                <Label className="text-[#01411C] flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  تاريخ الترخيص الإعلاني
+                </Label>
+                <Input
+                  type="date"
+                  value={propertyData.adLicenseDate}
+                  onChange={(e) => setPropertyData(prev => ({ ...prev, adLicenseDate: e.target.value }))}
+                  className="border-[#D4AF37]"
+                />
+                <p className="text-xs text-amber-700 mt-1">تاريخ بداية سريان الترخيص</p>
+              </div>
+              <div>
+                <Label className="text-[#01411C] flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  مدة الترخيص (بالأيام)
+                </Label>
+                <Select 
+                  value={propertyData.adLicenseDuration} 
+                  onValueChange={(value) => setPropertyData(prev => ({ ...prev, adLicenseDuration: value }))}
+                >
+                  <SelectTrigger className="border-[#D4AF37]">
+                    <SelectValue placeholder="اختر المدة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 يوم</SelectItem>
+                    <SelectItem value="60">60 يوم</SelectItem>
+                    <SelectItem value="90">90 يوم (3 أشهر)</SelectItem>
+                    <SelectItem value="180">180 يوم (6 أشهر)</SelectItem>
+                    <SelectItem value="365">365 يوم (سنة)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-amber-700 mt-1">
+                  {propertyData.adLicenseDate && propertyData.adLicenseDuration ? (
+                    <>
+                      ينتهي في: {new Date(new Date(propertyData.adLicenseDate).getTime() + parseInt(propertyData.adLicenseDuration) * 24 * 60 * 60 * 1000).toLocaleDateString('ar-SA')}
+                    </>
+                  ) : (
+                    'حدد التاريخ والمدة لحساب تاريخ الانتهاء'
+                  )}
+                </p>
               </div>
             </div>
 

@@ -377,6 +377,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             images: listing.images || [],
             status: listing.status,
             ad_license: listing.ad_license,
+            ad_license_date: listing.ad_license_date,
+            ad_license_duration: listing.ad_license_duration,
+            ad_license_expires_at: listing.ad_license_expires_at,
             publishedAt: listing.created_at,
             views: listing.views || 0,
             is_hidden: listing.is_hidden,
@@ -1078,9 +1081,56 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               <h4 className="font-bold text-lg text-[#01411C]">
                                 {ad.purpose} {ad.propertyType}
                               </h4>
-                              <Badge className="bg-emerald-100 text-emerald-700">
-                                {ad.status === 'published' ? 'منشور' : 'مسودة'}
-                              </Badge>
+                              {/* حالة العرض بناءً على حالة الترخيص */}
+                              {(() => {
+                                // التحقق من حالة الترخيص
+                                const today = new Date();
+                                const expiresAt = ad.ad_license_expires_at ? new Date(ad.ad_license_expires_at) : null;
+                                const isLicenseExpired = expiresAt && expiresAt < today;
+                                const isHidden = ad.is_hidden;
+                                const isSold = ad.status === 'sold';
+                                const isRented = ad.status === 'rented';
+                                
+                                if (isSold) {
+                                  return (
+                                    <Badge className="bg-purple-100 text-purple-700">
+                                      🏷️ مباع
+                                    </Badge>
+                                  );
+                                }
+                                if (isRented) {
+                                  return (
+                                    <Badge className="bg-blue-100 text-blue-700">
+                                      🔑 مؤجر
+                                    </Badge>
+                                  );
+                                }
+                                if (isHidden) {
+                                  return (
+                                    <Badge className="bg-gray-100 text-gray-700">
+                                      👁️‍🗨️ مخفي
+                                    </Badge>
+                                  );
+                                }
+                                if (isLicenseExpired) {
+                                  return (
+                                    <Badge className="bg-red-100 text-red-700">
+                                      ⚠️ غير نشط - انتهى الترخيص
+                                    </Badge>
+                                  );
+                                }
+                                return (
+                                  <Badge className="bg-emerald-100 text-emerald-700">
+                                    ✅ نشط
+                                  </Badge>
+                                );
+                              })()}
+                              {/* عرض معلومات الترخيص إن وجدت */}
+                              {ad.ad_license && (
+                                <Badge variant="outline" className="border-amber-400 text-amber-700 text-xs">
+                                  📋 {ad.ad_license}
+                                </Badge>
+                              )}
                             </div>
                             
                             <div className="flex flex-wrap gap-3 text-sm text-gray-600">
