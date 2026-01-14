@@ -1260,40 +1260,68 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     return window.location.origin;
   };
 
+  const normalizeWhatsAppPhone = (raw: string) => {
+    const digits = (raw || '').replace(/[^0-9]/g, '');
+    if (!digits) return '';
+
+    // تحويل أرقام السعودية الشائعة (05xxxxxxxx) إلى 9665xxxxxxxx
+    if (digits.startsWith('0')) return `966${digits.slice(1)}`;
+
+    return digits;
+  };
+
+  const openWhatsApp = (rawPhone: string, message: string) => {
+    const phone = normalizeWhatsAppPhone(rawPhone);
+    const text = encodeURIComponent(message);
+
+    if (!phone) {
+      toast.error('رقم واتساب غير صالح');
+      return;
+    }
+
+    // 1) محاولة فتح التطبيق مباشرة (يمنع كثير من حالات تحويل الرابط)
+    const appUrl = `whatsapp://send?phone=${phone}&text=${text}`;
+
+    // 2) احتياطي: رابط الويب
+    const webUrl = `https://wa.me/${phone}?text=${text}`;
+
+    // بعض المتصفحات تمنع window.open بدون تفاعل مباشر؛ لذلك نستخدم location أولاً ثم احتياطي سريع
+    window.location.href = appUrl;
+    window.setTimeout(() => {
+      window.open(webUrl, '_blank');
+    }, 600);
+  };
+
   const handleShareOffer = (customer: Customer) => {
     const offerUrl = `${getBaseUrl()}/public/offer?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسعدنا تقديم عروضنا العقارية لك.\n\nيمكنك الاطلاع على العروض المتاحة من خلال الرابط:\n${offerUrl}\n\nنتطلع لخدمتك 🏠`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
-    toast.success('تم فتح الواتساب لإرسال العرض');
+    toast.success('تم فتح واتساب لإرسال العرض');
   };
 
   const handleShareRequest = (customer: Customer) => {
     const requestUrl = `${getBaseUrl()}/public/request?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nنحن هنا لمساعدتك في البحث عن عقارك المثالي.\n\nيمكنك تسجيل طلبك من خلال الرابط:\n${requestUrl}\n\nسنتواصل معك فور توفر ما يناسب احتياجاتك 🔍`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
-    toast.success('تم فتح الواتساب لإرسال الطلب');
+    toast.success('تم فتح واتساب لإرسال الطلب');
   };
 
   const handleShareQuote = (customer: Customer) => {
     const quoteUrl = `${getBaseUrl()}/public/quote?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسرنا تقديم عرض سعر خاص لك.\n\nيمكنك الاطلاع على التفاصيل من خلال الرابط:\n${quoteUrl}\n\nنحن بانتظار ردك 💰`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
-    toast.success('تم فتح الواتساب لإرسال عرض السعر');
+    toast.success('تم فتح واتساب لإرسال عرض السعر');
   };
 
   const handleShareAppointment = (customer: Customer) => {
     const appointmentUrl = `${getBaseUrl()}/public/appointment?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسعدنا ترتيب موعد لك لمعاينة العقارات المتاحة.\n\nيمكنك حجز موعدك من خلال الرابط:\n${appointmentUrl}\n\nنتطلع للقائك 📅`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
-    toast.success('تم فتح الواتساب لإرسال رابط الموعد');
+    toast.success('تم فتح واتساب لإرسال رابط الموعد');
   };
 
   // Handle add customer
