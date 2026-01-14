@@ -2316,39 +2316,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       exit={{ height: 0, opacity: 0 }}
                                       className="border-t-2 border-[#D4AF37]/30 bg-gradient-to-b from-[#f0fdf4] to-white"
                                     >
-                                      {/* معلومات إضافية */}
-                                      <div className="px-3 py-2 space-y-1 text-xs">
-                                        {customer.email && (
-                                          <div className="flex items-center gap-1 text-gray-600">
-                                            <Mail className="w-3 h-3" />
-                                            <span dir="ltr">{customer.email}</span>
-                                          </div>
-                                        )}
-                                        {customer.propertyType && (
-                                          <div className="flex items-center gap-1 text-gray-600">
-                                            <Building2 className="w-3 h-3" />
-                                            <span>{customer.propertyType}</span>
-                                          </div>
-                                        )}
-                                        {customer.budget && (
-                                          <div className="flex items-center gap-1 text-[#01411C] font-medium">
-                                            <DollarSign className="w-3 h-3" />
-                                            <span>{customer.budget}</span>
-                                          </div>
-                                        )}
-                                        {customer.location && (
-                                          <div className="flex items-center gap-1 text-gray-600">
-                                            <MapPin className="w-3 h-3" />
-                                            <span>{customer.location}</span>
-                                          </div>
-                                        )}
-                                        {customer.lastContact && (
-                                          <div className="flex items-center gap-1 text-gray-500">
-                                            <Calendar className="w-3 h-3" />
-                                            <span>آخر تفاعل: {customer.lastContact}</span>
-                                          </div>
-                                        )}
-                                      </div>
 
                                       {/* آخر 3 أنشطة */}
                                       <div className="px-3 py-2 border-t border-gray-100">
