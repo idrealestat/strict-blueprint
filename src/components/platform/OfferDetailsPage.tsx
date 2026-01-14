@@ -51,6 +51,7 @@ import { showPushNotification } from '@/hooks/usePushNotifications';
 import { useEventTracker, getEventStats } from '@/hooks/useEventTracker';
 import { triggerOfferInteractionNotification } from '@/utils/notificationTriggers';
 import { useSingleOfferPresence } from '@/hooks/useRealtimePresence';
+import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 interface Listing {
   id: string;
@@ -128,7 +129,8 @@ const ScheduleVisitModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   listing: Listing;
-}> = ({ isOpen, onClose, listing }) => {
+  userId?: string;
+}> = ({ isOpen, onClose, listing, userId }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [name, setName] = useState('');
@@ -143,45 +145,77 @@ const ScheduleVisitModal: React.FC<{
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // حفظ الموعد في التقويم (localStorage + DB)
-  const saveToCalendar = async (appointmentData: any) => {
-    // حفظ محلي للتوافقية
-    const existingAppointments = JSON.parse(localStorage.getItem('calendar_appointments') || '[]');
-    const newAppointment = {
-      id: `apt_${Date.now()}`,
-      type: 'معاينة عقار',
-      title: `معاينة: ${listing.title}`,
-      date: appointmentData.date,
-      time: appointmentData.time,
-      clientName: appointmentData.name,
-      clientPhone: appointmentData.phone,
-      propertyId: listing.id,
-      propertyTitle: listing.title,
-      propertyLocation: `${listing.city} - ${listing.district}`,
-      notes: appointmentData.notes,
-      status: 'مؤكد',
-      createdAt: new Date().toISOString()
-    };
-    existingAppointments.push(newAppointment);
-    localStorage.setItem('calendar_appointments', JSON.stringify(existingAppointments));
+  // البحث عن العميل أو إنشاء بطاقة جديدة في CRM
+  const findOrCreateCustomer = async (customerData: { name: string; phone: string }) => {
+    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+    
+    // البحث برقم الجوال
+    let customer = existingCustomers.find((c: any) => 
+      c.phone === customerData.phone || c.whatsapp === customerData.phone
+    );
+    
+    let isNewCustomer = false;
+    
+    if (!customer) {
+      isNewCustomer = true;
+      // إنشاء بطاقة جديدة للعميل
+      customer = {
+        id: `cust_${Date.now()}`,
+        name: customerData.name,
+        phone: customerData.phone,
+        whatsapp: customerData.phone,
+        status: 'جديد',
+        priority: 'عالي',
+        propertyType: listing.propertyType as any,
+        budget: `${listing.price.toLocaleString()} ريال`,
+        location: `${listing.city} - ${listing.district}`,
+        notes: '',
+        source: 'صفحة عرض عقاري',
+        createdAt: new Date().toISOString().split('T')[0],
+        lastContact: new Date().toISOString().split('T')[0],
+        tags: ['موعد معاينة'],
+        appointments: [],
+        metadata: {
+          isNewCard: true,
+          hasUnreadAppointment: true,
+        }
+      };
+      existingCustomers.push(customer);
+      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
+      
+      // علامة النقطة الحمراء على بطاقة الاسم
+      markAsNew('customer', customer.id);
+    }
+    
+    return { customer, existingCustomers, isNewCustomer };
+  };
 
-    // حفظ في قاعدة البيانات
-    await saveViewingAppointmentToDb({
-      title: `معاينة: ${listing.title}`,
-      customerName: appointmentData.name,
-      customerPhone: appointmentData.phone,
-      date: appointmentData.date,
-      time: appointmentData.time.replace(' ص', '').replace(' م', ''),
-      propertyId: listing.id,
-      propertyTitle: listing.title,
-      location: `${listing.city} - ${listing.district}`,
-      notes: appointmentData.notes,
-    });
-
-    // إطلاق حدث لتحديث التقويم
-    window.dispatchEvent(new CustomEvent('appointmentCreated', { detail: newAppointment }));
-
-    return newAppointment;
+  // إضافة الموعد لبطاقة العميل
+  const addAppointmentToCustomer = (customerPhone: string, appointmentData: any) => {
+    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+    const customerIndex = existingCustomers.findIndex((c: any) => 
+      c.phone === customerPhone || c.whatsapp === customerPhone
+    );
+    
+    if (customerIndex !== -1) {
+      if (!existingCustomers[customerIndex].appointments) {
+        existingCustomers[customerIndex].appointments = [];
+      }
+      existingCustomers[customerIndex].appointments.push(appointmentData);
+      existingCustomers[customerIndex].lastContact = new Date().toISOString().split('T')[0];
+      
+      // تحديث metadata لعرض النقطة الحمراء على التبويب
+      if (!existingCustomers[customerIndex].metadata) {
+        existingCustomers[customerIndex].metadata = {};
+      }
+      existingCustomers[customerIndex].metadata.hasUnreadAppointment = true;
+      existingCustomers[customerIndex].metadata.lastAppointmentAt = new Date().toISOString();
+      
+      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
+      
+      // علامة النقطة الحمراء على تبويب المواعيد
+      markAsNew('tab', 'appointments');
+    }
   };
 
   const handleSubmit = async () => {
@@ -192,24 +226,93 @@ const ScheduleVisitModal: React.FC<{
     
     setIsSubmitting(true);
     try {
-      // حفظ في التقويم (محلي + DB)
-      await saveToCalendar({
+      const appointmentId = `apt_${Date.now()}`;
+      const offerUrl = window.location.href;
+      
+      // 1. البحث أو إنشاء العميل في CRM
+      const { customer, isNewCustomer } = await findOrCreateCustomer({ name, phone });
+      
+      // 2. بيانات الموعد مع معلومات العقار
+      const appointmentData = {
+        id: appointmentId,
+        type: 'معاينة عقار',
+        title: `معاينة: ${listing.title}`,
         date: selectedDate,
         time: selectedTime,
-        name,
-        phone,
-        notes
+        clientName: name,
+        clientPhone: phone,
+        propertyId: listing.id,
+        propertyTitle: listing.title,
+        propertyLocation: `${listing.city} - ${listing.district}`,
+        propertyPrice: listing.price,
+        propertyType: listing.propertyType,
+        offerUrl: offerUrl,
+        notes: notes,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      
+      // 3. إضافة الموعد لبطاقة العميل
+      addAppointmentToCustomer(phone, appointmentData);
+      
+      // 4. حفظ في التقويم محلياً
+      const existingAppointments = JSON.parse(localStorage.getItem('calendar_appointments') || '[]');
+      existingAppointments.push(appointmentData);
+      localStorage.setItem('calendar_appointments', JSON.stringify(existingAppointments));
+      
+      // 5. حفظ في قاعدة البيانات
+      await saveViewingAppointmentToDb({
+        title: `معاينة: ${listing.title}`,
+        customerName: name,
+        customerPhone: phone,
+        date: selectedDate,
+        time: selectedTime.replace(' ص', '').replace(' م', ''),
+        propertyId: listing.id,
+        propertyTitle: listing.title,
+        location: `${listing.city} - ${listing.district}`,
+        notes: `${notes}\n\nرابط العرض: ${offerUrl}`,
       });
       
-      // إرسال Push Notification
+      // 6. إضافة إشعار في الجرس
+      window.dispatchEvent(new CustomEvent('addNotification', {
+        detail: {
+          title: '📅 موعد معاينة جديد',
+          message: `${name} طلب موعد معاينة - ${listing.title} - ${selectedDate} ${selectedTime}`,
+          type: 'success',
+          category: 'appointment',
+          priority: 'high',
+          isPulsing: true,
+          soundType: 'reminder',
+          data: {
+            appointmentId,
+            customerId: customer.id,
+            isNewCustomer,
+            offerUrl,
+          }
+        }
+      }));
+      
+      // 7. إرسال Push Notification
       await showPushNotification(
         '📅 موعد معاينة جديد',
         `${name} - ${listing.title} - ${selectedDate} ${selectedTime}`,
-        { type: 'appointment', propertyId: listing.id }
+        { type: 'appointment', propertyId: listing.id, customerId: customer.id }
       );
       
+      // 8. تشغيل التنبيه الصوتي
+      if (typeof window !== 'undefined') {
+        import('@/utils/notificationSounds').then(({ NotificationSounds }) => {
+          NotificationSounds.reminder(0.6);
+        });
+      }
+      
+      // 9. إطلاق حدث لتحديث التقويم والواجهة
+      window.dispatchEvent(new CustomEvent('appointmentCreated', { detail: appointmentData }));
+      markAsNew('offer', appointmentId);
+      markAsNew('tab', 'calendar');
+      
       toast({
-        title: '✅ تم جدولة موعد المعاينة وحفظه في التقويم',
+        title: isNewCustomer ? '✅ تم إنشاء بطاقة عميل جديدة وجدولة الموعد' : '✅ تم جدولة موعد المعاينة',
         description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
       });
       onClose();
@@ -354,12 +457,14 @@ const SendQuoteModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   listing: Listing;
-}> = ({ isOpen, onClose, listing }) => {
+  userId?: string;
+}> = ({ isOpen, onClose, listing, userId }) => {
   const [offerPrice, setOfferPrice] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // البحث عن العميل أو إنشاء بطاقة جديدة
   const findOrCreateCustomer = (customerData: { name: string; phone: string }) => {
@@ -370,7 +475,10 @@ const SendQuoteModal: React.FC<{
       c.phone === customerData.phone || c.whatsapp === customerData.phone
     );
     
+    let isNewCustomer = false;
+    
     if (!customer) {
+      isNewCustomer = true;
       // إنشاء بطاقة جديدة للعميل
       customer = {
         id: `cust_${Date.now()}`,
@@ -378,22 +486,29 @@ const SendQuoteModal: React.FC<{
         phone: customerData.phone,
         whatsapp: customerData.phone,
         status: 'جديد',
-        priority: 'متوسط',
+        priority: 'عالي',
         propertyType: listing.propertyType as any,
         budget: `${listing.price.toLocaleString()} ريال`,
         location: `${listing.city} - ${listing.district}`,
         notes: '',
-        source: 'موقع',
+        source: 'صفحة عرض عقاري',
         createdAt: new Date().toISOString().split('T')[0],
         lastContact: new Date().toISOString().split('T')[0],
         tags: ['عرض سعر'],
-        priceQuotes: []
+        priceQuotes: [],
+        metadata: {
+          isNewCard: true,
+          hasUnreadQuote: true,
+        }
       };
       existingCustomers.push(customer);
       localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
+      
+      // علامة النقطة الحمراء على بطاقة الاسم
+      markAsNew('customer', customer.id);
     }
     
-    return { customer, existingCustomers, isNew: !existingCustomers.find((c: any) => c.id === customer.id && c.priceQuotes) };
+    return { customer, existingCustomers, isNewCustomer };
   };
 
   // إضافة عرض السعر لبطاقة العميل
@@ -409,40 +524,102 @@ const SendQuoteModal: React.FC<{
       }
       existingCustomers[customerIndex].priceQuotes.push(quoteData);
       existingCustomers[customerIndex].lastContact = new Date().toISOString().split('T')[0];
+      
+      // تحديث metadata لعرض النقطة الحمراء على التبويب
+      if (!existingCustomers[customerIndex].metadata) {
+        existingCustomers[customerIndex].metadata = {};
+      }
+      existingCustomers[customerIndex].metadata.hasUnreadQuote = true;
+      existingCustomers[customerIndex].metadata.lastQuoteAt = new Date().toISOString();
+      
       localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
+      
+      // علامة النقطة الحمراء على تبويب عروض الأسعار
+      markAsNew('tab', 'price_quotes');
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!offerPrice || !name || !phone) {
       toast({ title: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
       return;
     }
     
-    // البحث أو إنشاء العميل
-    const { customer, isNew } = findOrCreateCustomer({ name, phone });
-    
-    // إضافة عرض السعر
-    const quoteData = {
-      id: `quote_${Date.now()}`,
-      propertyId: listing.id,
-      propertyTitle: listing.title,
-      propertyLocation: `${listing.city} - ${listing.district}`,
-      originalPrice: listing.price,
-      offeredPrice: Number(offerPrice),
-      paymentMethod,
-      message,
-      status: 'معلق',
-      createdAt: new Date().toISOString()
-    };
-    
-    addQuoteToCustomer(phone, quoteData);
-    
-    toast({
-      title: isNew ? '✅ تم إنشاء بطاقة عميل جديدة وإضافة عرض السعر' : '✅ تم إضافة عرض السعر لبطاقة العميل',
-      description: `عرضك: ${Number(offerPrice).toLocaleString('ar-SA')} ريال`
-    });
-    onClose();
+    setIsSubmitting(true);
+    try {
+      const quoteId = `quote_${Date.now()}`;
+      const offerUrl = window.location.href;
+      
+      // 1. البحث أو إنشاء العميل
+      const { customer, isNewCustomer } = findOrCreateCustomer({ name, phone });
+      
+      // 2. بيانات عرض السعر مع معلومات العرض
+      const quoteData = {
+        id: quoteId,
+        propertyId: listing.id,
+        propertyTitle: listing.title,
+        propertyLocation: `${listing.city} - ${listing.district}`,
+        propertyType: listing.propertyType,
+        originalPrice: listing.price,
+        offeredPrice: Number(offerPrice),
+        paymentMethod,
+        message,
+        offerUrl: offerUrl,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      
+      // 3. إضافة عرض السعر لبطاقة العميل
+      addQuoteToCustomer(phone, quoteData);
+      
+      // 4. إضافة إشعار في الجرس
+      window.dispatchEvent(new CustomEvent('addNotification', {
+        detail: {
+          title: '💰 طلب عرض سعر جديد',
+          message: `${name} أرسل عرض سعر ${Number(offerPrice).toLocaleString('ar-SA')} ريال - ${listing.title}`,
+          type: 'success',
+          category: 'quote',
+          priority: 'high',
+          isPulsing: true,
+          soundType: 'priceQuote',
+          data: {
+            quoteId,
+            customerId: customer.id,
+            isNewCustomer,
+            offerUrl,
+          }
+        }
+      }));
+      
+      // 5. إرسال Push Notification
+      await showPushNotification(
+        '💰 طلب عرض سعر جديد',
+        `${name} - ${Number(offerPrice).toLocaleString('ar-SA')} ريال - ${listing.title}`,
+        { type: 'new_quote', propertyId: listing.id, customerId: customer.id }
+      );
+      
+      // 6. تشغيل التنبيه الصوتي
+      if (typeof window !== 'undefined') {
+        import('@/utils/notificationSounds').then(({ NotificationSounds }) => {
+          NotificationSounds.priceQuote(0.6);
+        });
+      }
+      
+      // 7. علامات النقاط الحمراء
+      markAsNew('offer', quoteId);
+      markAsNew('tab', 'price_quotes');
+      
+      toast({
+        title: isNewCustomer ? '✅ تم إنشاء بطاقة عميل جديدة وإضافة عرض السعر' : '✅ تم إضافة عرض السعر لبطاقة العميل',
+        description: `عرضك: ${Number(offerPrice).toLocaleString('ar-SA')} ريال`
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error submitting quote:', error);
+      toast({ title: 'حدث خطأ أثناء إرسال عرض السعر', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -590,41 +767,13 @@ const SendQuoteModal: React.FC<{
   );
 };
 
-// ============ مودال دفع العربون ============
+// ============ مودال دفع العربون (قيد التطوير) ============
 const PayDepositModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   listing: Listing;
 }> = ({ isOpen, onClose, listing }) => {
-  const [depositAmount, setDepositAmount] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [idNumber, setIdNumber] = useState('');
-  const [agreed, setAgreed] = useState(false);
-
-  const suggestedDeposits = [
-    { label: '5%', value: listing.price * 0.05 },
-    { label: '10%', value: listing.price * 0.10 },
-    { label: '15%', value: listing.price * 0.15 },
-    { label: '20%', value: listing.price * 0.20 }
-  ];
-
-  const handleSubmit = () => {
-    if (!depositAmount || !name || !phone || !idNumber) {
-      toast({ title: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
-      return;
-    }
-    if (!agreed) {
-      toast({ title: 'يرجى الموافقة على الشروط والأحكام', variant: 'destructive' });
-      return;
-    }
-    toast({
-      title: '✅ تم إرسال طلب دفع العربون',
-      description: `سيتم التواصل معك لإتمام الدفع: ${Number(depositAmount).toLocaleString('ar-SA')} ريال`
-    });
-    onClose();
-  };
-
+  
   if (!isOpen) return null;
 
   return (
@@ -639,7 +788,7 @@ const PayDepositModal: React.FC<{
         initial={{ scale: 0.9, y: 50 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 50 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
         onClick={e => e.stopPropagation()}
         dir="rtl"
       >
@@ -652,7 +801,7 @@ const PayDepositModal: React.FC<{
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">دفع العربون</h2>
-                <p className="text-white/80 text-sm">سعر العقار: {listing.price.toLocaleString('ar-SA')} ريال</p>
+                <p className="text-white/80 text-sm">{listing.title}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-white/80 hover:text-white">
@@ -661,113 +810,34 @@ const PayDepositModal: React.FC<{
           </div>
         </div>
 
-        {/* Form */}
-        <div className="p-6 space-y-5">
-          {/* اختيار نسبة العربون */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">اختر نسبة العربون</label>
-            <div className="grid grid-cols-4 gap-2">
-              {suggestedDeposits.map(deposit => (
-                <button
-                  key={deposit.label}
-                  onClick={() => setDepositAmount(deposit.value.toString())}
-                  className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
-                    depositAmount === deposit.value.toString()
-                      ? 'bg-[#D4AF37] text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {deposit.label}
-                </button>
-              ))}
-            </div>
+        {/* محتوى قيد التطوير */}
+        <div className="p-8 text-center">
+          <div className="w-20 h-20 mx-auto bg-amber-100 rounded-full flex items-center justify-center mb-6">
+            <AlertCircle className="w-10 h-10 text-amber-600" />
           </div>
-
-          {/* مبلغ العربون */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">مبلغ العربون (ريال) *</label>
-            <Input
-              type="number"
-              value={depositAmount}
-              onChange={e => setDepositAmount(e.target.value)}
-              placeholder="أدخل مبلغ العربون"
-              className="text-right text-xl font-bold"
-            />
-          </div>
-
-          {/* الاسم */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">الاسم الكامل *</label>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="أدخل اسمك الكامل"
-              className="text-right"
-            />
-          </div>
-
-          {/* رقم الجوال */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">رقم الجوال *</label>
-            <Input
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="05xxxxxxxx"
-              className="text-right"
-              dir="ltr"
-            />
-          </div>
-
-          {/* رقم الهوية */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">رقم الهوية *</label>
-            <Input
-              value={idNumber}
-              onChange={e => setIdNumber(e.target.value)}
-              placeholder="أدخل رقم الهوية الوطنية"
-              className="text-right"
-              dir="ltr"
-            />
-          </div>
-
-          {/* تنبيه */}
-          <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 flex gap-3">
-            <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
-            <p className="text-sm text-amber-800">
-              العربون غير قابل للاسترداد في حال التراجع عن الشراء. يرجى التأكد من جدية الرغبة في الشراء.
+          
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            🚧 قيد التطوير
+          </h3>
+          
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            ميزة دفع العربون الإلكتروني قيد التطوير حالياً.
+            <br />
+            سيتم إطلاقها قريباً بإذن الله.
+          </p>
+          
+          <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
+            <p className="text-sm text-gray-500">
+              للتواصل المباشر بخصوص دفع العربون، يرجى الاتصال أو التواصل عبر الواتساب
             </p>
           </div>
-
-          {/* الموافقة */}
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={e => setAgreed(e.target.checked)}
-              className="mt-1 w-5 h-5 accent-[#D4AF37]"
-            />
-            <span className="text-sm text-gray-700">
-              أوافق على <span className="text-[#D4AF37] font-bold">الشروط والأحكام</span> وأتعهد بالالتزام بها
-            </span>
-          </label>
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleSubmit}
-              className="flex-1 bg-[#D4AF37] hover:bg-[#C4A030] text-white font-bold py-3 rounded-xl"
-            >
-              <CreditCard className="w-5 h-5 ml-2" />
-              تأكيد الدفع
-            </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="flex-1 py-3 rounded-xl"
-            >
-              إلغاء
-            </Button>
-          </div>
+          
+          <Button
+            onClick={onClose}
+            className="w-full bg-[#D4AF37] hover:bg-[#C4A030] text-white font-bold py-3 rounded-xl"
+          >
+            حسناً، فهمت
+          </Button>
         </div>
       </motion.div>
     </motion.div>
