@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import MainLayout from '@/components/layout/MainLayout';
+// MainLayout removed from this page - uses simple wrapper instead
 import { Sparkles, ArrowRight, RefreshCw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
@@ -363,7 +363,7 @@ const SmartOpportunitiesPage = () => {
   const remainingCount = filteredOpportunities.length - currentIndex;
 
   return (
-    <MainLayout>
+    <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-6 space-y-6 min-h-screen">
         {/* أزرار التحكم */}
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -528,7 +528,7 @@ const SmartOpportunitiesPage = () => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </div>
   );
 };
 
