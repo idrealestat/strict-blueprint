@@ -416,86 +416,8 @@ const isLightColor = (hex: string) => {
   return luminance > 0.5;
 };
 
-// Mock Data
-const mockCustomers: Customer[] = [
-  {
-    id: '1',
-    name: 'أحمد محمد',
-    phone: '0501234567',
-    email: 'ahmed@email.com',
-    whatsapp: '0501234567',
-    company: 'شركة الأمل',
-    type: 'buyer',
-    interestLevel: 'hot',
-    propertyType: 'فيلا',
-    budget: '2,000,000 ريال',
-    location: 'الرياض - حي النرجس',
-    notes: 'يبحث عن فيلا مع مسبح',
-    source: 'موقع إلكتروني',
-    status: 'active',
-    columnId: 'leads',
-    tags: ['VIP', 'فيلا', 'مستعجل'],
-    createdAt: '2024-01-15',
-    lastContact: '2024-01-20',
-  },
-  {
-    id: '2',
-    name: 'سارة أحمد',
-    phone: '0559876543',
-    email: 'sara@email.com',
-    type: 'renter',
-    interestLevel: 'warm',
-    propertyType: 'شقة',
-    budget: '50,000 ريال/سنوياً',
-    location: 'جدة - حي الروضة',
-    status: 'active',
-    columnId: 'contacted',
-    tags: ['شقة', 'إيجار'],
-    createdAt: '2024-01-16',
-  },
-  {
-    id: '3',
-    name: 'محمد علي',
-    phone: '0541112233',
-    type: 'investor',
-    interestLevel: 'hot',
-    propertyType: 'أرض تجارية',
-    budget: '5,000,000 ريال',
-    location: 'الدمام',
-    status: 'active',
-    columnId: 'negotiation',
-    tags: ['استثمار', 'أرض'],
-    createdAt: '2024-01-10',
-  },
-  {
-    id: '4',
-    name: 'فاطمة خالد',
-    phone: '0533334444',
-    type: 'seller',
-    interestLevel: 'moderate',
-    propertyType: 'عمارة سكنية',
-    budget: '3,500,000 ريال',
-    location: 'الرياض - حي الملقا',
-    status: 'active',
-    columnId: 'viewing',
-    tags: ['بيع', 'عمارة'],
-    createdAt: '2024-01-18',
-  },
-  {
-    id: '5',
-    name: 'عبدالله سعد',
-    phone: '0512223344',
-    type: 'buyer',
-    interestLevel: 'cold',
-    propertyType: 'شقة',
-    budget: '800,000 ريال',
-    location: 'الرياض - حي العليا',
-    status: 'active',
-    columnId: 'closed',
-    tags: ['تم البيع'],
-    createdAt: '2024-01-05',
-  },
-];
+// ✅ تم إزالة البيانات الوهمية - يتم جلب العملاء من قاعدة البيانات الحقيقية
+const mockCustomers: Customer[] = [];
 
 export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMProps) {
   // Reference for scrolling to right

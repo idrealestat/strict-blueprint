@@ -2846,53 +2846,14 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Sample files */}
-                    {[
-                      { id: 1, name: 'عقد الخدمة.pdf', size: '2.4 MB', type: 'pdf', uploaded: 'منذ 3 أيام', uploaded_by: 'أحمد' },
-                      { id: 2, name: 'الهوية الوطنية.jpg', size: '1.2 MB', type: 'image', uploaded: 'منذ أسبوع', uploaded_by: 'العميل' },
-                      { id: 3, name: 'عرض السعر.docx', size: '3.8 MB', type: 'document', uploaded: 'منذ شهر', uploaded_by: 'سارة' },
-                    ].map((file) => (
-                      <div key={file.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            file.type === 'pdf' ? 'bg-red-100 text-red-600' :
-                            file.type === 'image' ? 'bg-green-100 text-green-600' :
-                            'bg-blue-100 text-blue-600'
-                          }`}>
-                            <span className="text-xl">
-                              {file.type === 'pdf' ? '📄' : file.type === 'image' ? '🖼️' : '📝'}
-                            </span>
-                          </div>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">⋮</Button>
-                        </div>
-                        
-                        <h4 className="font-bold text-gray-900 mb-1 truncate">{file.name}</h4>
-                        
-                        <div className="space-y-2 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <span>📏</span>
-                            <span>{file.size}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span>⏰</span>
-                            <span>{file.uploaded}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span>👤</span>
-                            <span>{file.uploaded_by}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 mt-4">
-                          <Button size="sm" variant="outline" className="flex-1 text-xs">
-                            👁️ معاينة
-                          </Button>
-                          <Button size="sm" variant="outline" className="flex-1 text-xs">
-                            📥 تحميل
-                          </Button>
-                        </div>
+                    {/* ✅ تم إزالة الملفات الوهمية - يتم عرض الملفات الحقيقية من قاعدة البيانات */}
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                        📁
                       </div>
-                    ))}
+                      <p className="text-lg font-medium">لا توجد ملفات مرفقة</p>
+                      <p className="text-sm">اضغط على "رفع ملف" لإضافة مستندات</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

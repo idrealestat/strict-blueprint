@@ -210,57 +210,8 @@ interface RightSliderCompleteProps {
   } | null;
 }
 
-// بيانات تجريبية للوسطاء
-const SAMPLE_BROKERS: Broker[] = [
-  {
-    id: 1,
-    name: "أحمد محمد العلي",
-    offers: ["شقة في الرياض - 850,000 ريال", "فيلا في جدة - 1,200,000 ريال"],
-    rating: 4.8,
-    phone: "0501234567",
-    whatsapp: "0501234567",
-    commission: 2.5,
-    experience: "8 سنوات",
-    specialties: ["شقق سكنية", "فلل"],
-    completedDeals: 156,
-    responseTime: "خلال ساعة",
-    location: "الرياض",
-    verified: true,
-    premium: true,
-  },
-  {
-    id: 2,
-    name: "فاطمة أحمد السالم",
-    offers: ["محل تجاري - 500,000 ريال", "مكتب إداري - 300,000 ريال"],
-    rating: 4.6,
-    phone: "0507654321",
-    whatsapp: "0507654321",
-    commission: 2.0,
-    experience: "5 سنوات",
-    specialties: ["عقارات تجارية", "مكاتب"],
-    completedDeals: 89,
-    responseTime: "خلال 30 دقيقة",
-    location: "جدة",
-    verified: true,
-    premium: false,
-  },
-  {
-    id: 3,
-    name: "محمد عبدالله الخالد",
-    offers: ["أرض سكنية - 400,000 ريال"],
-    rating: 4.4,
-    phone: "0551239876",
-    whatsapp: "0551239876",
-    commission: 3.0,
-    experience: "3 سنوات",
-    specialties: ["أراضي", "استثمار"],
-    completedDeals: 34,
-    responseTime: "خلال ساعتين",
-    location: "الدمام",
-    verified: false,
-    premium: false,
-  },
-];
+// ✅ تم إزالة البيانات الوهمية - يتم جلب الوسطاء من قاعدة البيانات الحقيقية
+const SAMPLE_BROKERS: Broker[] = [];
 
 export default function RightSliderComplete({
   isOpen,

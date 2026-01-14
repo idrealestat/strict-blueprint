@@ -49,67 +49,8 @@ interface TimeSlot {
   available: boolean;
 }
 
-// Mock data
-const mockAppointments: Appointment[] = [
-  {
-    id: '1',
-    title: 'معاينة فيلا الياسمين',
-    customerName: 'أحمد محمد السعيد',
-    customerPhone: '+966501234567',
-    date: new Date(),
-    time: '10:00',
-    duration: 60,
-    type: 'viewing',
-    status: 'confirmed',
-    location: 'حي الياسمين، الرياض',
-    propertyTitle: 'فيلا فاخرة 400 م²',
-    notes: 'العميل مهتم جداً، يرجى التأكد من جاهزية العقار',
-    reminder: true,
-    reminderTime: 30,
-  },
-  {
-    id: '2',
-    title: 'اجتماع توقيع العقد',
-    customerName: 'سارة أحمد العمري',
-    customerPhone: '+966551234567',
-    date: new Date(),
-    time: '14:00',
-    duration: 90,
-    type: 'contract',
-    status: 'scheduled',
-    location: 'مكتب الشركة',
-    notes: 'إحضار جميع المستندات المطلوبة',
-    reminder: true,
-    reminderTime: 60,
-  },
-  {
-    id: '3',
-    title: 'مكالمة متابعة',
-    customerName: 'خالد عبدالله',
-    customerPhone: '+966551234567',
-    date: addDays(new Date(), 1),
-    time: '11:00',
-    duration: 30,
-    type: 'call',
-    status: 'scheduled',
-    reminder: true,
-    reminderTime: 15,
-  },
-  {
-    id: '4',
-    title: 'جولة افتراضية',
-    customerName: 'فهد السالم',
-    customerPhone: '+966501234567',
-    date: addDays(new Date(), 2),
-    time: '16:00',
-    duration: 45,
-    type: 'video',
-    status: 'confirmed',
-    propertyTitle: 'شقة فاخرة النرجس',
-    reminder: true,
-    reminderTime: 30,
-  },
-];
+// ✅ تم إزالة البيانات الوهمية - يتم جلب المواعيد من قاعدة البيانات الحقيقية
+const mockAppointments: Appointment[] = [];
 
 const appointmentTypes = [
   { value: 'viewing', label: 'معاينة عقار', icon: Home, color: 'bg-blue-500' },
