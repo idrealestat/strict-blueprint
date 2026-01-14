@@ -1942,11 +1942,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     }
                                   }}
                                   className={`
-                                    bg-white rounded-lg shadow-md cursor-move mb-2 overflow-hidden relative
+                                    bg-white rounded-lg shadow-md cursor-move mb-2 overflow-hidden relative flex flex-col
                                     hover:shadow-xl transition-shadow duration-200
                                     ${draggedCustomer === customer.id ? 'opacity-50 scale-95' : ''}
-                                    ${touchDragCustomer === customer.id ? 'opacity-70 scale-105 shadow-2xl z-50 ring-2 ring-[#D4AF37]' : ''}
-                                    touch-none select-none
+                                    ${touchDragCustomer === customer.id ? 'opacity-70 scale-105 shadow-2xl z-50 ring-2 ring-[#D4AF37] touch-none' : ''}
+                                    select-none
                                   `}
                                   style={{
                                     // If being dragged on touch, follow finger
@@ -1960,10 +1960,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     } : {})
                                   }}
                                 >
-                                  {/* خط نوع العميل أعلى البطاقة - يختفي عند التمديد */}
+                                  {/* خط درجة الاهتمام أعلى البطاقة - يظهر عندما تكون مغلقة فقط */}
                                   {expandedCardId !== customer.id && (
                                     <div 
-                                      className="h-1.5 w-full"
+                                      className="h-1.5 w-full flex-shrink-0"
                                       style={{ 
                                         backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
                                       }}
@@ -2580,7 +2580,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 {/* خط درجة الاهتمام في أسفل البطاقة - يظهر عند التمديد فقط */}
                                 {expandedCardId === customer.id && (
                                   <div 
-                                    className="h-1.5 w-full mt-auto"
+                                    className="h-1.5 w-full flex-shrink-0 mt-auto"
                                     style={{ 
                                       backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
                                     }}
