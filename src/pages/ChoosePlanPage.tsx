@@ -52,16 +52,26 @@ const plans: {
 export default function ChoosePlanPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { updatePlan, daysRemaining, planCode, isLoading } = useEntitlementsContext();
+  const { updatePlan, daysRemaining, planCode, isLoading, onboardingCompleted, status } = useEntitlementsContext();
   const [isSubmitting, setIsSubmitting] = useState<PlanCode | null>(null);
 
-  // إذا المستخدم لديه باقة مسبقاً، أعده للداشبورد
+  // إذا المستخدم أكمل الـ onboarding أو لديه باقة أو في فترة تجربة نشطة، أعده للداشبورد
   useEffect(() => {
-    if (!isLoading && planCode) {
-      console.log('[ChoosePlanPage] User already has plan, redirecting to dashboard');
-      navigate('/app/dashboard', { replace: true });
+    if (!isLoading) {
+      // المستخدم أكمل الإعداد بالفعل
+      if (onboardingCompleted) {
+        console.log('[ChoosePlanPage] User already completed onboarding, redirecting to dashboard');
+        navigate('/app/dashboard', { replace: true });
+        return;
+      }
+      // المستخدم لديه باقة مختارة
+      if (planCode) {
+        console.log('[ChoosePlanPage] User already has plan, redirecting to dashboard');
+        navigate('/app/dashboard', { replace: true });
+        return;
+      }
     }
-  }, [planCode, isLoading, navigate]);
+  }, [planCode, isLoading, onboardingCompleted, navigate]);
 
   const handleSelectPlan = async (selectedPlanCode: PlanCode) => {
     setIsSubmitting(selectedPlanCode);
