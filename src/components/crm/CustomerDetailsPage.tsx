@@ -83,6 +83,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
 import { useCustomerInteractions } from "@/hooks/useCustomerInteractions";
 import { useCustomerInvoices } from "@/hooks/useCustomerInvoices";
+import { useEventTracker } from "@/hooks/useEventTracker";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationSounds } from "@/utils/notificationSounds";
 
 interface Customer {
   id: string;
@@ -321,6 +324,10 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     generateInvoiceNumber,
     loading: invoicesLoading 
   } = useCustomerInvoices();
+  
+  // استخدام hooks تتبع الأحداث والإشعارات
+  const { trackCustomerEvent, track } = useEventTracker();
+  const { createNotification } = useNotifications();
   
   // جلب البيانات الخاصة بالعميل الحالي
   const customerTransactions = getTransactionsByCustomer(customer.id, customer.phone);
@@ -1062,7 +1069,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               toast.error('يرجى إدخال وصف التفاعل');
                               return;
                             }
-                            await createInteraction({
+                            const result = await createInteraction({
                               customer_id: customer.id,
                               customer_phone: customer.phone,
                               interaction_type: newInteractionData.interaction_type,
@@ -1070,6 +1077,33 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               sentiment: newInteractionData.sentiment,
                               outcome: newInteractionData.outcome || undefined
                             });
+                            
+                            if (result) {
+                              // تشغيل صوت النجاح
+                              NotificationSounds.chime(0.5);
+                              
+                              // تسجيل الحدث
+                              await trackCustomerEvent(customer.id, newInteractionData.interaction_type === 'call' ? 'call' : 
+                                newInteractionData.interaction_type === 'whatsapp' ? 'whatsapp' : 
+                                newInteractionData.interaction_type === 'email' ? 'email' : 'note_add', {
+                                sentiment: newInteractionData.sentiment,
+                                description: newInteractionData.description,
+                                customer_name: customer.name,
+                              });
+                              
+                              // إنشاء إشعار
+                              await createNotification({
+                                title: 'تفاعل جديد',
+                                message: `تم تسجيل ${newInteractionData.interaction_type === 'call' ? 'مكالمة' : 
+                                  newInteractionData.interaction_type === 'whatsapp' ? 'رسالة واتساب' : 
+                                  newInteractionData.interaction_type === 'meeting' ? 'اجتماع' : 'تفاعل'} مع ${customer.name}`,
+                                notification_type: 'crm',
+                                related_entity_type: 'customer',
+                                related_entity_id: customer.id,
+                                priority: 'low'
+                              });
+                            }
+                            
                             setNewInteractionData({ interaction_type: 'call', description: '', sentiment: 'محايد', outcome: '' });
                             setShowNewInteractionForm(false);
                           }}
@@ -2776,7 +2810,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               toast.error('يرجى إدخال المبلغ');
                               return;
                             }
-                            await createTransaction({
+                            const result = await createTransaction({
                               customer_id: customer.id,
                               customer_phone: customer.phone,
                               transaction_type: newTransactionData.transaction_type,
@@ -2784,6 +2818,35 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               invoice_number: newTransactionData.invoice_number || undefined,
                               description: newTransactionData.description || undefined
                             });
+                            
+                            if (result) {
+                              // تشغيل صوت النجاح
+                              NotificationSounds.success(0.5);
+                              
+                              // تسجيل الحدث
+                              await track({
+                                eventName: 'interaction',
+                                entityType: 'customer',
+                                entityId: customer.id,
+                                metadata: {
+                                  type: 'transaction',
+                                  transaction_type: newTransactionData.transaction_type,
+                                  amount: newTransactionData.amount,
+                                  customer_name: customer.name,
+                                }
+                              });
+                              
+                              // إنشاء إشعار
+                              await createNotification({
+                                title: 'معاملة جديدة',
+                                message: `تم إضافة ${newTransactionData.transaction_type} بقيمة ${newTransactionData.amount} ريال للعميل ${customer.name}`,
+                                notification_type: 'crm',
+                                related_entity_type: 'customer',
+                                related_entity_id: customer.id,
+                                priority: 'normal'
+                              });
+                            }
+                            
                             setNewTransactionData({ transaction_type: 'دفعة', amount: '', description: '', invoice_number: '' });
                             setShowNewTransactionForm(false);
                           }}
@@ -3354,14 +3417,44 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             toast.error('يرجى إدخال المبلغ');
                             return;
                           }
-                          await createInvoice({
+                          const invoiceNumber = generateInvoiceNumber();
+                          const result = await createInvoice({
                             customer_id: customer.id,
                             customer_phone: customer.phone,
                             amount: parseFloat(newInvoiceData.amount),
-                            invoice_number: generateInvoiceNumber(),
+                            invoice_number: invoiceNumber,
                             due_date: newInvoiceData.due_date || undefined,
                             description: newInvoiceData.description || undefined
                           });
+                          
+                          if (result) {
+                            // تشغيل صوت النجاح
+                            NotificationSounds.success(0.5);
+                            
+                            // تسجيل الحدث
+                            await track({
+                              eventName: 'interaction',
+                              entityType: 'customer',
+                              entityId: customer.id,
+                              metadata: {
+                                type: 'invoice',
+                                invoice_number: invoiceNumber,
+                                amount: newInvoiceData.amount,
+                                customer_name: customer.name,
+                              }
+                            });
+                            
+                            // إنشاء إشعار
+                            await createNotification({
+                              title: 'فاتورة جديدة',
+                              message: `تم إنشاء فاتورة ${invoiceNumber} بقيمة ${newInvoiceData.amount} ريال للعميل ${customer.name}`,
+                              notification_type: 'crm',
+                              related_entity_type: 'customer',
+                              related_entity_id: customer.id,
+                              priority: 'normal'
+                            });
+                          }
+                          
                           setNewInvoiceData({ amount: '', description: '', due_date: '' });
                           setShowNewInvoiceForm(false);
                         }}
