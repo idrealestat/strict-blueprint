@@ -1120,20 +1120,17 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setTouchStartPos({ x: touch.clientX, y: touch.clientY });
     isLongPressRef.current = false;
     
-    // Start long press timer (300ms)
+    // Start long press timer (700ms) — avoid blocking normal vertical scrolling
     touchTimeoutRef.current = setTimeout(() => {
       isLongPressRef.current = true;
       setTouchDragCustomer(customerId);
       setDraggedCustomer(customerId);
-      
+
       // Vibrate for haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      
-      // Prevent context menu
-      e.preventDefault();
-    }, 300);
+    }, 700);
   }, []);
 
   // Touch move handler
@@ -1141,11 +1138,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     const touch = e.touches[0];
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
     
-    // Cancel long press if moved too much before timeout
+    // Cancel long press quickly if user is clearly scrolling/moving (so scroll works immediately)
     if (touchStartPos && !isLongPressRef.current) {
       const dx = Math.abs(touch.clientX - touchStartPos.x);
       const dy = Math.abs(touch.clientY - touchStartPos.y);
-      if (dx > 10 || dy > 10) {
+      if (dx > 6 || dy > 6) {
         if (touchTimeoutRef.current) {
           clearTimeout(touchTimeoutRef.current);
           touchTimeoutRef.current = null;
@@ -2317,13 +2314,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </button>
                                   </div>
                                   
-                                  {/* خط درجة الاهتمام أسفل البطاقة */}
-                                  <div 
-                                    className="h-1.5 w-full"
-                                    style={{ 
-                                      backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'
-                                    }}
-                                  />
 
                                 {/* البطاقة الموسعة - 7 أزرار سريعة + معلومات إضافية */}
                                 <AnimatePresence>
