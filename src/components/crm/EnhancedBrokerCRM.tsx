@@ -1260,11 +1260,38 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     return window.location.origin;
   };
 
+  const normalizeWhatsAppPhone = (raw: string) => {
+    const digits = String(raw || "").replace(/\D/g, "");
+    // KSA default: if it looks like 05xxxxxxxx -> convert to 9665xxxxxxxx
+    if (digits.startsWith("0") && digits.length === 10) return `966${digits.slice(1)}`;
+    return digits;
+  };
+
+  const openWhatsAppMessage = (phoneRaw: string, message: string) => {
+    const phone = normalizeWhatsAppPhone(phoneRaw);
+    const encoded = encodeURIComponent(message);
+
+    // Open app directly (WhatsApp or WhatsApp Business) when possible
+    const deepLink = `whatsapp://send?phone=${phone}&text=${encoded}`;
+    const webLink = `https://wa.me/${phone}?text=${encoded}`;
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      window.location.href = deepLink;
+      window.setTimeout(() => {
+        window.open(webLink, "_blank");
+      }, 900);
+      return;
+    }
+
+    window.open(webLink, "_blank");
+  };
+
   const handleShareOffer = (customer: Customer) => {
     const offerUrl = `${getBaseUrl()}/public/offer?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسعدنا تقديم عروضنا العقارية لك.\n\nيمكنك الاطلاع على العروض المتاحة من خلال الرابط:\n${offerUrl}\n\nنتطلع لخدمتك 🏠`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsAppMessage(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال العرض');
   };
@@ -1272,8 +1299,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const handleShareRequest = (customer: Customer) => {
     const requestUrl = `${getBaseUrl()}/public/request?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nنحن هنا لمساعدتك في البحث عن عقارك المثالي.\n\nيمكنك تسجيل طلبك من خلال الرابط:\n${requestUrl}\n\nسنتواصل معك فور توفر ما يناسب احتياجاتك 🔍`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsAppMessage(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال الطلب');
   };
@@ -1281,8 +1307,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const handleShareQuote = (customer: Customer) => {
     const quoteUrl = `${getBaseUrl()}/public/quote?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسرنا تقديم عرض سعر خاص لك.\n\nيمكنك الاطلاع على التفاصيل من خلال الرابط:\n${quoteUrl}\n\nنحن بانتظار ردك 💰`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsAppMessage(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال عرض السعر');
   };
@@ -1290,8 +1315,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const handleShareAppointment = (customer: Customer) => {
     const appointmentUrl = `${getBaseUrl()}/public/appointment?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسعدنا ترتيب موعد لك لمعاينة العقارات المتاحة.\n\nيمكنك حجز موعدك من خلال الرابط:\n${appointmentUrl}\n\nنتطلع للقائك 📅`;
-    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    openWhatsAppMessage(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال رابط الموعد');
   };
