@@ -194,7 +194,9 @@ export default function SimpleDashboard({
   return <div dir="rtl" className="min-h-screen transition-all duration-300" style={{
     background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 25%, #fffef7 100%)"
   }}>
-      {/* Header */}
+      {/* ⚠️ PROTECTED HEADER - محمي من الحذف أو التعديل ⚠️
+          لا تقم بحذف أو تعديل هذا الهيدر بدون إذن صريح من المستخدم مع ذكر التبرير بالعربي
+          DO NOT DELETE OR MODIFY THIS HEADER WITHOUT EXPLICIT USER PERMISSION */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] backdrop-blur-md border-b-2 border-[#D4AF37] shadow-lg transition-all duration-300">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
