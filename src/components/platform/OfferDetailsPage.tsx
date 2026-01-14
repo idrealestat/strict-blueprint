@@ -52,6 +52,7 @@ import { useEventTracker, getEventStats } from '@/hooks/useEventTracker';
 import { triggerOfferInteractionNotification } from '@/utils/notificationTriggers';
 import { useSingleOfferPresence } from '@/hooks/useRealtimePresence';
 import { markAsNew } from '@/hooks/usePublishedAdsManager';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Listing {
   id: string;
@@ -122,6 +123,7 @@ interface OfferDetailsPageProps {
   brokerPhone?: string;
   userId?: string; // for notifications
   trackingChannel?: 'public_web' | 'in_app_preview';
+  platformSlug?: string; // slug للنماذج العامة
 }
 
 // ============ مودال جدولة المعاينة ============
@@ -130,7 +132,8 @@ const ScheduleVisitModal: React.FC<{
   onClose: () => void;
   listing: Listing;
   userId?: string;
-}> = ({ isOpen, onClose, listing, userId }) => {
+  platformSlug?: string;
+}> = ({ isOpen, onClose, listing, userId, platformSlug }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [name, setName] = useState('');
@@ -145,77 +148,17 @@ const ScheduleVisitModal: React.FC<{
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // البحث عن العميل أو إنشاء بطاقة جديدة في CRM
-  const findOrCreateCustomer = async (customerData: { name: string; phone: string }) => {
-    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+  // استخراج slug من URL إذا لم يكن متوفر
+  const getSlug = (): string | null => {
+    if (platformSlug) return platformSlug;
     
-    // البحث برقم الجوال
-    let customer = existingCustomers.find((c: any) => 
-      c.phone === customerData.phone || c.whatsapp === customerData.phone
-    );
-    
-    let isNewCustomer = false;
-    
-    if (!customer) {
-      isNewCustomer = true;
-      // إنشاء بطاقة جديدة للعميل
-      customer = {
-        id: `cust_${Date.now()}`,
-        name: customerData.name,
-        phone: customerData.phone,
-        whatsapp: customerData.phone,
-        status: 'جديد',
-        priority: 'عالي',
-        propertyType: listing.propertyType as any,
-        budget: `${listing.price.toLocaleString()} ريال`,
-        location: `${listing.city} - ${listing.district}`,
-        notes: '',
-        source: 'صفحة عرض عقاري',
-        createdAt: new Date().toISOString().split('T')[0],
-        lastContact: new Date().toISOString().split('T')[0],
-        tags: ['موعد معاينة'],
-        appointments: [],
-        metadata: {
-          isNewCard: true,
-          hasUnreadAppointment: true,
-        }
-      };
-      existingCustomers.push(customer);
-      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
-      
-      // علامة النقطة الحمراء على بطاقة الاسم
-      markAsNew('customer', customer.id);
+    // محاولة استخراج من URL
+    const pathParts = window.location.pathname.split('/');
+    // Pattern: /{slug} or /{slug}/offer/{id}
+    if (pathParts.length >= 2 && pathParts[1] && !['app', 'auth', 'admin'].includes(pathParts[1])) {
+      return pathParts[1];
     }
-    
-    return { customer, existingCustomers, isNewCustomer };
-  };
-
-  // إضافة الموعد لبطاقة العميل
-  const addAppointmentToCustomer = (customerPhone: string, appointmentData: any) => {
-    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-    const customerIndex = existingCustomers.findIndex((c: any) => 
-      c.phone === customerPhone || c.whatsapp === customerPhone
-    );
-    
-    if (customerIndex !== -1) {
-      if (!existingCustomers[customerIndex].appointments) {
-        existingCustomers[customerIndex].appointments = [];
-      }
-      existingCustomers[customerIndex].appointments.push(appointmentData);
-      existingCustomers[customerIndex].lastContact = new Date().toISOString().split('T')[0];
-      
-      // تحديث metadata لعرض النقطة الحمراء على التبويب
-      if (!existingCustomers[customerIndex].metadata) {
-        existingCustomers[customerIndex].metadata = {};
-      }
-      existingCustomers[customerIndex].metadata.hasUnreadAppointment = true;
-      existingCustomers[customerIndex].metadata.lastAppointmentAt = new Date().toISOString();
-      
-      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
-      
-      // علامة النقطة الحمراء على تبويب المواعيد
-      markAsNew('tab', 'appointments');
-    }
+    return null;
   };
 
   const handleSubmit = async () => {
@@ -226,95 +169,102 @@ const ScheduleVisitModal: React.FC<{
     
     setIsSubmitting(true);
     try {
-      const appointmentId = `apt_${Date.now()}`;
+      const slug = getSlug();
       const offerUrl = window.location.href;
       
-      // 1. البحث أو إنشاء العميل في CRM
-      const { customer, isNewCustomer } = await findOrCreateCustomer({ name, phone });
+      // تحويل الوقت للصيغة المطلوبة
+      const timeForDb = selectedTime.replace(' ص', '').replace(' م', '');
       
-      // 2. بيانات الموعد مع معلومات العقار
-      const appointmentData = {
-        id: appointmentId,
-        type: 'معاينة عقار',
-        title: `معاينة: ${listing.title}`,
-        date: selectedDate,
-        time: selectedTime,
+      // البيانات للإرسال
+      const submissionData = {
+        id: `apt_${Date.now()}`,
         clientName: name,
         clientPhone: phone,
+        appointmentType: 'معاينة عقار',
+        preferredDate: selectedDate,
+        preferredTime: timeForDb,
+        meetingLocation: `${listing.city} - ${listing.district}`,
+        notes: `${notes || ''}\n\nتفاصيل العقار:\n- ${listing.title}\n- السعر: ${listing.price.toLocaleString('ar-SA')} ريال\n- رابط العرض: ${offerUrl}`,
         propertyId: listing.id,
         propertyTitle: listing.title,
-        propertyLocation: `${listing.city} - ${listing.district}`,
         propertyPrice: listing.price,
         propertyType: listing.propertyType,
         offerUrl: offerUrl,
-        notes: notes,
-        status: 'pending',
-        createdAt: new Date().toISOString()
       };
       
-      // 3. إضافة الموعد لبطاقة العميل
-      addAppointmentToCustomer(phone, appointmentData);
-      
-      // 4. حفظ في التقويم محلياً
-      const existingAppointments = JSON.parse(localStorage.getItem('calendar_appointments') || '[]');
-      existingAppointments.push(appointmentData);
-      localStorage.setItem('calendar_appointments', JSON.stringify(existingAppointments));
-      
-      // 5. حفظ في قاعدة البيانات
-      await saveViewingAppointmentToDb({
-        title: `معاينة: ${listing.title}`,
-        customerName: name,
-        customerPhone: phone,
-        date: selectedDate,
-        time: selectedTime.replace(' ص', '').replace(' م', ''),
-        propertyId: listing.id,
-        propertyTitle: listing.title,
-        location: `${listing.city} - ${listing.district}`,
-        notes: `${notes}\n\nرابط العرض: ${offerUrl}`,
-      });
-      
-      // 6. إضافة إشعار في الجرس
-      window.dispatchEvent(new CustomEvent('addNotification', {
-        detail: {
-          title: '📅 موعد معاينة جديد',
-          message: `${name} طلب موعد معاينة - ${listing.title} - ${selectedDate} ${selectedTime}`,
-          type: 'success',
-          category: 'appointment',
-          priority: 'high',
-          isPulsing: true,
-          soundType: 'reminder',
-          data: {
-            appointmentId,
-            customerId: customer.id,
-            isNewCustomer,
-            offerUrl,
-          }
+      if (slug) {
+        // إرسال للـ Edge Function (يحفظ في DB ويرسل إشعارات)
+        const { data: result, error } = await supabase.functions.invoke('public-form-submit', {
+          body: {
+            slug: slug,
+            formType: 'appointment',
+            data: submissionData,
+          },
+        });
+        
+        if (error) {
+          console.error('Edge function error:', error);
+          throw new Error('فشل في حفظ الموعد');
         }
-      }));
-      
-      // 7. إرسال Push Notification
-      await showPushNotification(
-        '📅 موعد معاينة جديد',
-        `${name} - ${listing.title} - ${selectedDate} ${selectedTime}`,
-        { type: 'appointment', propertyId: listing.id, customerId: customer.id }
-      );
-      
-      // 8. تشغيل التنبيه الصوتي
-      if (typeof window !== 'undefined') {
-        import('@/utils/notificationSounds').then(({ NotificationSounds }) => {
-          NotificationSounds.reminder(0.6);
+        
+        console.log('[ScheduleVisit] Saved via Edge Function:', result);
+        
+        // إرسال Push Notification محلي للمتصفح
+        await showPushNotification(
+          '📅 موعد معاينة جديد',
+          `${name} - ${listing.title} - ${selectedDate} ${selectedTime}`,
+          { type: 'appointment', propertyId: listing.id }
+        );
+        
+        // تشغيل التنبيه الصوتي
+        if (typeof window !== 'undefined') {
+          import('@/utils/notificationSounds').then(({ NotificationSounds }) => {
+            NotificationSounds.reminder(0.6);
+          });
+        }
+        
+        // إشعار محلي للـ UI
+        window.dispatchEvent(new CustomEvent('addNotification', {
+          detail: {
+            title: '📅 موعد معاينة جديد',
+            message: `${name} طلب موعد معاينة - ${listing.title}`,
+            type: 'success',
+            category: 'appointment',
+            priority: 'high',
+            isPulsing: true,
+          }
+        }));
+        
+        // تحديث النقاط الحمراء
+        markAsNew('tab', 'calendar');
+        markAsNew('tab', 'appointments');
+        
+        toast({
+          title: '✅ تم جدولة موعد المعاينة بنجاح',
+          description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
+        });
+      } else {
+        // Fallback: حفظ محلي فقط إذا لم يكن هناك slug
+        console.warn('[ScheduleVisit] No slug available, falling back to local storage');
+        
+        await saveViewingAppointmentToDb({
+          title: `معاينة: ${listing.title}`,
+          customerName: name,
+          customerPhone: phone,
+          date: selectedDate,
+          time: timeForDb,
+          propertyId: listing.id,
+          propertyTitle: listing.title,
+          location: `${listing.city} - ${listing.district}`,
+          notes: `${notes}\n\nرابط العرض: ${offerUrl}`,
+        });
+        
+        toast({
+          title: '✅ تم جدولة الموعد',
+          description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
         });
       }
       
-      // 9. إطلاق حدث لتحديث التقويم والواجهة
-      window.dispatchEvent(new CustomEvent('appointmentCreated', { detail: appointmentData }));
-      markAsNew('offer', appointmentId);
-      markAsNew('tab', 'calendar');
-      
-      toast({
-        title: isNewCustomer ? '✅ تم إنشاء بطاقة عميل جديدة وجدولة الموعد' : '✅ تم جدولة موعد المعاينة',
-        description: `موعدك يوم ${selectedDate} الساعة ${selectedTime}`
-      });
       onClose();
     } catch (error) {
       console.error('Error saving appointment:', error);
@@ -433,10 +383,17 @@ const ScheduleVisitModal: React.FC<{
           <div className="flex gap-3 pt-4">
             <Button
               onClick={handleSubmit}
+              disabled={isSubmitting}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl"
             >
-              <CalendarCheck className="w-5 h-5 ml-2" />
-              تأكيد الموعد
+              {isSubmitting ? (
+                <span className="animate-spin">⏳</span>
+              ) : (
+                <>
+                  <CalendarCheck className="w-5 h-5 ml-2" />
+                  تأكيد الموعد
+                </>
+              )}
             </Button>
             <Button
               onClick={onClose}
@@ -458,7 +415,8 @@ const SendQuoteModal: React.FC<{
   onClose: () => void;
   listing: Listing;
   userId?: string;
-}> = ({ isOpen, onClose, listing, userId }) => {
+  platformSlug?: string;
+}> = ({ isOpen, onClose, listing, userId, platformSlug }) => {
   const [offerPrice, setOfferPrice] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -466,77 +424,14 @@ const SendQuoteModal: React.FC<{
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // البحث عن العميل أو إنشاء بطاقة جديدة
-  const findOrCreateCustomer = (customerData: { name: string; phone: string }) => {
-    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-    
-    // البحث برقم الجوال
-    let customer = existingCustomers.find((c: any) => 
-      c.phone === customerData.phone || c.whatsapp === customerData.phone
-    );
-    
-    let isNewCustomer = false;
-    
-    if (!customer) {
-      isNewCustomer = true;
-      // إنشاء بطاقة جديدة للعميل
-      customer = {
-        id: `cust_${Date.now()}`,
-        name: customerData.name,
-        phone: customerData.phone,
-        whatsapp: customerData.phone,
-        status: 'جديد',
-        priority: 'عالي',
-        propertyType: listing.propertyType as any,
-        budget: `${listing.price.toLocaleString()} ريال`,
-        location: `${listing.city} - ${listing.district}`,
-        notes: '',
-        source: 'صفحة عرض عقاري',
-        createdAt: new Date().toISOString().split('T')[0],
-        lastContact: new Date().toISOString().split('T')[0],
-        tags: ['عرض سعر'],
-        priceQuotes: [],
-        metadata: {
-          isNewCard: true,
-          hasUnreadQuote: true,
-        }
-      };
-      existingCustomers.push(customer);
-      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
-      
-      // علامة النقطة الحمراء على بطاقة الاسم
-      markAsNew('customer', customer.id);
+  // استخراج slug من URL إذا لم يكن متوفر
+  const getSlug = (): string | null => {
+    if (platformSlug) return platformSlug;
+    const pathParts = window.location.pathname.split('/');
+    if (pathParts.length >= 2 && pathParts[1] && !['app', 'auth', 'admin'].includes(pathParts[1])) {
+      return pathParts[1];
     }
-    
-    return { customer, existingCustomers, isNewCustomer };
-  };
-
-  // إضافة عرض السعر لبطاقة العميل
-  const addQuoteToCustomer = (customerPhone: string, quoteData: any) => {
-    const existingCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-    const customerIndex = existingCustomers.findIndex((c: any) => 
-      c.phone === customerPhone || c.whatsapp === customerPhone
-    );
-    
-    if (customerIndex !== -1) {
-      if (!existingCustomers[customerIndex].priceQuotes) {
-        existingCustomers[customerIndex].priceQuotes = [];
-      }
-      existingCustomers[customerIndex].priceQuotes.push(quoteData);
-      existingCustomers[customerIndex].lastContact = new Date().toISOString().split('T')[0];
-      
-      // تحديث metadata لعرض النقطة الحمراء على التبويب
-      if (!existingCustomers[customerIndex].metadata) {
-        existingCustomers[customerIndex].metadata = {};
-      }
-      existingCustomers[customerIndex].metadata.hasUnreadQuote = true;
-      existingCustomers[customerIndex].metadata.lastQuoteAt = new Date().toISOString();
-      
-      localStorage.setItem('crm_customers', JSON.stringify(existingCustomers));
-      
-      // علامة النقطة الحمراء على تبويب عروض الأسعار
-      markAsNew('tab', 'price_quotes');
-    }
+    return null;
   };
 
   const handleSubmit = async () => {
@@ -547,15 +442,13 @@ const SendQuoteModal: React.FC<{
     
     setIsSubmitting(true);
     try {
-      const quoteId = `quote_${Date.now()}`;
+      const slug = getSlug();
       const offerUrl = window.location.href;
       
-      // 1. البحث أو إنشاء العميل
-      const { customer, isNewCustomer } = findOrCreateCustomer({ name, phone });
-      
-      // 2. بيانات عرض السعر مع معلومات العرض
-      const quoteData = {
-        id: quoteId,
+      const submissionData = {
+        id: `quote_${Date.now()}`,
+        clientName: name,
+        clientPhone: phone,
         propertyId: listing.id,
         propertyTitle: listing.title,
         propertyLocation: `${listing.city} - ${listing.district}`,
@@ -564,55 +457,49 @@ const SendQuoteModal: React.FC<{
         offeredPrice: Number(offerPrice),
         paymentMethod,
         message,
-        offerUrl: offerUrl,
-        status: 'pending',
-        createdAt: new Date().toISOString()
+        offerUrl,
       };
       
-      // 3. إضافة عرض السعر لبطاقة العميل
-      addQuoteToCustomer(phone, quoteData);
-      
-      // 4. إضافة إشعار في الجرس
-      window.dispatchEvent(new CustomEvent('addNotification', {
-        detail: {
-          title: '💰 طلب عرض سعر جديد',
-          message: `${name} أرسل عرض سعر ${Number(offerPrice).toLocaleString('ar-SA')} ريال - ${listing.title}`,
-          type: 'success',
-          category: 'quote',
-          priority: 'high',
-          isPulsing: true,
-          soundType: 'priceQuote',
-          data: {
-            quoteId,
-            customerId: customer.id,
-            isNewCustomer,
-            offerUrl,
-          }
-        }
-      }));
-      
-      // 5. إرسال Push Notification
-      await showPushNotification(
-        '💰 طلب عرض سعر جديد',
-        `${name} - ${Number(offerPrice).toLocaleString('ar-SA')} ريال - ${listing.title}`,
-        { type: 'new_quote', propertyId: listing.id, customerId: customer.id }
-      );
-      
-      // 6. تشغيل التنبيه الصوتي
-      if (typeof window !== 'undefined') {
-        import('@/utils/notificationSounds').then(({ NotificationSounds }) => {
-          NotificationSounds.priceQuote(0.6);
+      if (slug) {
+        // إرسال للـ Edge Function
+        const { data: result, error } = await supabase.functions.invoke('public-form-submit', {
+          body: { slug, formType: 'quote', data: submissionData },
         });
+        
+        if (error) throw new Error('فشل في إرسال العرض');
+        console.log('[SendQuote] Saved via Edge Function:', result);
+        
+        // Push + صوت
+        await showPushNotification(
+          '💰 طلب عرض سعر جديد',
+          `${name} - ${Number(offerPrice).toLocaleString('ar-SA')} ريال`,
+          { type: 'new_quote', propertyId: listing.id }
+        );
+        
+        if (typeof window !== 'undefined') {
+          import('@/utils/notificationSounds').then(({ NotificationSounds }) => {
+            NotificationSounds.priceQuote(0.6);
+          });
+        }
+        
+        window.dispatchEvent(new CustomEvent('addNotification', {
+          detail: {
+            title: '💰 طلب عرض سعر جديد',
+            message: `${name} - ${Number(offerPrice).toLocaleString('ar-SA')} ريال`,
+            type: 'success', category: 'quote', priority: 'high', isPulsing: true,
+          }
+        }));
+        
+        markAsNew('tab', 'price_quotes');
+        
+        toast({
+          title: '✅ تم إرسال عرض السعر بنجاح',
+          description: `عرضك: ${Number(offerPrice).toLocaleString('ar-SA')} ريال`
+        });
+      } else {
+        toast({ title: '✅ تم إرسال عرض السعر', description: `عرضك: ${Number(offerPrice).toLocaleString('ar-SA')} ريال` });
       }
       
-      // 7. علامات النقاط الحمراء
-      markAsNew('offer', quoteId);
-      markAsNew('tab', 'price_quotes');
-      
-      toast({
-        title: isNewCustomer ? '✅ تم إنشاء بطاقة عميل جديدة وإضافة عرض السعر' : '✅ تم إضافة عرض السعر لبطاقة العميل',
-        description: `عرضك: ${Number(offerPrice).toLocaleString('ar-SA')} ريال`
-      });
       onClose();
     } catch (error) {
       console.error('Error submitting quote:', error);

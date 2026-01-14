@@ -1353,6 +1353,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           }}
           allListings={allListings}
           brokerPhone={businessCardData?.primaryPhone}
+          platformSlug={platformSlug}
         />
       )}
     </div>
