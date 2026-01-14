@@ -519,6 +519,178 @@ export type Database = {
           },
         ]
       }
+      customer_interactions: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          customer_phone: string | null
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          interaction_type: string
+          metadata: Json | null
+          outcome: string | null
+          sentiment: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          interaction_type: string
+          metadata?: Json | null
+          outcome?: string | null
+          sentiment?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          interaction_type?: string
+          metadata?: Json | null
+          outcome?: string | null
+          sentiment?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string | null
+          customer_phone: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string
+          metadata: Json | null
+          paid_date: string | null
+          related_transaction_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          metadata?: Json | null
+          paid_date?: string | null
+          related_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          metadata?: Json | null
+          paid_date?: string | null
+          related_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_related_transaction_id_fkey"
+            columns: ["related_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "customer_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string | null
+          customer_phone: string | null
+          description: string | null
+          id: string
+          invoice_number: string | null
+          metadata: Json | null
+          related_property_id: string | null
+          status: string
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          related_property_id?: string | null
+          status?: string
+          transaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          id?: string
+          invoice_number?: string | null
+          metadata?: Json | null
+          related_property_id?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       domain_blacklist: {
         Row: {
           category: string | null

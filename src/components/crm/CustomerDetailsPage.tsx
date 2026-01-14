@@ -80,6 +80,9 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { useDeviceContacts } from "@/hooks/useDeviceContacts";
 import { supabase } from "@/integrations/supabase/client";
+import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
+import { useCustomerInteractions } from "@/hooks/useCustomerInteractions";
+import { useCustomerInvoices } from "@/hooks/useCustomerInvoices";
 
 interface Customer {
   id: string;
@@ -293,6 +296,65 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // استخدام hook المهام من قاعدة البيانات
   const { tasks: crmTasks, getTasksByCustomer, fetchTasks: refreshTasks } = useCRMTasks();
   const customerTasks = getTasksByCustomer(customer.id);
+  
+  // استخدام hooks البيانات الحقيقية
+  const { 
+    transactions, 
+    getTransactionsByCustomer, 
+    createTransaction,
+    loading: transactionsLoading 
+  } = useCustomerTransactions();
+  const { 
+    interactions, 
+    getInteractionsByCustomer, 
+    createInteraction, 
+    getInteractionStats,
+    getRecentInteractions,
+    loading: interactionsLoading 
+  } = useCustomerInteractions();
+  const { 
+    invoices, 
+    getInvoicesByCustomer, 
+    createInvoice, 
+    markAsPaid,
+    getInvoiceStats,
+    generateInvoiceNumber,
+    loading: invoicesLoading 
+  } = useCustomerInvoices();
+  
+  // جلب البيانات الخاصة بالعميل الحالي
+  const customerTransactions = getTransactionsByCustomer(customer.id, customer.phone);
+  const customerInteractions = getInteractionsByCustomer(customer.id, customer.phone);
+  const customerInvoices = getInvoicesByCustomer(customer.id, customer.phone);
+  const interactionStats = getInteractionStats(customer.id, customer.phone);
+  const invoiceStats = getInvoiceStats(customer.id, customer.phone);
+  const recentActivities = getRecentInteractions(customer.id, customer.phone, 3);
+  
+  // حالة نموذج المعاملة الجديدة
+  const [showNewTransactionForm, setShowNewTransactionForm] = useState(false);
+  const [newTransactionData, setNewTransactionData] = useState({
+    transaction_type: 'دفعة',
+    amount: '',
+    description: '',
+    invoice_number: ''
+  });
+  
+  // حالة نموذج التفاعل الجديد
+  const [showNewInteractionForm, setShowNewInteractionForm] = useState(false);
+  const [newInteractionData, setNewInteractionData] = useState({
+    interaction_type: 'call',
+    description: '',
+    sentiment: 'محايد',
+    outcome: ''
+  });
+  
+  // حالة نموذج الفاتورة الجديدة
+  const [showNewInvoiceForm, setShowNewInvoiceForm] = useState(false);
+  const [newInvoiceData, setNewInvoiceData] = useState({
+    amount: '',
+    description: '',
+    due_date: ''
+  });
   
   // استخدام hook تصدير جهات الاتصال
   const { saveContactToDevice, isNativePlatform, isSaving: isSavingContact } = useDeviceContacts();
@@ -2399,68 +2461,181 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                     <DollarSign className="w-5 h-5" />
                     سجل المعاملات
+                    {customerTransactions.length > 0 && (
+                      <Badge className="bg-[#D4AF37] text-[#01411C]">{customerTransactions.length}</Badge>
+                    )}
                   </CardTitle>
-                  <Button size="sm" className="bg-gradient-to-r from-green-600 to-emerald-500 text-white">
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-green-600 to-emerald-500 text-white"
+                    onClick={() => setShowNewTransactionForm(true)}
+                  >
                     <Plus className="w-4 h-4 ml-1" />
                     معاملة جديدة
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">التاريخ</th>
-                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">نوع المعاملة</th>
-                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المبلغ</th>
-                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
-                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">رقم الفاتورة</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {mockTransactions.map((tx) => (
-                          <tr key={tx.id} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm">{tx.date}</td>
-                            <td className="py-3 px-4">
-                              <Badge className={
-                                tx.type === 'شراء' ? 'bg-blue-100 text-blue-800' :
-                                tx.type === 'دفعة' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }>
-                                {tx.type}
-                              </Badge>
-                            </td>
-                            <td className={`py-3 px-4 font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {tx.amount >= 0 ? '+' : ''}{tx.amount.toLocaleString()} ريال
-                            </td>
-                            <td className="py-3 px-4">
-                              <Badge className="bg-green-100 text-green-800">{tx.status}</Badge>
-                            </td>
-                            <td className="py-3 px-4 text-sm font-medium">{tx.invoice}</td>
+                  {/* نموذج إضافة معاملة جديدة */}
+                  {showNewTransactionForm && (
+                    <div className="mb-6 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                      <h4 className="font-bold text-gray-800 mb-4">إضافة معاملة جديدة</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm">نوع المعاملة</Label>
+                          <Select
+                            value={newTransactionData.transaction_type}
+                            onValueChange={(val) => setNewTransactionData(prev => ({ ...prev, transaction_type: val }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="شراء">شراء</SelectItem>
+                              <SelectItem value="دفعة">دفعة</SelectItem>
+                              <SelectItem value="استرداد">استرداد</SelectItem>
+                              <SelectItem value="عمولة">عمولة</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm">المبلغ (ريال)</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={newTransactionData.amount}
+                            onChange={(e) => setNewTransactionData(prev => ({ ...prev, amount: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm">رقم الفاتورة (اختياري)</Label>
+                          <Input
+                            placeholder="INV-2024-XXX"
+                            value={newTransactionData.invoice_number}
+                            onChange={(e) => setNewTransactionData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm">الوصف</Label>
+                          <Input
+                            placeholder="وصف المعاملة..."
+                            value={newTransactionData.description}
+                            onChange={(e) => setNewTransactionData(prev => ({ ...prev, description: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          size="sm"
+                          className="bg-[#01411C] hover:bg-[#065f41]"
+                          onClick={async () => {
+                            if (!newTransactionData.amount) {
+                              toast.error('يرجى إدخال المبلغ');
+                              return;
+                            }
+                            await createTransaction({
+                              customer_id: customer.id,
+                              customer_phone: customer.phone,
+                              transaction_type: newTransactionData.transaction_type,
+                              amount: parseFloat(newTransactionData.amount) * (newTransactionData.transaction_type === 'استرداد' ? -1 : 1),
+                              invoice_number: newTransactionData.invoice_number || undefined,
+                              description: newTransactionData.description || undefined
+                            });
+                            setNewTransactionData({ transaction_type: 'دفعة', amount: '', description: '', invoice_number: '' });
+                            setShowNewTransactionForm(false);
+                          }}
+                        >
+                          حفظ المعاملة
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowNewTransactionForm(false)}
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {transactionsLoading ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#01411C]" />
+                      <p className="text-gray-500 mt-2">جاري التحميل...</p>
+                    </div>
+                  ) : customerTransactions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>لا توجد معاملات مسجلة لهذا العميل</p>
+                      <p className="text-sm mt-1">اضغط على "معاملة جديدة" لإضافة أول معاملة</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">التاريخ</th>
+                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">نوع المعاملة</th>
+                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المبلغ</th>
+                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
+                            <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">رقم الفاتورة</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {customerTransactions.map((tx) => (
+                            <tr key={tx.id} className="border-b border-gray-200 hover:bg-gray-50">
+                              <td className="py-3 px-4 text-sm">{new Date(tx.created_at).toLocaleDateString('ar-SA')}</td>
+                              <td className="py-3 px-4">
+                                <Badge className={
+                                  tx.transaction_type === 'شراء' ? 'bg-blue-100 text-blue-800' :
+                                  tx.transaction_type === 'دفعة' ? 'bg-green-100 text-green-800' :
+                                  tx.transaction_type === 'عمولة' ? 'bg-purple-100 text-purple-800' :
+                                  'bg-red-100 text-red-800'
+                                }>
+                                  {tx.transaction_type}
+                                </Badge>
+                              </td>
+                              <td className={`py-3 px-4 font-bold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {tx.amount >= 0 ? '+' : ''}{Number(tx.amount).toLocaleString()} ريال
+                              </td>
+                              <td className="py-3 px-4">
+                                <Badge className={
+                                  tx.status === 'مكتمل' ? 'bg-green-100 text-green-800' :
+                                  tx.status === 'معلق' ? 'bg-amber-100 text-amber-800' :
+                                  'bg-red-100 text-red-800'
+                                }>{tx.status}</Badge>
+                              </td>
+                              <td className="py-3 px-4 text-sm font-medium">{tx.invoice_number || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* إحصائيات المدفوعات */}
+              {/* إحصائيات المدفوعات - حقيقية */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-6 text-white">
-                  <div className="text-sm mb-2">إجمالي المشتريات</div>
-                  <div className="text-3xl font-bold">45,800 ريال</div>
-                  <div className="text-sm opacity-90">12 معاملة</div>
+                  <div className="text-sm mb-2">إجمالي المعاملات</div>
+                  <div className="text-3xl font-bold">
+                    {customerTransactions.reduce((sum, tx) => sum + Math.abs(Number(tx.amount)), 0).toLocaleString()} ريال
+                  </div>
+                  <div className="text-sm opacity-90">{customerTransactions.length} معاملة</div>
                 </div>
                 <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-6 text-white">
                   <div className="text-sm mb-2">المدفوعات المستلمة</div>
-                  <div className="text-3xl font-bold">38,500 ريال</div>
-                  <div className="text-sm opacity-90">8 مدفوعات</div>
+                  <div className="text-3xl font-bold">
+                    {customerTransactions.filter(tx => tx.amount > 0).reduce((sum, tx) => sum + Number(tx.amount), 0).toLocaleString()} ريال
+                  </div>
+                  <div className="text-sm opacity-90">{customerTransactions.filter(tx => tx.amount > 0).length} دفعة</div>
                 </div>
                 <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white">
                   <div className="text-sm mb-2">المستحقات</div>
-                  <div className="text-3xl font-bold">7,300 ريال</div>
-                  <div className="text-sm opacity-90">4 فواتير</div>
+                  <div className="text-3xl font-bold">
+                    {invoiceStats.pendingAmount.toLocaleString()} ريال
+                  </div>
+                  <div className="text-sm opacity-90">{invoiceStats.pendingCount} فاتورة معلقة</div>
                 </div>
               </div>
             </div>
