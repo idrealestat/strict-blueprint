@@ -81,6 +81,7 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
 import { usePlatformListings } from "@/hooks/usePlatformListings";
+import { useLiveViewers } from "@/hooks/useLiveViewers";
 
 // ===================== Types =====================
 
@@ -580,6 +581,24 @@ export default function MyPlatformComplete({
   
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
+
+  // ✅ جمع جميع IDs العروض لتتبع المشاهدين المباشرين
+  const allOfferIds = useMemo(() => {
+    const ids: string[] = [];
+    // من العروض المنشورة
+    try {
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      publishedAds.forEach((ad: any) => {
+        if (ad?.id) ids.push(ad.id);
+      });
+    } catch {
+      // ignore
+    }
+    return ids;
+  }, []);
+
+  // ✅ Hook المشاهدين المباشرين - يستمع للأحداث في الوقت الفعلي
+  const { getLiveViewers } = useLiveViewers(allOfferIds);
   
   // Hierarchical State (مدينة ← حي ← عروض)
   const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(() => {
@@ -2045,7 +2064,7 @@ export default function MyPlatformComplete({
                                     {/* مؤشر المشاهدات المباشرة */}
                                     <div className="absolute top-2 right-2">
                                       <LiveViewerIndicator 
-                                        liveViewers={offer.liveViewers || 0}
+                                        liveViewers={getLiveViewers(offer.id)}
                                         totalViews={offer.views || 0}
                                         size="sm"
                                       />
@@ -2268,7 +2287,7 @@ export default function MyPlatformComplete({
                                             {/* مؤشر المشاهدات المباشرة */}
                                             <div className="absolute bottom-2 right-2">
                                               <LiveViewerIndicator 
-                                                liveViewers={offer.liveViewers || 0}
+                                                liveViewers={getLiveViewers(offer.id)}
                                                 size="sm"
                                               />
                                             </div>
