@@ -66,9 +66,9 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
           <div className="flex-1 flex items-center justify-center gap-3">
             <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-1.5 rounded-full shadow-lg border-2 border-wasata-gold backdrop-blur-sm">
               <Building2 className="w-5 h-5" />
-              <span className="font-bold">عقاري</span>
+              <span className="font-bold">وساطه</span>
               <span className="font-bold text-wasata-gold">AI</span>
-              <span className="font-bold">Aqari</span>
+              <span className="font-bold">Wasata</span>
             </div>
             
             {/* مؤشر مباشر النابض */}
