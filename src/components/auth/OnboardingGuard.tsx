@@ -35,6 +35,7 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
     planCode, 
     onboardingCompleted, 
     isLoading: entitlementLoading,
+    status, // حالة الاشتراك (trial, active, expired)
   } = useEntitlementsContext();
 
   const currentPath = location.pathname;
@@ -61,9 +62,12 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
       return;
     }
 
-    // الحالة 1: لم يختر باقة بعد
-    // plan_code = null يعني يحتاج اختيار باقة
-    if (planCode === null) {
+    // ✅ إذا المستخدم أكمل الـ onboarding أو في فترة التجربة، لا يحتاج لاختيار باقة
+    // هذا يحل مشكلة المستخدمين الموجودين الذين لديهم plan_code = null لكن أكملوا الإعداد
+    const skipPlanSelection = onboardingCompleted || status === 'trial' || status === 'active';
+
+    // الحالة 1: لم يختر باقة بعد ولم يكمل الـ onboarding
+    if (planCode === null && !skipPlanSelection) {
       if (!ALLOWED_BEFORE_PLAN.some(path => currentPath.startsWith(path))) {
         console.log('[OnboardingGuard] Redirecting to choose-plan - no plan selected');
         setHasRedirected(true);
@@ -73,9 +77,8 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
       return;
     }
 
-    // الحالة 2: اختار باقة لكن لم يكمل الـ onboarding
-    // planCode موجود لكن onboardingCompleted = false
-    if (planCode && !onboardingCompleted) {
+    // الحالة 2: لم يكمل الـ onboarding (لكن ليس على صفحة اختيار الباقة)
+    if (!onboardingCompleted && !currentPath.startsWith('/app/choose-plan')) {
       if (!ALLOWED_BEFORE_ONBOARDING.some(path => currentPath.startsWith(path))) {
         console.log('[OnboardingGuard] Redirecting to businesscard/edit - onboarding not complete');
         setHasRedirected(true);
@@ -85,11 +88,10 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
       return;
     }
 
-    // الحالة 3: planCode موجود و onboardingCompleted = true
-    // منع الوصول لصفحة choose-plan
-    if (planCode && onboardingCompleted) {
+    // الحالة 3: أكمل الـ onboarding - منع الوصول لصفحة choose-plan
+    if (onboardingCompleted) {
       if (currentPath === '/app/choose-plan') {
-        console.log('[OnboardingGuard] Redirecting from choose-plan to dashboard - already has plan');
+        console.log('[OnboardingGuard] Redirecting from choose-plan to dashboard - already completed onboarding');
         setHasRedirected(true);
         navigate('/app/dashboard', { replace: true });
         return;
@@ -101,6 +103,7 @@ export function OnboardingGuard({ children }: OnboardingGuardProps) {
     currentPath,
     planCode,
     onboardingCompleted,
+    status,
     hasRedirected,
     navigate
   ]);
