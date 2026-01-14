@@ -1258,26 +1258,45 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setShowActionsMenu(null);
   };
 
-  // Share actions
-  const handleShareWhatsApp = (customer: Customer) => {
-    const message = `معلومات العميل:\nالاسم: ${customer.name}\nالهاتف: ${customer.phone}${customer.email ? `\nالبريد: ${customer.email}` : ''}${customer.propertyType ? `\nنوع العقار: ${customer.propertyType}` : ''}${customer.budget ? `\nالميزانية: ${customer.budget}` : ''}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-    setShowShareMenu(null);
-    toast.success('تم فتح الواتساب');
+  // Share actions - إرسال روابط الصفحات عبر واتساب للعميل
+  const getBaseUrl = () => {
+    return window.location.origin;
   };
 
-  const handleCopyLink = (customer: Customer) => {
-    const text = `${customer.name} - ${customer.phone}`;
-    navigator.clipboard.writeText(text);
+  const handleShareOffer = (customer: Customer) => {
+    const offerUrl = `${getBaseUrl()}/public/offer?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const message = `مرحباً ${customer.name}،\n\nيسعدنا تقديم عروضنا العقارية لك.\n\nيمكنك الاطلاع على العروض المتاحة من خلال الرابط:\n${offerUrl}\n\nنتطلع لخدمتك 🏠`;
+    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
     setShowShareMenu(null);
-    toast.success('تم نسخ البيانات');
+    toast.success('تم فتح الواتساب لإرسال العرض');
   };
 
-  const handleSendEmail = (customer: Customer) => {
-    const subject = `معلومات العميل: ${customer.name}`;
-    const body = `الاسم: ${customer.name}\nالهاتف: ${customer.phone}${customer.email ? `\nالبريد: ${customer.email}` : ''}`;
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const handleShareRequest = (customer: Customer) => {
+    const requestUrl = `${getBaseUrl()}/public/request?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const message = `مرحباً ${customer.name}،\n\nنحن هنا لمساعدتك في البحث عن عقارك المثالي.\n\nيمكنك تسجيل طلبك من خلال الرابط:\n${requestUrl}\n\nسنتواصل معك فور توفر ما يناسب احتياجاتك 🔍`;
+    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
     setShowShareMenu(null);
+    toast.success('تم فتح الواتساب لإرسال الطلب');
+  };
+
+  const handleShareQuote = (customer: Customer) => {
+    const quoteUrl = `${getBaseUrl()}/public/quote?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const message = `مرحباً ${customer.name}،\n\nيسرنا تقديم عرض سعر خاص لك.\n\nيمكنك الاطلاع على التفاصيل من خلال الرابط:\n${quoteUrl}\n\nنحن بانتظار ردك 💰`;
+    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    setShowShareMenu(null);
+    toast.success('تم فتح الواتساب لإرسال عرض السعر');
+  };
+
+  const handleShareAppointment = (customer: Customer) => {
+    const appointmentUrl = `${getBaseUrl()}/public/appointment?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const message = `مرحباً ${customer.name}،\n\nيسعدنا ترتيب موعد لك لمعاينة العقارات المتاحة.\n\nيمكنك حجز موعدك من خلال الرابط:\n${appointmentUrl}\n\nنتطلع للقائك 📅`;
+    const whatsappPhone = (customer.whatsapp || customer.phone).replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    setShowShareMenu(null);
+    toast.success('تم فتح الواتساب لإرسال رابط الموعد');
   };
 
   // Handle add customer
@@ -1976,10 +1995,20 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         )}
                                       </div>
                                       
-                                      {/* 1.3 الاسم والشركة + VIP Badge */}
-                                      <div className="flex-1 min-w-0">
+                                      {/* 1.3 الاسم والشركة + VIP Badge - مع خلفية هادئة لنوع العميل */}
+                                      <div 
+                                        className="flex-1 min-w-0 px-2 py-1 rounded-md"
+                                        style={{
+                                          backgroundColor: clientTypes[customer.type as ClientType]?.bgColor || '#F9FAFB',
+                                        }}
+                                      >
                                         <div className="flex items-center gap-1">
-                                          <h3 className="font-bold text-[14px] text-gray-900 truncate">
+                                          <h3 
+                                            className="font-bold text-[14px] truncate"
+                                            style={{
+                                              color: clientTypes[customer.type as ClientType]?.color || '#374151',
+                                            }}
+                                          >
                                             {customer.name}
                                           </h3>
                                           {customer.tags?.includes('VIP') && (
@@ -2502,33 +2531,40 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                             مشاركة
                                           </Button>
                                           
-                                          {/* قائمة المشاركة المنبثقة */}
+                                          {/* قائمة المشاركة المنبثقة - إرسال روابط عبر واتساب */}
                                           {showShareMenu === customer.id && (
                                             <div 
-                                              className="absolute bottom-full mb-1 left-0 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                                              className="absolute bottom-full mb-1 left-0 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
                                               onClick={(e) => e.stopPropagation()}
                                             >
                                               <div className="p-1 space-y-1">
                                                 <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded"
-                                                  onClick={() => handleShareWhatsApp(customer)}
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-emerald-50 rounded"
+                                                  onClick={() => handleShareOffer(customer)}
                                                 >
-                                                  <MessageSquare className="w-3 h-3 text-green-600" />
-                                                  مشاركة عبر واتساب
+                                                  <MessageSquare className="w-3 h-3 text-emerald-600" />
+                                                  إرسال عرض
                                                 </button>
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 rounded"
-                                                  onClick={() => handleCopyLink(customer)}
+                                                  onClick={() => handleShareRequest(customer)}
                                                 >
-                                                  <Copy className="w-3 h-3 text-blue-600" />
-                                                  نسخ البيانات
+                                                  <MessageSquare className="w-3 h-3 text-blue-600" />
+                                                  إرسال طلب
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-amber-50 rounded"
+                                                  onClick={() => handleShareQuote(customer)}
+                                                >
+                                                  <MessageSquare className="w-3 h-3 text-amber-600" />
+                                                  عرض سعر
                                                 </button>
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-purple-50 rounded"
-                                                  onClick={() => handleSendEmail(customer)}
+                                                  onClick={() => handleShareAppointment(customer)}
                                                 >
-                                                  <Mail className="w-3 h-3 text-purple-600" />
-                                                  إرسال بالبريد
+                                                  <Calendar className="w-3 h-3 text-purple-600" />
+                                                  إنشاء موعد
                                                 </button>
                                               </div>
                                             </div>
@@ -2538,6 +2574,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </motion.div>
                                   )}
                                 </AnimatePresence>
+                                
+                                {/* خط درجة الاهتمام في أسفل البطاقة - دائماً في الأسفل */}
+                                <div 
+                                  className="h-1.5 w-full mt-auto"
+                                  style={{ 
+                                    backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
+                                  }}
+                                />
                                 </div>
                               
                               {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}

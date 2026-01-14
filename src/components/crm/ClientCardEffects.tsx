@@ -1,5 +1,5 @@
 // ملف: src/components/crm/ClientCardEffects.tsx
-// تأثيرات بطاقة العميل - حرفي من البرومبت
+// تأثيرات بطاقة العميل - محدث حسب الطلب
 
 import React from 'react';
 import { ClientType, InterestLevel, clientTypes, interestLevels } from '@/types/offer';
@@ -12,49 +12,46 @@ interface ClientCardEffectsProps {
   className?: string;
 }
 
-// تأثيرات البوردر بناءً على نوع العميل - حرفي من البرومبت
+// تأثيرات البوردر بناءً على نوع العميل - ألوان هادئة
 const borderEffects: Record<ClientType, string> = {
-  buyer: 'border-r-4 border-r-green-500',
-  seller: 'border-r-4 border-r-red-500',
-  tenant: 'border-r-4 border-r-blue-500',
-  landlord: 'border-r-4 border-r-purple-500',
-  investor: 'border-r-4 border-r-[#D4AF37]',
+  buyer: 'border-r-4 border-r-emerald-600',
+  seller: 'border-r-4 border-r-red-600',
+  tenant: 'border-r-4 border-r-blue-600',
+  landlord: 'border-r-4 border-r-violet-600',
+  investor: 'border-r-4 border-r-amber-600',
   vip: 'border-r-4 border-r-[#D4AF37] shadow-lg shadow-[#D4AF37]/20',
-  developer: 'border-r-4 border-r-orange-500',
-  broker: 'border-r-4 border-r-indigo-500',
+  developer: 'border-r-4 border-r-orange-600',
+  broker: 'border-r-4 border-r-indigo-600',
 };
 
-// تأثيرات البوردر بناءً على درجة الاهتمام - حرفي من البرومبت
+// تأثيرات البوردر بناءً على درجة الاهتمام - ألوان مختلفة عن نوع العميل
 const interestBorderEffects: Record<InterestLevel, string> = {
-  hot: 'border-2 border-red-600 shadow-lg shadow-red-200 animate-pulse',
-  warm: 'border-2 border-orange-500 shadow-md shadow-orange-100',
-  medium: 'border-2 border-yellow-400 shadow-sm shadow-yellow-50',
-  cold: 'border-2 border-blue-500',
-  followUp: 'border-2 border-purple-500 border-dashed',
+  veryInterested: 'border-2 border-pink-600 shadow-lg shadow-pink-200 animate-pulse',
+  interested: 'border-2 border-cyan-600 shadow-md shadow-cyan-100',
+  moderate: 'border-2 border-yellow-600 shadow-sm shadow-yellow-50',
+  lowInterest: 'border-2 border-slate-500',
   notInterested: 'border-2 border-gray-400 opacity-60',
-  closed: 'border-2 border-green-500 bg-green-50',
-  lost: 'border-2 border-red-500 bg-red-50 opacity-70',
 };
 
-// تأثيرات الخلفية المشتركة - حرفي من البرومبت
+// تأثيرات الخلفية المشتركة - ألوان خفيفة هادئة
 const getBackgroundEffect = (clientType: ClientType, interestLevel: InterestLevel): string => {
-  // VIP + Hot
-  if (clientType === 'vip' && interestLevel === 'hot') {
-    return 'bg-gradient-to-br from-[#01411C]/5 via-[#D4AF37]/5 to-red-50 shadow-2xl shadow-[#D4AF37]/30 ring-2 ring-[#D4AF37] ring-offset-2';
+  // VIP + مهتم جداً
+  if (clientType === 'vip' && interestLevel === 'veryInterested') {
+    return 'bg-gradient-to-br from-[#01411C]/5 via-[#D4AF37]/5 to-pink-50 shadow-2xl shadow-[#D4AF37]/30 ring-2 ring-[#D4AF37] ring-offset-2';
   }
   
-  // VIP + Warm
-  if (clientType === 'vip' && interestLevel === 'warm') {
-    return 'bg-gradient-to-br from-[#01411C]/5 to-orange-50 shadow-xl shadow-[#D4AF37]/20 ring-1 ring-[#D4AF37]';
+  // VIP + مهتم
+  if (clientType === 'vip' && interestLevel === 'interested') {
+    return 'bg-gradient-to-br from-[#01411C]/5 to-cyan-50 shadow-xl shadow-[#D4AF37]/20 ring-1 ring-[#D4AF37]';
   }
   
-  // Investor + Hot
-  if (clientType === 'investor' && interestLevel === 'hot') {
-    return 'bg-gradient-to-br from-amber-50 to-red-50 shadow-lg shadow-amber-200';
+  // مستثمر + مهتم جداً
+  if (clientType === 'investor' && interestLevel === 'veryInterested') {
+    return 'bg-gradient-to-br from-amber-50 to-pink-50 shadow-lg shadow-amber-200';
   }
   
-  // Archived أو غير مهتم
-  if (interestLevel === 'notInterested' || interestLevel === 'lost') {
+  // غير مهتم
+  if (interestLevel === 'notInterested') {
     return 'bg-gray-50 shadow-sm opacity-75';
   }
   
@@ -62,7 +59,7 @@ const getBackgroundEffect = (clientType: ClientType, interestLevel: InterestLeve
   return 'bg-white hover:bg-gray-50 shadow hover:shadow-md';
 };
 
-// شريط الحالة العلوي - حرفي من البرومبت
+// شريط الحالة العلوي
 const getTopStatusBar = (interestLevel: InterestLevel, isVIP: boolean): { height: string; bg: string; animation?: string } | null => {
   if (isVIP) {
     return {
@@ -72,31 +69,31 @@ const getTopStatusBar = (interestLevel: InterestLevel, isVIP: boolean): { height
     };
   }
   
-  if (interestLevel === 'hot') {
+  if (interestLevel === 'veryInterested') {
     return {
       height: '4px',
-      bg: 'bg-gradient-to-l from-red-600 via-orange-500 to-yellow-500',
+      bg: 'bg-gradient-to-l from-pink-600 via-rose-500 to-pink-600',
       animation: 'animate-pulse',
     };
   }
   
-  if (interestLevel === 'warm') {
+  if (interestLevel === 'interested') {
     return {
       height: '3px',
-      bg: 'bg-gradient-to-l from-orange-500 to-yellow-400',
+      bg: 'bg-gradient-to-l from-cyan-600 to-teal-500',
     };
   }
   
   return null;
 };
 
-// شريط جانبي ملون - حرفي من البرومبت
+// شريط جانبي ملون
 const coloredSidebarStyles: Record<ClientType, string> = {
-  buyer: 'bg-gradient-to-b from-green-400 to-green-600',
+  buyer: 'bg-gradient-to-b from-emerald-400 to-emerald-600',
   seller: 'bg-gradient-to-b from-red-400 to-red-600',
   tenant: 'bg-gradient-to-b from-blue-400 to-blue-600',
-  landlord: 'bg-gradient-to-b from-purple-400 to-purple-600',
-  investor: 'bg-gradient-to-b from-[#D4AF37] to-amber-600',
+  landlord: 'bg-gradient-to-b from-violet-400 to-violet-600',
+  investor: 'bg-gradient-to-b from-amber-400 to-amber-600',
   vip: 'bg-gradient-to-b from-[#D4AF37] via-[#01411C] to-[#D4AF37]',
   developer: 'bg-gradient-to-b from-orange-400 to-orange-600',
   broker: 'bg-gradient-to-b from-indigo-400 to-indigo-600',
@@ -144,11 +141,11 @@ export const ClientCardEffects: React.FC<ClientCardEffectsProps> = ({
         </div>
       )}
       
-      {/* Badge ساخن جداً */}
-      {interestLevel === 'hot' && (
-        <div className="absolute top-0 left-0 bg-red-600 text-white px-3 py-1 rounded-br-lg text-xs font-bold flex items-center gap-1 animate-pulse z-10">
+      {/* Badge مهتم جداً */}
+      {interestLevel === 'veryInterested' && (
+        <div className="absolute top-0 left-0 bg-pink-600 text-white px-3 py-1 rounded-br-lg text-xs font-bold flex items-center gap-1 animate-pulse z-10">
           <span>🔥</span>
-          <span>ساخن جداً</span>
+          <span>مهتم جداً</span>
         </div>
       )}
       
@@ -202,7 +199,7 @@ export const InterestLevelBadge: React.FC<{ level: InterestLevel }> = ({ level }
   );
 };
 
-// رموز الحالة السريعة - حرفي من البرومبت
+// رموز الحالة السريعة
 export const quickStatusIcons = {
   hasAppointment: '📅',     // لديه موعد قريب
   hasWhatsApp: '💬',        // تواصل واتساب نشط

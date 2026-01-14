@@ -45,41 +45,38 @@ export interface Offer {
 // أنواع العملاء - حرفي من البرومبت
 export type ClientType = 'buyer' | 'seller' | 'tenant' | 'landlord' | 'investor' | 'vip' | 'developer' | 'broker';
 
-// درجات الاهتمام - حرفي من البرومبت
-export type InterestLevel = 'hot' | 'warm' | 'medium' | 'cold' | 'followUp' | 'notInterested' | 'closed' | 'lost';
+// درجات الاهتمام - الدرجات الجديدة المطلوبة
+export type InterestLevel = 'veryInterested' | 'interested' | 'moderate' | 'lowInterest' | 'notInterested';
 
-// ألوان أنواع العملاء - حرفي من البرومبت
+// ألوان أنواع العملاء - ألوان هادئة وخفيفة
 export const clientTypeColors: Record<ClientType, string> = {
-  buyer: '#10B981',     // أخضر
-  seller: '#EF4444',    // أحمر
-  tenant: '#3B82F6',    // أزرق
-  landlord: '#8B5CF6',  // بنفسجي
-  investor: '#D4AF37',  // ذهبي
+  buyer: '#059669',     // أخضر زمردي هادئ
+  seller: '#DC2626',    // أحمر داكن
+  tenant: '#2563EB',    // أزرق ملكي
+  landlord: '#7C3AED',  // بنفسجي
+  investor: '#B45309',  // ذهبي/برتقالي
   vip: '#01411C',       // أخضر ملكي
-  developer: '#F97316', // برتقالي
-  broker: '#6366F1',    // نيلي
+  developer: '#EA580C', // برتقالي
+  broker: '#4F46E5',    // نيلي
 };
 
-// ألوان درجات الاهتمام - حرفي من البرومبت
+// ألوان درجات الاهتمام - ألوان مختلفة تماماً عن نوع العميل
 export const interestLevelColors: Record<InterestLevel, string> = {
-  hot: '#DC2626',           // أحمر داكن
-  warm: '#F97316',          // برتقالي
-  medium: '#FBBF24',        // أصفر
-  cold: '#3B82F6',          // أزرق
-  followUp: '#8B5CF6',      // بنفسجي
-  notInterested: '#6B7280', // رمادي
-  closed: '#10B981',        // أخضر
-  lost: '#EF4444',          // أحمر
+  veryInterested: '#BE185D',  // وردي/فوشي داكن
+  interested: '#0891B2',      // سماوي/تيل
+  moderate: '#CA8A04',        // أصفر ذهبي
+  lowInterest: '#64748B',     // رمادي مزرق
+  notInterested: '#9CA3AF',   // رمادي فاتح
 };
 
-// تكوين أنواع العملاء الكامل - حرفي من البرومبت
+// تكوين أنواع العملاء الكامل - ألوان خلفية هادئة
 export const clientTypes = {
   buyer: {
     label: 'مشتري',
     labelEn: 'Buyer',
-    color: '#10B981',
-    bgColor: '#D1FAE5',
-    borderColor: '#10B981',
+    color: '#059669',
+    bgColor: '#ECFDF5',
+    borderColor: '#059669',
     icon: '🏡',
     iconComponent: 'Home',
     priority: 8,
@@ -88,9 +85,9 @@ export const clientTypes = {
   seller: {
     label: 'بائع',
     labelEn: 'Seller',
-    color: '#EF4444',
-    bgColor: '#FEE2E2',
-    borderColor: '#EF4444',
+    color: '#DC2626',
+    bgColor: '#FEF2F2',
+    borderColor: '#DC2626',
     icon: '💰',
     iconComponent: 'DollarSign',
     priority: 9,
@@ -99,9 +96,9 @@ export const clientTypes = {
   tenant: {
     label: 'مستأجر',
     labelEn: 'Tenant',
-    color: '#3B82F6',
-    bgColor: '#DBEAFE',
-    borderColor: '#3B82F6',
+    color: '#2563EB',
+    bgColor: '#EFF6FF',
+    borderColor: '#2563EB',
     icon: '🔑',
     iconComponent: 'Key',
     priority: 7,
@@ -110,9 +107,9 @@ export const clientTypes = {
   landlord: {
     label: 'مؤجر',
     labelEn: 'Landlord',
-    color: '#8B5CF6',
-    bgColor: '#EDE9FE',
-    borderColor: '#8B5CF6',
+    color: '#7C3AED',
+    bgColor: '#F5F3FF',
+    borderColor: '#7C3AED',
     icon: '🏢',
     iconComponent: 'Building',
     priority: 8,
@@ -121,9 +118,9 @@ export const clientTypes = {
   investor: {
     label: 'مستثمر',
     labelEn: 'Investor',
-    color: '#D4AF37',
+    color: '#B45309',
     bgColor: '#FFFBEB',
-    borderColor: '#D4AF37',
+    borderColor: '#B45309',
     icon: '📊',
     iconComponent: 'TrendingUp',
     priority: 10,
@@ -133,7 +130,7 @@ export const clientTypes = {
     label: 'VIP',
     labelEn: 'VIP',
     color: '#01411C',
-    bgColor: '#D1FAE5',
+    bgColor: '#F0FDF4',
     borderColor: '#D4AF37',
     icon: '👑',
     iconComponent: 'Crown',
@@ -143,9 +140,9 @@ export const clientTypes = {
   developer: {
     label: 'مطور',
     labelEn: 'Developer',
-    color: '#F97316',
-    bgColor: '#FFEDD5',
-    borderColor: '#F97316',
+    color: '#EA580C',
+    bgColor: '#FFF7ED',
+    borderColor: '#EA580C',
     icon: '🏗️',
     iconComponent: 'Hammer',
     priority: 9,
@@ -154,9 +151,9 @@ export const clientTypes = {
   broker: {
     label: 'وسيط',
     labelEn: 'Broker',
-    color: '#6366F1',
-    bgColor: '#E0E7FF',
-    borderColor: '#6366F1',
+    color: '#4F46E5',
+    bgColor: '#EEF2FF',
+    borderColor: '#4F46E5',
     icon: '🤝',
     iconComponent: 'Handshake',
     priority: 7,
@@ -164,14 +161,14 @@ export const clientTypes = {
   }
 };
 
-// تكوين درجات الاهتمام الكامل - حرفي من البرومبت
+// تكوين درجات الاهتمام الكامل - الدرجات الجديدة المطلوبة
 export const interestLevels = {
-  hot: {
-    label: 'ساخن جداً',
-    labelEn: 'Hot',
-    color: '#DC2626',
-    bgColor: '#FEE2E2',
-    borderColor: '#DC2626',
+  veryInterested: {
+    label: 'مهتم جداً',
+    labelEn: 'Very Interested',
+    color: '#BE185D',
+    bgColor: '#FDF2F8',
+    borderColor: '#BE185D',
     icon: '🔥',
     iconComponent: 'Flame',
     priority: 10,
@@ -181,14 +178,14 @@ export const interestLevels = {
     sla: '< 1 ساعة',
     autoReminder: 30
   },
-  warm: {
-    label: 'ساخن',
-    labelEn: 'Warm',
-    color: '#F97316',
-    bgColor: '#FFEDD5',
-    borderColor: '#F97316',
-    icon: '☀️',
-    iconComponent: 'Sun',
+  interested: {
+    label: 'مهتم',
+    labelEn: 'Interested',
+    color: '#0891B2',
+    bgColor: '#ECFEFF',
+    borderColor: '#0891B2',
+    icon: '⭐',
+    iconComponent: 'Star',
     priority: 8,
     badge: 'مهم',
     animation: null,
@@ -196,12 +193,12 @@ export const interestLevels = {
     sla: '< 4 ساعات',
     autoReminder: 60
   },
-  medium: {
-    label: 'متوسط',
-    labelEn: 'Medium',
-    color: '#FBBF24',
-    bgColor: '#FEF3C7',
-    borderColor: '#FBBF24',
+  moderate: {
+    label: 'معتدل',
+    labelEn: 'Moderate',
+    color: '#CA8A04',
+    bgColor: '#FEFCE8',
+    borderColor: '#CA8A04',
     icon: '💡',
     iconComponent: 'Lightbulb',
     priority: 6,
@@ -211,14 +208,14 @@ export const interestLevels = {
     sla: '< 24 ساعة',
     autoReminder: 120
   },
-  cold: {
-    label: 'بارد',
-    labelEn: 'Cold',
-    color: '#3B82F6',
-    bgColor: '#DBEAFE',
-    borderColor: '#3B82F6',
-    icon: '❄️',
-    iconComponent: 'Snowflake',
+  lowInterest: {
+    label: 'قليل الاهتمام',
+    labelEn: 'Low Interest',
+    color: '#64748B',
+    bgColor: '#F8FAFC',
+    borderColor: '#64748B',
+    icon: '💤',
+    iconComponent: 'Moon',
     priority: 4,
     badge: 'انتظار',
     animation: null,
@@ -226,63 +223,18 @@ export const interestLevels = {
     sla: '< 48 ساعة',
     autoReminder: 240
   },
-  followUp: {
-    label: 'متابعة لاحقة',
-    labelEn: 'Follow Up',
-    color: '#8B5CF6',
-    bgColor: '#EDE9FE',
-    borderColor: '#8B5CF6',
-    icon: '📅',
-    iconComponent: 'CalendarClock',
-    priority: 5,
-    badge: 'منتظر',
-    animation: null,
-    description: 'موعد محدد للمتابعة',
-    sla: 'حسب الموعد',
-    autoReminder: null
-  },
   notInterested: {
     label: 'غير مهتم',
     labelEn: 'Not Interested',
-    color: '#6B7280',
-    bgColor: '#F3F4F6',
-    borderColor: '#6B7280',
+    color: '#9CA3AF',
+    bgColor: '#F9FAFB',
+    borderColor: '#9CA3AF',
     icon: '⏸️',
     iconComponent: 'Pause',
     priority: 1,
     badge: 'معلق',
     animation: null,
     description: 'غير مهتم حالياً',
-    sla: null,
-    autoReminder: null
-  },
-  closed: {
-    label: 'مغلق',
-    labelEn: 'Closed',
-    color: '#10B981',
-    bgColor: '#D1FAE5',
-    borderColor: '#10B981',
-    icon: '✅',
-    iconComponent: 'CheckCircle2',
-    priority: 0,
-    badge: 'منتهي',
-    animation: null,
-    description: 'تمت الصفقة بنجاح',
-    sla: null,
-    autoReminder: null
-  },
-  lost: {
-    label: 'ضائع',
-    labelEn: 'Lost',
-    color: '#EF4444',
-    bgColor: '#FEE2E2',
-    borderColor: '#EF4444',
-    icon: '❌',
-    iconComponent: 'XCircle',
-    priority: 0,
-    badge: 'ملغي',
-    animation: null,
-    description: 'فشلت الصفقة',
     sla: null,
     autoReminder: null
   }
