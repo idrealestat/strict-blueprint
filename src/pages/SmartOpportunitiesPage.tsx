@@ -365,28 +365,8 @@ const SmartOpportunitiesPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6 space-y-6 min-h-screen">
-        {/* Header */}
+        {/* أزرار التحكم */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate('/app/dashboard')}
-              className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                <Sparkles className="w-6 h-6 text-amber-500" />
-                الفرص الذكية
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                اسحب يميناً للقبول أو يساراً للرفض
-              </p>
-            </div>
-          </div>
-          
           <div className="flex items-center gap-2 flex-wrap">
             {remainingCount > 0 && (
               <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
@@ -394,7 +374,6 @@ const SmartOpportunitiesPage = () => {
               </Badge>
             )}
             
-            {/* زر الفلترة */}
             <OpportunityFilters
               filters={filters}
               onFiltersChange={setFilters}
