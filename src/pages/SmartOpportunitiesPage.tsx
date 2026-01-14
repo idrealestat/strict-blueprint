@@ -372,6 +372,7 @@ const SmartOpportunitiesPage = () => {
               variant="ghost" 
               size="icon"
               onClick={() => navigate('/app/dashboard')}
+              className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
             >
               <ArrowRight className="w-5 h-5" />
             </Button>
