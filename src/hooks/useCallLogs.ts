@@ -166,17 +166,10 @@ export function useCallLogs() {
     setCallLogs([]);
   };
 
-  // إضافة بيانات تجريبية
+  // ✅ تم إزالة إضافة البيانات الوهمية - يتم تسجيل المكالمات الحقيقية فقط
   const addSampleData = () => {
-    const sampleLogs: CallLog[] = [
-      { id: 'sample_1', phone: '0501234567', name: 'أحمد محمد', time: '10:30', type: 'incoming', duration: '3:45', date: new Date() },
-      { id: 'sample_2', phone: '0559876543', time: '09:15', type: 'outgoing', duration: '2:10', date: new Date(Date.now() - 3600000) },
-      { id: 'sample_3', phone: '0541112233', name: 'محمد علي', time: '08:45', type: 'missed', date: new Date(Date.now() - 7200000) },
-      { id: 'sample_4', phone: '0533334444', time: 'أمس', type: 'incoming', duration: '5:20', date: new Date(Date.now() - 86400000) },
-      { id: 'sample_5', phone: '0512223344', name: 'عبدالله سعد', time: 'أمس', type: 'outgoing', duration: '1:30', date: new Date(Date.now() - 90000000) },
-    ];
-    saveLogs([...sampleLogs, ...callLogs]);
-    return sampleLogs.length;
+    // لا يتم إضافة بيانات وهمية
+    return 0;
   };
 
   return {

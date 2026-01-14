@@ -12,8 +12,8 @@ import { ReportsTable } from './ReportsTable';
 import { CreateReportDialog } from './CreateReportDialog';
 import AnalyticsDashboard from '../AnalyticsDashboard';
 
-// Mock data for KPIs
-const mockKPIs: Array<{
+// Type for KPI
+type KPI = {
   id: string;
   name: string;
   category: string;
@@ -22,201 +22,19 @@ const mockKPIs: Array<{
   changePercentage: string;
   targetValue?: string;
   displayFormat: 'currency' | 'number' | 'percentage';
-}> = [
-  {
-    id: '1',
-    name: 'إجمالي المبيعات',
-    category: 'sales',
-    currentValue: '2500000',
-    previousValue: '2100000',
-    changePercentage: '19.05',
-    targetValue: '3000000',
-    displayFormat: 'currency',
-  },
-  {
-    id: '2',
-    name: 'عدد الصفقات',
-    category: 'sales',
-    currentValue: '45',
-    previousValue: '38',
-    changePercentage: '18.42',
-    targetValue: '50',
-    displayFormat: 'number',
-  },
-  {
-    id: '3',
-    name: 'متوسط قيمة الصفقة',
-    category: 'sales',
-    currentValue: '55555',
-    previousValue: '55263',
-    changePercentage: '0.53',
-    displayFormat: 'currency',
-  },
-  {
-    id: '4',
-    name: 'إجمالي العمولات',
-    category: 'finance',
-    currentValue: '65000',
-    previousValue: '55000',
-    changePercentage: '18.18',
-    targetValue: '75000',
-    displayFormat: 'currency',
-  },
-  {
-    id: '5',
-    name: 'معدل التحويل',
-    category: 'sales',
-    currentValue: '25.5',
-    previousValue: '22.3',
-    changePercentage: '14.35',
-    targetValue: '30',
-    displayFormat: 'percentage',
-  },
-  {
-    id: '6',
-    name: 'رضا العملاء',
-    category: 'customers',
-    currentValue: '4.6',
-    previousValue: '4.4',
-    changePercentage: '4.55',
-    targetValue: '4.8',
-    displayFormat: 'number',
-  },
-];
+};
 
-// Mock AI Insights
-const mockInsights = [
-  {
-    id: '1',
-    insightType: 'recommendation',
-    category: 'sales',
-    title: 'فرصة لزيادة المبيعات',
-    description: 'حي النخيل يشهد ارتفاع في الطلب بنسبة 35%. ننصح بالتركيز على عقارات هذا الحي.',
-    priority: 'high',
-    confidenceScore: '85',
-    impactScore: '90',
-    suggestedActions: JSON.stringify([
-      'إضافة المزيد من العقارات في حي النخيل',
-      'التواصل مع الملاك في المنطقة',
-      'تكثيف التسويق للحي',
-    ]),
-    expectedOutcome: 'زيادة متوقعة 20-30% في المبيعات',
-  },
-  {
-    id: '2',
-    insightType: 'warning',
-    category: 'customers',
-    title: 'عملاء بحاجة للمتابعة',
-    description: 'لديك 12 عميل لم يتم التواصل معهم منذ أكثر من 30 يوم.',
-    priority: 'medium',
-    confidenceScore: '95',
-    impactScore: '70',
-    suggestedActions: JSON.stringify([
-      'إنشاء حملة متابعة',
-      'جدولة مكالمات',
-      'إرسال عروض جديدة',
-    ]),
-  },
-  {
-    id: '3',
-    insightType: 'opportunity',
-    category: 'properties',
-    title: 'عقارات تحتاج تحديث السعر',
-    description: 'العقارات في حي الورود أقل بـ 15% من متوسط السوق. فرصة لزيادة الأسعار.',
-    priority: 'high',
-    confidenceScore: '88',
-    impactScore: '85',
-    suggestedActions: JSON.stringify([
-      'مراجعة أسعار العقارات',
-      'تحديث التسعير',
-      'التواصل مع الملاك',
-    ]),
-    expectedOutcome: 'زيادة متوقعة في العمولات بنسبة 15%',
-  },
-  {
-    id: '4',
-    insightType: 'prediction',
-    category: 'sales',
-    title: 'توقعات المبيعات للشهر القادم',
-    description: 'بناءً على الاتجاهات الحالية، من المتوقع إتمام 25-30 صفقة الشهر القادم.',
-    priority: 'medium',
-    confidenceScore: '78',
-    impactScore: '60',
-  },
-  {
-    id: '5',
-    insightType: 'recommendation',
-    category: 'marketing',
-    title: 'أفضل وقت للنشر',
-    description: 'معظم العملاء يتفاعلون مع العقارات بين 8-10 مساءً. ننصح بالنشر في هذا الوقت.',
-    priority: 'low',
-    confidenceScore: '82',
-    impactScore: '55',
-    suggestedActions: JSON.stringify([
-      'جدولة المنشورات في المساء',
-      'تحسين المحتوى التسويقي',
-    ]),
-  },
-];
+// ✅ تم إزالة مؤشرات الأداء الوهمية - يتم جلبها من قاعدة البيانات الحقيقية
+const mockKPIs: KPI[] = [];
 
-// Mock Analytics Data
-const mockAnalyticsData = Array.from({ length: 30 }, (_, i) => ({
-  date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  totalSales: Math.floor(Math.random() * 200000) + 100000,
-  salesCount: Math.floor(Math.random() * 10) + 2,
-  totalRevenue: Math.floor(Math.random() * 300000) + 150000,
-  totalCommissions: Math.floor(Math.random() * 15000) + 5000,
-  newCustomers: Math.floor(Math.random() * 8) + 2,
-}));
+// ✅ تم إزالة الرؤى الوهمية - سيتم توليدها من الذكاء الاصطناعي بناءً على البيانات الحقيقية
+const mockInsights: any[] = [];
 
-// Mock Reports
-const mockReports = [
-  {
-    id: '1',
-    title: 'تقرير المبيعات الشهري - نوفمبر 2025',
-    reportType: 'sales',
-    format: 'pdf',
-    status: 'completed',
-    totalRecords: 156,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    title: 'تقرير الأداء المالي - الربع الثالث',
-    reportType: 'finance',
-    format: 'excel',
-    status: 'completed',
-    totalRecords: 89,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '3',
-    title: 'تقرير العملاء الجدد',
-    reportType: 'customers',
-    format: 'csv',
-    status: 'generating',
-    totalRecords: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    title: 'تقرير العقارات المباعة',
-    reportType: 'properties',
-    format: 'pdf',
-    status: 'completed',
-    totalRecords: 234,
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '5',
-    title: 'تقرير المواعيد - أكتوبر',
-    reportType: 'calendar',
-    format: 'excel',
-    status: 'failed',
-    totalRecords: null,
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+// ✅ تم إزالة البيانات الوهمية - يتم جلب البيانات من قاعدة البيانات الحقيقية
+const mockAnalyticsData: any[] = [];
+
+// ✅ لا توجد تقارير وهمية - يتم إنشاؤها بواسطة المستخدم
+const mockReports: any[] = [];
 
 interface ReportsAnalyticsProps {
   onBack?: () => void;
