@@ -121,6 +121,7 @@ interface OfferDetailsPageProps {
   onClose: () => void;
   allListings?: Listing[];
   brokerPhone?: string;
+  brokerName?: string; // اسم الوسيط المعلن (من بطاقة الأعمال)
   userId?: string; // for notifications
   trackingChannel?: 'public_web' | 'in_app_preview';
   platformSlug?: string; // slug للنماذج العامة
@@ -738,6 +739,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   onClose, 
   allListings = [], 
   brokerPhone,
+  brokerName,
   userId,
   trackingChannel = 'public_web',
   platformSlug
@@ -1450,13 +1452,13 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
               )}
 
               {/* معلومات الوسيط */}
-              {listing.ownerName && (
+              {(brokerName || listing.ownerName) && (
                 <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] rounded-xl p-6 mb-6 text-white">
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 bg-[#D4AF37] rounded-full flex items-center justify-center">
                       <User className="w-7 h-7 text-[#01411C]" />
                     </div>
-                    <h3 className="font-bold text-lg">{listing.ownerName}</h3>
+                    <h3 className="font-bold text-lg">{brokerName || listing.ownerName}</h3>
                   </div>
                 </div>
               )}

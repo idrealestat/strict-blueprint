@@ -1353,6 +1353,12 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           }}
           allListings={allListings}
           brokerPhone={businessCardData?.primaryPhone}
+          brokerName={businessCardData ? getDisplayName(
+            businessCardData.displayNameType || 'personal',
+            businessCardData.userName || '',
+            businessCardData.companyName || '',
+            businessCardData.platformNameArabic || ''
+          ) : undefined}
           platformSlug={platformSlug}
         />
       )}
