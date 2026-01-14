@@ -81,6 +81,11 @@ export interface PublishedAdData {
   deedDate?: string;
   deedCity?: string;
   
+  // Ad License Info
+  adLicense?: string;
+  adLicenseDate?: string;
+  adLicenseDuration?: string;
+  
   // Media
   images?: string[];
   videos?: string[];
