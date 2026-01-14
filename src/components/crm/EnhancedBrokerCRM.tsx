@@ -9,6 +9,7 @@ import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
 import { useCRMCustomTags } from "@/hooks/useCRMCustomTags";
 import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -499,6 +500,9 @@ const mockCustomers: Customer[] = [
 export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMProps) {
   // Reference for scrolling to right
   const kanbanContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Feature Flags for visibility control
+  const { flags: featureFlags } = useFeatureFlags();
   
   // Use the new CRM hook with real database
   const { 
@@ -1705,7 +1709,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               dir="rtl"
             >
               <div className="flex gap-3 md:gap-4 min-w-max px-2">
-                {/* عمود الاتصالات الأخيرة - ثابت */}
+                {/* عمود الاتصالات الأخيرة - ثابت - يمكن إخفاؤه من لوحة تحكم المالك */}
+                {featureFlags.crm_calls_section_enabled && (
                 <div className="w-56 md:w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
                   <div className="p-2 md:p-3 border-b-2 border-gray-300 bg-gray-200">
                     <div className="flex items-center justify-between mb-2">
@@ -1866,6 +1871,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                     )}
                   </div>
                 </div>
+                )}
 
                 {/* خط أخضر مؤشر للإفلات بين الأعمدة */}
                 {columnDropIndicator === 0 && (
@@ -2321,6 +2327,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     </div>
                                     
                                     {/* 4. زر إضافة زميل للمتابعة */}
+                                    {featureFlags.business_card_add_colleague_enabled && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -2332,6 +2339,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       <Users className="w-3 h-3" />
                                       إضافة زميل للمتابعة
                                     </button>
+                                    )}
                                   </div>
                                   
 
