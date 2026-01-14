@@ -363,6 +363,224 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     due_date: ''
   });
   
+  // حالات العقود والتنبيهات
+  const [showContractDialog, setShowContractDialog] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<any>(null);
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [alertType, setAlertType] = useState<'normal' | 'urgent'>('normal');
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+  const [showEvacuationDialog, setShowEvacuationDialog] = useState(false);
+  const [showExtensionDialog, setShowExtensionDialog] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [extensionDays, setExtensionDays] = useState('30');
+  const [renewalMonths, setRenewalMonths] = useState('12');
+  
+  // بيانات العقارات المؤجرة الحقيقية
+  const [rentedProperties, setRentedProperties] = useState([
+    {
+      id: '1',
+      title: 'فيلا في حي النرجس',
+      location: 'الرياض - حي النرجس',
+      tenant: 'خالد سعيد',
+      status: 'active',
+      startDate: '2024-01-15',
+      endDate: '2025-01-15',
+      daysRemaining: 32,
+      monthlyRent: 8000,
+      duration: 12,
+    },
+    {
+      id: '2',
+      title: 'شقة في حي العليا',
+      location: 'الرياض - حي العليا',
+      tenant: 'أحمد فهد',
+      status: 'expiring',
+      startDate: '2023-12-01',
+      endDate: '2024-12-01',
+      daysRemaining: 15,
+      monthlyRent: 4500,
+      duration: 12,
+    },
+    {
+      id: '3',
+      title: 'مكتب تجاري في طريق الملك فهد',
+      location: 'الرياض - طريق الملك فهد',
+      tenant: 'شركة الأمل للتجارة',
+      status: 'expired',
+      startDate: '2023-12-01',
+      endDate: '2024-12-01',
+      daysRemaining: 0,
+      monthlyRent: 15000,
+      duration: 12,
+    },
+  ]);
+  
+  // حساب إحصائيات العقارات المؤجرة
+  const rentedStats = {
+    total: rentedProperties.length,
+    active: rentedProperties.filter(p => p.status === 'active').length,
+    expiring: rentedProperties.filter(p => p.status === 'expiring').length,
+    expired: rentedProperties.filter(p => p.status === 'expired').length,
+    totalMonthlyRent: rentedProperties.reduce((sum, p) => sum + p.monthlyRent, 0),
+  };
+  
+  // إرسال تنبيه للمستأجر
+  const handleSendAlert = async (property: any, type: 'normal' | 'urgent') => {
+    setSelectedContract(property);
+    setAlertType(type);
+    setAlertMessage(type === 'urgent' 
+      ? `⚠️ تنبيه عاجل: عقد إيجار "${property.title}" ينتهي خلال ${property.daysRemaining} يوم فقط!`
+      : `📋 تذكير: عقد إيجار "${property.title}" سينتهي بتاريخ ${property.endDate}`
+    );
+    setShowAlertDialog(true);
+  };
+  
+  // تأكيد إرسال التنبيه
+  const confirmSendAlert = async () => {
+    try {
+      // محاولة إرسال SMS
+      const { error } = await supabase.functions.invoke('send-sms', {
+        body: {
+          to: customer.phone,
+          message: alertMessage,
+        }
+      });
+      
+      if (error) {
+        // في حالة فشل SMS، فتح WhatsApp
+        const encodedMessage = encodeURIComponent(alertMessage);
+        window.open(`https://wa.me/${customer.phone?.replace(/\D/g, '')}?text=${encodedMessage}`, '_blank');
+      }
+      
+      NotificationSounds.chime();
+      toast.success(alertType === 'urgent' ? 'تم إرسال الإشعار العاجل' : 'تم إرسال التنبيه');
+      
+      // إنشاء تفاعل في قاعدة البيانات
+      await createInteraction({
+        customer_id: customer.id,
+        customer_phone: customer.phone,
+        interaction_type: 'whatsapp',
+        description: alertMessage,
+        sentiment: alertType === 'urgent' ? 'سلبي' : 'محايد',
+        outcome: 'تم الإرسال',
+      });
+      
+      setShowAlertDialog(false);
+      setAlertMessage('');
+    } catch (error) {
+      console.error('Error sending alert:', error);
+      toast.error('فشل إرسال التنبيه');
+    }
+  };
+  
+  // تجديد العقد
+  const handleRenewal = (property: any) => {
+    setSelectedContract(property);
+    setShowRenewalDialog(true);
+  };
+  
+  // تأكيد تجديد العقد
+  const confirmRenewal = () => {
+    if (!selectedContract) return;
+    
+    const newEndDate = new Date(selectedContract.endDate);
+    newEndDate.setMonth(newEndDate.getMonth() + parseInt(renewalMonths));
+    
+    setRentedProperties(prev => prev.map(p => 
+      p.id === selectedContract.id 
+        ? { 
+            ...p, 
+            status: 'active', 
+            endDate: newEndDate.toISOString().split('T')[0],
+            daysRemaining: Math.ceil((newEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+          } 
+        : p
+    ));
+    
+    NotificationSounds.success();
+    toast.success(`تم تجديد العقد لمدة ${renewalMonths} شهر`);
+    
+    createNotification({
+      title: 'تم تجديد العقد',
+      message: `تم تجديد عقد "${selectedContract.title}" لمدة ${renewalMonths} شهر`,
+      notification_type: 'crm',
+      category: 'contract_renewed',
+      related_entity_id: selectedContract.id,
+      related_entity_type: 'contract',
+    });
+    
+    setShowRenewalDialog(false);
+    setSelectedContract(null);
+  };
+  
+  // إخلاء العقار
+  const handleEvacuation = (property: any) => {
+    setSelectedContract(property);
+    setShowEvacuationDialog(true);
+  };
+  
+  // تأكيد إخلاء العقار
+  const confirmEvacuation = () => {
+    if (!selectedContract) return;
+    
+    setRentedProperties(prev => prev.filter(p => p.id !== selectedContract.id));
+    
+    NotificationSounds.alert();
+    toast.success('تم تسجيل إخلاء العقار');
+    
+    createNotification({
+      title: 'إخلاء عقار',
+      message: `تم إخلاء "${selectedContract.title}" من قبل ${selectedContract.tenant}`,
+      notification_type: 'crm',
+      category: 'property_evacuated',
+      related_entity_id: selectedContract.id,
+      related_entity_type: 'contract',
+    });
+    
+    setShowEvacuationDialog(false);
+    setSelectedContract(null);
+  };
+  
+  // طلب مهلة
+  const handleExtension = (property: any) => {
+    setSelectedContract(property);
+    setShowExtensionDialog(true);
+  };
+  
+  // تأكيد طلب المهلة
+  const confirmExtension = () => {
+    if (!selectedContract) return;
+    
+    const currentEndDate = new Date(selectedContract.endDate);
+    currentEndDate.setDate(currentEndDate.getDate() + parseInt(extensionDays));
+    
+    setRentedProperties(prev => prev.map(p => 
+      p.id === selectedContract.id 
+        ? { 
+            ...p, 
+            endDate: currentEndDate.toISOString().split('T')[0],
+            daysRemaining: parseInt(extensionDays),
+            status: 'expiring',
+          } 
+        : p
+    ));
+    
+    NotificationSounds.chime();
+    toast.success(`تم منح مهلة ${extensionDays} يوم`);
+    
+    createNotification({
+      title: 'طلب مهلة',
+      message: `تم منح مهلة ${extensionDays} يوم لـ "${selectedContract.title}"`,
+      notification_type: 'crm',
+      category: 'extension_granted',
+      related_entity_id: selectedContract.id,
+      related_entity_type: 'contract',
+    });
+    
+    setShowExtensionDialog(false);
+    setSelectedContract(null);
+  };
+  
   // استخدام hook تصدير جهات الاتصال
   const { saveContactToDevice, isNativePlatform, isSaving: isSavingContact } = useDeviceContacts();
   
@@ -880,7 +1098,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 <Button
                   variant="outline"
                   className="border-[#D4AF37]"
-                  onClick={() => toast.info('سيتم فتح نموذج جدولة موعد')}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
+                      detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
+                    }));
+                  }}
                 >
                   <Calendar className="w-4 h-4 ml-2" />
                   جدولة موعد
@@ -1497,180 +1719,170 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                   <Home className="w-5 h-5" />
                   العقارات المؤجرة للمالك
+                  {rentedProperties.length > 0 && (
+                    <Badge className="bg-[#01411C] text-white text-xs">{rentedProperties.length}</Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                {/* Mock rented properties for this owner */}
-                <div className="space-y-4">
-                  {/* Rented Property 1 */}
-                  <div className="p-4 border-2 border-emerald-200 rounded-lg bg-emerald-50/50">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-lg">فيلا في حي النرجس</h4>
-                          <Badge className="bg-emerald-500 text-white">نشط</Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            الرياض - حي النرجس
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            المستأجر: خالد سعيد
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-gray-500" />
-                            بداية العقد: 2024-01-15
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-red-500" />
-                            نهاية العقد: 2025-01-15
-                          </span>
-                          <span className="text-emerald-600 font-bold">
-                            المتبقي: 32 يوم
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#D4AF37] font-bold text-lg">8,000 ريال/شهر</span>
-                          <span className="text-gray-500">| مدة العقد: 12 شهر</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button size="sm" variant="outline" className="border-[#01411C] text-[#01411C]">
-                          <FileText className="w-4 h-4 ml-1" />
-                          عرض العقد
-                        </Button>
-                        <Button size="sm" className="bg-[#01411C]">
-                          <Send className="w-4 h-4 ml-1" />
-                          إرسال تنبيه
-                        </Button>
-                      </div>
-                    </div>
+                {rentedProperties.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Home className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>لا توجد عقارات مؤجرة لهذا العميل</p>
                   </div>
-
-                  {/* Rented Property 2 */}
-                  <div className="p-4 border-2 border-amber-200 rounded-lg bg-amber-50/50">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-lg">شقة في حي العليا</h4>
-                          <Badge className="bg-amber-500 text-white animate-pulse">ينتهي قريباً</Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            الرياض - حي العليا
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            المستأجر: أحمد فهد
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-gray-500" />
-                            بداية العقد: 2023-12-01
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-red-500" />
-                            نهاية العقد: 2024-12-01
-                          </span>
-                          <span className="text-amber-600 font-bold">
-                            المتبقي: 15 يوم
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#D4AF37] font-bold text-lg">4,500 ريال/شهر</span>
-                          <span className="text-gray-500">| مدة العقد: 12 شهر</span>
+                ) : (
+                  <div className="space-y-4">
+                    {rentedProperties.map((property) => (
+                      <div 
+                        key={property.id}
+                        className={`p-4 border-2 rounded-lg ${
+                          property.status === 'active' 
+                            ? 'border-emerald-200 bg-emerald-50/50' 
+                            : property.status === 'expiring'
+                            ? 'border-amber-200 bg-amber-50/50'
+                            : 'border-red-200 bg-red-50/50'
+                        }`}
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-lg">{property.title}</h4>
+                              <Badge className={`text-white ${
+                                property.status === 'active' 
+                                  ? 'bg-emerald-500' 
+                                  : property.status === 'expiring'
+                                  ? 'bg-amber-500 animate-pulse'
+                                  : 'bg-red-500'
+                              }`}>
+                                {property.status === 'active' ? 'نشط' : property.status === 'expiring' ? 'ينتهي قريباً' : 'منتهي'}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {property.location}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <User className="w-4 h-4" />
+                                المستأجر: {property.tenant}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-sm">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4 text-gray-500" />
+                                بداية العقد: {property.startDate}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className={`w-4 h-4 ${property.status === 'expired' ? 'text-red-500' : 'text-red-500'}`} />
+                                {property.status === 'expired' ? 'انتهى في' : 'نهاية العقد'}: {property.endDate}
+                              </span>
+                              {property.daysRemaining > 0 && (
+                                <span className={`font-bold ${
+                                  property.status === 'active' ? 'text-emerald-600' : 'text-amber-600'
+                                }`}>
+                                  المتبقي: {property.daysRemaining} يوم
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#D4AF37] font-bold text-lg">{property.monthlyRent.toLocaleString()} ريال/شهر</span>
+                              <span className="text-gray-500">| مدة العقد: {property.duration} شهر</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {/* زر عرض العقد */}
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-[#01411C] text-[#01411C]"
+                              onClick={() => {
+                                setSelectedContract(property);
+                                setShowContractDialog(true);
+                              }}
+                            >
+                              <FileText className="w-4 h-4 ml-1" />
+                              عرض العقد
+                            </Button>
+                            
+                            {/* أزرار حسب حالة العقد */}
+                            {property.status === 'active' && (
+                              <Button 
+                                size="sm" 
+                                className="bg-[#01411C]"
+                                onClick={() => handleSendAlert(property, 'normal')}
+                              >
+                                <Send className="w-4 h-4 ml-1" />
+                                إرسال تنبيه
+                              </Button>
+                            )}
+                            
+                            {property.status === 'expiring' && (
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleSendAlert(property, 'urgent')}
+                              >
+                                <AlertTriangle className="w-4 h-4 ml-1" />
+                                إشعار عاجل
+                              </Button>
+                            )}
+                            
+                            {property.status === 'expired' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  className="bg-emerald-600 hover:bg-emerald-700"
+                                  onClick={() => handleRenewal(property)}
+                                >
+                                  تجديد العقد
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="border-red-500 text-red-500"
+                                  onClick={() => handleEvacuation(property)}
+                                >
+                                  إخلاء العقار
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleExtension(property)}
+                                >
+                                  طلب مهلة
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <Button size="sm" variant="outline" className="border-[#01411C] text-[#01411C]">
-                          <FileText className="w-4 h-4 ml-1" />
-                          عرض العقد
-                        </Button>
-                        <Button size="sm" variant="destructive">
-                          <AlertTriangle className="w-4 h-4 ml-1" />
-                          إشعار عاجل
-                        </Button>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-
-                  {/* Rented Property 3 - Expired */}
-                  <div className="p-4 border-2 border-red-200 rounded-lg bg-red-50/50">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-lg">مكتب تجاري في طريق الملك فهد</h4>
-                          <Badge className="bg-red-500 text-white">منتهي</Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            الرياض - طريق الملك فهد
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            المستأجر: شركة الأمل للتجارة
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-gray-500" />
-                            بداية العقد: 2023-12-01
-                          </span>
-                          <span className="flex items-center gap-1 text-red-600">
-                            <Calendar className="w-4 h-4" />
-                            انتهى في: 2024-12-01
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#D4AF37] font-bold text-lg">15,000 ريال/شهر</span>
-                          <span className="text-gray-500">| مدة العقد: 12 شهر</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-                          تجديد العقد
-                        </Button>
-                        <Button size="sm" variant="outline" className="border-red-500 text-red-500">
-                          إخلاء العقار
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          طلب مهلة
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Summary Stats */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Card className="bg-emerald-50 border-emerald-200">
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-emerald-600">3</div>
+                      <div className="text-2xl font-bold text-emerald-600">{rentedStats.total}</div>
                       <div className="text-sm text-gray-600">إجمالي العقارات</div>
                     </CardContent>
                   </Card>
                   <Card className="bg-blue-50 border-blue-200">
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">1</div>
+                      <div className="text-2xl font-bold text-blue-600">{rentedStats.active}</div>
                       <div className="text-sm text-gray-600">عقود نشطة</div>
                     </CardContent>
                   </Card>
                   <Card className="bg-amber-50 border-amber-200">
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-amber-600">1</div>
+                      <div className="text-2xl font-bold text-amber-600">{rentedStats.expiring}</div>
                       <div className="text-sm text-gray-600">تنتهي قريباً</div>
                     </CardContent>
                   </Card>
                   <Card className="bg-[#D4AF37]/10 border-[#D4AF37]">
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-[#D4AF37]">27,500</div>
+                      <div className="text-2xl font-bold text-[#D4AF37]">{rentedStats.totalMonthlyRent.toLocaleString()}</div>
                       <div className="text-sm text-gray-600">إجمالي الإيجار الشهري</div>
                     </CardContent>
                   </Card>
@@ -3779,14 +3991,239 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
         property={selectedPropertyForPDF}
       />
 
-      {/* مكون إضافة مهمة جديدة */}
-      <AddTaskDialog
-        isOpen={showAddCRMTask}
-        onClose={() => setShowAddCRMTask(false)}
-        customerId={customer.id}
-        customerName={customer.name}
-        onTaskCreated={refreshTasks}
-      />
+      {/* Dialog عرض العقد */}
+      <Dialog open={showContractDialog} onOpenChange={setShowContractDialog}>
+        <DialogContent dir="rtl" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <FileText className="w-5 h-5" />
+              تفاصيل عقد الإيجار
+            </DialogTitle>
+          </DialogHeader>
+          {selectedContract && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/10 rounded-lg">
+                <h3 className="font-bold text-lg mb-2">{selectedContract.title}</h3>
+                <Badge className={`text-white ${
+                  selectedContract.status === 'active' ? 'bg-emerald-500' : 
+                  selectedContract.status === 'expiring' ? 'bg-amber-500' : 'bg-red-500'
+                }`}>
+                  {selectedContract.status === 'active' ? 'نشط' : 
+                   selectedContract.status === 'expiring' ? 'ينتهي قريباً' : 'منتهي'}
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs text-gray-500">الموقع</Label>
+                  <p className="font-medium flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-[#01411C]" />
+                    {selectedContract.location}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs text-gray-500">المستأجر</Label>
+                  <p className="font-medium flex items-center gap-1">
+                    <User className="w-4 h-4 text-[#01411C]" />
+                    {selectedContract.tenant}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs text-gray-500">بداية العقد</Label>
+                  <p className="font-medium flex items-center gap-1">
+                    <Calendar className="w-4 h-4 text-emerald-600" />
+                    {selectedContract.startDate}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs text-gray-500">نهاية العقد</Label>
+                  <p className="font-medium flex items-center gap-1">
+                    <Calendar className="w-4 h-4 text-red-500" />
+                    {selectedContract.endDate}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs text-gray-500">الإيجار الشهري</Label>
+                  <p className="font-bold text-[#D4AF37] text-lg">
+                    {selectedContract.monthlyRent?.toLocaleString()} ريال
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs text-gray-500">مدة العقد</Label>
+                  <p className="font-medium">{selectedContract.duration} شهر</p>
+                </div>
+              </div>
+              
+              {selectedContract.daysRemaining > 0 && (
+                <div className={`p-4 rounded-lg text-center ${
+                  selectedContract.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                }`}>
+                  <Clock className="w-6 h-6 mx-auto mb-1" />
+                  <p className="font-bold">المتبقي: {selectedContract.daysRemaining} يوم</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowContractDialog(false)}>إغلاق</Button>
+            <Button 
+              className="bg-[#01411C]"
+              onClick={() => {
+                toast.success('جاري تحميل العقد...');
+                // هنا يمكن إضافة منطق تحميل PDF للعقد
+              }}
+            >
+              <Download className="w-4 h-4 ml-1" />
+              تحميل PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog إرسال تنبيه */}
+      <Dialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className={`flex items-center gap-2 ${alertType === 'urgent' ? 'text-red-600' : 'text-[#01411C]'}`}>
+              {alertType === 'urgent' ? <AlertTriangle className="w-5 h-5" /> : <Send className="w-5 h-5" />}
+              {alertType === 'urgent' ? 'إشعار عاجل' : 'إرسال تنبيه'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>نص الرسالة</Label>
+              <Textarea
+                value={alertMessage}
+                onChange={(e) => setAlertMessage(e.target.value)}
+                rows={4}
+                className="mt-1"
+              />
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">سيتم إرسال الرسالة إلى:</p>
+              <p className="font-medium">{customer.name} - {customer.phone}</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAlertDialog(false)}>إلغاء</Button>
+            <Button 
+              className={alertType === 'urgent' ? 'bg-red-600 hover:bg-red-700' : 'bg-[#01411C]'}
+              onClick={confirmSendAlert}
+            >
+              <Send className="w-4 h-4 ml-1" />
+              إرسال
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog تجديد العقد */}
+      <Dialog open={showRenewalDialog} onOpenChange={setShowRenewalDialog}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+              تجديد العقد
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedContract && (
+              <div className="p-3 bg-emerald-50 rounded-lg">
+                <p className="font-medium">{selectedContract.title}</p>
+                <p className="text-sm text-gray-600">المستأجر: {selectedContract.tenant}</p>
+              </div>
+            )}
+            <div>
+              <Label>مدة التجديد (بالأشهر)</Label>
+              <Select value={renewalMonths} onValueChange={setRenewalMonths}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6">6 أشهر</SelectItem>
+                  <SelectItem value="12">12 شهر (سنة)</SelectItem>
+                  <SelectItem value="24">24 شهر (سنتين)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowRenewalDialog(false)}>إلغاء</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={confirmRenewal}>
+              <CheckCircle className="w-4 h-4 ml-1" />
+              تأكيد التجديد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog إخلاء العقار */}
+      <AlertDialog open={showEvacuationDialog} onOpenChange={setShowEvacuationDialog}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              تأكيد إخلاء العقار
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedContract && (
+                <>
+                  هل أنت متأكد من تسجيل إخلاء العقار "{selectedContract.title}"؟
+                  <br />
+                  <span className="text-red-500">سيتم إزالة العقار من قائمة العقارات المؤجرة.</span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmEvacuation}>
+              تأكيد الإخلاء
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog طلب مهلة */}
+      <Dialog open={showExtensionDialog} onOpenChange={setShowExtensionDialog}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <Clock className="w-5 h-5" />
+              طلب مهلة إضافية
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedContract && (
+              <div className="p-3 bg-amber-50 rounded-lg">
+                <p className="font-medium">{selectedContract.title}</p>
+                <p className="text-sm text-gray-600">المستأجر: {selectedContract.tenant}</p>
+              </div>
+            )}
+            <div>
+              <Label>عدد أيام المهلة</Label>
+              <Select value={extensionDays} onValueChange={setExtensionDays}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 أيام</SelectItem>
+                  <SelectItem value="14">14 يوم</SelectItem>
+                  <SelectItem value="30">30 يوم</SelectItem>
+                  <SelectItem value="60">60 يوم</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowExtensionDialog(false)}>إلغاء</Button>
+            <Button className="bg-amber-600 hover:bg-amber-700" onClick={confirmExtension}>
+              <Clock className="w-4 h-4 ml-1" />
+              منح المهلة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
