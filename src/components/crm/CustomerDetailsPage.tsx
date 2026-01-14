@@ -375,6 +375,21 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [extensionDays, setExtensionDays] = useState('30');
   const [renewalMonths, setRenewalMonths] = useState('12');
   
+  // حالات نموذج إضافة عقد إيجار جديد
+  const [showNewRentalForm, setShowNewRentalForm] = useState(false);
+  const [rentalFilter, setRentalFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
+  const [newRentalData, setNewRentalData] = useState({
+    title: '',
+    location: '',
+    tenant: '',
+    tenantPhone: '',
+    startDate: '',
+    duration: '12',
+    monthlyRent: '',
+    propertyType: 'villa',
+    notes: '',
+  });
+  
   // بيانات العقارات المؤجرة الحقيقية
   const [rentedProperties, setRentedProperties] = useState([
     {
@@ -1714,181 +1729,567 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
 
           {/* Rented Properties Tab - تبويب عقار مؤجر */}
           <TabsContent value="rented">
-            <Card className="border-2 border-[#D4AF37]">
-              <CardHeader className="bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
-                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
-                  <Home className="w-5 h-5" />
-                  العقارات المؤجرة للمالك
-                  {rentedProperties.length > 0 && (
-                    <Badge className="bg-[#01411C] text-white text-xs">{rentedProperties.length}</Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                {rentedProperties.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Home className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>لا توجد عقارات مؤجرة لهذا العميل</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {rentedProperties.map((property) => (
-                      <div 
-                        key={property.id}
-                        className={`p-4 border-2 rounded-lg ${
-                          property.status === 'active' 
-                            ? 'border-emerald-200 bg-emerald-50/50' 
-                            : property.status === 'expiring'
-                            ? 'border-amber-200 bg-amber-50/50'
-                            : 'border-red-200 bg-red-50/50'
-                        }`}
+            <div className="space-y-6">
+              {/* نموذج إضافة عقد إيجار جديد */}
+              {showNewRentalForm && (
+                <Card className="border-2 border-[#D4AF37] bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                      <Plus className="w-5 h-5" />
+                      إضافة عقد إيجار جديد
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium">اسم العقار *</Label>
+                        <Input
+                          placeholder="مثال: فيلا في حي النرجس"
+                          value={newRentalData.title}
+                          onChange={(e) => setNewRentalData(prev => ({ ...prev, title: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">الموقع *</Label>
+                        <Input
+                          placeholder="مثال: الرياض - حي النرجس"
+                          value={newRentalData.location}
+                          onChange={(e) => setNewRentalData(prev => ({ ...prev, location: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">اسم المستأجر *</Label>
+                        <Input
+                          placeholder="اسم المستأجر"
+                          value={newRentalData.tenant}
+                          onChange={(e) => setNewRentalData(prev => ({ ...prev, tenant: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">هاتف المستأجر</Label>
+                        <Input
+                          placeholder="05XXXXXXXX"
+                          value={newRentalData.tenantPhone}
+                          onChange={(e) => setNewRentalData(prev => ({ ...prev, tenantPhone: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">تاريخ بداية العقد *</Label>
+                        <Input
+                          type="date"
+                          value={newRentalData.startDate}
+                          onChange={(e) => setNewRentalData(prev => ({ ...prev, startDate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">مدة العقد (بالأشهر) *</Label>
+                        <Select 
+                          value={newRentalData.duration} 
+                          onValueChange={(v) => setNewRentalData(prev => ({ ...prev, duration: v }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر المدة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="3">3 أشهر</SelectItem>
+                            <SelectItem value="6">6 أشهر</SelectItem>
+                            <SelectItem value="12">12 شهر (سنة)</SelectItem>
+                            <SelectItem value="24">24 شهر (سنتين)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">الإيجار الشهري (ريال) *</Label>
+                        <Input
+                          type="number"
+                          placeholder="مثال: 5000"
+                          value={newRentalData.monthlyRent}
+                          onChange={(e) => setNewRentalData(prev => ({ ...prev, monthlyRent: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">نوع العقار</Label>
+                        <Select 
+                          value={newRentalData.propertyType} 
+                          onValueChange={(v) => setNewRentalData(prev => ({ ...prev, propertyType: v }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر النوع" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="villa">فيلا</SelectItem>
+                            <SelectItem value="apartment">شقة</SelectItem>
+                            <SelectItem value="office">مكتب</SelectItem>
+                            <SelectItem value="shop">محل تجاري</SelectItem>
+                            <SelectItem value="warehouse">مستودع</SelectItem>
+                            <SelectItem value="land">أرض</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">ملاحظات إضافية</Label>
+                      <Textarea
+                        placeholder="أي ملاحظات خاصة بالعقد..."
+                        value={newRentalData.notes}
+                        onChange={(e) => setNewRentalData(prev => ({ ...prev, notes: e.target.value }))}
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        className="bg-[#01411C] hover:bg-[#065f41]"
+                        onClick={() => {
+                          if (!newRentalData.title || !newRentalData.location || !newRentalData.tenant || !newRentalData.startDate || !newRentalData.monthlyRent) {
+                            toast.error('يرجى ملء جميع الحقول المطلوبة');
+                            return;
+                          }
+                          
+                          const startDate = new Date(newRentalData.startDate);
+                          const endDate = new Date(startDate);
+                          endDate.setMonth(endDate.getMonth() + parseInt(newRentalData.duration || '12'));
+                          const daysRemaining = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                          
+                          const newProperty = {
+                            id: `rental-${Date.now()}`,
+                            title: newRentalData.title,
+                            location: newRentalData.location,
+                            tenant: newRentalData.tenant,
+                            tenantPhone: newRentalData.tenantPhone,
+                            status: daysRemaining <= 0 ? 'expired' : daysRemaining <= 30 ? 'expiring' : 'active',
+                            startDate: newRentalData.startDate,
+                            endDate: endDate.toISOString().split('T')[0],
+                            daysRemaining: Math.max(0, daysRemaining),
+                            monthlyRent: parseInt(newRentalData.monthlyRent),
+                            duration: parseInt(newRentalData.duration || '12'),
+                            propertyType: newRentalData.propertyType,
+                            notes: newRentalData.notes,
+                          };
+                          
+                          setRentedProperties(prev => [...prev, newProperty]);
+                          NotificationSounds.success();
+                          toast.success('تم إضافة عقد الإيجار بنجاح');
+                          
+                          // إنشاء إشعار
+                          createNotification({
+                            title: 'عقد إيجار جديد',
+                            message: `تم إضافة عقد إيجار "${newRentalData.title}" للمستأجر ${newRentalData.tenant}`,
+                            notification_type: 'crm',
+                            category: 'contract_created',
+                            related_entity_id: customer.id,
+                            related_entity_type: 'customer',
+                          });
+                          
+                          setNewRentalData({
+                            title: '',
+                            location: '',
+                            tenant: '',
+                            tenantPhone: '',
+                            startDate: '',
+                            duration: '12',
+                            monthlyRent: '',
+                            propertyType: 'villa',
+                            notes: '',
+                          });
+                          setShowNewRentalForm(false);
+                        }}
                       >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-lg">{property.title}</h4>
-                              <Badge className={`text-white ${
-                                property.status === 'active' 
-                                  ? 'bg-emerald-500' 
-                                  : property.status === 'expiring'
-                                  ? 'bg-amber-500 animate-pulse'
-                                  : 'bg-red-500'
-                              }`}>
-                                {property.status === 'active' ? 'نشط' : property.status === 'expiring' ? 'ينتهي قريباً' : 'منتهي'}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                {property.location}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <User className="w-4 h-4" />
-                                المستأجر: {property.tenant}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-4 text-sm">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4 text-gray-500" />
-                                بداية العقد: {property.startDate}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className={`w-4 h-4 ${property.status === 'expired' ? 'text-red-500' : 'text-red-500'}`} />
-                                {property.status === 'expired' ? 'انتهى في' : 'نهاية العقد'}: {property.endDate}
-                              </span>
-                              {property.daysRemaining > 0 && (
-                                <span className={`font-bold ${
-                                  property.status === 'active' ? 'text-emerald-600' : 'text-amber-600'
+                        <Plus className="w-4 h-4 ml-1" />
+                        إضافة العقد
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowNewRentalForm(false)}>
+                        إلغاء
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* البطاقة الرئيسية للعقارات المؤجرة */}
+              <Card className="border-2 border-[#D4AF37]">
+                <CardHeader className="bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5 flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                    <Home className="w-5 h-5" />
+                    العقارات المؤجرة للمالك
+                    {rentedProperties.length > 0 && (
+                      <Badge className="bg-[#01411C] text-white text-xs">{rentedProperties.length}</Badge>
+                    )}
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    className="bg-[#01411C] hover:bg-[#065f41]"
+                    onClick={() => setShowNewRentalForm(true)}
+                  >
+                    <Plus className="w-4 h-4 ml-1" />
+                    إضافة عقد جديد
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {/* فلاتر سريعة */}
+                  {rentedProperties.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4 p-3 bg-gray-50 rounded-lg">
+                      <Button
+                        size="sm"
+                        variant={rentalFilter === 'all' ? 'default' : 'outline'}
+                        className={rentalFilter === 'all' ? 'bg-[#01411C]' : ''}
+                        onClick={() => setRentalFilter('all')}
+                      >
+                        الكل ({rentedStats.total})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={rentalFilter === 'active' ? 'default' : 'outline'}
+                        className={rentalFilter === 'active' ? 'bg-emerald-600' : 'border-emerald-500 text-emerald-600'}
+                        onClick={() => setRentalFilter('active')}
+                      >
+                        نشط ({rentedStats.active})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={rentalFilter === 'expiring' ? 'default' : 'outline'}
+                        className={rentalFilter === 'expiring' ? 'bg-amber-600' : 'border-amber-500 text-amber-600'}
+                        onClick={() => setRentalFilter('expiring')}
+                      >
+                        ينتهي قريباً ({rentedStats.expiring})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={rentalFilter === 'expired' ? 'default' : 'outline'}
+                        className={rentalFilter === 'expired' ? 'bg-red-600' : 'border-red-500 text-red-600'}
+                        onClick={() => setRentalFilter('expired')}
+                      >
+                        منتهي ({rentedStats.expired})
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {rentedProperties.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <Home className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium mb-2">لا توجد عقارات مؤجرة لهذا العميل</p>
+                      <p className="text-sm mb-4">اضغط على "إضافة عقد جديد" لإضافة أول عقد إيجار</p>
+                      <Button 
+                        className="bg-[#01411C] hover:bg-[#065f41]"
+                        onClick={() => setShowNewRentalForm(true)}
+                      >
+                        <Plus className="w-4 h-4 ml-1" />
+                        إضافة عقد إيجار
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {rentedProperties
+                        .filter(p => rentalFilter === 'all' || p.status === rentalFilter)
+                        .map((property) => (
+                        <div 
+                          key={property.id}
+                          className={`p-4 border-2 rounded-xl transition-all hover:shadow-md ${
+                            property.status === 'active' 
+                              ? 'border-emerald-200 bg-gradient-to-r from-emerald-50/50 to-white' 
+                              : property.status === 'expiring'
+                              ? 'border-amber-200 bg-gradient-to-r from-amber-50/50 to-white'
+                              : 'border-red-200 bg-gradient-to-r from-red-50/50 to-white'
+                          }`}
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                            <div className="flex-1 space-y-3">
+                              {/* العنوان والحالة */}
+                              <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-lg ${
+                                  property.status === 'active' ? 'bg-emerald-100' :
+                                  property.status === 'expiring' ? 'bg-amber-100' : 'bg-red-100'
                                 }`}>
-                                  المتبقي: {property.daysRemaining} يوم
-                                </span>
+                                  <Home className={`w-6 h-6 ${
+                                    property.status === 'active' ? 'text-emerald-600' :
+                                    property.status === 'expiring' ? 'text-amber-600' : 'text-red-600'
+                                  }`} />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-bold text-lg text-gray-900">{property.title}</h4>
+                                    <Badge className={`text-white ${
+                                      property.status === 'active' 
+                                        ? 'bg-emerald-500' 
+                                        : property.status === 'expiring'
+                                        ? 'bg-amber-500 animate-pulse'
+                                        : 'bg-red-500'
+                                    }`}>
+                                      {property.status === 'active' ? '✓ نشط' : property.status === 'expiring' ? '⚠ ينتهي قريباً' : '✗ منتهي'}
+                                    </Badge>
+                                    {property.status === 'expiring' && property.daysRemaining <= 7 && (
+                                      <Badge className="bg-red-100 text-red-700 animate-pulse">
+                                        ⏰ تبقى {property.daysRemaining} يوم فقط!
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {property.location}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* معلومات المستأجر */}
+                              <div className="flex flex-wrap gap-4 p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <User className="w-4 h-4 text-[#01411C]" />
+                                  <span className="text-sm"><strong>المستأجر:</strong> {property.tenant}</span>
+                                </div>
+                                {(property as any).tenantPhone && (
+                                  <div className="flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-[#01411C]" />
+                                    <a 
+                                      href={`tel:${(property as any).tenantPhone}`}
+                                      className="text-sm text-[#01411C] hover:underline"
+                                    >
+                                      {(property as any).tenantPhone}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* تفاصيل العقد */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">بداية العقد</p>
+                                  <p className="font-medium text-sm flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-emerald-600" />
+                                    {property.startDate}
+                                  </p>
+                                </div>
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">نهاية العقد</p>
+                                  <p className={`font-medium text-sm flex items-center gap-1 ${
+                                    property.status === 'expired' ? 'text-red-600' : ''
+                                  }`}>
+                                    <Calendar className={`w-3 h-3 ${property.status === 'expired' ? 'text-red-600' : 'text-gray-500'}`} />
+                                    {property.endDate}
+                                  </p>
+                                </div>
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">مدة العقد</p>
+                                  <p className="font-medium text-sm">{property.duration} شهر</p>
+                                </div>
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">المتبقي</p>
+                                  <p className={`font-bold text-sm ${
+                                    property.status === 'active' ? 'text-emerald-600' : 
+                                    property.status === 'expiring' ? 'text-amber-600' : 'text-red-600'
+                                  }`}>
+                                    {property.daysRemaining > 0 ? `${property.daysRemaining} يوم` : 'منتهي'}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* الإيجار */}
+                              <div className="flex items-center justify-between p-3 bg-[#D4AF37]/10 rounded-lg border border-[#D4AF37]/30">
+                                <div>
+                                  <p className="text-xs text-gray-600">الإيجار الشهري</p>
+                                  <p className="text-xl font-bold text-[#D4AF37]">{property.monthlyRent.toLocaleString()} ريال</p>
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-xs text-gray-600">الإيجار السنوي</p>
+                                  <p className="text-lg font-bold text-[#01411C]">{(property.monthlyRent * 12).toLocaleString()} ريال</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* أزرار الإجراءات */}
+                            <div className="flex flex-col gap-2 min-w-[140px]">
+                              {/* زر عرض العقد - دائماً ظاهر */}
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-[#01411C] text-[#01411C] w-full"
+                                onClick={() => {
+                                  setSelectedContract(property);
+                                  setShowContractDialog(true);
+                                }}
+                              >
+                                <FileText className="w-4 h-4 ml-1" />
+                                عرض العقد
+                              </Button>
+                              
+                              {/* أزرار للعقود النشطة */}
+                              {property.status === 'active' && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-[#01411C] w-full"
+                                    onClick={() => handleSendAlert(property, 'normal')}
+                                  >
+                                    <Send className="w-4 h-4 ml-1" />
+                                    إرسال تنبيه
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => {
+                                      window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
+                                        detail: {
+                                          customerId: customer.id,
+                                          customerName: property.tenant,
+                                          customerPhone: (property as any).tenantPhone || customer.phone,
+                                          propertyTitle: property.title,
+                                        }
+                                      }));
+                                      toast.success('جاري فتح نموذج جدولة الموعد');
+                                    }}
+                                  >
+                                    <Calendar className="w-4 h-4 ml-1" />
+                                    جدولة موعد
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {/* أزرار للعقود التي تنتهي قريباً */}
+                              {property.status === 'expiring' && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    className="w-full animate-pulse"
+                                    onClick={() => handleSendAlert(property, 'urgent')}
+                                  >
+                                    <AlertTriangle className="w-4 h-4 ml-1" />
+                                    إشعار عاجل
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                                    onClick={() => handleRenewal(property)}
+                                  >
+                                    تجديد العقد
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => handleExtension(property)}
+                                  >
+                                    <Clock className="w-4 h-4 ml-1" />
+                                    طلب مهلة
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {/* أزرار للعقود المنتهية */}
+                              {property.status === 'expired' && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                                    onClick={() => handleRenewal(property)}
+                                  >
+                                    <CheckCircle className="w-4 h-4 ml-1" />
+                                    تجديد العقد
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="border-red-500 text-red-500 hover:bg-red-50 w-full"
+                                    onClick={() => handleEvacuation(property)}
+                                  >
+                                    <AlertTriangle className="w-4 h-4 ml-1" />
+                                    إخلاء العقار
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => handleExtension(property)}
+                                  >
+                                    <Clock className="w-4 h-4 ml-1" />
+                                    طلب مهلة
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    className="w-full"
+                                    onClick={() => handleSendAlert(property, 'urgent')}
+                                  >
+                                    <Send className="w-4 h-4 ml-1" />
+                                    إشعار إخلاء
+                                  </Button>
+                                </>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[#D4AF37] font-bold text-lg">{property.monthlyRent.toLocaleString()} ريال/شهر</span>
-                              <span className="text-gray-500">| مدة العقد: {property.duration} شهر</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            {/* زر عرض العقد */}
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="border-[#01411C] text-[#01411C]"
-                              onClick={() => {
-                                setSelectedContract(property);
-                                setShowContractDialog(true);
-                              }}
-                            >
-                              <FileText className="w-4 h-4 ml-1" />
-                              عرض العقد
-                            </Button>
-                            
-                            {/* أزرار حسب حالة العقد */}
-                            {property.status === 'active' && (
-                              <Button 
-                                size="sm" 
-                                className="bg-[#01411C]"
-                                onClick={() => handleSendAlert(property, 'normal')}
-                              >
-                                <Send className="w-4 h-4 ml-1" />
-                                إرسال تنبيه
-                              </Button>
-                            )}
-                            
-                            {property.status === 'expiring' && (
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleSendAlert(property, 'urgent')}
-                              >
-                                <AlertTriangle className="w-4 h-4 ml-1" />
-                                إشعار عاجل
-                              </Button>
-                            )}
-                            
-                            {property.status === 'expired' && (
-                              <>
-                                <Button 
-                                  size="sm" 
-                                  className="bg-emerald-600 hover:bg-emerald-700"
-                                  onClick={() => handleRenewal(property)}
-                                >
-                                  تجديد العقد
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="border-red-500 text-red-500"
-                                  onClick={() => handleEvacuation(property)}
-                                >
-                                  إخلاء العقار
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => handleExtension(property)}
-                                >
-                                  طلب مهلة
-                                </Button>
-                              </>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                {/* Summary Stats */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card className="bg-emerald-50 border-emerald-200">
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-emerald-600">{rentedStats.total}</div>
-                      <div className="text-sm text-gray-600">إجمالي العقارات</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-blue-50 border-blue-200">
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">{rentedStats.active}</div>
-                      <div className="text-sm text-gray-600">عقود نشطة</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-amber-50 border-amber-200">
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-amber-600">{rentedStats.expiring}</div>
-                      <div className="text-sm text-gray-600">تنتهي قريباً</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-[#D4AF37]/10 border-[#D4AF37]">
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-[#D4AF37]">{rentedStats.totalMonthlyRent.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">إجمالي الإيجار الشهري</div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
+              {/* إحصائيات العقارات المؤجرة */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-3xl font-bold">{rentedStats.total}</div>
+                    <div className="text-sm opacity-90">إجمالي العقارات</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-3xl font-bold">{rentedStats.active}</div>
+                    <div className="text-sm opacity-90">عقود نشطة</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-3xl font-bold">{rentedStats.expiring}</div>
+                    <div className="text-sm opacity-90">تنتهي قريباً</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-3xl font-bold">{rentedStats.expired}</div>
+                    <div className="text-sm opacity-90">منتهية</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-[#D4AF37] to-[#B8860B] text-white border-0">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold">{rentedStats.totalMonthlyRent.toLocaleString()}</div>
+                    <div className="text-sm opacity-90">الإيجار الشهري</div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* ملخص سنوي */}
+              {rentedProperties.length > 0 && (
+                <Card className="border-2 border-[#01411C]/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                      📊 الملخص المالي السنوي
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-[#01411C]/5 rounded-xl text-center">
+                        <p className="text-sm text-gray-600 mb-1">الدخل السنوي المتوقع</p>
+                        <p className="text-2xl font-bold text-[#01411C]">
+                          {(rentedStats.totalMonthlyRent * 12).toLocaleString()} ريال
+                        </p>
+                      </div>
+                      <div className="p-4 bg-amber-50 rounded-xl text-center">
+                        <p className="text-sm text-gray-600 mb-1">عقود تحتاج تجديد</p>
+                        <p className="text-2xl font-bold text-amber-600">
+                          {rentedStats.expiring + rentedStats.expired} عقد
+                        </p>
+                      </div>
+                      <div className="p-4 bg-emerald-50 rounded-xl text-center">
+                        <p className="text-sm text-gray-600 mb-1">نسبة الإشغال</p>
+                        <p className="text-2xl font-bold text-emerald-600">
+                          {rentedStats.total > 0 ? Math.round((rentedStats.active / rentedStats.total) * 100) : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           {/* Tasks Tab - تبويب المهام المحسن */}
