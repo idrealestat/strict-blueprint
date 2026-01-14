@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 // MainLayout removed from this page - uses simple wrapper instead
-import { Sparkles, ArrowRight, RefreshCw, Loader2 } from 'lucide-react';
+import { Sparkles, ArrowRight, RefreshCw, Loader2, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
 import { useSmartOpportunityNotifications } from '@/hooks/useSmartOpportunityNotifications';
@@ -365,6 +365,25 @@ const SmartOpportunitiesPage = () => {
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-6 space-y-6 min-h-screen">
+        {/* زر العودة والعنوان */}
+        <div className="flex items-center gap-3 mb-4">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => navigate('/app/dashboard')}
+            className="border-2 border-amber-500 hover:bg-amber-50 text-amber-600"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              الفرص الذكية
+            </h1>
+            <p className="text-xs text-gray-500">اسحب يميناً للقبول أو يساراً للرفض</p>
+          </div>
+        </div>
+
         {/* أزرار التحكم */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2 flex-wrap">
