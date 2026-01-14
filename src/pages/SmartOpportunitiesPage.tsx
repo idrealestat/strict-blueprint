@@ -8,10 +8,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LeftSliderComplete } from '@/components/layout/LeftSliderComplete';
 import RightSliderComplete from '@/components/layout/RightSliderComplete';
 import NotificationsSidebar from '@/components/NotificationsSidebar';
-import { Sparkles, ArrowRight, RefreshCw, Loader2, Home, Menu, PanelLeft, Bell } from 'lucide-react';
+import { Sparkles, ArrowRight, RefreshCw, Loader2, Home, Menu, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
 import { useSmartOpportunityNotifications } from '@/hooks/useSmartOpportunityNotifications';
@@ -38,7 +37,6 @@ const SmartOpportunitiesPage = () => {
   
   // حالة السلايدرز والإشعارات
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // استخراج المدن والأحياء المتاحة من الفرص
@@ -401,16 +399,8 @@ const SmartOpportunitiesPage = () => {
               </div>
             </div>
 
-            {/* Left: Left Sidebar + Bell */}
+            {/* Left: Bell only */}
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => setLeftSidebarOpen(true)} 
-                className="border-2 border-[#D4AF37] hover:bg-white/20 bg-white/10 text-white h-9 w-9"
-              >
-                <PanelLeft className="w-5 h-5" />
-              </Button>
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -601,15 +591,6 @@ const SmartOpportunitiesPage = () => {
         }}
       />
 
-      {/* Left Slider */}
-      <LeftSliderComplete
-        isOpen={leftSidebarOpen}
-        onClose={() => setLeftSidebarOpen(false)}
-        onNavigate={(page) => {
-          setLeftSidebarOpen(false);
-          navigate(`/app/${page}`);
-        }}
-      />
 
       {/* Notifications Sidebar */}
       <NotificationsSidebar
