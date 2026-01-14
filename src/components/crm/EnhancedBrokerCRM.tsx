@@ -1957,16 +1957,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     } : {})
                                   }}
                                 >
-                                  {/* خط درجة الاهتمام أعلى البطاقة - يظهر عندما تكون مغلقة فقط */}
-                                  {expandedCardId !== customer.id && (
-                                    <div 
-                                      className="h-1.5 w-full flex-shrink-0"
-                                      style={{ 
-                                        backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
-                                      }}
-                                    />
-                                  )}
-                                  
+                                  {/* خط درجة الاهتمام: ثابت أسفل البطاقة دائماً */}
+
                                   {/* البطاقة المضغوطة */}
                                   <div 
                                     className="p-3"
@@ -2567,15 +2559,13 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                   )}
                                 </AnimatePresence>
                                 
-                                {/* خط درجة الاهتمام في أسفل البطاقة - يظهر عند التمديد فقط */}
-                                {expandedCardId === customer.id && (
-                                  <div 
-                                    className="h-1.5 w-full flex-shrink-0 mt-auto"
-                                    style={{ 
-                                      backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
-                                    }}
-                                  />
-                                )}
+                                {/* خط درجة الاهتمام في أسفل البطاقة - ثابت دائماً */}
+                                <div 
+                                  className="h-1.5 w-full flex-shrink-0 mt-auto"
+                                  style={{ 
+                                    backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
+                                  }}
+                                />
                                 </div>
                               
                               {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}
