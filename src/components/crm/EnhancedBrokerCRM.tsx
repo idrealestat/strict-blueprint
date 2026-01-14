@@ -671,7 +671,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
-  const [showShareMenu, setShowShareMenu] = useState<string | null>(null);
+  
   const [showImportCallLogs, setShowImportCallLogs] = useState(false);
   const [showAddCallLog, setShowAddCallLog] = useState(false);
   const [newCallLog, setNewCallLog] = useState({ phone: '', name: '', type: 'incoming' as const });
@@ -1245,14 +1245,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const handleActionsClick = (e: React.MouseEvent, customerId: string) => {
     e.stopPropagation();
     setShowActionsMenu(showActionsMenu === customerId ? null : customerId);
-    setShowShareMenu(null);
-  };
-
-  // Handle share menu
-  const handleShareClick = (e: React.MouseEvent, customerId: string) => {
-    e.stopPropagation();
-    setShowShareMenu(showShareMenu === customerId ? null : customerId);
-    setShowActionsMenu(null);
   };
 
   // Share actions - إرسال روابط الصفحات عبر واتساب للعميل
@@ -1270,21 +1262,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const openWhatsAppMessage = (phoneRaw: string, message: string) => {
     const phone = normalizeWhatsAppPhone(phoneRaw);
     const encoded = encodeURIComponent(message);
-
-    // Open app directly (WhatsApp or WhatsApp Business) when possible
-    const deepLink = `whatsapp://send?phone=${phone}&text=${encoded}`;
     const webLink = `https://wa.me/${phone}?text=${encoded}`;
-
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (isMobile) {
-      window.location.href = deepLink;
-      window.setTimeout(() => {
-        window.open(webLink, "_blank");
-      }, 900);
-      return;
-    }
-
     window.open(webLink, "_blank");
   };
 
@@ -1292,7 +1270,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     const offerUrl = `${getBaseUrl()}/public/offer?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسعدنا تقديم عروضنا العقارية لك.\n\nيمكنك الاطلاع على العروض المتاحة من خلال الرابط:\n${offerUrl}\n\nنتطلع لخدمتك 🏠`;
     openWhatsAppMessage(customer.whatsapp || customer.phone, message);
-    setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال العرض');
   };
 
@@ -1300,7 +1277,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     const requestUrl = `${getBaseUrl()}/public/request?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nنحن هنا لمساعدتك في البحث عن عقارك المثالي.\n\nيمكنك تسجيل طلبك من خلال الرابط:\n${requestUrl}\n\nسنتواصل معك فور توفر ما يناسب احتياجاتك 🔍`;
     openWhatsAppMessage(customer.whatsapp || customer.phone, message);
-    setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال الطلب');
   };
 
@@ -1308,15 +1284,13 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     const quoteUrl = `${getBaseUrl()}/public/quote?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
     const message = `مرحباً ${customer.name}،\n\nيسرنا تقديم عرض سعر خاص لك.\n\nيمكنك الاطلاع على التفاصيل من خلال الرابط:\n${quoteUrl}\n\nنحن بانتظار ردك 💰`;
     openWhatsAppMessage(customer.whatsapp || customer.phone, message);
-    setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال عرض السعر');
   };
 
   const handleShareAppointment = (customer: Customer) => {
     const appointmentUrl = `${getBaseUrl()}/public/appointment?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
-    const message = `مرحباً ${customer.name}،\n\nيسعدنا ترتيب موعد لك لمعاينة العقارات المتاحة.\n\nيمكنك حجز موعدك من خلال الرابط:\n${appointmentUrl}\n\nنتطلع للقائك 📅`;
+    const message = `مرحباً ${customer.name}،\n\نيسعدنا ترتيب موعد لك لمعاينة العقارات المتاحة.\n\nيمكنك حجز موعدك من خلال الرابط:\n${appointmentUrl}\n\nنتطلع للقائك 📅`;
     openWhatsAppMessage(customer.whatsapp || customer.phone, message);
-    setShowShareMenu(null);
     toast.success('تم فتح الواتساب لإرسال رابط الموعد');
   };
 
@@ -2494,57 +2468,43 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                           التفاصيل
                                         </Button>
                                         
-                                        {/* 3. زر المشاركة مع قائمة منبثقة */}
-                                        <div className="relative">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="w-full text-[10px] h-7 px-1 border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10"
-                                            onClick={(e) => handleShareClick(e, customer.id)}
-                                          >
-                                            <Share2 className="w-3 h-3 ml-0.5" />
-                                            مشاركة
-                                          </Button>
-                                          
-                                          {/* قائمة المشاركة المنبثقة - إرسال روابط عبر واتساب */}
-                                          {showShareMenu === customer.id && (
-                                            <div 
-                                              className="absolute bottom-full mb-1 left-0 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <div className="p-1 space-y-1">
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-emerald-50 rounded"
-                                                  onClick={() => handleShareOffer(customer)}
-                                                >
-                                                  <MessageSquare className="w-3 h-3 text-emerald-600" />
-                                                  إرسال عرض
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 rounded"
-                                                  onClick={() => handleShareRequest(customer)}
-                                                >
-                                                  <MessageSquare className="w-3 h-3 text-blue-600" />
-                                                  إرسال طلب
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-amber-50 rounded"
-                                                  onClick={() => handleShareQuote(customer)}
-                                                >
-                                                  <MessageSquare className="w-3 h-3 text-amber-600" />
-                                                  عرض سعر
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-purple-50 rounded"
-                                                  onClick={() => handleShareAppointment(customer)}
-                                                >
-                                                  <Calendar className="w-3 h-3 text-purple-600" />
-                                                  إنشاء موعد
-                                                </button>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
+                                        {/* أزرار المشاركة المباشرة */}
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-[9px] h-7 px-1.5 border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+                                          onClick={(e) => { e.stopPropagation(); handleShareOffer(customer); }}
+                                        >
+                                          <MessageSquare className="w-3 h-3 ml-0.5" />
+                                          عرض
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-[9px] h-7 px-1.5 border-blue-500 text-blue-700 hover:bg-blue-50"
+                                          onClick={(e) => { e.stopPropagation(); handleShareRequest(customer); }}
+                                        >
+                                          <MessageSquare className="w-3 h-3 ml-0.5" />
+                                          طلب
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-[9px] h-7 px-1.5 border-amber-500 text-amber-700 hover:bg-amber-50"
+                                          onClick={(e) => { e.stopPropagation(); handleShareQuote(customer); }}
+                                        >
+                                          <MessageSquare className="w-3 h-3 ml-0.5" />
+                                          سعر
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-[9px] h-7 px-1.5 border-purple-500 text-purple-700 hover:bg-purple-50"
+                                          onClick={(e) => { e.stopPropagation(); handleShareAppointment(customer); }}
+                                        >
+                                          <Calendar className="w-3 h-3 ml-0.5" />
+                                          موعد
+                                        </Button>
                                       </div>
                                     </motion.div>
                                   )}
