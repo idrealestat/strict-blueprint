@@ -973,101 +973,222 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             />
           </TabsContent>
 
-          {/* Activity Tab - تبويب التفاعلات المحسن */}
+          {/* Activity Tab - تبويب التفاعلات المحسن - مربوط بقاعدة البيانات */}
           <TabsContent value="activity">
             <div className="space-y-6">
               <Card className="border-2 border-gray-200">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
+                    <MessageSquare className="w-5 h-5" />
                     سجل التفاعلات
+                    {customerInteractions.length > 0 && (
+                      <Badge className="bg-[#01411C] text-white">{customerInteractions.length}</Badge>
+                    )}
                   </CardTitle>
-                  <div className="flex items-center gap-3">
-                    <Button size="sm" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
-                      📞 تسجيل مكالمة
-                    </Button>
-                    <Button size="sm" className="bg-green-100 text-green-700 hover:bg-green-200">
-                      ✉️ إرسال إيميل
-                    </Button>
-                  </div>
+                  <Button 
+                    size="sm" 
+                    className="bg-[#01411C] hover:bg-[#065f41]"
+                    onClick={() => setShowNewInteractionForm(true)}
+                  >
+                    <Plus className="w-4 h-4 ml-1" />
+                    تفاعل جديد
+                  </Button>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-4">
-                      {activityLogs.map((log) => {
-                        const activityType = ACTIVITY_TYPE_ICONS[log.type];
-                        const Icon = activityType.icon;
-                        const sentiment: 'إيجابي' | 'سلبي' | 'محايد' = log.type === 'meeting' ? 'إيجابي' : log.type === 'call' ? 'إيجابي' : 'محايد';
-                        return (
-                          <div key={log.id} className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activityType.color}`}>
-                                  <Icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                  <h4 className="font-bold text-gray-900">
-                                    {log.type === 'call' ? 'مكالمة' : 
-                                     log.type === 'whatsapp' ? 'واتساب' :
-                                     log.type === 'email' ? 'إيميل' :
-                                     log.type === 'meeting' ? 'اجتماع' :
-                                     log.type === 'note' ? 'ملاحظة' : 'تغيير حالة'}
-                                  </h4>
-                                  <div className="text-sm text-gray-600">{log.timestamp}</div>
-                                </div>
-                              </div>
-                              <Badge className={
-                                sentiment === 'إيجابي' ? 'bg-green-100 text-green-800' :
-                                sentiment === 'محايد' ? 'bg-gray-100 text-gray-800' :
-                                'bg-red-100 text-red-800'
-                              }>
-                                {sentiment}
-                              </Badge>
-                            </div>
-                            
-                            <p className="text-gray-700 mb-3">{log.description}</p>
-                            
-                            <div className="flex items-center justify-between text-sm text-gray-500">
-                              <div className="flex items-center gap-4">
-                                {log.type === 'call' && <span>⏱️ 15 دقيقة</span>}
-                                <span>👤 {log.user || 'أنت'}</span>
-                              </div>
-                              <button className="text-blue-600 hover:text-blue-800">
-                                عرض التفاصيل →
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {/* نموذج إضافة تفاعل جديد */}
+                  {showNewInteractionForm && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200">
+                      <h4 className="font-bold text-blue-800 mb-4">تسجيل تفاعل جديد</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm">نوع التفاعل</Label>
+                          <Select
+                            value={newInteractionData.interaction_type}
+                            onValueChange={(value) => setNewInteractionData(prev => ({ ...prev, interaction_type: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر النوع" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="call">📞 مكالمة هاتفية</SelectItem>
+                              <SelectItem value="whatsapp">💬 واتساب</SelectItem>
+                              <SelectItem value="email">📧 بريد إلكتروني</SelectItem>
+                              <SelectItem value="meeting">🤝 اجتماع</SelectItem>
+                              <SelectItem value="visit">🏠 زيارة عقار</SelectItem>
+                              <SelectItem value="note">📝 ملاحظة</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm">الانطباع</Label>
+                          <Select
+                            value={newInteractionData.sentiment}
+                            onValueChange={(value) => setNewInteractionData(prev => ({ ...prev, sentiment: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر الانطباع" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="إيجابي">😊 إيجابي</SelectItem>
+                              <SelectItem value="محايد">😐 محايد</SelectItem>
+                              <SelectItem value="سلبي">😟 سلبي</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="text-sm">الوصف</Label>
+                          <Textarea
+                            placeholder="وصف التفاعل..."
+                            value={newInteractionData.description}
+                            onChange={(e) => setNewInteractionData(prev => ({ ...prev, description: e.target.value }))}
+                            rows={3}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label className="text-sm">النتيجة</Label>
+                          <Input
+                            placeholder="نتيجة التفاعل (اختياري)..."
+                            value={newInteractionData.outcome}
+                            onChange={(e) => setNewInteractionData(prev => ({ ...prev, outcome: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          size="sm"
+                          className="bg-[#01411C] hover:bg-[#065f41]"
+                          onClick={async () => {
+                            if (!newInteractionData.description) {
+                              toast.error('يرجى إدخال وصف التفاعل');
+                              return;
+                            }
+                            await createInteraction({
+                              customer_id: customer.id,
+                              customer_phone: customer.phone,
+                              interaction_type: newInteractionData.interaction_type,
+                              description: newInteractionData.description,
+                              sentiment: newInteractionData.sentiment,
+                              outcome: newInteractionData.outcome || undefined
+                            });
+                            setNewInteractionData({ interaction_type: 'call', description: '', sentiment: 'محايد', outcome: '' });
+                            setShowNewInteractionForm(false);
+                          }}
+                        >
+                          حفظ التفاعل
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowNewInteractionForm(false)}
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
                     </div>
-                  </ScrollArea>
+                  )}
+
+                  {interactionsLoading ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#01411C]" />
+                      <p className="text-gray-500 mt-2">جاري التحميل...</p>
+                    </div>
+                  ) : customerInteractions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>لا توجد تفاعلات مسجلة لهذا العميل</p>
+                      <p className="text-sm mt-1">اضغط على "تفاعل جديد" لتسجيل أول تفاعل</p>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-4">
+                        {customerInteractions.map((interaction) => {
+                          const interactionIcons: Record<string, { icon: any; color: string }> = {
+                            'call': { icon: Phone, color: 'bg-green-100 text-green-600' },
+                            'whatsapp': { icon: MessageSquare, color: 'bg-green-100 text-green-600' },
+                            'email': { icon: Mail, color: 'bg-blue-100 text-blue-600' },
+                            'meeting': { icon: Calendar, color: 'bg-purple-100 text-purple-600' },
+                            'visit': { icon: Home, color: 'bg-amber-100 text-amber-600' },
+                            'note': { icon: FileText, color: 'bg-yellow-100 text-yellow-600' },
+                          };
+                          const iconData = interactionIcons[interaction.interaction_type] || interactionIcons['note'];
+                          const Icon = iconData.icon;
+                          
+                          return (
+                            <div key={interaction.id} className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconData.color}`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-gray-900">
+                                      {interaction.interaction_type === 'call' ? 'مكالمة هاتفية' : 
+                                       interaction.interaction_type === 'whatsapp' ? 'واتساب' :
+                                       interaction.interaction_type === 'email' ? 'بريد إلكتروني' :
+                                       interaction.interaction_type === 'meeting' ? 'اجتماع' :
+                                       interaction.interaction_type === 'visit' ? 'زيارة عقار' :
+                                       'ملاحظة'}
+                                    </h4>
+                                    <div className="text-sm text-gray-600">
+                                      {new Date(interaction.created_at).toLocaleDateString('ar-SA')} - {new Date(interaction.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <Badge className={
+                                  interaction.sentiment === 'إيجابي' ? 'bg-green-100 text-green-800' :
+                                  interaction.sentiment === 'محايد' ? 'bg-gray-100 text-gray-800' :
+                                  'bg-red-100 text-red-800'
+                                }>
+                                  {interaction.sentiment || 'محايد'}
+                                </Badge>
+                              </div>
+                              
+                              <p className="text-gray-700 mb-3">{interaction.description}</p>
+                              
+                              {interaction.outcome && (
+                                <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded-lg">
+                                  <strong>النتيجة:</strong> {interaction.outcome}
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center justify-between text-sm text-gray-500 mt-3">
+                                <div className="flex items-center gap-4">
+                                  {interaction.duration_seconds && <span>⏱️ {Math.round(interaction.duration_seconds / 60)} دقيقة</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* إحصائيات الاتصال */}
+              {/* إحصائيات الاتصال - حقيقية */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="border-gray-200">
                   <CardContent className="p-4 text-center">
                     <div className="text-sm text-gray-600 mb-1">إجمالي المكالمات</div>
-                    <div className="text-2xl font-bold text-blue-600">24</div>
+                    <div className="text-2xl font-bold text-blue-600">{interactionStats.callsCount}</div>
                   </CardContent>
                 </Card>
                 <Card className="border-gray-200">
                   <CardContent className="p-4 text-center">
-                    <div className="text-sm text-gray-600 mb-1">إجمالي الإيميلات</div>
-                    <div className="text-2xl font-bold text-green-600">156</div>
+                    <div className="text-sm text-gray-600 mb-1">رسائل واتساب</div>
+                    <div className="text-2xl font-bold text-green-600">{interactionStats.whatsappCount}</div>
                   </CardContent>
                 </Card>
                 <Card className="border-gray-200">
                   <CardContent className="p-4 text-center">
-                    <div className="text-sm text-gray-600 mb-1">متوسط وقت المكالمة</div>
-                    <div className="text-2xl font-bold text-purple-600">12 دقيقة</div>
+                    <div className="text-sm text-gray-600 mb-1">الاجتماعات</div>
+                    <div className="text-2xl font-bold text-purple-600">{interactionStats.meetingsCount}</div>
                   </CardContent>
                 </Card>
                 <Card className="border-gray-200">
                   <CardContent className="p-4 text-center">
-                    <div className="text-sm text-gray-600 mb-1">معدل الرد</div>
-                    <div className="text-2xl font-bold text-amber-600">94%</div>
+                    <div className="text-sm text-gray-600 mb-1">إجمالي التفاعلات</div>
+                    <div className="text-2xl font-bold text-amber-600">{interactionStats.totalInteractions}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -1860,7 +1981,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             </Card>
           </TabsContent>
 
-          {/* Analytics Tab - تبويب التحليلات */}
+          {/* Analytics Tab - تبويب التحليلات - مربوط بالبيانات الحقيقية */}
           <TabsContent value="analytics">
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-[#01411C]">تحليلات العميل</h3>
@@ -1872,7 +1993,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 mb-1">85%</div>
+                      <div className="text-3xl font-bold text-blue-600 mb-1">{interactionStats.activityRate}%</div>
                       <div className="text-xs text-gray-600">معدل التفاعل</div>
                     </div>
                   </CardContent>
@@ -1884,7 +2005,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 mb-1">72%</div>
+                      <div className="text-3xl font-bold text-green-600 mb-1">{interactionStats.closingProbability}%</div>
                       <div className="text-xs text-gray-600">بناءً على النشاط</div>
                     </div>
                   </CardContent>
@@ -1892,11 +2013,13 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
 
                 <Card className="border-purple-200">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-center text-sm">قيمة العميل</CardTitle>
+                    <CardTitle className="text-center text-sm">قيمة المعاملات</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-600 mb-1">2.4M</div>
+                      <div className="text-3xl font-bold text-purple-600 mb-1">
+                        {customerTransactions.reduce((sum, tx) => sum + Math.abs(Number(tx.amount)), 0).toLocaleString()}
+                      </div>
                       <div className="text-xs text-gray-600">ريال سعودي</div>
                     </div>
                   </CardContent>
@@ -1908,14 +2031,16 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-600 mb-1">45</div>
+                      <div className="text-3xl font-bold text-orange-600 mb-1">
+                        {Math.floor((new Date().getTime() - new Date(customer.createdAt || new Date()).getTime()) / (1000 * 60 * 60 * 24))}
+                      </div>
                       <div className="text-xs text-gray-600">يوم</div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* تحليل سلوك العميل */}
+              {/* تحليل سلوك العميل - حقيقي */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1924,65 +2049,75 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">12</div>
+                      <div className="text-2xl font-bold text-blue-600">{interactionStats.callsCount}</div>
                       <div className="text-sm text-gray-600">مكالمات هاتفية</div>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">8</div>
+                      <div className="text-2xl font-bold text-green-600">{interactionStats.whatsappCount}</div>
                       <div className="text-sm text-gray-600">رسائل واتساب</div>
                     </div>
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">5</div>
-                      <div className="text-sm text-gray-600">زيارات ميدانية</div>
+                      <div className="text-2xl font-bold text-purple-600">{interactionStats.meetingsCount}</div>
+                      <div className="text-sm text-gray-600">اجتماعات</div>
+                    </div>
+                    <div className="text-center p-4 bg-amber-50 rounded-lg">
+                      <div className="text-2xl font-bold text-amber-600">{interactionStats.emailsCount}</div>
+                      <div className="text-sm text-gray-600">إيميلات</div>
+                    </div>
+                  </div>
+                  
+                  {/* تحليل الانطباعات */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="text-center p-4 bg-green-100 rounded-lg">
+                      <div className="text-2xl font-bold text-green-700">{interactionStats.positiveCount}</div>
+                      <div className="text-sm text-gray-600">😊 إيجابي</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-100 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-700">
+                        {interactionStats.totalInteractions - interactionStats.positiveCount - interactionStats.negativeCount}
+                      </div>
+                      <div className="text-sm text-gray-600">😐 محايد</div>
+                    </div>
+                    <div className="text-center p-4 bg-red-100 rounded-lg">
+                      <div className="text-2xl font-bold text-red-700">{interactionStats.negativeCount}</div>
+                      <div className="text-sm text-gray-600">😟 سلبي</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* الأهداف والإنجازات */}
+              {/* إحصائيات المالية */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-[#01411C]" />
-                    الأهداف والإنجازات
+                    <DollarSign className="w-5 h-5 text-[#01411C]" />
+                    ملخص مالي
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span>هدف الإغلاق الشهري</span>
-                      <span className="text-green-600 font-bold">75%</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-white">
+                      <div className="text-sm mb-1">إجمالي المدفوعات</div>
+                      <div className="text-2xl font-bold">{invoiceStats.paidAmount.toLocaleString()} ريال</div>
+                      <div className="text-sm opacity-80">{invoiceStats.paidCount} فاتورة مدفوعة</div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{width: '75%'}}></div>
+                    <div className="p-4 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl text-white">
+                      <div className="text-sm mb-1">المستحقات</div>
+                      <div className="text-2xl font-bold">{invoiceStats.pendingAmount.toLocaleString()} ريال</div>
+                      <div className="text-sm opacity-80">{invoiceStats.pendingCount} فاتورة معلقة</div>
                     </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span>التفاعل مع العميل</span>
-                      <span className="text-blue-600 font-bold">90%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{width: '90%'}}></div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span>جودة المتابعة</span>
-                      <span className="text-purple-600 font-bold">85%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-500 h-2 rounded-full" style={{width: '85%'}}></div>
+                    <div className="p-4 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl text-white">
+                      <div className="text-sm mb-1">إجمالي المعاملات</div>
+                      <div className="text-2xl font-bold">{customerTransactions.length}</div>
+                      <div className="text-sm opacity-80">معاملة</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* التوقعات المستقبلية */}
+              {/* التوقعات المستقبلية - حقيقية */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1994,15 +2129,23 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                       <div className="text-lg font-bold text-yellow-700 mb-2">
-                        احتمالية الشراء خلال 30 يوم
+                        احتمالية الإغلاق خلال 30 يوم
                       </div>
-                      <div className="text-3xl font-bold text-yellow-600">68%</div>
+                      <div className="text-3xl font-bold text-yellow-600">{interactionStats.closingProbability}%</div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        بناءً على {interactionStats.recentInteractions} تفاعل في الأسبوع الأخير
+                      </p>
                     </div>
                     <div className="p-4 bg-red-50 rounded-lg border border-red-200">
                       <div className="text-lg font-bold text-red-700 mb-2">
                         مخاطر فقدان العميل
                       </div>
-                      <div className="text-3xl font-bold text-red-600">15%</div>
+                      <div className="text-3xl font-bold text-red-600">
+                        {interactionStats.recentInteractions > 3 ? '15%' : interactionStats.recentInteractions > 0 ? '35%' : '60%'}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        {interactionStats.recentInteractions > 3 ? 'منخفض - تفاعل نشط' : interactionStats.recentInteractions > 0 ? 'متوسط' : 'مرتفع - يحتاج متابعة'}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -2137,7 +2280,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             </div>
           </TabsContent>
 
-          {/* History Tab - تبويب التاريخ المحسن */}
+          {/* History Tab - تبويب التاريخ المحسن - مربوط بآخر 3 أنشطة حقيقية */}
           <TabsContent value="history">
             <div className="space-y-6">
               <Card className="border-2 border-gray-200">
@@ -2145,6 +2288,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                     <History className="w-5 h-5" />
                     سجل الأحداث
+                    {(recentActivities.length + customerTransactions.length + customerInvoices.length) > 0 && (
+                      <Badge className="bg-blue-100 text-blue-800">
+                        {recentActivities.length + customerTransactions.length + customerInvoices.length} نشاط
+                      </Badge>
+                    )}
                   </CardTitle>
                   <Button size="sm" variant="outline">
                     📤 تصدير السجل
@@ -2152,55 +2300,122 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { id: 1, event: 'تم إنشاء العميل', date: '2024-01-15', user: 'أحمد محمد', details: 'تم إضافة العميل إلى النظام' },
-                      { id: 2, event: 'تم تحديث معلومات الاتصال', date: '2024-03-22', user: 'سارة عبدالله', details: 'تحديث رقم الهاتف والبريد الإلكتروني' },
-                      { id: 3, event: 'تمت أول عملية شراء', date: '2024-05-10', user: 'النظام', details: 'شراء خدمة الاستضافة بقيمة 5,000 ريال' },
-                    ].map((item) => (
-                      <div key={item.id} className="border-r-4 border-blue-500 pr-4 py-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-bold text-gray-900">{item.event}</h4>
-                            <p className="text-sm text-gray-600 mt-1">{item.details}</p>
+                    {/* آخر 3 تفاعلات حقيقية */}
+                    {recentActivities.length > 0 && (
+                      <>
+                        <h4 className="font-bold text-gray-700 text-sm">📞 آخر التفاعلات</h4>
+                        {recentActivities.map((activity) => (
+                          <div key={activity.id} className="border-r-4 border-green-500 pr-4 py-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-bold text-gray-900">
+                                  {activity.interaction_type === 'call' ? '📞 مكالمة' :
+                                   activity.interaction_type === 'whatsapp' ? '💬 واتساب' :
+                                   activity.interaction_type === 'meeting' ? '🤝 اجتماع' :
+                                   activity.interaction_type === 'email' ? '📧 بريد' :
+                                   '📝 ملاحظة'}
+                                </h4>
+                                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                              </div>
+                              <div className="text-left">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {new Date(activity.created_at).toLocaleDateString('ar-SA')}
+                                </div>
+                                <Badge className={
+                                  activity.sentiment === 'إيجابي' ? 'bg-green-100 text-green-700' :
+                                  activity.sentiment === 'سلبي' ? 'bg-red-100 text-red-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }>
+                                  {activity.sentiment || 'محايد'}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-left">
-                            <div className="text-sm font-medium text-gray-900">{item.date}</div>
-                            <div className="text-xs text-gray-500">{item.user}</div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* آخر 3 معاملات حقيقية */}
+                    {customerTransactions.slice(0, 3).length > 0 && (
+                      <>
+                        <h4 className="font-bold text-gray-700 text-sm mt-6">💰 آخر المعاملات</h4>
+                        {customerTransactions.slice(0, 3).map((tx) => (
+                          <div key={tx.id} className="border-r-4 border-blue-500 pr-4 py-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-bold text-gray-900">{tx.transaction_type}</h4>
+                                <p className="text-sm text-gray-600 mt-1">{tx.description || 'معاملة مالية'}</p>
+                              </div>
+                              <div className="text-left">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {new Date(tx.created_at).toLocaleDateString('ar-SA')}
+                                </div>
+                                <div className={`font-bold ${Number(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {Number(tx.amount).toLocaleString()} ريال
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* آخر 3 فواتير حقيقية */}
+                    {customerInvoices.slice(0, 3).length > 0 && (
+                      <>
+                        <h4 className="font-bold text-gray-700 text-sm mt-6">🧾 آخر الفواتير</h4>
+                        {customerInvoices.slice(0, 3).map((inv) => (
+                          <div key={inv.id} className="border-r-4 border-amber-500 pr-4 py-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-bold text-gray-900">فاتورة {inv.invoice_number}</h4>
+                                <p className="text-sm text-gray-600 mt-1">{inv.description || 'فاتورة'}</p>
+                              </div>
+                              <div className="text-left">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {new Date(inv.created_at).toLocaleDateString('ar-SA')}
+                                </div>
+                                <Badge className={
+                                  inv.status === 'مدفوعة' ? 'bg-green-100 text-green-700' :
+                                  inv.status === 'معلقة' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-red-100 text-red-700'
+                                }>
+                                  {inv.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* رسالة فارغة إذا لم توجد أنشطة */}
+                    {recentActivities.length === 0 && customerTransactions.length === 0 && customerInvoices.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p>لا توجد أنشطة مسجلة لهذا العميل</p>
+                        <p className="text-sm mt-1">ستظهر هنا آخر التفاعلات والمعاملات والفواتير</p>
                       </div>
-                    ))}
-                    {activityLogs.filter(l => l.type === 'status_change').map((log) => (
-                      <div key={log.id} className="border-r-4 border-gray-300 pr-4 py-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-bold text-gray-900">تغيير حالة</h4>
-                            <p className="text-sm text-gray-600 mt-1">{log.description}</p>
-                          </div>
-                          <div className="text-left">
-                            <div className="text-sm font-medium text-gray-900">{log.timestamp}</div>
-                            <div className="text-xs text-gray-500">{log.user || 'النظام'}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* إحصائيات التاريخ */}
+              {/* إحصائيات التاريخ - حقيقية */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="border-gray-200">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
-                      <span>الأحداث</span>
+                      <span>إجمالي الأنشطة</span>
                       <span className="text-lg">📅</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-4">
-                      <div className="text-4xl font-bold text-blue-600 mb-2">245</div>
-                      <div className="text-gray-600">حدث مسجل</div>
+                      <div className="text-4xl font-bold text-blue-600 mb-2">
+                        {customerInteractions.length + customerTransactions.length + customerInvoices.length}
+                      </div>
+                      <div className="text-gray-600">نشاط مسجل</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -2214,7 +2429,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-4">
-                      <div className="text-4xl font-bold text-green-600 mb-2">324</div>
+                      <div className="text-4xl font-bold text-green-600 mb-2">
+                        {Math.floor((new Date().getTime() - new Date(customer.createdAt || new Date()).getTime()) / (1000 * 60 * 60 * 24))}
+                      </div>
                       <div className="text-gray-600">يوم</div>
                     </div>
                   </CardContent>
@@ -2223,14 +2440,21 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 <Card className="border-gray-200">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
-                      <span>آخر تحديث</span>
+                      <span>آخر تفاعل</span>
                       <span className="text-lg">🔄</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-4">
-                      <div className="text-2xl font-bold text-purple-600 mb-2">منذ 2 يوم</div>
-                      <div className="text-gray-600">تحديث معلومات</div>
+                      <div className="text-2xl font-bold text-purple-600 mb-2">
+                        {recentActivities.length > 0 
+                          ? `منذ ${Math.floor((new Date().getTime() - new Date(recentActivities[0].created_at).getTime()) / (1000 * 60 * 60 * 24))} يوم`
+                          : 'لا يوجد'
+                        }
+                      </div>
+                      <div className="text-gray-600">
+                        {recentActivities.length > 0 ? recentActivities[0].interaction_type : 'لا توجد تفاعلات'}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -2311,14 +2535,34 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   </div>
                 </div>
 
-                {/* إعدادات الخصوصية والإجراءات */}
+                {/* إعدادات الخصوصية والإجراءات - مربوط بالرايت سلايدر */}
                 <div className="pt-6 border-t border-gray-200 space-y-4">
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium">أرشفة العميل</p>
-                      <p className="text-sm text-gray-500">نقل العميل للأرشيف</p>
+                      <p className="text-sm text-gray-500">نقل العميل للأرشيف (مرتبط بالأرشيف في القائمة الجانبية)</p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // تحديث حالة العميل إلى مؤرشف
+                        const updatedCustomer = {
+                          ...customer,
+                          status: 'archived',
+                          columnId: 'archived'
+                        };
+                        onUpdate(updatedCustomer);
+                        
+                        // إرسال حدث للرايت سلايدر لفتح الأرشيف
+                        window.dispatchEvent(new CustomEvent('openRightSlider', {
+                          detail: { section: 'archive' }
+                        }));
+                        
+                        toast.success('تم نقل العميل للأرشيف');
+                        onBack();
+                      }}
+                    >
                       📁 أرشفة
                     </Button>
                   </div>
@@ -3050,61 +3294,172 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             </Card>
           </TabsContent>
 
-          {/* Invoices Tab - تبويب الفواتير */}
+          {/* Invoices Tab - تبويب الفواتير - مربوط بقاعدة البيانات */}
           <TabsContent value="invoices">
             <Card className="border-2 border-gray-200">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
                   🧾 فواتير العميل
+                  {customerInvoices.length > 0 && (
+                    <Badge className="bg-[#D4AF37] text-[#01411C]">{customerInvoices.length}</Badge>
+                  )}
                 </CardTitle>
-                <Button size="sm" className="bg-[#01411C] hover:bg-[#065f41]">
+                <Button 
+                  size="sm" 
+                  className="bg-[#01411C] hover:bg-[#065f41]"
+                  onClick={() => setShowNewInvoiceForm(true)}
+                >
                   <Plus className="w-4 h-4 ml-1" />
                   فاتورة جديدة
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">رقم الفاتورة</th>
-                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المبلغ</th>
-                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الإصدار</th>
-                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الاستحقاق</th>
-                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
-                        <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الإجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockInvoices.map((invoice) => (
-                        <tr key={invoice.id} className="border-b border-gray-200 hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{invoice.number}</td>
-                          <td className="py-3 px-4 font-bold text-[#D4AF37]">{invoice.amount.toLocaleString()} ريال</td>
-                          <td className="py-3 px-4 text-sm">{invoice.date}</td>
-                          <td className="py-3 px-4 text-sm">{invoice.dueDate}</td>
-                          <td className="py-3 px-4">
-                            <Badge className={
-                              invoice.status === 'مدفوعة' ? 'bg-green-100 text-green-800' :
-                              invoice.status === 'معلقة' ? 'bg-amber-100 text-amber-800' :
-                              'bg-red-100 text-red-800'
-                            }>
-                              {invoice.status}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                👁️
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                📄
-                              </Button>
-                            </div>
-                          </td>
+                {/* نموذج إضافة فاتورة جديدة */}
+                {showNewInvoiceForm && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl border-2 border-amber-200">
+                    <h4 className="font-bold text-amber-800 mb-4">إنشاء فاتورة جديدة</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm">المبلغ (ريال)</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={newInvoiceData.amount}
+                          onChange={(e) => setNewInvoiceData(prev => ({ ...prev, amount: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">تاريخ الاستحقاق</Label>
+                        <Input
+                          type="date"
+                          value={newInvoiceData.due_date}
+                          onChange={(e) => setNewInvoiceData(prev => ({ ...prev, due_date: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">الوصف</Label>
+                        <Input
+                          placeholder="وصف الفاتورة..."
+                          value={newInvoiceData.description}
+                          onChange={(e) => setNewInvoiceData(prev => ({ ...prev, description: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        className="bg-[#01411C] hover:bg-[#065f41]"
+                        onClick={async () => {
+                          if (!newInvoiceData.amount) {
+                            toast.error('يرجى إدخال المبلغ');
+                            return;
+                          }
+                          await createInvoice({
+                            customer_id: customer.id,
+                            customer_phone: customer.phone,
+                            amount: parseFloat(newInvoiceData.amount),
+                            invoice_number: generateInvoiceNumber(),
+                            due_date: newInvoiceData.due_date || undefined,
+                            description: newInvoiceData.description || undefined
+                          });
+                          setNewInvoiceData({ amount: '', description: '', due_date: '' });
+                          setShowNewInvoiceForm(false);
+                        }}
+                      >
+                        إنشاء الفاتورة
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowNewInvoiceForm(false)}
+                      >
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {invoicesLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#01411C]" />
+                    <p className="text-gray-500 mt-2">جاري التحميل...</p>
+                  </div>
+                ) : customerInvoices.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لا توجد فواتير لهذا العميل</p>
+                    <p className="text-sm mt-1">اضغط على "فاتورة جديدة" لإنشاء أول فاتورة</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">رقم الفاتورة</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">المبلغ</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الإصدار</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">تاريخ الاستحقاق</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الحالة</th>
+                          <th className="py-3 px-4 text-right text-sm font-medium text-gray-700">الإجراءات</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {customerInvoices.map((invoice) => (
+                          <tr key={invoice.id} className="border-b border-gray-200 hover:bg-gray-50">
+                            <td className="py-3 px-4 font-medium">{invoice.invoice_number}</td>
+                            <td className="py-3 px-4 font-bold text-[#D4AF37]">{Number(invoice.amount).toLocaleString()} ريال</td>
+                            <td className="py-3 px-4 text-sm">{new Date(invoice.created_at).toLocaleDateString('ar-SA')}</td>
+                            <td className="py-3 px-4 text-sm">{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('ar-SA') : '-'}</td>
+                            <td className="py-3 px-4">
+                              <Badge className={
+                                invoice.status === 'مدفوعة' ? 'bg-green-100 text-green-800' :
+                                invoice.status === 'معلقة' ? 'bg-amber-100 text-amber-800' :
+                                'bg-red-100 text-red-800'
+                              }>
+                                {invoice.status}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                {invoice.status !== 'مدفوعة' && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="text-xs border-green-500 text-green-600"
+                                    onClick={() => markAsPaid(invoice.id)}
+                                  >
+                                    ✅ تحديد كمدفوعة
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                  📥
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* إحصائيات الفواتير */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white">
+                    <div className="text-sm mb-1">المدفوعات المستلمة</div>
+                    <div className="text-2xl font-bold">{invoiceStats.paidAmount.toLocaleString()} ريال</div>
+                    <div className="text-sm opacity-90">{invoiceStats.paidCount} فاتورة</div>
+                  </div>
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-4 text-white">
+                    <div className="text-sm mb-1">المستحقات المعلقة</div>
+                    <div className="text-2xl font-bold">{invoiceStats.pendingAmount.toLocaleString()} ريال</div>
+                    <div className="text-sm opacity-90">{invoiceStats.pendingCount} فاتورة</div>
+                  </div>
+                  <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-xl p-4 text-white">
+                    <div className="text-sm mb-1">المتأخرات</div>
+                    <div className="text-2xl font-bold">{invoiceStats.overdueAmount.toLocaleString()} ريال</div>
+                    <div className="text-sm opacity-90">{invoiceStats.overdueCount} فاتورة</div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
