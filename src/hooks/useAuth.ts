@@ -63,6 +63,13 @@ export function useAuth() {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[Auth] Event:', event, 'Session:', !!session);
+        
+        // إذا انتهت الجلسة، حاول تجديدها
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('[Auth] Token refreshed successfully');
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -78,17 +85,66 @@ export function useAuth() {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      // Fetch role for existing session
-      if (session?.user) {
-        fetchUserRole(session.user.id);
+    // THEN check for existing session and refresh if needed
+    const initSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[Auth] getSession error:', error);
+          // محاولة تجديد الجلسة
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error('[Auth] refreshSession error:', refreshError);
+            setSession(null);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+          if (refreshData.session) {
+            setSession(refreshData.session);
+            setUser(refreshData.session.user);
+            setLoading(false);
+            fetchUserRole(refreshData.session.user.id);
+            return;
+          }
+        }
+        
+        // إذا كانت الجلسة موجودة ولكن التوكن قريب من الانتهاء، جدّده
+        if (session) {
+          const expiresAt = session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt ? expiresAt - now : 0;
+          
+          // إذا بقي أقل من 5 دقائق، جدّد الجلسة
+          if (timeUntilExpiry < 300) {
+            console.log('[Auth] Token expiring soon, refreshing...');
+            const { data: refreshData } = await supabase.auth.refreshSession();
+            if (refreshData.session) {
+              setSession(refreshData.session);
+              setUser(refreshData.session.user);
+              setLoading(false);
+              fetchUserRole(refreshData.session.user.id);
+              return;
+            }
+          }
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        // Fetch role for existing session
+        if (session?.user) {
+          fetchUserRole(session.user.id);
+        }
+      } catch (err) {
+        console.error('[Auth] Init session error:', err);
+        setLoading(false);
       }
-    });
+    };
+
+    initSession();
 
     return () => subscription.unsubscribe();
   }, [fetchUserRole]);
