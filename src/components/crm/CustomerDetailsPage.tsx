@@ -344,12 +344,50 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // العقارات المنشورة للعميل
   const [publishedAds, setPublishedAds] = useState<any[]>([]);
   
-  // تحميل العقارات المنشورة للمالك
+  // تحميل العقارات المنشورة للمالك من قاعدة البيانات و localStorage
   useEffect(() => {
-    const loadPublishedAds = () => {
+    const loadPublishedAds = async () => {
       try {
+        // 1. محاولة التحميل من قاعدة البيانات أولاً (platform_listings)
+        const { data: dbListings, error } = await supabase
+          .from('platform_listings')
+          .select('*')
+          .or(`owner_phone.eq.${customer.phone},broker_phone.eq.${customer.phone}`)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+
+        if (!error && dbListings && dbListings.length > 0) {
+          // تحويل البيانات لتتوافق مع الصيغة المتوقعة
+          const formattedListings = dbListings.map((listing: any) => ({
+            id: listing.id,
+            title: listing.title,
+            propertyType: listing.property_type,
+            purpose: listing.purpose,
+            price: listing.price?.toString(),
+            area: listing.area,
+            bedrooms: listing.bedrooms,
+            bathrooms: listing.bathrooms,
+            city: listing.city,
+            district: listing.district,
+            locationDetails: {
+              city: listing.city,
+              district: listing.district,
+              street: listing.street,
+            },
+            images: listing.images || [],
+            status: listing.status,
+            ad_license: listing.ad_license,
+            publishedAt: listing.created_at,
+            views: listing.views || 0,
+            is_hidden: listing.is_hidden,
+            is_pinned: listing.is_pinned,
+          }));
+          setPublishedAds(formattedListings);
+          return;
+        }
+
+        // 2. كاحتياط، تحميل من localStorage
         const allAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-        // Filter ads that belong to this customer by phone or linkedCustomerId
         const customerAds = allAds.filter((ad: any) => 
           ad.linkedCustomerId === customer.id || 
           ad.ownerPhone === customer.phone ||
@@ -358,7 +396,18 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
         setPublishedAds(customerAds);
       } catch (e) {
         console.error('Error loading published ads:', e);
-        setPublishedAds([]);
+        // كاحتياط نهائي
+        try {
+          const allAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+          const customerAds = allAds.filter((ad: any) => 
+            ad.linkedCustomerId === customer.id || 
+            ad.ownerPhone === customer.phone ||
+            ad.ownerName === customer.name
+          );
+          setPublishedAds(customerAds);
+        } catch {
+          setPublishedAds([]);
+        }
       }
     };
     

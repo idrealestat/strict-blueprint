@@ -3,7 +3,7 @@
  * نظام الإشعارات الموحد - Unified Notifications System
  * 
  * يجمع جميع مصادر الإشعارات في مكان واحد ويخزنها في قاعدة البيانات
- * مع دعم إشعارات Push للمتصفح والجوال
+ * مع دعم إشعارات Push للمتصفح والجوال والتنبيهات الصوتية
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -12,6 +12,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import type { Tables } from '@/integrations/supabase/types';
 import type { Json } from '@/integrations/supabase/types';
 import { showPushNotification } from './usePushNotifications';
+import { playNotificationSoundByType } from '@/utils/notificationSounds';
 
 // Use the database type directly
 export type Notification = Tables<'notifications'>;
@@ -206,13 +207,21 @@ export function useNotifications() {
           setNotifications(prev => [newNotif, ...prev]);
           setUnreadCount(prev => prev + 1);
 
-          // Play sound if enabled
+          // تشغيل صوت التنبيه حسب نوع الإشعار والأولوية
           try {
-            const audio = new Audio('/notification.mp3');
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
+            // الحصول على إعدادات الصوت من localStorage
+            const soundEnabled = localStorage.getItem('notification_sound_enabled') !== 'false';
+            const soundVolume = parseInt(localStorage.getItem('notification_sound_volume') || '60', 10);
+            
+            if (soundEnabled) {
+              await playNotificationSoundByType(
+                newNotif.notification_type,
+                newNotif.priority || undefined,
+                soundVolume
+              );
+            }
           } catch (e) {
-            // Ignore audio errors
+            console.log('[Notifications] Sound playback error:', e);
           }
 
           // إرسال إشعار Push للمتصفح/الجوال
