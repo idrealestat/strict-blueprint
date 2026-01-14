@@ -714,12 +714,12 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 </>
               ) : (
                 <Button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => setActiveTab('settings')}
                   variant="outline"
                   className="border-[#D4AF37] text-white hover:bg-white/20"
                 >
-                  <Edit className="w-4 h-4 ml-1" />
-                  تعديل
+                  <Settings className="w-4 h-4 ml-1" />
+                  الإعدادات
                 </Button>
               )}
             </div>
