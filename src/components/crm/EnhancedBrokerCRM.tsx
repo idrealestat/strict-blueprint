@@ -1960,13 +1960,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     } : {})
                                   }}
                                 >
-                                  {/* خط نوع العميل أعلى البطاقة */}
-                                  <div 
-                                    className="h-1.5 w-full"
-                                    style={{ 
-                                      backgroundColor: clientTypes[customer.type as ClientType]?.color || '#6B7280'
-                                    }}
-                                  />
+                                  {/* خط نوع العميل أعلى البطاقة - يختفي عند التمديد */}
+                                  {expandedCardId !== customer.id && (
+                                    <div 
+                                      className="h-1.5 w-full"
+                                      style={{ 
+                                        backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
+                                      }}
+                                    />
+                                  )}
                                   
                                   {/* البطاقة المضغوطة */}
                                   <div 
@@ -2575,13 +2577,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                   )}
                                 </AnimatePresence>
                                 
-                                {/* خط درجة الاهتمام في أسفل البطاقة - دائماً في الأسفل */}
-                                <div 
-                                  className="h-1.5 w-full mt-auto"
-                                  style={{ 
-                                    backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
-                                  }}
-                                />
+                                {/* خط درجة الاهتمام في أسفل البطاقة - يظهر عند التمديد فقط */}
+                                {expandedCardId === customer.id && (
+                                  <div 
+                                    className="h-1.5 w-full mt-auto"
+                                    style={{ 
+                                      backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
+                                    }}
+                                  />
+                                )}
                                 </div>
                               
                               {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}
