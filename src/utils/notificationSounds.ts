@@ -96,6 +96,71 @@ export const NotificationSounds = {
     await new Promise(r => setTimeout(r, 60));
     await createTone(1319, 0.25, volume, 'sine'); // E6
   },
+
+  // صوت عرض جديد - مميز وملفت
+  async newOffer(volume: number = 0.5) {
+    await createTone(587, 0.1, volume, 'sine'); // D5
+    await new Promise(r => setTimeout(r, 50));
+    await createTone(740, 0.1, volume, 'sine'); // F#5
+    await new Promise(r => setTimeout(r, 50));
+    await createTone(880, 0.15, volume, 'sine'); // A5
+    await new Promise(r => setTimeout(r, 50));
+    await createTone(1175, 0.3, volume, 'sine'); // D6
+  },
+
+  // صوت طلب جديد - نغمة صاعدة
+  async newRequest(volume: number = 0.5) {
+    await createTone(440, 0.08, volume, 'sine'); // A4
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(554, 0.08, volume, 'sine'); // C#5
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(659, 0.1, volume, 'sine'); // E5
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(880, 0.2, volume, 'sine'); // A5
+  },
+
+  // صوت عرض سعر - نغمة احترافية
+  async priceQuote(volume: number = 0.5) {
+    await createTone(659, 0.12, volume, 'sine'); // E5
+    await new Promise(r => setTimeout(r, 60));
+    await createTone(784, 0.12, volume, 'sine'); // G5
+    await new Promise(r => setTimeout(r, 60));
+    await createTone(988, 0.18, volume, 'sine'); // B5
+    await new Promise(r => setTimeout(r, 60));
+    await createTone(1175, 0.25, volume, 'sine'); // D6
+  },
+
+  // صوت تذكير مهمة - نغمة تنبيهية
+  async reminder(volume: number = 0.5) {
+    await createTone(784, 0.2, volume, 'triangle');
+    await new Promise(r => setTimeout(r, 150));
+    await createTone(784, 0.2, volume, 'triangle');
+    await new Promise(r => setTimeout(r, 150));
+    await createTone(988, 0.3, volume, 'triangle');
+  },
+
+  // صوت عاجل - للإشعارات الهامة
+  async urgent(volume: number = 0.6) {
+    for (let i = 0; i < 3; i++) {
+      await createTone(880, 0.12, volume, 'square');
+      await new Promise(r => setTimeout(r, 80));
+      await createTone(660, 0.12, volume, 'square');
+      await new Promise(r => setTimeout(r, 100));
+    }
+  },
+
+  // صوت نشر إعلان - نغمة احتفالية
+  async published(volume: number = 0.5) {
+    await createTone(523, 0.1, volume, 'sine'); // C5
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(659, 0.1, volume, 'sine'); // E5
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(784, 0.1, volume, 'sine'); // G5
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(1047, 0.15, volume, 'sine'); // C6
+    await new Promise(r => setTimeout(r, 40));
+    await createTone(1319, 0.25, volume, 'sine'); // E6
+  },
 };
 
 // دالة لتشغيل صوت حسب الاسم
@@ -124,7 +189,79 @@ export async function playNotificationSoundByName(
     case 'opportunity':
       await NotificationSounds.opportunity(normalizedVolume);
       break;
+    case 'newOffer':
+    case 'new_offer':
+      await NotificationSounds.newOffer(normalizedVolume);
+      break;
+    case 'newRequest':
+    case 'new_request':
+      await NotificationSounds.newRequest(normalizedVolume);
+      break;
+    case 'priceQuote':
+    case 'price_quote':
+    case 'new_quote':
+      await NotificationSounds.priceQuote(normalizedVolume);
+      break;
+    case 'reminder':
+      await NotificationSounds.reminder(normalizedVolume);
+      break;
+    case 'urgent':
+      await NotificationSounds.urgent(normalizedVolume);
+      break;
+    case 'published':
+      await NotificationSounds.published(normalizedVolume);
+      break;
     default:
       await NotificationSounds.default(normalizedVolume);
+  }
+}
+
+// دالة لتشغيل صوت حسب نوع الإشعار
+export async function playNotificationSoundByType(
+  notificationType: string,
+  priority?: string,
+  volume: number = 60
+): Promise<void> {
+  // إذا كانت الأولوية عاجلة
+  if (priority === 'urgent') {
+    await playNotificationSoundByName('urgent', volume);
+    return;
+  }
+
+  // تحديد الصوت حسب نوع الإشعار
+  switch (notificationType) {
+    case 'offer':
+    case 'new_offer':
+      await playNotificationSoundByName('newOffer', volume);
+      break;
+    case 'request':
+    case 'new_request':
+      await playNotificationSoundByName('newRequest', volume);
+      break;
+    case 'quote':
+    case 'new_quote':
+    case 'price_quote':
+      await playNotificationSoundByName('priceQuote', volume);
+      break;
+    case 'smart_opportunity':
+      await playNotificationSoundByName('opportunity', volume);
+      break;
+    case 'publishing':
+    case 'published':
+      await playNotificationSoundByName('published', volume);
+      break;
+    case 'calendar':
+    case 'appointment':
+      await playNotificationSoundByName('reminder', volume);
+      break;
+    case 'crm':
+    case 'task':
+      await playNotificationSoundByName('chime', volume);
+      break;
+    case 'system':
+      await playNotificationSoundByName('bell', volume);
+      break;
+    default:
+      await playNotificationSoundByName('default', volume);
   }
 }
