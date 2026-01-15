@@ -296,7 +296,7 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
-  const PLATFORM_BASE_URL = 'https://wasataai.com';
+  const PLATFORM_BASE_URL = `https://${import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app'}`;
 
   // slug يجب أن يأتي من قاعدة البيانات (business_cards.slug). نستخدم localStorage فقط كـ fallback.
   const [dbSlug, setDbSlug] = useState<string>('');

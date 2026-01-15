@@ -39,13 +39,15 @@ export function getPublicPlatformSlug(fallbacks?: Array<unknown>): string {
  * يبني رابط المنصة العامة
  * يجب تمرير الـ slug من DB، لا يوجد fallback افتراضي
  */
-export function getPublicPlatformUrl(origin = 'https://wasataai.com', slug?: unknown): string {
+export function getPublicPlatformUrl(origin?: string, slug?: unknown): string {
+  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+  const defaultOrigin = `https://${publishedDomain}`;
   const safeSlug = slug ? sanitizePublicPlatformSlug(slug) : '';
   if (!safeSlug) {
     console.warn('getPublicPlatformUrl: No valid slug provided');
-    return origin;
+    return origin || defaultOrigin;
   }
-  return `${origin}/${safeSlug}`;
+  return `${origin || defaultOrigin}/${safeSlug}`;
 }
 
 /**

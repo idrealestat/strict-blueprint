@@ -122,9 +122,10 @@ export default function PDFPreviewDialog({
         logoImage: property.brokerLogoImage,
       };
       
-      // إنشاء رابط العرض
+      // إنشاء رابط العرض (باستخدام الدومين المنشور)
+      const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
       const offerUrl = property.slug && property.locationDetails?.city && property.locationDetails?.district
-        ? `${window.location.origin}/${property.slug}/${property.locationDetails.city}/${property.locationDetails.district}/${property.id}`
+        ? `https://${publishedDomain}/${property.slug}/${property.locationDetails.city}/${property.locationDetails.district}/${property.id}`
         : '';
       
       filteredProperty.offerUrl = offerUrl;

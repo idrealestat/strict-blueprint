@@ -3876,8 +3876,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   } catch {}
                                   
                                   const slug = localStorage.getItem('public_platform_slug') || '';
+                                  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
                                   const offerUrl = slug && offer.city && offer.district
-                                    ? `${window.location.origin}/${slug}/${offer.city}/${offer.district}/${offer.id}`
+                                    ? `https://${publishedDomain}/${slug}/${offer.city}/${offer.district}/${offer.id}`
                                     : '';
                                   
                                   const pdfData = {
