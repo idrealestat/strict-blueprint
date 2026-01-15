@@ -1269,6 +1269,13 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
               <div className="bg-white rounded-xl p-4 mb-6 border-2 border-gray-200 shadow-lg">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <Button
+                    onClick={handleWhatsApp}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    <span>واتساب</span>
+                  </Button>
+                  <Button
                     onClick={async () => {
                       const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
                       const offerUrl = `https://${publishedDomain}/${platformSlug || 'default'}/offers/${listing.id}`;
@@ -1309,17 +1316,10 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
                       
                       toast({ title: '✅ تم تحميل ملف PDF بنجاح!' });
                     }}
-                    className="bg-[#01411C] hover:bg-[#065f41] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
                   >
                     <FileDown className="w-5 h-5" />
                     <span>تحميل PDF</span>
-                  </Button>
-                  <Button
-                    onClick={handleWhatsApp}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                    <span>واتساب</span>
                   </Button>
                   <Button
                     onClick={() => setShowScheduleModal(true)}

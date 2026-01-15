@@ -1153,7 +1153,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               </Button>
               <Button 
                 size="sm" 
-                className="bg-[#D4AF37] hover:bg-[#c9a030] text-[#01411C]"
+                className="bg-red-600 hover:bg-red-700 text-white"
                 onClick={async () => {
                   // إذا كان هناك عرض واحد فقط، نقوم بتحميله مباشرة
                   // وإلا نظهر رسالة للمستخدم
