@@ -49,7 +49,17 @@ import {
   Sparkles as SparklesIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone, updateOriginalOfferStatus } from "@/hooks/usePublishedAdsManager";
+import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone, updateOriginalOfferStatus, checkDuplicateAd } from "@/hooks/usePublishedAdsManager";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import PublishSuccessActions from "./PublishSuccessActions";
 import AIDescription from "./AIDescription";
 import PropertyMediaUpload, { MediaFile } from "./PropertyMediaUpload";
@@ -848,6 +858,39 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const { publishAdWithCustomerLink } = usePublishedAdsManager();
   const [publishedAd, setPublishedAd] = useState<PublishedAdData | null>(null);
   const [showSuccessActions, setShowSuccessActions] = useState(false);
+  
+  // حالة التحذير من التكرار
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateMessage, setDuplicateMessage] = useState('');
+  const [pendingPublish, setPendingPublish] = useState(false);
+
+  // التحقق من التكرار قبل النشر
+  const checkForDuplicates = () => {
+    const duplicateResult = checkDuplicateAd({
+      ownerPhone: propertyData.ownerPhone,
+      ownerIdNumber: propertyData.ownerIdNumber,
+      deedNumber: propertyData.deedNumber,
+      propertyType: propertyData.propertyType,
+      city: propertyData.locationDetails.city,
+      district: propertyData.locationDetails.district,
+      area: propertyData.area,
+    });
+
+    if (duplicateResult.existsInOffers && duplicateResult.existsInCustomers) {
+      setDuplicateMessage(`⚠️ العرض مضاف سابقاً في العروض وإدارة العملاء (${duplicateResult.customerName})`);
+      setShowDuplicateWarning(true);
+      return true;
+    } else if (duplicateResult.existsInOffers) {
+      setDuplicateMessage('⚠️ العرض مضاف سابقاً في العروض');
+      setShowDuplicateWarning(true);
+      return true;
+    } else if (duplicateResult.existsInCustomers) {
+      setDuplicateMessage(`⚠️ العرض مضاف سابقاً في إدارة العملاء (${duplicateResult.customerName})`);
+      setShowDuplicateWarning(true);
+      return true;
+    }
+    return false;
+  };
 
   // Handle Publish
   const handlePublish = async () => {
@@ -867,6 +910,12 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       return;
     }
 
+    // التحقق من التكرار إذا لم يكن هناك تأكيد مسبق
+    if (!pendingPublish && checkForDuplicates()) {
+      return;
+    }
+
+    setPendingPublish(false);
     setIsPublishing(true);
     
     try {
@@ -2442,6 +2491,40 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
             )}
           </CardContent>
         </Card>
+
+        {/* تحذير التكرار المنبثق */}
+        <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+          <AlertDialogContent className="max-w-md" dir="rtl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl text-amber-600 flex items-center gap-2">
+                <AlertCircle className="w-6 h-6" />
+                تنبيه: العرض موجود مسبقاً
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-lg text-gray-700 py-4">
+                {duplicateMessage}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex gap-3 sm:gap-3">
+              <AlertDialogCancel 
+                onClick={() => setShowDuplicateWarning(false)}
+                className="flex-1"
+              >
+                إلغاء
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowDuplicateWarning(false);
+                  setPendingPublish(true);
+                  // تأخير بسيط ثم نشر
+                  setTimeout(() => handlePublish(), 100);
+                }}
+                className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37]"
+              >
+                نشر على أي حال
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </div>
     </ScrollArea>

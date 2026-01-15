@@ -599,6 +599,85 @@ export function usePublishedAdsManager() {
   };
 }
 
+// التحقق من وجود العرض مسبقاً (في العروض و/أو إدارة العملاء)
+export interface DuplicateCheckResult {
+  existsInOffers: boolean;
+  existsInCustomers: boolean;
+  customerName?: string;
+  offerId?: string;
+}
+
+export function checkDuplicateAd(adData: {
+  ownerPhone?: string;
+  ownerIdNumber?: string;
+  deedNumber?: string;
+  propertyType?: string;
+  city?: string;
+  district?: string;
+  area?: string;
+}): DuplicateCheckResult {
+  const result: DuplicateCheckResult = {
+    existsInOffers: false,
+    existsInCustomers: false,
+  };
+
+  // التحقق في العروض المنشورة
+  const publishedAds: PublishedAdData[] = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+  
+  // البحث عن عرض مطابق (نفس رقم الصك أو نفس الجوال + نوع العقار + الموقع)
+  const matchingAd = publishedAds.find((ad: PublishedAdData) => {
+    // تطابق رقم الصك
+    if (adData.deedNumber && ad.deedNumber && adData.deedNumber === ad.deedNumber) {
+      return true;
+    }
+    // تطابق الجوال + نوع العقار + المدينة + الحي + المساحة
+    if (adData.ownerPhone && ad.ownerPhone === adData.ownerPhone &&
+        adData.propertyType && ad.propertyType === adData.propertyType &&
+        adData.city && ad.locationDetails?.city === adData.city &&
+        adData.district && ad.locationDetails?.district === adData.district &&
+        adData.area && ad.area === adData.area) {
+      return true;
+    }
+    return false;
+  });
+
+  if (matchingAd) {
+    result.existsInOffers = true;
+    result.offerId = matchingAd.id;
+  }
+
+  // التحقق في إدارة العملاء
+  const customers = getAllCustomers();
+  const matchingCustomer = customers.find((c: LinkedCustomer) => {
+    // تطابق رقم الجوال
+    if (adData.ownerPhone && c.phone === adData.ownerPhone) {
+      // التحقق إذا كان لديه نفس العرض
+      if (c.publishedAds?.some((pa: PublishedAdData) => {
+        if (adData.deedNumber && pa.deedNumber && adData.deedNumber === pa.deedNumber) {
+          return true;
+        }
+        if (adData.propertyType && pa.propertyType === adData.propertyType &&
+            adData.city && pa.locationDetails?.city === adData.city &&
+            adData.district && pa.locationDetails?.district === adData.district &&
+            adData.area && pa.area === adData.area) {
+          return true;
+        }
+        return false;
+      })) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  if (matchingCustomer) {
+    result.existsInCustomers = true;
+    result.customerName = matchingCustomer.name;
+  }
+
+  return result;
+}
+
 // New items tracking for pulsing dot
 const NEW_ITEMS_KEY = 'new_items_tracking';
 
