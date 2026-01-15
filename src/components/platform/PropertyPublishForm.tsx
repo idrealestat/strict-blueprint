@@ -861,6 +861,12 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       return;
     }
 
+    // التحقق من رقم الترخيص الإعلاني - إلزامي
+    if (!propertyData.adLicense || propertyData.adLicense.trim() === '') {
+      toast.error('يرجى إدخال رقم الترخيص الإعلاني - حقل إلزامي للنشر');
+      return;
+    }
+
     setIsPublishing(true);
     
     try {
@@ -1073,16 +1079,6 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   dir="ltr"
                 />
               </div>
-            </div>
-            <div>
-              <Label className="text-[#01411C]">العنوان الوطني للمالك</Label>
-              <Textarea
-                value={propertyData.ownerNationalAddress}
-                onChange={(e) => setPropertyData(prev => ({ ...prev, ownerNationalAddress: e.target.value }))}
-                placeholder="العنوان الوطني الكامل..."
-                rows={2}
-                className="border-[#D4AF37] focus:border-[#01411C]"
-              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

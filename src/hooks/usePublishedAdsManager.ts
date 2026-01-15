@@ -1,11 +1,15 @@
 /**
  * usePublishedAdsManager.ts
  * نظام إدارة الإعلانات المنشورة مع ربط العملاء
+ * محدث للعمل مع قاعدة البيانات الحقيقية
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { triggerNotification } from './useNotificationSystem';
 import { syncSingleListingToDatabase } from './usePlatformListings';
+import { supabase } from '@/integrations/supabase/client';
+import { createNotification, triggerPublishingNotification } from '@/utils/notificationTriggers';
+import { showPushNotification } from './usePushNotifications';
 
 // Published Ad Interface
 export interface PublishedAdData {
@@ -274,6 +278,130 @@ export function createCustomerFromAd(ad: PublishedAdData): LinkedCustomer {
 export function usePublishedAdsManager() {
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // البحث عن العميل برقم الجوال في قاعدة البيانات
+  const findCustomerByPhoneInDB = useCallback(async (phone: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('crm_customers')
+        .select('*')
+        .eq('user_id', user.id)
+        .or(`phone.eq.${phone},whatsapp.eq.${phone}`)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[CRM] Find by phone error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (e) {
+      console.error('[CRM] Exception:', e);
+      return null;
+    }
+  }, []);
+
+  // إنشاء عميل جديد في قاعدة البيانات من بيانات الإعلان
+  const createCustomerFromAdInDB = useCallback(async (adData: PublishedAdData) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      // إعداد metadata مع بيانات المالك الإضافية
+      const metadata: Record<string, any> = {
+        source: 'published_ad',
+        idNumber: adData.ownerIdNumber || null,
+        birthDate: adData.ownerBirthDate || null,
+        ownerCity: adData.locationDetails?.city || null,
+        ownerDistrict: adData.locationDetails?.district || null,
+        publishedAds: [adData.id],
+        createdFromAd: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('crm_customers')
+        .insert({
+          user_id: user.id,
+          name: adData.ownerName,
+          phone: adData.ownerPhone || null,
+          whatsapp: adData.ownerPhone || null,
+          status: 'جديد',
+          priority: 'متوسط',
+          source: 'نشر إعلان',
+          property_type: adData.propertyType || null,
+          location: adData.locationDetails?.city || null,
+          tags: ['مالك', 'إعلان منشور'],
+          last_contact: new Date().toISOString().split('T')[0],
+          metadata,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[CRM] Create error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (e) {
+      console.error('[CRM] Exception:', e);
+      return null;
+    }
+  }, []);
+
+  // إضافة الإعلان للعميل الموجود في قاعدة البيانات
+  const addPublishedAdToCustomerInDB = useCallback(async (customerId: string, adData: PublishedAdData) => {
+    try {
+      // جلب العميل الحالي
+      const { data: customer, error: fetchError } = await supabase
+        .from('crm_customers')
+        .select('metadata')
+        .eq('id', customerId)
+        .single();
+
+      if (fetchError || !customer) {
+        console.error('[CRM] Fetch error:', fetchError);
+        return false;
+      }
+
+      // تحديث metadata مع الإعلان الجديد
+      const currentMetadata = (customer.metadata as Record<string, any>) || {};
+      const publishedAds = currentMetadata.publishedAds || [];
+      publishedAds.push(adData.id);
+
+      const updatedMetadata = {
+        ...currentMetadata,
+        publishedAds,
+        lastPublishedAd: {
+          id: adData.id,
+          title: adData.title,
+          publishedAt: adData.publishedAt,
+        },
+      };
+
+      const { error: updateError } = await supabase
+        .from('crm_customers')
+        .update({ 
+          metadata: updatedMetadata,
+          last_contact: new Date().toISOString().split('T')[0],
+        })
+        .eq('id', customerId);
+
+      if (updateError) {
+        console.error('[CRM] Update error:', updateError);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error('[CRM] Exception:', e);
+      return false;
+    }
+  }, []);
+
   // Publish ad and link to customer
   const publishAdWithCustomerLink = useCallback(async (adData: PublishedAdData): Promise<{
     success: boolean;
@@ -284,67 +412,138 @@ export function usePublishedAdsManager() {
     setIsProcessing(true);
     
     try {
-      // Search for existing customer by phone
-      const existingCustomer = findCustomerByPhone(adData.ownerPhone);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // البحث عن العميل في قاعدة البيانات أولاً، ثم localStorage كاحتياط
+      let existingCustomerDB = await findCustomerByPhoneInDB(adData.ownerPhone);
+      const existingCustomerLocal = findCustomerByPhone(adData.ownerPhone);
       
       let customerId: string;
       let isNewCustomer = false;
+      let customerName = adData.ownerName;
       
-      if (existingCustomer) {
-        // Add ad to existing customer
-        customerId = existingCustomer.id;
+      if (existingCustomerDB) {
+        // العميل موجود في قاعدة البيانات - إضافة الإعلان له
+        customerId = existingCustomerDB.id;
+        customerName = existingCustomerDB.name;
+        await addPublishedAdToCustomerInDB(customerId, adData);
+      } else if (existingCustomerLocal) {
+        // العميل موجود في localStorage فقط
+        customerId = existingCustomerLocal.id;
+        customerName = existingCustomerLocal.name;
         addPublishedAdToCustomer(customerId, adData);
       } else {
-        // Create new customer
-        const newCustomer = createCustomerFromAd(adData);
-        customerId = newCustomer.id;
-        isNewCustomer = true;
+        // إنشاء عميل جديد في قاعدة البيانات
+        const newCustomerDB = await createCustomerFromAdInDB(adData);
+        
+        if (newCustomerDB) {
+          customerId = newCustomerDB.id;
+          isNewCustomer = true;
+        } else {
+          // احتياط: إنشاء في localStorage
+          const newCustomerLocal = createCustomerFromAd(adData);
+          customerId = newCustomerLocal.id;
+          isNewCustomer = true;
+        }
       }
       
       // Update ad with linked customer ID
       adData.linkedCustomerId = customerId;
       
-      // Save to published ads
+      // Save to published ads (localStorage)
       const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
       publishedAds.push(adData);
       localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
       
-      // Mark items as new (for pulsing dot)
+      // Mark items as new (for pulsing dot) - النقطة الحمراء النابضة
       markAsNew('published_ad', adData.id);
       markAsNew('customer', customerId);
       markAsNew('tab', 'published_ads_tab');
       
-      // Send notifications
+      // ========== الإشعارات الكاملة ==========
+      
+      // 1. إشعار في جرس الإشعارات مع صوت
       triggerNotification({
         title: '✅ تم نشر الإعلان',
-        message: 'تم نشر الإعلان على منصتي',
+        message: `تم نشر "${adData.title || adData.propertyType}" على منصتي`,
         type: 'success',
         category: 'system',
       });
       
       triggerNotification({
-        title: '📋 تم إضافة العرض',
-        message: 'الإعلان موجود الآن في العروض',
+        title: '📋 تم إضافة العرض للعروض المنشورة',
+        message: `الإعلان موجود الآن في تبويب العروض المنشورة`,
         type: 'info',
         category: 'system',
       });
       
       triggerNotification({
-        title: isNewCustomer ? '👤 بطاقة مالك جديدة' : '🔗 تم الربط',
+        title: isNewCustomer ? '👤 بطاقة مالك جديدة' : '🔗 تم الربط ببطاقة موجودة',
         message: isNewCustomer 
           ? `تم إنشاء بطاقة اسم جديدة للمالك: ${adData.ownerName}`
-          : `تم ربط الإعلان ببطاقة المالك: ${existingCustomer?.name}`,
+          : `تم ربط الإعلان ببطاقة المالك: ${customerName}`,
         type: 'success',
         category: 'customer',
       });
       
-      // Dispatch events
+      // 2. إشعار في قاعدة البيانات (يظهر في الجرس)
+      if (user) {
+        await createNotification({
+          userId: user.id,
+          title: '🏠 تم نشر إعلان جديد',
+          message: `${adData.propertyType} - ${adData.locationDetails?.city || ''} - ${adData.ownerName}`,
+          notificationType: 'publishing',
+          category: 'published',
+          priority: 'high',
+          relatedEntityType: 'listing',
+          relatedEntityId: adData.id,
+          actionUrl: '/app/my-platform',
+          metadata: { adId: adData.id, customerId, isNewCustomer },
+          sendPush: true,
+          pushData: { type: 'ad_published', adTitle: adData.title },
+        });
+
+        // إشعار خاص بربط العميل
+        await createNotification({
+          userId: user.id,
+          title: isNewCustomer ? '👤 عميل جديد من نشر إعلان' : '🔗 إعلان مرتبط بعميل',
+          message: isNewCustomer
+            ? `تم إنشاء بطاقة للمالك ${adData.ownerName} تلقائياً`
+            : `تم إضافة الإعلان لبطاقة ${customerName}`,
+          notificationType: 'crm',
+          category: 'customer',
+          priority: 'normal',
+          relatedEntityType: 'customer',
+          relatedEntityId: customerId,
+          actionUrl: '/app/crm',
+          metadata: { customerId, adId: adData.id, isNewCustomer },
+        });
+      }
+      
+      // 3. Push Notification
+      await showPushNotification(
+        '🏠 تم نشر إعلانك بنجاح!',
+        `${adData.propertyType} في ${adData.locationDetails?.city || 'الموقع'} - ${adData.ownerName}`,
+        { type: 'ad_published', adId: adData.id }
+      );
+      
+      // Dispatch events للتحديث الفوري
       window.dispatchEvent(new CustomEvent('adPublished', { 
         detail: { adId: adData.id, customerId, isNewCustomer } 
       }));
       
       window.dispatchEvent(new CustomEvent('newItemsAdded', { 
         detail: { type: 'ad', id: adData.id } 
+      }));
+
+      // حدث خاص للنقطة الحمراء النابضة
+      window.dispatchEvent(new CustomEvent('pulsingDotUpdate', { 
+        detail: { 
+          type: 'new_published_ad',
+          adId: adData.id,
+          customerId,
+          isNewCustomer,
+        } 
       }));
 
       // مزامنة تلقائية إلى قاعدة البيانات
@@ -373,7 +572,7 @@ export function usePublishedAdsManager() {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [findCustomerByPhoneInDB, createCustomerFromAdInDB, addPublishedAdToCustomerInDB]);
 
   // Get published ad by ID
   const getPublishedAd = useCallback((adId: string): PublishedAdData | null => {
