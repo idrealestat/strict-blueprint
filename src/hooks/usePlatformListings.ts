@@ -89,6 +89,12 @@ export interface PlatformListing {
   street?: string;
   ownerName?: string;
   ownerPhone?: string;
+  // حقول المالك الإضافية
+  ownerIdNumber?: string;
+  ownerBirthDate?: string;
+  ownerCity?: string;
+  ownerDistrict?: string;
+  ownerNationalAddress?: string;
   views?: number;
   age?: number;
   direction?: string;
@@ -125,6 +131,7 @@ export interface PlatformListing {
   customHashtags?: string[];
   deedNumber?: string;
   deedDate?: string;
+  deedCity?: string;
   adLicense?: string;
   adLicenseDate?: string;
   adLicenseDuration?: number;
@@ -132,6 +139,12 @@ export interface PlatformListing {
   brokerPhone?: string;
   lat?: number;
   lng?: number;
+  // حقول معلومات التأجير
+  contractDuration?: number;
+  contractStartDate?: string;
+  contractEndDate?: string;
+  isCurrentlyRented?: boolean;
+  rentalContractFile?: string;
   status: 'published' | 'draft' | 'archived';
   isPinned?: boolean;
   isHidden?: boolean;
@@ -182,6 +195,12 @@ const mapDbToListing = (row: any): PlatformListing => {
     street: row.street,
     ownerName: row.owner_name,
     ownerPhone: row.owner_phone,
+    // حقول المالك الإضافية
+    ownerIdNumber: row.owner_id_number,
+    ownerBirthDate: row.owner_birth_date,
+    ownerCity: row.owner_city,
+    ownerDistrict: row.owner_district,
+    ownerNationalAddress: row.owner_national_address,
     views: row.views || 0,
     age: row.age,
     direction: row.direction,
@@ -213,6 +232,7 @@ const mapDbToListing = (row: any): PlatformListing => {
     customHashtags: row.custom_hashtags || [],
     deedNumber: row.deed_number,
     deedDate: row.deed_date,
+    deedCity: row.deed_city,
     adLicense: row.ad_license,
     adLicenseDate: row.ad_license_date,
     adLicenseDuration: row.ad_license_duration,
@@ -220,6 +240,12 @@ const mapDbToListing = (row: any): PlatformListing => {
     brokerPhone: row.broker_phone,
     lat: row.lat ? Number(row.lat) : undefined,
     lng: row.lng ? Number(row.lng) : undefined,
+    // حقول معلومات التأجير
+    contractDuration: row.contract_duration,
+    contractStartDate: row.contract_start_date,
+    contractEndDate: row.contract_end_date,
+    isCurrentlyRented: row.is_currently_rented,
+    rentalContractFile: row.rental_contract_file,
     status: row.status,
     isPinned: row.is_pinned,
     isHidden: row.is_hidden,
@@ -245,6 +271,12 @@ const mapListingToDb = (listing: Partial<PlatformListing>) => ({
   street: listing.street,
   owner_name: listing.ownerName,
   owner_phone: listing.ownerPhone,
+  // حقول المالك الإضافية
+  owner_id_number: listing.ownerIdNumber,
+  owner_birth_date: listing.ownerBirthDate,
+  owner_city: listing.ownerCity,
+  owner_district: listing.ownerDistrict,
+  owner_national_address: listing.ownerNationalAddress,
   views: listing.views,
   age: listing.age,
   direction: listing.direction,
@@ -276,12 +308,19 @@ const mapListingToDb = (listing: Partial<PlatformListing>) => ({
   custom_hashtags: listing.customHashtags,
   deed_number: listing.deedNumber,
   deed_date: listing.deedDate,
+  deed_city: listing.deedCity,
   ad_license: listing.adLicense,
   ad_license_date: listing.adLicenseDate,
   ad_license_duration: listing.adLicenseDuration,
   broker_phone: listing.brokerPhone,
   lat: listing.lat,
   lng: listing.lng,
+  // حقول معلومات التأجير
+  contract_duration: listing.contractDuration,
+  contract_start_date: listing.contractStartDate,
+  contract_end_date: listing.contractEndDate,
+  is_currently_rented: listing.isCurrentlyRented,
+  rental_contract_file: listing.rentalContractFile,
   status: listing.status,
   is_pinned: listing.isPinned,
   is_hidden: listing.isHidden,
@@ -967,6 +1006,12 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       street: firstNonEmpty(ad.locationDetails?.street, ad.street, null),
       owner_name: firstNonEmpty(ad.ownerName, null),
       owner_phone: firstNonEmpty(ad.ownerPhone, null),
+      // حقول المالك الإضافية
+      owner_id_number: firstNonEmpty(ad.ownerIdNumber, null),
+      owner_birth_date: firstNonEmpty(ad.ownerBirthDate, null),
+      owner_city: firstNonEmpty(ad.ownerCity, ad.locationDetails?.city, null),
+      owner_district: firstNonEmpty(ad.ownerDistrict, ad.locationDetails?.district, null),
+      owner_national_address: firstNonEmpty(ad.ownerNationalAddress, null),
       views: 0,
       age: !isEmptyValue(ad.propertyAge)
         ? Number(String(ad.propertyAge).replace(/[^\d]/g, ''))
@@ -1000,10 +1045,17 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       custom_hashtags: firstNonEmpty(ad.customHashtags, []),
       deed_number: firstNonEmpty(ad.deedNumber, null),
       deed_date: firstNonEmpty(ad.deedDate, null),
+      deed_city: firstNonEmpty(ad.deedCity, null),
       ad_license: firstNonEmpty(ad.adLicense, null),
       broker_phone: firstNonEmpty(ad.brokerPhone, null),
       lat: firstNonEmpty(ad.locationDetails?.latitude, ad.lat, null),
       lng: firstNonEmpty(ad.locationDetails?.longitude, ad.lng, null),
+      // حقول معلومات التأجير
+      contract_duration: firstNonEmpty(ad.contractDuration, null),
+      contract_start_date: firstNonEmpty(ad.contractStartDate, null),
+      contract_end_date: firstNonEmpty(ad.contractEndDate, null),
+      is_currently_rented: Boolean(firstNonEmpty(ad.isCurrentlyRented, false)),
+      rental_contract_file: firstNonEmpty(ad.rentalContractFile, null),
       status: 'published',
       is_pinned: false,
       is_hidden: false,

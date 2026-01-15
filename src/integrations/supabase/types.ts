@@ -1380,11 +1380,15 @@ export type Database = {
           broker_phone: string | null
           category: string | null
           city: string
+          contract_duration: number | null
+          contract_end_date: string | null
+          contract_start_date: string | null
           corner_type: string | null
           councils: string | null
           created_at: string
           curtains: string | null
           custom_hashtags: string[] | null
+          deed_city: string | null
           deed_date: string | null
           deed_number: string | null
           deleted_at: string | null
@@ -1403,18 +1407,25 @@ export type Database = {
           id: string
           image: string | null
           images: string[] | null
+          is_currently_rented: boolean | null
           is_hidden: boolean | null
           is_pinned: boolean | null
           lat: number | null
           living_rooms: string | null
           lng: number | null
+          owner_birth_date: string | null
+          owner_city: string | null
+          owner_district: string | null
+          owner_id_number: string | null
           owner_name: string | null
+          owner_national_address: string | null
           owner_phone: string | null
           payment_option: string | null
           payment_prices: Json | null
           price: number
           property_type: string
           purpose: string | null
+          rental_contract_file: string | null
           slug: string
           smart_path: string | null
           status: string
@@ -1443,11 +1454,15 @@ export type Database = {
           broker_phone?: string | null
           category?: string | null
           city: string
+          contract_duration?: number | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
           corner_type?: string | null
           councils?: string | null
           created_at?: string
           curtains?: string | null
           custom_hashtags?: string[] | null
+          deed_city?: string | null
           deed_date?: string | null
           deed_number?: string | null
           deleted_at?: string | null
@@ -1466,18 +1481,25 @@ export type Database = {
           id?: string
           image?: string | null
           images?: string[] | null
+          is_currently_rented?: boolean | null
           is_hidden?: boolean | null
           is_pinned?: boolean | null
           lat?: number | null
           living_rooms?: string | null
           lng?: number | null
+          owner_birth_date?: string | null
+          owner_city?: string | null
+          owner_district?: string | null
+          owner_id_number?: string | null
           owner_name?: string | null
+          owner_national_address?: string | null
           owner_phone?: string | null
           payment_option?: string | null
           payment_prices?: Json | null
           price?: number
           property_type?: string
           purpose?: string | null
+          rental_contract_file?: string | null
           slug: string
           smart_path?: string | null
           status?: string
@@ -1506,11 +1528,15 @@ export type Database = {
           broker_phone?: string | null
           category?: string | null
           city?: string
+          contract_duration?: number | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
           corner_type?: string | null
           councils?: string | null
           created_at?: string
           curtains?: string | null
           custom_hashtags?: string[] | null
+          deed_city?: string | null
           deed_date?: string | null
           deed_number?: string | null
           deleted_at?: string | null
@@ -1529,18 +1555,25 @@ export type Database = {
           id?: string
           image?: string | null
           images?: string[] | null
+          is_currently_rented?: boolean | null
           is_hidden?: boolean | null
           is_pinned?: boolean | null
           lat?: number | null
           living_rooms?: string | null
           lng?: number | null
+          owner_birth_date?: string | null
+          owner_city?: string | null
+          owner_district?: string | null
+          owner_id_number?: string | null
           owner_name?: string | null
+          owner_national_address?: string | null
           owner_phone?: string | null
           payment_option?: string | null
           payment_prices?: Json | null
           price?: number
           property_type?: string
           purpose?: string | null
+          rental_contract_file?: string | null
           slug?: string
           smart_path?: string | null
           status?: string
