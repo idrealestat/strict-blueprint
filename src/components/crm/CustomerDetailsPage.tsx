@@ -2014,68 +2014,6 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               {req.status === 'fulfilled' ? 'تم التوفير' : 'تم توفير الطلب'}
                             </Button>
                             
-                            {/* زر تحميل PDF */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-[#D4AF37] text-[#01411C]"
-                              onClick={async () => {
-                                try {
-                                  // جلب بيانات الوسيط من localStorage
-                                  let brokerData: any = undefined;
-                                  try {
-                                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
-                                    if (businessCard) {
-                                      brokerData = {
-                                        name: businessCard.userName || businessCard.name,
-                                        company: businessCard.companyName,
-                                        phone: businessCard.primaryPhone || businessCard.phone,
-                                        location: req.preferredCity,
-                                        licenseNumber: businessCard.falLicense,
-                                        profileImage: businessCard.profileImage,
-                                        coverImage: businessCard.coverImage,
-                                        logoImage: businessCard.logoImage,
-                                      };
-                                    }
-                                  } catch {}
-                                  
-                                  const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
-                                  
-                                  const requestData = {
-                                    id: req.id,
-                                    purpose: req.purpose,
-                                    propertyType: req.propertyType,
-                                    preferredCity: req.preferredCity || req.ownerCity,
-                                    preferredDistricts: req.preferredDistricts || [req.ownerDistrict].filter(Boolean),
-                                    minBudget: req.minBudget,
-                                    maxBudget: req.maxBudget,
-                                    bedrooms: req.bedrooms,
-                                    bathrooms: req.bathrooms,
-                                    minArea: req.minArea,
-                                    maxArea: req.maxArea,
-                                    furnishing: req.furnishing,
-                                    additionalRequirements: req.additionalRequirements,
-                                    ownerName: req.ownerName || customer.name,
-                                    ownerPhone: req.ownerPhone || customer.phone,
-                                    ownerIdNumber: req.ownerIdNumber,
-                                    ownerBirthDate: req.ownerBirthDate,
-                                    ownerCity: req.ownerCity,
-                                    ownerDistrict: req.ownerDistrict,
-                                    createdAt: req.createdAt,
-                                    status: req.status,
-                                  };
-                                  
-                                  await generateRequestPDF(requestData, true, brokerData);
-                                  toast.success('تم تحميل ملف PDF');
-                                } catch (e) {
-                                  console.error('PDF error', e);
-                                  toast.error('تعذر إنشاء PDF');
-                                }
-                              }}
-                            >
-                              <Download className="w-4 h-4 ml-1" />
-                              تحميل PDF
-                            </Button>
                           </div>
                         </div>
                       );
