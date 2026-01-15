@@ -346,41 +346,23 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
               📞 اتصال: ${safeBrokerPhone}
             </div>
           </div>
+          
+          <!-- رابط العرض -->
+          ${offerUrl ? `
+          <div style="margin-top: 15px; text-align: center; padding: 12px; background: rgba(1,65,28,0.1); border-radius: 10px; border: 1px dashed #D4AF37;">
+            <div style="color: #01411C; font-size: 11px; margin-bottom: 5px;">🔗 رابط العرض على المنصة:</div>
+            <a href="${offerUrl}" style="color: #01411C; font-size: 12px; font-weight: bold; word-break: break-all; text-decoration: underline;">${offerUrl}</a>
+          </div>
+          ` : ''}
         </div>
       </div>
       ` : ''}
 
     </div>
 
-    <!-- تذييل الصفحة مع معلومات الوسيط -->
-    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 20px; margin-top: 20px;">
-      <!-- معلومات التواصل -->
-      <div style="display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap; margin-bottom: 15px;">
-        ${safeBrokerName ? `
-        <div style="text-align: center;">
-          <div style="color: #D4AF37; font-size: 14px; font-weight: bold;">${safeBrokerName}</div>
-          <div style="color: rgba(255,255,255,0.7); font-size: 10px;">الوسيط العقاري</div>
-        </div>
-        ` : ''}
-        ${safeBrokerPhone ? `
-        <div style="text-align: center;">
-          <div style="background: #25D366; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-            💬 واتساب: ${safeBrokerPhone}
-          </div>
-        </div>
-        ` : ''}
-      </div>
-      
-      <!-- رابط العرض -->
-      ${offerUrl ? `
-      <div style="text-align: center; margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-        <div style="color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 5px;">رابط العرض على المنصة:</div>
-        <div style="color: #D4AF37; font-size: 12px; font-weight: bold; word-break: break-all;">${offerUrl}</div>
-      </div>
-      ` : ''}
-      
-      <!-- التاريخ والمنصة -->
-      <div style="display: flex; justify-content: space-between; align-items: center; color: rgba(255,255,255,0.5); font-size: 9px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+    <!-- تذييل الصفحة -->
+    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 12px 20px; margin-top: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; color: rgba(255,255,255,0.6); font-size: 9px;">
         <span>📅 تم إنشاءه بتاريخ: ${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
         <span>منصة وساطة العقارية | Wasata Platform</span>
       </div>
