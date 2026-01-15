@@ -18,7 +18,6 @@ import {
   Eye,
   Heart,
   Share2,
-  Phone,
   MessageSquare,
   CheckCircle,
   Star,
@@ -36,8 +35,10 @@ import {
   View,
   ZoomIn,
   Shield,
-  Users
+  Users,
+  FileDown
 } from 'lucide-react';
+import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -1268,11 +1269,50 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
               <div className="bg-white rounded-xl p-4 mb-6 border-2 border-gray-200 shadow-lg">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <Button
-                    onClick={handleCall}
+                    onClick={async () => {
+                      const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+                      const offerUrl = `https://${publishedDomain}/${platformSlug || 'default'}/offers/${listing.id}`;
+                      
+                      await generatePropertyPDF({
+                        id: listing.id,
+                        title: listing.title,
+                        propertyType: listing.propertyType,
+                        category: listing.category || 'للبيع',
+                        purpose: listing.purpose,
+                        area: listing.area?.toString(),
+                        price: listing.price?.toString(),
+                        locationDetails: {
+                          city: listing.city,
+                          district: listing.district,
+                          street: listing.street
+                        },
+                        bedrooms: listing.bedrooms?.toString(),
+                        bathrooms: listing.bathrooms?.toString(),
+                        livingRooms: listing.livingRooms,
+                        floors: listing.floors,
+                        floorNumber: listing.floorNumber,
+                        streetWidth: listing.streetWidth,
+                        propertyAge: listing.age?.toString(),
+                        facade: listing.direction,
+                        furnishing: listing.furnishing,
+                        features: listing.features,
+                        aiDescription: listing.description,
+                        images: listing.images || (listing.image ? [listing.image] : []),
+                        image: listing.image,
+                        brokerPhone: brokerPhone,
+                        adLicense: listing.adLicense,
+                        offerUrl: offerUrl
+                      }, true, {
+                        name: brokerName,
+                        phone: brokerPhone
+                      });
+                      
+                      toast({ title: '✅ تم تحميل ملف PDF بنجاح!' });
+                    }}
                     className="bg-[#01411C] hover:bg-[#065f41] text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
                   >
-                    <Phone className="w-5 h-5" />
-                    <span>اتصال</span>
+                    <FileDown className="w-5 h-5" />
+                    <span>تحميل PDF</span>
                   </Button>
                   <Button
                     onClick={handleWhatsApp}
