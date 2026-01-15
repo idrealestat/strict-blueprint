@@ -21,6 +21,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { generateRequestPDF } from '@/utils/generateRequestPDF';
+import { triggerNotification } from '@/hooks/useNotifications';
+import { NotificationSounds } from '@/utils/notificationSounds';
 
 // أنواع العقارات والمدن
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب", "مستودع", "استراحة"];
@@ -221,6 +223,10 @@ export default function CreateRequestForm({ isOpen, onClose, onSuccess, user, br
       };
 
       // البحث عن العميل برقم الجوال في قاعدة البيانات
+      let customerWasCreated = false;
+      let customerWasUpdated = false;
+      let customerId = '';
+      
       if (user?.id) {
         const { data: existingCustomer } = await supabase
           .from('crm_customers')
@@ -248,15 +254,18 @@ export default function CreateRequestForm({ isOpen, onClose, onSuccess, user, br
                 district: formData.ownerDistrict || currentMetadata.district,
                 published_requests: [...existingRequests, requestData],
                 hasPublishedRequest: true,
+                hasNewPublishedRequest: true,
                 lastRequestAt: new Date().toISOString(),
               },
             })
             .eq('id', existingCustomer.id);
 
+          customerWasUpdated = true;
+          customerId = existingCustomer.id;
           toast.success('تم تحديث بيانات العميل وإضافة الطلب');
         } else {
           // العميل غير موجود - إنشاء بطاقة جديدة
-          await supabase
+          const { data: newCustomer } = await supabase
             .from('crm_customers')
             .insert([{
               user_id: user.id,
@@ -277,22 +286,85 @@ export default function CreateRequestForm({ isOpen, onClose, onSuccess, user, br
                 district: formData.ownerDistrict,
                 published_requests: [requestData],
                 hasPublishedRequest: true,
+                hasNewPublishedRequest: true,
                 isNewCard: true,
                 lastRequestAt: new Date().toISOString(),
               },
-            }]);
+            }])
+            .select()
+            .single();
 
+          customerWasCreated = true;
+          customerId = newCustomer?.id || '';
           toast.success('تم إنشاء بطاقة عميل جديدة مع الطلب');
+        }
+
+        // إرسال إشعارات
+        // 1. إشعار نشر الطلب
+        await triggerNotification(user.id, {
+          title: '📋 تم نشر طلب جديد',
+          message: `طلب ${formData.purpose} - ${formData.propertyType} في ${formData.preferredCity || 'غير محدد'}`,
+          notification_type: 'request',
+          category: 'request_published',
+          priority: 'high',
+          related_entity_type: 'request',
+          related_entity_id: requestId,
+          action_url: '/app/dashboard?tab=requests',
+          metadata: { requestData, isNew: true },
+        });
+
+        // 2. إشعار إضافة/تحديث بطاقة العميل
+        if (customerWasCreated) {
+          await triggerNotification(user.id, {
+            title: '👤 تم إنشاء بطاقة عميل جديدة',
+            message: `${formData.ownerName} - ${formData.ownerPhone}`,
+            notification_type: 'crm',
+            category: 'customer_created',
+            priority: 'normal',
+            related_entity_type: 'customer',
+            related_entity_id: customerId,
+            action_url: '/app/dashboard?tab=customers',
+            metadata: { customerId, hasPublishedRequest: true, isNew: true },
+          });
+        } else if (customerWasUpdated) {
+          await triggerNotification(user.id, {
+            title: '📝 تم تحديث بطاقة العميل',
+            message: `تمت إضافة طلب منشور لـ ${formData.ownerName}`,
+            notification_type: 'crm',
+            category: 'customer_updated',
+            priority: 'normal',
+            related_entity_type: 'customer',
+            related_entity_id: customerId,
+            action_url: '/app/dashboard?tab=customers',
+            metadata: { customerId, hasNewPublishedRequest: true },
+          });
+        }
+
+        // تشغيل صوت التنبيه
+        try {
+          await NotificationSounds.newRequest();
+        } catch (e) {
+          console.log('Sound playback error:', e);
         }
       }
 
       // حفظ الطلب في localStorage للعرض في تبويب الطلبات
-      const existingRequests = JSON.parse(localStorage.getItem('wasata_published_requests') || '[]');
-      existingRequests.push(requestData);
-      localStorage.setItem('wasata_published_requests', JSON.stringify(existingRequests));
+      const existingRequestsLocal = JSON.parse(localStorage.getItem('wasata_published_requests') || '[]');
+      existingRequestsLocal.push(requestData);
+      localStorage.setItem('wasata_published_requests', JSON.stringify(existingRequestsLocal));
+
+      // تحديث قائمة الطلبات الجديدة (للنقاط النابضة)
+      const newRequestIds = JSON.parse(localStorage.getItem('new_request_ids') || '[]');
+      newRequestIds.push(requestId);
+      localStorage.setItem('new_request_ids', JSON.stringify(newRequestIds));
 
       // إرسال حدث لتحديث تبويب الطلبات
       window.dispatchEvent(new CustomEvent('requestPublished', { detail: requestData }));
+
+      // إرسال حدث لتحديث إدارة العملاء
+      window.dispatchEvent(new CustomEvent('customerUpdated', { 
+        detail: { customerId, hasNewPublishedRequest: true, customerWasCreated, customerWasUpdated } 
+      }));
 
       setSubmittedRequest(requestData);
       setIsSubmitted(true);
