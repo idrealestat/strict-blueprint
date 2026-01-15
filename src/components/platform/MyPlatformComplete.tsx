@@ -2175,6 +2175,11 @@ export default function MyPlatformComplete({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className={`font-bold text-base md:text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
+                              {/* 👁️ عين المشاهدات المباشرة للمدينة - محسوبة من مجموع كل العروض */}
+                              <LiveViewerIndicator 
+                                liveViewers={[...city.directOffers, ...city.districts.flatMap(d => d.offers)].reduce((sum, o) => sum + getLiveViewers(o.id), 0)}
+                                size="sm"
+                              />
                               {city.isHidden && <Badge variant="outline" className="text-xs bg-gray-100">مخفي</Badge>}
                               <Badge className={`text-xs ${isCityExpanded ? 'bg-[#D4AF37] text-[#01411C]' : 'bg-[#01411C] text-[#D4AF37]'}`}>
                                 {cityStats.totalOffers} عرض
@@ -2402,9 +2407,9 @@ export default function MyPlatformComplete({
 
                                   {/* الصف الثاني: الأزرار (في الأسفل منفصلة) */}
                                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-emerald-200">
-                                    {/* مؤشر المشاهدات المباشرة للحي */}
+                                  {/* مؤشر المشاهدات المباشرة للحي - محسوب من مجموع عروض الحي */}
                                     <LiveViewerIndicator 
-                                      liveViewers={district.liveViewers || 0}
+                                      liveViewers={district.offers.reduce((sum, o) => sum + getLiveViewers(o.id), 0)}
                                       size="sm"
                                     />
 
