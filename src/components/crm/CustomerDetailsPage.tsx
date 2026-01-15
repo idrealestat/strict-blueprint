@@ -755,12 +755,13 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     return [];
   });
   
-  // Default tabs - مرتبة: المعلومات العامة، العروض، عرض منشور، الطلبات، عروض الأسعار، عقار مؤجر، المهام
+  // Default tabs - مرتبة: المعلومات العامة، العروض، عرض منشور، طلب منشور، الطلبات، عروض الأسعار، عقار مؤجر، المهام
   const defaultTabs = [
     { id: 'overview', name: '📊 المعلومات العامة', removable: false },
     { id: 'offers', name: '🎯 العروض', removable: false },
     { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
-    { id: 'requests', name: '📋 الطلبات', removable: false },
+    { id: 'published_requests', name: '📋 طلب منشور', removable: false },
+    { id: 'requests', name: '📝 الطلبات', removable: false },
     { id: 'price_quotes', name: '💵 عروض الأسعار', removable: false },
     { id: 'rented', name: '🏠 عقار مؤجر', removable: false },
     { id: 'tasks', name: '✅ المهام', removable: false },
@@ -1141,27 +1142,41 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               onTouchStart={handleTabsScroll}
             >
               <TabsList className="flex flex-nowrap gap-1 bg-white border-2 border-[#D4AF37] p-1 min-w-max">
-                {defaultTabs.filter(tab => visibleTabs.includes(tab.id)).map((tab) => (
-                  <div key={tab.id} className="relative group flex items-center">
-                    <TabsTrigger 
-                      value={tab.id} 
-                      className="text-xs whitespace-nowrap pr-6"
-                    >
-                      {tab.name}
-                    </TabsTrigger>
-                    {tab.removable && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTab(tab.id);
-                        }}
-                        className="absolute left-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                {defaultTabs.filter(tab => visibleTabs.includes(tab.id)).map((tab) => {
+                  // التحقق من وجود طلبات منشورة جديدة
+                  const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                  const hasNewPublishedRequest = customerMeta?.hasNewPublishedRequest && tab.id === 'published_requests';
+                  const hasNewPublishedAd = customerMeta?.hasNewPublishedAd && tab.id === 'published_ads';
+                  
+                  return (
+                    <div key={tab.id} className="relative group flex items-center">
+                      <TabsTrigger 
+                        value={tab.id} 
+                        className="text-xs whitespace-nowrap pr-6 relative"
                       >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
+                        {tab.name}
+                        {/* نقطة نابضة للتبويبات الجديدة */}
+                        <PulsingDot 
+                          show={hasNewPublishedRequest || hasNewPublishedAd} 
+                          size="sm" 
+                          position="top-left" 
+                          className="m-0"
+                        />
+                      </TabsTrigger>
+                      {tab.removable && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeTab(tab.id);
+                          }}
+                          className="absolute left-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </TabsList>
             </div>
             
@@ -1733,6 +1748,207 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                     </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Published Requests Tab - تبويب طلب منشور */}
+          <TabsContent value="published_requests">
+            <Card className="border-2 border-[#D4AF37]">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-[#D4AF37]/10 flex flex-row items-center justify-between">
+                <CardTitle className="text-lg text-[#01411C] flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  الطلبات المنشورة للعميل
+                  {(() => {
+                    const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                    const publishedReqs = customerMeta?.published_requests || [];
+                    return publishedReqs.length > 0 ? (
+                      <Badge className="bg-blue-500 text-white text-xs">{publishedReqs.length}</Badge>
+                    ) : null;
+                  })()}
+                  {(() => {
+                    const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                    return customerMeta?.hasNewPublishedRequest ? (
+                      <PulsingDot show={true} size="sm" position="top-right" />
+                    ) : null;
+                  })()}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {(() => {
+                  const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                  const publishedReqs = customerMeta?.published_requests || [];
+                  
+                  // إزالة علامة الجديد عند عرض التبويب
+                  if (customerMeta?.hasNewPublishedRequest && activeTab === 'published_requests') {
+                    // تحديث الـ metadata لإزالة hasNewPublishedRequest
+                    setTimeout(async () => {
+                      try {
+                        await supabase
+                          .from('crm_customers')
+                          .update({
+                            metadata: {
+                              ...customerMeta,
+                              hasNewPublishedRequest: false,
+                            }
+                          })
+                          .eq('id', customer.id);
+                      } catch (e) {
+                        console.log('Error updating customer metadata:', e);
+                      }
+                    }, 500);
+                  }
+                  
+                  if (publishedReqs.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                        <h3 className="text-lg font-medium mb-2">لا توجد طلبات منشورة</h3>
+                        <p className="text-sm mb-4">لم يتم نشر أي طلب عقاري لهذا العميل بعد</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-4">
+                      {publishedReqs.map((req: any, index: number) => (
+                        <div 
+                          key={req.id || index}
+                          className="p-4 border-2 border-blue-200 rounded-xl bg-gradient-to-r from-blue-50/50 to-white hover:shadow-md transition-all"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              {/* العنوان والحالة */}
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-bold text-[#01411C]">
+                                  طلب {req.purpose} - {req.propertyType}
+                                </h4>
+                                <Badge className={req.status === 'fulfilled' ? 'bg-green-500' : 'bg-blue-500'}>
+                                  {req.status === 'fulfilled' ? '✓ تم التوفير' : '📢 منشور'}
+                                </Badge>
+                                {req.isNew && (
+                                  <Badge className="bg-red-500 text-white animate-pulse">جديد</Badge>
+                                )}
+                              </div>
+                              
+                              {/* تفاصيل الطلب */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">نوع العقار</p>
+                                  <p className="font-medium text-sm">{req.propertyType || '-'}</p>
+                                </div>
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">المدينة</p>
+                                  <p className="font-medium text-sm flex items-center gap-1">
+                                    <MapPin className="w-3 h-3 text-[#01411C]" />
+                                    {req.preferredCity || req.ownerCity || '-'}
+                                  </p>
+                                </div>
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">الميزانية</p>
+                                  <p className="font-medium text-sm">
+                                    {req.minBudget ? `${parseInt(req.minBudget).toLocaleString()}` : '-'} - {req.maxBudget ? `${parseInt(req.maxBudget).toLocaleString()}` : '-'} ريال
+                                  </p>
+                                </div>
+                                <div className="p-2 bg-white border rounded-lg">
+                                  <p className="text-xs text-gray-500">تاريخ النشر</p>
+                                  <p className="font-medium text-sm">
+                                    {req.createdAt ? new Date(req.createdAt).toLocaleDateString('ar-SA') : '-'}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* مواصفات إضافية */}
+                              {(req.bedrooms || req.bathrooms || req.minArea || req.maxArea) && (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {req.bedrooms && (
+                                    <Badge variant="outline" className="text-xs">
+                                      🛏️ {req.bedrooms} غرف
+                                    </Badge>
+                                  )}
+                                  {req.bathrooms && (
+                                    <Badge variant="outline" className="text-xs">
+                                      🚿 {req.bathrooms} حمام
+                                    </Badge>
+                                  )}
+                                  {(req.minArea || req.maxArea) && (
+                                    <Badge variant="outline" className="text-xs">
+                                      📐 {req.minArea || '-'} - {req.maxArea || '-'} م²
+                                    </Badge>
+                                  )}
+                                  {req.furnishing && (
+                                    <Badge variant="outline" className="text-xs">
+                                      🪑 {req.furnishing}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* متطلبات إضافية */}
+                              {req.additionalRequirements && (
+                                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                  <p className="text-xs text-yellow-700 font-medium mb-1">متطلبات إضافية:</p>
+                                  <p className="text-sm text-gray-700">{req.additionalRequirements}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* أزرار الإجراءات */}
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200">
+                            <Button
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => window.open(`https://wa.me/${customer.phone}`, '_blank')}
+                            >
+                              <MessageSquare className="w-4 h-4 ml-1" />
+                              واتساب
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-blue-500 hover:bg-blue-600 text-white"
+                              onClick={() => window.location.href = `tel:${customer.phone}`}
+                            >
+                              <Phone className="w-4 h-4 ml-1" />
+                              اتصال
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-amber-500 text-amber-600 hover:bg-amber-50"
+                              onClick={async () => {
+                                // تحديث حالة الطلب لـ "تم التوفير"
+                                const updatedReqs = publishedReqs.map((r: any) => 
+                                  r.id === req.id ? { ...r, status: 'fulfilled' } : r
+                                );
+                                try {
+                                  await supabase
+                                    .from('crm_customers')
+                                    .update({
+                                      metadata: {
+                                        ...customerMeta,
+                                        published_requests: updatedReqs,
+                                      }
+                                    })
+                                    .eq('id', customer.id);
+                                  toast.success('تم تحديث حالة الطلب');
+                                  // تحديث البيانات محلياً
+                                  window.dispatchEvent(new CustomEvent('customerUpdated'));
+                                } catch (e) {
+                                  toast.error('فشل تحديث الحالة');
+                                }
+                              }}
+                              disabled={req.status === 'fulfilled'}
+                            >
+                              <CheckCircle className="w-4 h-4 ml-1" />
+                              {req.status === 'fulfilled' ? 'تم التوفير' : 'تم التوفير'}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>

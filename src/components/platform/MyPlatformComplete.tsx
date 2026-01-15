@@ -2461,49 +2461,72 @@ export default function MyPlatformComplete({
             ) : (
               <>
                 {/* الطلبات المنشورة من النموذج الجديد */}
-                {publishedRequests.map((req: any) => (
-                  <Card key={req.id} className="border-2 border-blue-200 bg-blue-50/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-[#01411C]">
-                              طلب {req.purpose} - {req.propertyType}
-                            </h3>
-                            <Badge className={req.status === 'fulfilled' ? 'bg-green-500' : 'bg-blue-500'}>
-                              {req.status === 'fulfilled' ? 'تم التوفير' : 'منشور'}
-                            </Badge>
+                {publishedRequests.map((req: any) => {
+                  // التحقق من حالة الجديد
+                  const newRequestIds = JSON.parse(localStorage.getItem('new_request_ids') || '[]');
+                  const isNewRequest = newRequestIds.includes(req.id);
+                  
+                  const handleRequestClick = () => {
+                    // إزالة من قائمة الجديد
+                    const updatedIds = newRequestIds.filter((id: string) => id !== req.id);
+                    localStorage.setItem('new_request_ids', JSON.stringify(updatedIds));
+                    window.dispatchEvent(new CustomEvent('requestViewed', { detail: req.id }));
+                  };
+                  
+                  return (
+                    <Card 
+                      key={req.id} 
+                      className="border-2 border-blue-200 bg-blue-50/50 relative cursor-pointer"
+                      onClick={handleRequestClick}
+                    >
+                      {/* نقطة حمراء نابضة للطلبات الجديدة */}
+                      <PulsingDot show={isNewRequest} size="md" position="top-right" className="m-2" />
+                      
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-[#01411C]">
+                                طلب {req.purpose} - {req.propertyType}
+                              </h3>
+                              <Badge className={req.status === 'fulfilled' ? 'bg-green-500' : 'bg-blue-500'}>
+                                {req.status === 'fulfilled' ? 'تم التوفير' : 'منشور'}
+                              </Badge>
+                              {isNewRequest && (
+                                <Badge className="bg-red-500 text-white animate-pulse">جديد</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">
+                              <span className="font-medium">{req.ownerName}</span> - {req.ownerPhone}
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Building className="w-4 h-4" />
+                                {req.propertyType}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {req.preferredCity} {req.preferredDistricts && `- ${req.preferredDistricts}`}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                {req.minBudget ? parseInt(req.minBudget).toLocaleString() : '-'} - {req.maxBudget ? parseInt(req.maxBudget).toLocaleString() : '-'} ريال
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            <span className="font-medium">{req.ownerName}</span> - {req.ownerPhone}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Building className="w-4 h-4" />
-                              {req.propertyType}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {req.preferredCity} {req.preferredDistricts && `- ${req.preferredDistricts}`}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              {req.minBudget ? parseInt(req.minBudget).toLocaleString() : '-'} - {req.maxBudget ? parseInt(req.maxBudget).toLocaleString() : '-'} ريال
-                            </span>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="bg-green-500 text-white" onClick={(e) => { e.stopPropagation(); handleWhatsApp(req.ownerPhone, `طلب ${req.purpose} - ${req.propertyType}`); }}>
+                              <MessageSquare className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" className="bg-blue-500 text-white" onClick={(e) => { e.stopPropagation(); handleCall(req.ownerPhone); }}>
+                              <Phone className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" className="bg-green-500 text-white" onClick={() => handleWhatsApp(req.ownerPhone, `طلب ${req.purpose} - ${req.propertyType}`)}>
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(req.ownerPhone)}>
-                            <Phone className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
                 {/* الطلبات القديمة */}
                 {requests.map(request => (
@@ -2858,6 +2881,26 @@ export default function MyPlatformComplete({
             yearlyViews: o.views,
             interactions: o.requests || 0,
           })),
+        }}
+      />
+
+      {/* نموذج إنشاء طلب جديد */}
+      <CreateRequestForm
+        isOpen={showCreateRequestForm}
+        onClose={() => setShowCreateRequestForm(false)}
+        onSuccess={(request) => {
+          // تحديث قائمة الطلبات المنشورة
+          setPublishedRequests(prev => [...prev, request]);
+          setShowCreateRequestForm(false);
+        }}
+        user={user}
+        brokerData={{
+          name: businessCardData?.userName,
+          company: businessCardData?.companyName,
+          profileImage: businessCardData?.profileImage,
+          coverImage: businessCardData?.coverImage,
+          logoImage: businessCardData?.logoImage,
+          phone: user?.phone,
         }}
       />
     </div>
