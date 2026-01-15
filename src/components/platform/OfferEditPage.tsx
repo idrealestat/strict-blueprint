@@ -84,6 +84,10 @@ interface Listing {
   deedDate?: string;
   deedCity?: string;
 
+  // Ad License
+  adLicense?: string;
+  ad_license?: string;
+
   // Link to CRM
   linkedCustomerId?: string;
 
@@ -92,6 +96,7 @@ interface Listing {
   contractStartDate?: string;
   contractEndDate?: string;
   isCurrentlyRented?: boolean;
+  rentalContractFile?: string;
 }
 
 interface OfferEditPageProps {
@@ -411,14 +416,37 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
   const handleSave = () => {
     const updatedListing = {
       ...listing,
+      // المعلومات الأساسية
       title: formData.title,
       price: formData.price,
       description: formData.description,
       city: formData.city,
       district: formData.district,
+      street: formData.street,
       area: formData.area,
       bedrooms: formData.bedrooms,
-      bathrooms: formData.bathrooms
+      bathrooms: formData.bathrooms,
+      tour3DUrl: formData.tour3DUrl,
+      // الترخيص الإعلاني
+      adLicense: formData.adLicense,
+      // تفاصيل المالك
+      ownerName: formData.ownerName,
+      ownerPhone: formData.ownerMobile,
+      ownerIdNumber: formData.ownerIdNumber,
+      ownerBirthDate: formData.ownerBirthDate,
+      ownerNationalAddress: formData.ownerNationalAddress,
+      ownerCity: formData.ownerCity,
+      ownerDistrict: formData.ownerDistrict,
+      // معلومات الصك
+      deedNumber: formData.deedNumber,
+      deedDate: formData.deedDate,
+      deedCity: formData.deedCity,
+      // معلومات التأجير
+      contractDuration: formData.contractDuration,
+      contractStartDate: formData.contractStartDate,
+      contractEndDate: formData.contractEndDate || calculateContractEndDate(),
+      isCurrentlyRented: formData.isCurrentlyRented,
+      rentalContractFile: formData.rentalContractFile,
     };
     onSave?.(updatedListing);
     toast({ title: '✅ تم حفظ التغييرات بنجاح' });
