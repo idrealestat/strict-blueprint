@@ -844,7 +844,18 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
 
   const handleWhatsApp = () => {
     const phone = listing.ownerPhone || brokerPhone || '0500000000';
-    const message = `مرحباً، أنا مهتم بالعقار: ${listing.title}`;
+    
+    // بناء رابط العرض العام
+    const currentUrl = window.location.href;
+    
+    // بناء الرسالة المفصلة
+    let message = `🏠 *أريد الاستفسار عن هذا العرض*\n\n`;
+    message += `📌 *${listing.title}*\n\n`;
+    message += `📍 الموقع: ${listing.city} - ${listing.district}\n`;
+    if (listing.area) message += `📐 المساحة: ${listing.area} م²\n`;
+    message += `💰 السعر: ${listing.price.toLocaleString()} ريال سعودي\n`;
+    if (listing.bedrooms) message += `🛏️ عدد الغرف: ${listing.bedrooms}\n`;
+    message += `\n🔗 شاهد العرض:\n${currentUrl}`;
     
     // Track whatsapp CTA click
     track({
