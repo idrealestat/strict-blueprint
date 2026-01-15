@@ -88,6 +88,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationSounds } from "@/utils/notificationSounds";
 import { markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
+import { useBusinessCardData } from "@/hooks/useBusinessCardData";
 
 interface Customer {
   id: string;
@@ -3856,20 +3857,48 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               className="border-[#D4AF37] text-[#01411C]"
                               onClick={async () => {
                                 try {
+                                  // جلب بيانات الوسيط من localStorage
+                                  let brokerData: any = undefined;
+                                  try {
+                                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+                                    if (businessCard) {
+                                      brokerData = {
+                                        name: businessCard.userName || businessCard.name,
+                                        company: businessCard.companyName,
+                                        phone: businessCard.primaryPhone || businessCard.phone,
+                                        location: offer.city,
+                                        licenseNumber: businessCard.falLicense,
+                                        profileImage: businessCard.profileImage,
+                                        coverImage: businessCard.coverImage,
+                                        logoImage: businessCard.logoImage,
+                                      };
+                                    }
+                                  } catch {}
+                                  
+                                  const slug = localStorage.getItem('public_platform_slug') || '';
+                                  const offerUrl = slug && offer.city && offer.district
+                                    ? `${window.location.origin}/${slug}/${offer.city}/${offer.district}/${offer.id}`
+                                    : '';
+                                  
                                   const pdfData = {
+                                    id: offer.id,
                                     title: title,
                                     ownerName: offer.ownerName || customer.name,
                                     ownerPhone: offer.ownerPhone || customer.phone,
-                                    city: offer.city,
-                                    district: offer.district,
+                                    locationDetails: {
+                                      city: offer.city,
+                                      district: offer.district,
+                                    },
                                     propertyType: offer.propertyType,
                                     purpose: offer.purpose,
                                     price: offer.price,
                                     area: offer.area,
-                                    description: offer.description,
+                                    aiDescription: offer.description,
                                     images: (offer.media || []).filter((m: any) => m.type === 'image').map((m: any) => m.url),
+                                    image: (offer.media || []).find((m: any) => m.type === 'image')?.url,
+                                    offerUrl,
                                   };
-                                  await generatePropertyPDF(pdfData as any);
+                                  await generatePropertyPDF(pdfData as any, true, brokerData);
                                   toast.success('تم تحميل ملف PDF');
                                 } catch (e) {
                                   console.error('PDF error', e);
