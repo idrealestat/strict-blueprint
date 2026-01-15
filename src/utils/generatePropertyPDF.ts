@@ -220,11 +220,20 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
       <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
         📷 صور العقار (${toArabicNumerals(allImages.length)} صورة)
       </h3>
-      <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
-        ${allImages.map((img, index) => `
-          <img src="${img}" alt="صورة ${index + 1}" style="width: ${allImages.length === 1 ? '100%' : allImages.length === 2 ? '48%' : '31%'}; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); object-fit: cover;" crossorigin="anonymous" />
+      
+      <!-- الصورة الرئيسية بحجم كامل -->
+      <div style="margin-bottom: 10px;">
+        <img src="${allImages[0]}" alt="الصورة الرئيسية" style="width: 100%; max-height: 250px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); object-fit: cover;" crossorigin="anonymous" />
+      </div>
+      
+      <!-- بقية الصور في شبكة 3x3 -->
+      ${allImages.length > 1 ? `
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+        ${allImages.slice(1).map((img, index) => `
+          <img src="${img}" alt="صورة ${index + 2}" style="width: 100%; height: 100px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); object-fit: cover;" crossorigin="anonymous" />
         `).join('')}
       </div>
+      ` : ''}
     </div>
     ` : ''}
 
