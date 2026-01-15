@@ -636,7 +636,10 @@ export default function MyPlatformComplete({
         title: ad.title || `${ad.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${ad.propertyType} - ${ad.area || ''}م`,
         description: ad.aiDescription || ad.description || '',
         price: ad.price ? `${ad.price} ريال` : 'السعر عند التواصل',
-        image: ad.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
+        images: Array.isArray(ad.images) ? ad.images : [],
+        image: (Array.isArray(ad.images) && ad.images.length > 0)
+          ? ad.images[0]
+          : 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
         status: 'published',
         views: ad.views || 0,
         requests: ad.requests || 0,

@@ -222,8 +222,8 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
       </h3>
       
       <!-- الصورة الرئيسية بحجم كامل -->
-      <div style="margin-bottom: 10px;">
-        <img src="${allImages[0]}" alt="الصورة الرئيسية" style="width: 100%; max-height: 250px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); object-fit: cover;" crossorigin="anonymous" />
+      <div style="margin-bottom: 10px; background: #f8f9fa; padding: 8px; border-radius: 12px;">
+        <img src="${allImages[0]}" alt="الصورة الرئيسية" style="width: 100%; max-height: 280px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.12); object-fit: contain;" crossorigin="anonymous" />
       </div>
       
       <!-- بقية الصور في شبكة 3x3 -->
