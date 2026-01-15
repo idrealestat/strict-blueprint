@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePulsingDot, markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
+import { buildCityUrl, buildDistrictUrl, buildOfferUrl, getFullUrl } from "@/utils/slugify";
 import PulsingDot from "@/components/ui/PulsingDot";
 import LiveViewerIndicator from "@/components/ui/LiveViewerIndicator";
 import { Button } from "@/components/ui/button";
@@ -1183,16 +1184,22 @@ export default function MyPlatformComplete({
     }));
   };
 
-  // مشاركة عبر واتساب (للهيكل الهرمي)
+  // مشاركة عبر واتساب (للهيكل الهرمي) - روابط هرمية جديدة
   const shareItemWhatsApp = (title: string, id: string, cityName?: string, districtName?: string) => {
     // جلب بيانات العرض الكاملة
     const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
     const ad = publishedAds.find((a: any) => a.id === id);
-
-    // رابط المشاركة العام (بدون أي prefix)
-    const origin = window.location.origin;
     const safeSlug = (platformSlug || '').trim().toLowerCase();
-    const shareUrl = safeSlug ? `${origin}/${safeSlug}/offers?offer=${encodeURIComponent(id)}` : origin;
+    
+    // بناء الرابط الهرمي الجديد
+    let shareUrl = window.location.origin;
+    if (safeSlug && cityName && districtName) {
+      shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id), window.location.origin);
+    } else if (safeSlug && cityName) {
+      shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName), window.location.origin);
+    } else if (safeSlug) {
+      shareUrl = `${window.location.origin}/${safeSlug}`;
+    }
 
     let text = `🏠 *${title}*\n\n`;
 
@@ -1210,11 +1217,19 @@ export default function MyPlatformComplete({
     toast.success('تم فتح واتساب للمشاركة');
   };
 
-  // مشاركة رابط
-  const shareItemLink = async (title: string, id: string) => {
-    const origin = window.location.origin;
+  // مشاركة رابط - روابط هرمية جديدة
+  const shareItemLink = async (title: string, id: string, cityName?: string, districtName?: string) => {
     const safeSlug = (platformSlug || '').trim().toLowerCase();
-    const shareUrl = safeSlug ? `${origin}/${safeSlug}/offers?offer=${encodeURIComponent(id)}` : origin;
+    
+    // بناء الرابط الهرمي
+    let shareUrl = window.location.origin;
+    if (safeSlug && cityName && districtName) {
+      shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id), window.location.origin);
+    } else if (safeSlug && cityName) {
+      shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName), window.location.origin);
+    } else if (safeSlug) {
+      shareUrl = `${window.location.origin}/${safeSlug}`;
+    }
 
     await navigator.clipboard.writeText(shareUrl);
     toast.success('تم نسخ الرابط');

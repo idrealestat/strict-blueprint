@@ -43,6 +43,9 @@ import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
 import PublishAdPage from "./pages/PublishAdPage";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
+import SlugCityPage from "./pages/SlugCityPage";
+import SlugDistrictPage from "./pages/SlugDistrictPage";
+import SlugOfferDetailsPage from "./pages/SlugOfferDetailsPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
 import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
 import SlugOfferPage from "./pages/SlugOfferPage";
@@ -540,7 +543,7 @@ const App = () => {
                   <Route path="/app/offers-requests" element={<OffersRequestsPage />} />
                   <Route path="/app/smart-opportunities" element={<SmartOpportunitiesPage />} />
                   
-                  {/* PUBLIC ROUTES - Dynamic Slug Pattern */}
+                  {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
                   <Route path="/:slug/card" element={<SlugBusinessCardPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
@@ -548,6 +551,11 @@ const App = () => {
                   <Route path="/:slug/offer" element={<SlugOfferPage />} />
                   <Route path="/:slug/request" element={<SlugRequestPage />} />
                   <Route path="/:slug/quote" element={<SlugQuotePage />} />
+                  
+                  {/* Hierarchical City/District/Offer Routes */}
+                  <Route path="/:slug/:citySlug" element={<SlugCityPage />} />
+                  <Route path="/:slug/:citySlug/:districtSlug" element={<SlugDistrictPage />} />
+                  <Route path="/:slug/:citySlug/:districtSlug/:offerId" element={<SlugOfferDetailsPage />} />
                   
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
