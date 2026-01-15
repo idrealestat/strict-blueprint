@@ -137,6 +137,8 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     ownerMobile: l.ownerPhone || '',
     ownerWhatsapp: l.ownerPhone || '',
     ownerNationalAddress: l.ownerNationalAddress || '',
+    ownerCity: l.ownerCity || l.city || '',
+    ownerDistrict: l.ownerDistrict || l.district || '',
     ownerGoogleLocation: '',
     ownerNotes: '',
     // حقول معلومات الصك
@@ -895,6 +897,34 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     className="bg-gray-50 border-gray-200"
                     dir="ltr"
                   />
+                </div>
+
+                {/* المدينة في العنوان الوطني */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 text-[#01411C]" />
+                      المدينة / City
+                    </label>
+                    <Input
+                      value={(formData as any).ownerCity || ''}
+                      onChange={e => setFormData({ ...(formData as any), ownerCity: e.target.value })}
+                      placeholder="المدينة"
+                      className="bg-gray-50 border-gray-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 text-[#01411C]" />
+                      الحي / District
+                    </label>
+                    <Input
+                      value={(formData as any).ownerDistrict || ''}
+                      onChange={e => setFormData({ ...(formData as any), ownerDistrict: e.target.value })}
+                      placeholder="الحي"
+                      className="bg-gray-50 border-gray-200"
+                    />
+                  </div>
                 </div>
 
                 {/* العنوان الوطني */}

@@ -79,6 +79,8 @@ export interface PublishedAdData {
   ownerIdNumber?: string;
   ownerBirthDate?: string;
   ownerNationalAddress?: string;
+  ownerCity?: string;
+  ownerDistrict?: string;
   
   // Deed Info
   deedNumber?: string;
@@ -459,6 +461,9 @@ export function usePublishedAdsManager() {
       markAsNew('published_ad', adData.id);
       markAsNew('customer', customerId);
       markAsNew('tab', 'published_ads_tab');
+      // نقطة حمراء على المدينة
+      const cityName = adData.locationDetails?.city || 'غير محدد';
+      markAsNew('offer', `city_${cityName}`);
       
       // ========== الإشعارات الكاملة ==========
       
