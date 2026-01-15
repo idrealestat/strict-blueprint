@@ -2770,6 +2770,17 @@ export default function MyPlatformComplete({
           }}
           onSave={async (updatedListing) => {
             try {
+              // التحقق إذا كان الـ ID هو UUID صالح (موجود في قاعدة البيانات)
+              const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedListing.id);
+              
+              if (!isValidUUID) {
+                // العرض محلي وليس في قاعدة البيانات
+                toast.error('هذا العرض محلي فقط. يجب نشره أولاً من صفحة "نشر إعلان" لحفظ التعديلات.');
+                setShowEditPage(false);
+                setSelectedOfferForEdit(null);
+                return;
+              }
+              
               // حفظ التعديلات في قاعدة البيانات
               await updateListing(updatedListing.id, {
                 title: updatedListing.title,
