@@ -11,6 +11,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users, FileDown } from 'lucide-react';
 import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
+import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { getDisplayName } from '@/components/business-card/DisplayNameSettings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -618,17 +619,14 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               📷 {listing.imageCount}
             </div>
           )}
-          {/* شارة المشاهدين المباشرين */}
-          {liveViewerCount > 0 && (
-            <div className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1.5 shadow-lg animate-pulse">
-              <div className="relative">
-                <Eye className="w-3 h-3" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-white rounded-full" />
-              </div>
-              <span className="font-bold">{liveViewerCount}</span>
-              <span className="text-green-100 hidden sm:inline">يشاهدون الآن</span>
-            </div>
-          )}
+          {/* مؤشر المشاهدين المباشرين باستخدام المكون الموحد */}
+          <div className="absolute top-2 left-2 z-10">
+            <LiveViewerIndicator 
+              liveViewers={liveViewerCount} 
+              totalViews={listing.views || 0}
+              size="sm"
+            />
+          </div>
           {/* أزرار الفيديو و 3D */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             <Badge className="bg-[#D4AF37] text-[#01411C] text-xs">
@@ -1311,10 +1309,16 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                 return (
                   <div key={city.id} className="bg-white rounded-2xl p-4 md:p-6 shadow-lg border-2 border-[#01411C]">
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xl md:text-2xl font-bold text-[#01411C] flex items-center gap-2">
-                        <span className="text-2xl">🏙️</span>
-                        {city.name}
-                      </h2>
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-xl md:text-2xl font-bold text-[#01411C] flex items-center gap-2">
+                          <span className="text-2xl">🏙️</span>
+                          {city.name}
+                        </h2>
+                        <LiveViewerIndicator 
+                          liveViewers={city.districts.reduce((sum, d) => sum + d.listings.reduce((s, l) => s + (getLiveViewers(l.id) || 0), 0), 0)} 
+                          size="sm"
+                        />
+                      </div>
                       <Badge className="bg-[#01411C] text-[#D4AF37]">
                         {totalListings} عقار
                       </Badge>
@@ -1327,6 +1331,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 pb-2 border-b border-gray-200">
                               <MapPin className="w-5 h-5 text-[#D4AF37]" />
                               {district.name}
+                              <LiveViewerIndicator 
+                                liveViewers={district.listings.reduce((s, l) => s + (getLiveViewers(l.id) || 0), 0)} 
+                                size="sm"
+                              />
                               <Badge variant="outline" className="text-xs">
                                 {district.listings.length} عقار
                               </Badge>

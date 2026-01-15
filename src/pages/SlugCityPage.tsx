@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { slugToArabic, arabicToSlug, buildDistrictUrl } from '@/utils/slugify';
 import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
+import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { usePagePresence } from '@/hooks/usePagePresence';
 
 interface Listing {
@@ -36,6 +37,7 @@ interface DistrictGroup {
   slug: string;
   listings: Listing[];
   totalViews: number;
+  liveViewers?: number;
 }
 
 const SlugCityPage: React.FC = () => {
@@ -46,8 +48,40 @@ const SlugCityPage: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
   const [cityName, setCityName] = useState('');
   const [brokerName, setBrokerName] = useState('');
+  const [districtLiveViewers, setDistrictLiveViewers] = useState<Record<string, number>>({});
 
   const { liveCount } = usePagePresence('city', `${slug}-${citySlug}`);
+
+  // تتبع المشاهدين للأحياء
+  useEffect(() => {
+    if (!slug || !citySlug || districts.length === 0) return;
+    
+    // للتبسيط: سنستخدم قناة لكل حي
+    const channels: ReturnType<typeof supabase.channel>[] = [];
+    
+    districts.forEach(district => {
+      const channelName = `page-presence-district-${slug}-${citySlug}-${district.slug}`;
+      const channel = supabase.channel(channelName, {
+        config: { presence: { key: `city-viewer-${Date.now()}` } }
+      });
+      
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          setDistrictLiveViewers(prev => ({
+            ...prev,
+            [district.slug]: Object.keys(state).length
+          }));
+        })
+        .subscribe();
+      
+      channels.push(channel);
+    });
+    
+    return () => {
+      channels.forEach(ch => ch.unsubscribe());
+    };
+  }, [slug, citySlug, districts]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -194,8 +228,16 @@ const SlugCityPage: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-[#D4AF37] flex items-center justify-center">
                 <MapPin className="w-8 h-8 text-[#01411C]" />
               </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">{cityName}</h1>
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl md:text-3xl font-bold">{cityName}</h1>
+                  <LiveViewerIndicator 
+                    liveViewers={liveCount} 
+                    totalViews={districts.reduce((sum, d) => sum + d.totalViews, 0)}
+                    showTotalViews={true}
+                    size="md"
+                  />
+                </div>
                 <p className="text-white/80 mt-1">
                   {totalListings} عرض في {districts.length} حي
                 </p>
@@ -244,8 +286,14 @@ const SlugCityPage: React.FC = () => {
 
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-[#01411C] text-lg">{district.name}</h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-[#01411C] text-lg">{district.name}</h3>
+                          <LiveViewerIndicator 
+                            liveViewers={districtLiveViewers[district.slug] || 0} 
+                            size="sm"
+                          />
+                        </div>
                         <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                           <Eye className="w-3 h-3" />
                           {district.totalViews.toLocaleString()} مشاهدة
