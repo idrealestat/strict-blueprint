@@ -9,7 +9,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, Phone, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users } from 'lucide-react';
+import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users, FileDown } from 'lucide-react';
+import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
 import { getDisplayName } from '@/components/business-card/DisplayNameSettings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1107,7 +1108,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
             <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm text-white/90">
               {effectiveBusinessCardData?.primaryPhone && (
                 <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                  <Phone className="w-4 h-4 text-[#D4AF37]" />
+                  <MessageSquare className="w-4 h-4 text-[#D4AF37]" />
                   {effectiveBusinessCardData.primaryPhone}
                 </span>
               )}
@@ -1153,10 +1154,65 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               <Button 
                 size="sm" 
                 className="bg-[#D4AF37] hover:bg-[#c9a030] text-[#01411C]"
-                onClick={() => window.open(`tel:${effectiveBusinessCardData?.primaryPhone || '+966501234567'}`, '_blank')}
+                onClick={async () => {
+                  // إذا كان هناك عرض واحد فقط، نقوم بتحميله مباشرة
+                  // وإلا نظهر رسالة للمستخدم
+                  if (allListings.length === 0) {
+                    toast.error('لا توجد عروض متاحة للتحميل');
+                    return;
+                  }
+                  
+                  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+                  
+                  // تحميل أول عرض متاح (أو يمكن للمستخدم اختيار عرض معين)
+                  const firstListing = allListings[0];
+                  const offerUrl = `https://${publishedDomain}/${currentSlug}/offers/${firstListing.id}`;
+                  
+                  await generatePropertyPDF({
+                    id: firstListing.id,
+                    title: firstListing.title,
+                    propertyType: firstListing.propertyType,
+                    category: firstListing.category || 'للبيع',
+                    purpose: firstListing.purpose,
+                    area: firstListing.area?.toString(),
+                    price: firstListing.price?.toString(),
+                    locationDetails: {
+                      city: firstListing.city,
+                      district: firstListing.district,
+                      street: firstListing.street
+                    },
+                    bedrooms: firstListing.bedrooms?.toString(),
+                    bathrooms: firstListing.bathrooms?.toString(),
+                    livingRooms: firstListing.livingRooms,
+                    floors: firstListing.floors,
+                    floorNumber: firstListing.floorNumber,
+                    streetWidth: firstListing.streetWidth,
+                    propertyAge: firstListing.age?.toString(),
+                    facade: firstListing.direction,
+                    furnishing: firstListing.furnishing,
+                    features: firstListing.features,
+                    aiDescription: firstListing.description,
+                    images: firstListing.images || (firstListing.image ? [firstListing.image] : []),
+                    image: firstListing.image,
+                    brokerPhone: effectiveBusinessCardData?.primaryPhone,
+                    adLicense: firstListing.adLicense,
+                    offerUrl: offerUrl
+                  }, true, {
+                    name: effectiveBusinessCardData?.userName,
+                    company: effectiveBusinessCardData?.companyName,
+                    phone: effectiveBusinessCardData?.primaryPhone,
+                    location: effectiveBusinessCardData?.location,
+                    licenseNumber: effectiveBusinessCardData?.falLicense,
+                    profileImage: effectiveBusinessCardData?.profileImage,
+                    coverImage: effectiveBusinessCardData?.coverImage,
+                    logoImage: effectiveBusinessCardData?.logoImage
+                  });
+                  
+                  toast.success('تم تحميل ملف PDF بنجاح!');
+                }}
               >
-                <Phone className="w-4 h-4 ml-2" />
-                اتصال
+                <FileDown className="w-4 h-4 ml-2" />
+                تحميل PDF
               </Button>
               <Button 
                 size="sm" 
