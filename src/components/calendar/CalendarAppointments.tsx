@@ -126,7 +126,7 @@ export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppoint
       return uniqueAppointments;
     } catch (e) {
       console.error('Error loading appointments:', e);
-      return mockAppointments;
+      return []; // ✅ حالة "أول استخدام" - لا بيانات وهمية
     }
   };
 

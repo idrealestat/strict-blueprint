@@ -522,13 +522,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     if (dbCustomers.length > 0) {
       setCustomers(dbCustomers.map(mapCRMToCustomer));
     } else if (!crmLoading) {
-      // If no DB customers and loading is done, use mock data
-      const stored = getAllCustomers();
-      if (stored.length) {
-        setCustomers(stored.map(mapLinkedToCustomer));
-      } else {
-        setCustomers(mockCustomers);
-      }
+      // ✅ حالة "أول استخدام" - لا بيانات وهمية
+      setCustomers([]);
     }
   }, [dbCustomers, crmLoading, mapCRMToCustomer, mapLinkedToCustomer]);
 
@@ -1679,19 +1674,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                       >
                         <Download className="w-3 h-3" />
                       </Button>
-                      {recentCalls.length === 0 && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-[10px] hover:bg-amber-100"
-                          onClick={() => {
-                            addSampleData();
-                            toast.success('تم إضافة بيانات تجريبية');
-                          }}
-                        >
-                          ➕ تجريبي
-                        </Button>
-                      )}
+                      {/* ✅ تم إزالة زر البيانات التجريبية */}
                     </div>
                     {/* مدخل ملف CSV مخفي */}
                     <input
