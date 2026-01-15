@@ -210,6 +210,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
         عرض ${purposeAr} - ${typeAr} - ${safeArea || ''}م²
       </h2>
       ${safeTitle ? `<p style="color: #01411C; font-size: 12px; margin: 5px 0 0 0; opacity: 0.8;">${safeTitle}</p>` : ''}
+      ${property.adLicense ? `<p style="color: #01411C; font-size: 11px; margin: 5px 0 0 0; opacity: 0.7;">📋 رقم الترخيص الإعلاني: ${sanitize(property.adLicense)}</p>` : ''}
     </div>
 
     <!-- الصورة الرئيسية للعقار -->
@@ -317,8 +318,13 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📝 وصف العقار
         </h3>
-        <div style="color: #333; line-height: 1.7; text-align: justify; background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 12px;">
-          ${safeAiDescription}
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+          ${safeAiDescription.split(/[.،]/).filter(s => s.trim()).map(sentence => `
+            <div style="color: #333; font-size: 12px; padding: 4px 0; display: flex; align-items: flex-start; gap: 8px;">
+              <span style="color: #D4AF37; font-size: 10px;">●</span>
+              <span style="line-height: 1.6;">${sentence.trim()}</span>
+            </div>
+          `).join('')}
         </div>
       </div>
       ` : ''}
