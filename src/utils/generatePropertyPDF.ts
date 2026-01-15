@@ -133,9 +133,10 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
   const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
   const typeAr = safePropertyType;
   
-  // الصورة الرئيسية - تنظيف URL
-  const mainImage = property.image || (property.images && property.images.length > 0 ? property.images[0] : null);
-  const safeMainImage = mainImage ? encodeURI(mainImage) : null;
+  // جميع الصور - تنظيف URLs
+  const allImages = property.images && property.images.length > 0 
+    ? property.images.map(img => encodeURI(img))
+    : (property.image ? [encodeURI(property.image)] : []);
 
   // معلومات الوسيط
   const brokerData = broker || property.broker;
@@ -213,10 +214,17 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
       ${property.adLicense ? `<p style="color: #01411C; font-size: 11px; margin: 5px 0 0 0; opacity: 0.7;">📋 رقم الترخيص الإعلاني: ${sanitize(property.adLicense)}</p>` : ''}
     </div>
 
-    <!-- الصورة الرئيسية للعقار -->
-    ${safeMainImage ? `
-    <div style="padding: 15px; text-align: center;">
-      <img src="${safeMainImage}" alt="صورة العقار" style="max-width: 100%; max-height: 200px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); object-fit: cover;" crossorigin="anonymous" />
+    <!-- جميع صور العقار -->
+    ${allImages.length > 0 ? `
+    <div style="padding: 15px;">
+      <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
+        📷 صور العقار (${toArabicNumerals(allImages.length)} صورة)
+      </h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+        ${allImages.map((img, index) => `
+          <img src="${img}" alt="صورة ${index + 1}" style="width: ${allImages.length === 1 ? '100%' : allImages.length === 2 ? '48%' : '31%'}; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); object-fit: cover;" crossorigin="anonymous" />
+        `).join('')}
+      </div>
     </div>
     ` : ''}
 
@@ -318,13 +326,8 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📝 وصف العقار
         </h3>
-        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
-          ${safeAiDescription.split(/[.،]/).filter(s => s.trim()).map(sentence => `
-            <div style="color: #333; font-size: 12px; padding: 4px 0; display: flex; align-items: flex-start; gap: 8px;">
-              <span style="color: #D4AF37; font-size: 10px;">●</span>
-              <span style="line-height: 1.6;">${sentence.trim()}</span>
-            </div>
-          `).join('')}
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; color: #333; font-size: 12px; line-height: 1.8; text-align: justify; white-space: pre-wrap;">
+          ${safeAiDescription}
         </div>
       </div>
       ` : ''}
