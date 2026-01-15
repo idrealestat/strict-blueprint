@@ -114,7 +114,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
 
   const buildInitialFormData = useMemo(() => (l: Listing, cardData: typeof businessCardData) => ({
     title: l.title || '',
-    sku: `AD${l.id.slice(0, 6).toUpperCase()}`,
+    adLicense: (l as any).adLicense || (l as any).ad_license || '',
     price: l.price || 0,
     priceType: 'total',
     description: l.description || '',
@@ -602,16 +602,17 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   />
                 </div>
 
-                {/* رقم الاعلان */}
+                {/* الترخيص الإعلاني */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                    <Tag className="w-4 h-4 text-[#01411C]" />
-                    رقم الإعلان / SKU
+                    <FileCheck className="w-4 h-4 text-[#01411C]" />
+                    الترخيص الإعلاني
                   </label>
                   <Input
-                    value={formData.sku}
-                    onChange={e => setFormData({ ...formData, sku: e.target.value })}
+                    value={formData.adLicense}
+                    onChange={e => setFormData({ ...formData, adLicense: e.target.value })}
                     className="text-right bg-gray-50 border-gray-200"
+                    placeholder="رقم الترخيص الإعلاني"
                     dir="ltr"
                   />
                 </div>
