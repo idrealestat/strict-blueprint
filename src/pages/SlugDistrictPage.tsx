@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { slugToArabic, arabicToSlug, buildOfferUrl } from '@/utils/slugify';
 import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
+import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { usePagePresence } from '@/hooks/usePagePresence';
 
 interface Listing {
@@ -44,8 +45,39 @@ const SlugDistrictPage: React.FC = () => {
   const [cityName, setCityName] = useState('');
   const [districtName, setDistrictName] = useState('');
   const [brokerName, setBrokerName] = useState('');
+  const [offerLiveViewers, setOfferLiveViewers] = useState<Record<string, number>>({});
 
   const { liveCount } = usePagePresence('district', `${slug}-${citySlug}-${districtSlug}`);
+  
+  // تتبع المشاهدين لكل عرض
+  useEffect(() => {
+    if (listings.length === 0) return;
+    
+    const channels: ReturnType<typeof supabase.channel>[] = [];
+    
+    listings.forEach(listing => {
+      const channelName = `page-presence-offer-${listing.id}`;
+      const channel = supabase.channel(channelName, {
+        config: { presence: { key: `district-viewer-${Date.now()}` } }
+      });
+      
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          setOfferLiveViewers(prev => ({
+            ...prev,
+            [listing.id]: Object.keys(state).length
+          }));
+        })
+        .subscribe();
+      
+      channels.push(channel);
+    });
+    
+    return () => {
+      channels.forEach(ch => ch.unsubscribe());
+    };
+  }, [listings]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -181,8 +213,16 @@ const SlugDistrictPage: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-[#D4AF37] flex items-center justify-center">
                 <Building2 className="w-8 h-8 text-[#01411C]" />
               </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">{districtName}</h1>
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl md:text-3xl font-bold">{districtName}</h1>
+                  <LiveViewerIndicator 
+                    liveViewers={liveCount} 
+                    totalViews={listings.reduce((sum, l) => sum + (l.views || 0), 0)}
+                    showTotalViews={true}
+                    size="md"
+                  />
+                </div>
                 <p className="text-white/80 mt-1">
                   {cityName} • {listings.length} عرض
                 </p>
@@ -210,6 +250,13 @@ const SlugDistrictPage: React.FC = () => {
                   <Badge className="absolute top-2 right-2 bg-[#01411C]">
                     {listing.property_type}
                   </Badge>
+                  {/* مؤشر المشاهدات المباشرة */}
+                  <div className="absolute top-2 left-2">
+                    <LiveViewerIndicator 
+                      liveViewers={offerLiveViewers[listing.id] || 0} 
+                      size="sm"
+                    />
+                  </div>
                   <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
                     <Eye className="w-3 h-3" />
                     {(listing.views || 0).toLocaleString()}
