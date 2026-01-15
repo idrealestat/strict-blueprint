@@ -600,7 +600,7 @@ export default function MyPlatformComplete({
     () => localStorage.getItem('public_platform_slug') || 'default',
     []
   );
-  const { syncFromLocalStorage, cleanupDuplicates } = usePlatformListings(currentSlug);
+  const { syncFromLocalStorage, cleanupDuplicates, updateListing } = usePlatformListings(currentSlug);
   
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
@@ -2768,8 +2768,42 @@ export default function MyPlatformComplete({
             setShowEditPage(false);
             setSelectedOfferForEdit(null);
           }}
-          onSave={(updatedListing) => {
-            toast.success('تم حفظ التعديلات بنجاح');
+          onSave={async (updatedListing) => {
+            try {
+              // حفظ التعديلات في قاعدة البيانات
+              await updateListing(updatedListing.id, {
+                title: updatedListing.title,
+                price: updatedListing.price,
+                description: updatedListing.description,
+                city: updatedListing.city,
+                district: updatedListing.district,
+                street: updatedListing.street,
+                area: updatedListing.area,
+                bedrooms: updatedListing.bedrooms,
+                bathrooms: updatedListing.bathrooms,
+                tour3DUrl: updatedListing.tour3DUrl,
+                adLicense: updatedListing.adLicense,
+                ownerName: updatedListing.ownerName,
+                ownerPhone: updatedListing.ownerPhone,
+                ownerIdNumber: updatedListing.ownerIdNumber,
+                ownerBirthDate: updatedListing.ownerBirthDate,
+                ownerNationalAddress: updatedListing.ownerNationalAddress,
+                ownerCity: updatedListing.ownerCity,
+                ownerDistrict: updatedListing.ownerDistrict,
+                deedNumber: updatedListing.deedNumber,
+                deedDate: updatedListing.deedDate,
+                deedCity: updatedListing.deedCity,
+                contractDuration: updatedListing.contractDuration,
+                contractStartDate: updatedListing.contractStartDate,
+                contractEndDate: updatedListing.contractEndDate,
+                isCurrentlyRented: updatedListing.isCurrentlyRented,
+                rentalContractFile: updatedListing.rentalContractFile,
+              });
+              toast.success('تم حفظ التعديلات بنجاح');
+            } catch (error) {
+              console.error('Error saving listing:', error);
+              toast.error('فشل في حفظ التعديلات');
+            }
             setShowEditPage(false);
             setSelectedOfferForEdit(null);
           }}
