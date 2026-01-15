@@ -9,8 +9,20 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import DOMPurify from 'dompurify';
 
+interface BrokerData {
+  name?: string;
+  company?: string;
+  phone?: string;
+  location?: string;
+  licenseNumber?: string;
+  profileImage?: string;
+  coverImage?: string;
+  logoImage?: string;
+}
+
 interface PropertyData {
   id?: string;
+  slug?: string;
   propertyType?: string;
   category?: string;
   purpose?: string;
@@ -43,6 +55,8 @@ interface PropertyData {
   images?: string[];
   image?: string;
   title?: string;
+  broker?: BrokerData;
+  offerUrl?: string;
 }
 
 /**
@@ -77,7 +91,7 @@ const formatArabicPrice = (price: string | number): string => {
 /**
  * إنشاء عنصر HTML للطباعة كـ PDF
  */
-const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDivElement => {
+const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?: BrokerData): HTMLDivElement => {
   const container = document.createElement('div');
   container.id = 'pdf-content';
   // نضعه في موقع مرئي مؤقتاً للسماح بتحميل الخطوط
@@ -123,24 +137,79 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
   const mainImage = property.image || (property.images && property.images.length > 0 ? property.images[0] : null);
   const safeMainImage = mainImage ? encodeURI(mainImage) : null;
 
+  // معلومات الوسيط
+  const brokerData = broker || property.broker;
+  const safeBrokerName = sanitize(brokerData?.name);
+  const safeBrokerCompany = sanitize(brokerData?.company);
+  const safeBrokerLocation = sanitize(brokerData?.location);
+  const safeBrokerLicense = sanitize(brokerData?.licenseNumber);
+  const brokerProfileImage = brokerData?.profileImage ? encodeURI(brokerData.profileImage) : null;
+  const brokerCoverImage = brokerData?.coverImage ? encodeURI(brokerData.coverImage) : null;
+  const brokerLogoImage = brokerData?.logoImage ? encodeURI(brokerData.logoImage) : null;
+  const offerUrl = property.offerUrl || '';
+
   container.innerHTML = `
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
       * { font-family: 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
     </style>
     
-    <!-- رأس الصفحة -->
-    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 20px; text-align: center;">
-      <h1 style="color: #D4AF37; font-size: 26px; margin: 0 0 5px 0; font-weight: bold;">منصة وساطة العقارية</h1>
-      <p style="color: #ffffff; font-size: 12px; margin: 0;">Wasata Real Estate Platform</p>
+    <!-- رأس الصفحة مع معلومات الوسيط -->
+    <div style="position: relative; min-height: 120px; overflow: hidden;">
+      <!-- صورة الغلاف -->
+      ${brokerCoverImage ? `
+      <div style="position: absolute; inset: 0;">
+        <img src="${brokerCoverImage}" alt="غلاف" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" />
+        <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(1,65,28,0.7), rgba(1,65,28,0.6), rgba(1,65,28,0.9));"></div>
+      </div>
+      ` : `
+      <div style="position: absolute; inset: 0; background: linear-gradient(135deg, #01411C 0%, #065f41 100%);"></div>
+      `}
+      
+      <!-- محتوى الهيدر -->
+      <div style="position: relative; padding: 20px; display: flex; align-items: center; gap: 15px;">
+        <!-- صورة البروفايل -->
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(212,175,55,0.2); border: 3px solid #D4AF37; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+          ${brokerProfileImage ? `
+          <img src="${brokerProfileImage}" alt="${safeBrokerName}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" />
+          ` : `
+          <div style="font-size: 28px; color: #D4AF37;">🏢</div>
+          `}
+        </div>
+        
+        <!-- معلومات الوسيط -->
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <h1 style="color: white; font-size: 20px; font-weight: bold; margin: 0;">${safeBrokerName || 'الوسيط العقاري'}</h1>
+            <span style="background: #D4AF37; color: #01411C; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">✓ موثق</span>
+          </div>
+          ${safeBrokerCompany ? `<p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 4px 0 0 0;">${safeBrokerCompany}</p>` : ''}
+          <div style="display: flex; align-items: center; gap: 15px; margin-top: 6px; flex-wrap: wrap;">
+            ${safeBrokerPhone ? `<span style="color: rgba(255,255,255,0.7); font-size: 11px;">📞 ${safeBrokerPhone}</span>` : ''}
+            ${safeBrokerLocation ? `<span style="color: rgba(255,255,255,0.7); font-size: 11px;">📍 ${safeBrokerLocation}</span>` : ''}
+          </div>
+          ${safeBrokerLicense ? `
+          <div style="margin-top: 6px; color: rgba(255,255,255,0.6); font-size: 10px;">
+            🏆 رخصة فال: ${safeBrokerLicense}
+          </div>
+          ` : ''}
+        </div>
+        
+        <!-- صورة الشعار -->
+        ${brokerLogoImage ? `
+        <div style="width: 55px; height: 55px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+          <img src="${brokerLogoImage}" alt="شعار" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" crossorigin="anonymous" />
+        </div>
+        ` : ''}
+      </div>
     </div>
 
-    <!-- عنوان العرض -->
-    <div style="background: #f8f9fa; padding: 15px; text-align: center; border-bottom: 3px solid #D4AF37;">
-      <h2 style="color: #01411C; font-size: 20px; margin: 0;">
+    <!-- شريط عنوان العرض -->
+    <div style="background: #D4AF37; padding: 12px; text-align: center;">
+      <h2 style="color: #01411C; font-size: 18px; font-weight: bold; margin: 0;">
         عرض ${purposeAr} - ${typeAr} - ${safeArea || ''}م²
       </h2>
-      ${safeTitle ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0;">${safeTitle}</p>` : ''}
+      ${safeTitle ? `<p style="color: #01411C; font-size: 12px; margin: 5px 0 0 0; opacity: 0.8;">${safeTitle}</p>` : ''}
     </div>
 
     <!-- الصورة الرئيسية للعقار -->
@@ -283,9 +352,35 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
 
     </div>
 
-    <!-- تذييل الصفحة -->
-    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 12px 20px; margin-top: auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; color: #D4AF37; font-size: 10px;">
+    <!-- تذييل الصفحة مع معلومات الوسيط -->
+    <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 20px; margin-top: 20px;">
+      <!-- معلومات التواصل -->
+      <div style="display: flex; justify-content: center; align-items: center; gap: 30px; flex-wrap: wrap; margin-bottom: 15px;">
+        ${safeBrokerName ? `
+        <div style="text-align: center;">
+          <div style="color: #D4AF37; font-size: 14px; font-weight: bold;">${safeBrokerName}</div>
+          <div style="color: rgba(255,255,255,0.7); font-size: 10px;">الوسيط العقاري</div>
+        </div>
+        ` : ''}
+        ${safeBrokerPhone ? `
+        <div style="text-align: center;">
+          <div style="background: #25D366; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+            💬 واتساب: ${safeBrokerPhone}
+          </div>
+        </div>
+        ` : ''}
+      </div>
+      
+      <!-- رابط العرض -->
+      ${offerUrl ? `
+      <div style="text-align: center; margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+        <div style="color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 5px;">رابط العرض على المنصة:</div>
+        <div style="color: #D4AF37; font-size: 12px; font-weight: bold; word-break: break-all;">${offerUrl}</div>
+      </div>
+      ` : ''}
+      
+      <!-- التاريخ والمنصة -->
+      <div style="display: flex; justify-content: space-between; align-items: center; color: rgba(255,255,255,0.5); font-size: 9px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
         <span>📅 تم إنشاءه بتاريخ: ${new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
         <span>منصة وساطة العقارية | Wasata Platform</span>
       </div>
@@ -298,9 +393,9 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean): HTMLDi
 /**
  * توليد PDF لتفاصيل العقار مع دعم العربية الكامل
  */
-export async function generatePropertyPDF(property: PropertyData, includeOwner: boolean = true): Promise<void> {
+export async function generatePropertyPDF(property: PropertyData, includeOwner: boolean = true, broker?: BrokerData): Promise<void> {
   // إنشاء محتوى HTML
-  const container = createPDFContent(property, includeOwner);
+  const container = createPDFContent(property, includeOwner, broker);
   document.body.appendChild(container);
 
   // إضافة خط عربي ديناميكياً (نفس خط التطبيق)

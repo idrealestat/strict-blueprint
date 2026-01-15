@@ -120,7 +120,30 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
       window.open(`https://wa.me/?text=${message}`, '_blank');
     } else if (type === 'pdf') {
       toast.info('جاري تحميل PDF...');
-      // تحويل بيانات Ad إلى PropertyData
+      
+      // جلب بيانات الوسيط
+      let brokerData: any = undefined;
+      try {
+        const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+        if (businessCard) {
+          brokerData = {
+            name: businessCard.userName || businessCard.name,
+            company: businessCard.companyName,
+            phone: businessCard.primaryPhone || businessCard.phone,
+            location: ad.location?.city,
+            licenseNumber: businessCard.falLicense,
+            profileImage: businessCard.profileImage,
+            coverImage: businessCard.coverImage,
+            logoImage: businessCard.logoImage,
+          };
+        }
+      } catch {}
+      
+      const slug = localStorage.getItem('public_platform_slug') || '';
+      const offerUrl = slug && ad.location?.city && ad.location?.district
+        ? `${window.location.origin}/${slug}/${ad.location.city}/${ad.location.district}/${ad.id}`
+        : '';
+      
       const propertyData = {
         id: ad.id,
         title: ad.title,
@@ -135,8 +158,9 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
         ownerPhone: ad.ownerPhone,
         image: ad.mediaFiles?.[0]?.url,
         images: ad.mediaFiles?.map(f => f.url),
+        offerUrl,
       };
-      generatePropertyPDF(propertyData, true)
+      generatePropertyPDF(propertyData, true, brokerData)
         .then(() => toast.success('تم تحميل PDF بنجاح!'))
         .catch((error) => {
           console.error('Error generating PDF:', error);

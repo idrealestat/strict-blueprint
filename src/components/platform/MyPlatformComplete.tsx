@@ -1545,10 +1545,27 @@ export default function MyPlatformComplete({
 
     try {
       const category = offer.title?.includes('للإيجار') ? 'للإيجار' : 'للبيع';
+      
+      // إعداد معلومات الوسيط للهيدر والفوتر
+      const brokerData = businessCardData ? {
+        name: businessCardData.userName,
+        company: businessCardData.companyName,
+        phone: user?.phone || '',
+        location: cityName,
+        profileImage: businessCardData.profileImage,
+        coverImage: businessCardData.coverImage,
+        logoImage: businessCardData.logoImage,
+      } : undefined;
+      
+      // إنشاء رابط العرض العام
+      const offerUrl = currentSlug && cityName && districtName
+        ? getFullUrl(`/${currentSlug}/${cityName}/${districtName}/${offer.id}`)
+        : '';
 
       await generatePropertyPDF(
         {
           id: offer.id,
+          slug: currentSlug,
           title: offer.title,
           category,
           propertyType: offer.propertyType,
@@ -1558,6 +1575,7 @@ export default function MyPlatformComplete({
           bathrooms: offer.bathrooms?.toString(),
           ownerName: offer.ownerName ?? offer.owner?.name,
           ownerPhone: offer.owner?.phone,
+          brokerPhone: user?.phone || businessCardData?.userName,
           image: offer.image,
           images: offer.image ? [offer.image] : undefined,
           locationDetails: {
@@ -1565,8 +1583,10 @@ export default function MyPlatformComplete({
             district: districtName,
           },
           aiDescription: offer.description,
+          offerUrl,
         },
-        true
+        true,
+        brokerData
       );
 
       toast.success('تم تحميل PDF بنجاح');

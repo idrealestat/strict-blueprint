@@ -109,7 +109,27 @@ export default function PDFPreviewDialog({
     try {
       const filteredProperty = getFilteredProperty();
       const includeOwner = sections.find(s => s.id === 'owner')?.enabled ?? true;
-      await generatePropertyPDF(filteredProperty, includeOwner);
+      
+      // إضافة معلومات الوسيط ورابط العرض
+      const brokerData = property.broker || {
+        name: property.brokerName,
+        phone: property.brokerPhone,
+        company: property.brokerCompany,
+        location: property.locationDetails?.city,
+        licenseNumber: property.brokerLicense,
+        profileImage: property.brokerProfileImage,
+        coverImage: property.brokerCoverImage,
+        logoImage: property.brokerLogoImage,
+      };
+      
+      // إنشاء رابط العرض
+      const offerUrl = property.slug && property.locationDetails?.city && property.locationDetails?.district
+        ? `${window.location.origin}/${property.slug}/${property.locationDetails.city}/${property.locationDetails.district}/${property.id}`
+        : '';
+      
+      filteredProperty.offerUrl = offerUrl;
+      
+      await generatePropertyPDF(filteredProperty, includeOwner, brokerData);
       toast.success('تم تحميل ملف PDF بنجاح');
     } catch (error) {
       console.error('Error generating PDF:', error);
