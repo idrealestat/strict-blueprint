@@ -915,6 +915,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         ownerIdNumber: propertyData.ownerIdNumber,
         ownerBirthDate: propertyData.ownerBirthDate,
         ownerNationalAddress: propertyData.ownerNationalAddress,
+        ownerCity: propertyData.ownerCity || propertyData.locationDetails.city,
+        ownerDistrict: propertyData.ownerDistrict || propertyData.locationDetails.district,
         deedNumber: propertyData.deedNumber,
         deedDate: propertyData.deedDate,
         deedCity: propertyData.deedCity,

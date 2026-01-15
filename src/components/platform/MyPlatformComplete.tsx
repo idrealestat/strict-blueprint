@@ -647,6 +647,27 @@ export default function MyPlatformComplete({
         ownerName: ad.ownerName,
         isHidden: visibilityState[`offer_${ad.id}`] ?? ad.isHidden ?? false,
         liveViewers: 0,
+        // حقول المالك الإضافية
+        ownerIdNumber: ad.ownerIdNumber || undefined,
+        ownerBirthDate: ad.ownerBirthDate || undefined,
+        ownerCity: ad.locationDetails?.city || ad.city || undefined,
+        ownerDistrict: ad.locationDetails?.district || ad.district || undefined,
+        ownerNationalAddress: ad.ownerNationalAddress || undefined,
+        // حقول الصك
+        deedNumber: ad.deedNumber || undefined,
+        deedDate: ad.deedDate || undefined,
+        deedCity: ad.deedCity || ad.locationDetails?.city || undefined,
+        // حقول التأجير
+        contractDuration: parseInt(ad.contractDuration) || undefined,
+        contractStartDate: ad.contractStartDate || undefined,
+        contractEndDate: ad.contractEndDate || undefined,
+        isCurrentlyRented: ad.isCurrentlyRented ?? false,
+        // حقول إضافية
+        city: ad.locationDetails?.city || ad.city || undefined,
+        district: ad.locationDetails?.district || ad.district || undefined,
+        street: ad.locationDetails?.street || ad.street || undefined,
+        tour3DUrl: ad.tour3DUrl || undefined,
+        linkedCustomerId: ad.linkedCustomerId || undefined,
       });
 
       const updated: CityLevel[] = [];
@@ -1978,8 +1999,10 @@ export default function MyPlatformComplete({
                       <div className="flex flex-col md:flex-row md:items-center gap-3 cursor-pointer" onClick={() => toggleCityExpand(city.cityName)}>
                         {/* الأيقونة والعنوان */}
                         <div className="flex items-center gap-3 flex-1">
-                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0 ${isCityExpanded ? 'bg-[#D4AF37]' : 'bg-[#01411C]'}`}>
+                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0 relative ${isCityExpanded ? 'bg-[#D4AF37]' : 'bg-[#01411C]'}`}>
                             <MapPin className={`w-5 h-5 md:w-6 md:h-6 ${isCityExpanded ? 'text-[#01411C]' : 'text-[#D4AF37]'}`} />
+                            {/* النقطة الحمراء النابضة على المدينة عند وجود عرض جديد */}
+                            <PulsingDot show={isNew('offer', `city_${city.cityName}`)} size="md" position="top-right" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -2279,6 +2302,14 @@ export default function MyPlatformComplete({
                                             const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
                                             const fullAd = publishedAds.find((ad: any) => ad.id === offer.id);
 
+                                            // إزالة النقطة الحمراء عند فتح العرض
+                                            markAsViewed('published_ad', offer.id);
+                                            // إزالة النقطة من المدينة إذا لم يتبقَ عروض جديدة أخرى في نفس المدينة
+                                            const remainingNewOffers = allCityOffers.filter(o => o.id !== offer.id && isNew('published_ad', o.id));
+                                            if (remainingNewOffers.length === 0) {
+                                              markAsViewed('offer', `city_${city.cityName}`);
+                                            }
+
                                             const images = (fullAd?.images?.length ? fullAd.images : [offer.image]).filter(Boolean);
                                             const videos = (fullAd?.videos || []).filter(Boolean);
 
@@ -2298,16 +2329,22 @@ export default function MyPlatformComplete({
                                               ownerName: fullAd?.ownerName || offer.ownerName || '',
                                               ownerPhone: fullAd?.ownerPhone || offer.owner?.phone || '',
                                               ownerEmail: fullAd?.ownerEmail || '',
-                                              ownerBirthDate: fullAd?.ownerBirthDate || '',
-                                              ownerCity: fullAd?.ownerCity || '',
-                                              ownerDistrict: fullAd?.ownerDistrict || '',
-                                              deedNumber: fullAd?.deedNumber || '',
-                                              deedDate: fullAd?.deedDate || '',
-                                              deedCity: fullAd?.deedCity || '',
+                                              ownerBirthDate: fullAd?.ownerBirthDate || offer.ownerBirthDate || '',
+                                              ownerCity: fullAd?.ownerCity || offer.ownerCity || '',
+                                              ownerDistrict: fullAd?.ownerDistrict || offer.ownerDistrict || '',
+                                              ownerIdNumber: fullAd?.ownerIdNumber || offer.ownerIdNumber || '',
+                                              ownerNationalAddress: fullAd?.ownerNationalAddress || offer.ownerNationalAddress || '',
+                                              deedNumber: fullAd?.deedNumber || offer.deedNumber || '',
+                                              deedDate: fullAd?.deedDate || offer.deedDate || '',
+                                              deedCity: fullAd?.deedCity || offer.deedCity || '',
+                                              contractDuration: fullAd?.contractDuration || offer.contractDuration,
+                                              contractStartDate: fullAd?.contractStartDate || offer.contractStartDate || '',
+                                              contractEndDate: fullAd?.contractEndDate || offer.contractEndDate || '',
+                                              isCurrentlyRented: fullAd?.isCurrentlyRented ?? offer.isCurrentlyRented ?? false,
                                               images,
                                               videos,
-                                              tour3DUrl: fullAd?.tour3DUrl || '',
-                                              linkedCustomerId: fullAd?.linkedCustomerId || undefined,
+                                              tour3DUrl: fullAd?.tour3DUrl || offer.tour3DUrl || '',
+                                              linkedCustomerId: fullAd?.linkedCustomerId || offer.linkedCustomerId || undefined,
                                             });
                                             setShowEditPage(true);
                                           }}
