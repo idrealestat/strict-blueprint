@@ -56,6 +56,7 @@ export default function PDFPreviewDialog({
     { id: 'basic', label: 'المعلومات الأساسية', description: 'نوع العقار، الغرض، السعر، المساحة', icon: <Home className="w-4 h-4" />, enabled: true },
     { id: 'location', label: 'معلومات الموقع', description: 'المدينة، الحي، الشارع، الرمز البريدي', icon: <MapPin className="w-4 h-4" />, enabled: true },
     { id: 'specs', label: 'المواصفات التفصيلية', description: 'الغرف، الحمامات، الأدوار، عمر العقار', icon: <Ruler className="w-4 h-4" />, enabled: true },
+    { id: 'images', label: 'صور العقار', description: 'جميع صور العقار المرفقة', icon: <Eye className="w-4 h-4" />, enabled: true },
     { id: 'owner', label: 'معلومات المالك', description: 'اسم المالك ورقم الجوال', icon: <User className="w-4 h-4" />, enabled: true },
     { id: 'features', label: 'المميزات', description: 'قائمة مميزات العقار', icon: <CheckCircle className="w-4 h-4" />, enabled: true },
     { id: 'description', label: 'الوصف', description: 'الوصف التفصيلي للعقار', icon: <FileText className="w-4 h-4" />, enabled: true },
@@ -99,6 +100,12 @@ export default function PDFPreviewDialog({
       delete filtered.propertyAge;
       delete filtered.facade;
       delete filtered.furnishing;
+    }
+
+    // إزالة الصور إذا لم يتم اختيارها
+    if (!sections.find(s => s.id === 'images')?.enabled) {
+      delete filtered.images;
+      delete filtered.image;
     }
 
     return filtered;
@@ -311,6 +318,31 @@ export default function PDFPreviewDialog({
                       {property.bedrooms && <Badge variant="outline">🛏️ {property.bedrooms} غرف</Badge>}
                       {property.bathrooms && <Badge variant="outline">🚿 {property.bathrooms} حمام</Badge>}
                       {property.floors && <Badge variant="outline">🏢 {property.floors} أدوار</Badge>}
+                    </div>
+                  </div>
+                )}
+
+                {/* الصور */}
+                {sections.find(s => s.id === 'images')?.enabled && property.images?.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-[#01411C] flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      صور العقار ({property.images.length} صورة)
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {property.images.slice(0, 6).map((img: string, i: number) => (
+                        <img 
+                          key={i} 
+                          src={img} 
+                          alt={`صورة ${i + 1}`}
+                          className="w-16 h-16 object-cover rounded-lg border"
+                        />
+                      ))}
+                      {property.images.length > 6 && (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-600 text-sm">
+                          +{property.images.length - 6}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

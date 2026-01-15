@@ -1544,11 +1544,23 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               <CardContent className="p-4">
                 {publishedAds.length > 0 ? (
                   <div className="space-y-4">
-                    {publishedAds.map((ad) => (
+                    {publishedAds.map((ad) => {
+                      const isSold = ad.status === 'sold';
+                      const isRented = ad.status === 'rented';
+                      const isInactive = isSold || isRented;
+                      
+                      return (
                       <div key={ad.id} className="relative p-4 border-2 border-[#D4AF37]/50 rounded-lg bg-gradient-to-r from-amber-50/50 to-yellow-50/50">
+                        {/* شريط أحمر للحالة: تم البيع/التأجير */}
+                        {isInactive && (
+                          <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-center py-2 rounded-t-lg font-bold text-sm z-10">
+                            {isSold ? '🏷️ تم البيع' : '🔑 تم التأجير'}
+                          </div>
+                        )}
+                        
                         {/* نقطة حمراء نابضة على العرض الجديد */}
                         <PulsingDot show={isNew('published_ad', ad.id)} size="md" position="top-right" />
-                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                        <div className={`flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${isInactive ? 'mt-8' : ''}`}>
                           {/* معلومات العقار */}
                           <div className="flex-1 space-y-3">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -1562,8 +1574,6 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 const expiresAt = ad.ad_license_expires_at ? new Date(ad.ad_license_expires_at) : null;
                                 const isLicenseExpired = expiresAt && expiresAt < today;
                                 const isHidden = ad.is_hidden;
-                                const isSold = ad.status === 'sold';
-                                const isRented = ad.status === 'rented';
                                 
                                 if (isSold) {
                                   return (
@@ -1718,10 +1728,60 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               عرض التفاصيل
                               <PulsingDot show={isNew('published_ad', ad.id)} size="sm" position="top-right" />
                             </Button>
+                            
+                            {/* زر تم البيع أو تم التأجير */}
+                            {!isSold && !isRented && (
+                              <Button 
+                                size="sm"
+                                variant="outline"
+                                className={ad.purpose === 'للإيجار' || ad.purpose === 'rent' 
+                                  ? "border-blue-500 text-blue-600 hover:bg-blue-50" 
+                                  : "border-purple-500 text-purple-600 hover:bg-purple-50"
+                                }
+                                onClick={async () => {
+                                  const newStatus = (ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? 'rented' : 'sold';
+                                  try {
+                                    // تحديث في قاعدة البيانات
+                                    const { error } = await supabase
+                                      .from('platform_listings')
+                                      .update({ status: newStatus })
+                                      .eq('id', ad.id);
+                                    
+                                    if (error) throw error;
+                                    
+                                    // تحديث الحالة محلياً
+                                    setPublishedAds(prev => prev.map(a => 
+                                      a.id === ad.id ? { ...a, status: newStatus } : a
+                                    ));
+                                    
+                                    // تشغيل صوت النجاح
+                                    NotificationSounds.success(0.5);
+                                    
+                                    toast.success(newStatus === 'sold' ? 'تم تسجيل البيع بنجاح' : 'تم تسجيل التأجير بنجاح');
+                                  } catch (e) {
+                                    console.error('Error updating status:', e);
+                                    toast.error('فشل تحديث الحالة');
+                                  }
+                                }}
+                              >
+                                {(ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 ml-1" />
+                                    تم التأجير
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 ml-1" />
+                                    تم البيع
+                                  </>
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
@@ -1811,12 +1871,22 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   
                   return (
                     <div className="space-y-4">
-                      {publishedReqs.map((req: any, index: number) => (
+                      {publishedReqs.map((req: any, index: number) => {
+                        const isFulfilled = req.status === 'fulfilled';
+                        
+                        return (
                         <div 
                           key={req.id || index}
-                          className="p-4 border-2 border-blue-200 rounded-xl bg-gradient-to-r from-blue-50/50 to-white hover:shadow-md transition-all"
+                          className="relative p-4 border-2 border-blue-200 rounded-xl bg-gradient-to-r from-blue-50/50 to-white hover:shadow-md transition-all"
                         >
-                          <div className="flex items-start justify-between">
+                          {/* شريط أحمر للحالة: تم التوفير */}
+                          {isFulfilled && (
+                            <div className="absolute top-0 left-0 right-0 bg-green-600 text-white text-center py-2 rounded-t-lg font-bold text-sm z-10">
+                              ✓ تم توفير الطلب
+                            </div>
+                          )}
+                          
+                          <div className={`flex items-start justify-between ${isFulfilled ? 'mt-8' : ''}`}>
                             <div className="flex-1">
                               {/* العنوان والحالة */}
                               <div className="flex items-center gap-2 mb-2">
@@ -1941,11 +2011,75 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               disabled={req.status === 'fulfilled'}
                             >
                               <CheckCircle className="w-4 h-4 ml-1" />
-                              {req.status === 'fulfilled' ? 'تم التوفير' : 'تم التوفير'}
+                              {req.status === 'fulfilled' ? 'تم التوفير' : 'تم توفير الطلب'}
+                            </Button>
+                            
+                            {/* زر تحميل PDF */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#D4AF37] text-[#01411C]"
+                              onClick={async () => {
+                                try {
+                                  // جلب بيانات الوسيط من localStorage
+                                  let brokerData: any = undefined;
+                                  try {
+                                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+                                    if (businessCard) {
+                                      brokerData = {
+                                        name: businessCard.userName || businessCard.name,
+                                        company: businessCard.companyName,
+                                        phone: businessCard.primaryPhone || businessCard.phone,
+                                        location: req.preferredCity,
+                                        licenseNumber: businessCard.falLicense,
+                                        profileImage: businessCard.profileImage,
+                                        coverImage: businessCard.coverImage,
+                                        logoImage: businessCard.logoImage,
+                                      };
+                                    }
+                                  } catch {}
+                                  
+                                  const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
+                                  
+                                  const requestData = {
+                                    id: req.id,
+                                    purpose: req.purpose,
+                                    propertyType: req.propertyType,
+                                    preferredCity: req.preferredCity || req.ownerCity,
+                                    preferredDistricts: req.preferredDistricts || [req.ownerDistrict].filter(Boolean),
+                                    minBudget: req.minBudget,
+                                    maxBudget: req.maxBudget,
+                                    bedrooms: req.bedrooms,
+                                    bathrooms: req.bathrooms,
+                                    minArea: req.minArea,
+                                    maxArea: req.maxArea,
+                                    furnishing: req.furnishing,
+                                    additionalRequirements: req.additionalRequirements,
+                                    ownerName: req.ownerName || customer.name,
+                                    ownerPhone: req.ownerPhone || customer.phone,
+                                    ownerIdNumber: req.ownerIdNumber,
+                                    ownerBirthDate: req.ownerBirthDate,
+                                    ownerCity: req.ownerCity,
+                                    ownerDistrict: req.ownerDistrict,
+                                    createdAt: req.createdAt,
+                                    status: req.status,
+                                  };
+                                  
+                                  await generateRequestPDF(requestData, true, brokerData);
+                                  toast.success('تم تحميل ملف PDF');
+                                } catch (e) {
+                                  console.error('PDF error', e);
+                                  toast.error('تعذر إنشاء PDF');
+                                }
+                              }}
+                            >
+                              <Download className="w-4 h-4 ml-1" />
+                              تحميل PDF
                             </Button>
                           </div>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   );
                 })()}
