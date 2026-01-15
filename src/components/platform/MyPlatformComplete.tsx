@@ -492,7 +492,9 @@ const loadFromStorage = (): HierarchicalOffer[] => {
   } catch (error) {
     console.error('خطأ في تحميل البيانات:', error);
   }
-  return mockHierarchicalOffers;
+
+  // ✅ وضع "أول استخدام": لا نعرض أي بيانات تجريبية إطلاقاً
+  return [];
 };
 
 const saveToStorage = (offers: HierarchicalOffer[]) => {
@@ -514,7 +516,7 @@ export default function MyPlatformComplete({
   // State
   const [activeMainTab, setActiveMainTab] = useState<'platform' | 'offers' | 'requests'>('offers');
   const [offers, setOffers] = useState<HierarchicalOffer[]>(() => loadFromStorage());
-  const [requests, setRequests] = useState<Request[]>(mockRequests);
+  const [requests, setRequests] = useState<Request[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
@@ -630,8 +632,9 @@ export default function MyPlatformComplete({
     try {
       const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
       const visibilityState = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
-      
-      if (!Array.isArray(publishedAds) || publishedAds.length === 0) return mockCityHierarchy;
+
+      // ✅ وضع "أول استخدام": بدون أي fallback تجريبي
+      if (!Array.isArray(publishedAds) || publishedAds.length === 0) return [];
 
       const toSingleOffer = (ad: any): SingleOffer => ({
         id: ad.id,

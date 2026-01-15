@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useState, useEffect } from "react";
+import { runHardResetOnce } from "@/utils/hardReset";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
 import MyPlatformComplete from "./components/platform/MyPlatformComplete";
@@ -173,6 +174,14 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
   
   const { user, isAuthenticated } = useAuthContext();
   const [userData, setUserData] = useState<any>(null);
+
+  // ✅ تنظيف جذري لبيانات التجارب المحلية مرة واحدة (بدون لمس بطاقة الأعمال أو تسجيل الدخول)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // لا نربطها بتحميل userData حتى لا تتأخر
+    void runHardResetOnce(user?.id);
+  }, [isAuthenticated, user?.id]);
 
   // جلب بيانات المستخدم من profiles و business_cards
   useEffect(() => {
