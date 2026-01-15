@@ -1631,13 +1631,22 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
               >
                 <X className="w-5 h-5 text-white" />
               </button>
-              <div className="aspect-video flex items-center justify-center">
-                <div className="text-center text-white">
-                  <View className="w-16 h-16 mx-auto mb-4 opacity-70" />
-                  <p className="text-xl font-bold">جولة افتراضية 360°</p>
-                  <p className="text-white/70 text-sm mt-2">لا توجد جولة افتراضية متاحة حالياً</p>
-                  <p className="text-[#D4AF37] text-xs mt-4">قريباً - تجربة غامرة للعقار</p>
-                </div>
+              <div className="aspect-video flex items-center justify-center bg-gray-900">
+                {listing.tour3DUrl ? (
+                  <iframe
+                    src={listing.tour3DUrl}
+                    className="w-full h-full"
+                    allowFullScreen
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; xr-spatial-tracking"
+                    title="جولة افتراضية 360°"
+                  />
+                ) : (
+                  <div className="text-center text-white">
+                    <View className="w-16 h-16 mx-auto mb-4 opacity-70" />
+                    <p className="text-xl font-bold">جولة افتراضية 360°</p>
+                    <p className="text-white/70 text-sm mt-2">لا توجد جولة افتراضية متاحة حالياً</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
