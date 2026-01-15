@@ -600,7 +600,7 @@ export default function MyPlatformComplete({
     () => localStorage.getItem('public_platform_slug') || 'default',
     []
   );
-  const { syncFromLocalStorage, cleanupDuplicates, updateListing } = usePlatformListings(currentSlug);
+  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, listings: dbListings } = usePlatformListings(currentSlug);
   
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
@@ -794,6 +794,113 @@ export default function MyPlatformComplete({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSlug]);
+
+  // ✅ جلب العروض من قاعدة البيانات عند فتح الصفحة
+  useEffect(() => {
+    fetchListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSlug]);
+
+  // ✅ دمج العروض من قاعدة البيانات مع الهيكل الهرمي
+  useEffect(() => {
+    if (dbListings && dbListings.length > 0) {
+      const visibilityState = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
+      
+      const toSingleOfferFromDb = (listing: any): SingleOffer => ({
+        id: listing.id,
+        title: listing.title || `${listing.purpose === 'للإيجار' ? 'للإيجار' : 'للبيع'} - ${listing.propertyType} - ${listing.area || ''}م`,
+        description: listing.description || '',
+        price: listing.price ? `${listing.price} ريال` : 'السعر عند التواصل',
+        images: Array.isArray(listing.images) ? listing.images : [],
+        image: (Array.isArray(listing.images) && listing.images.length > 0)
+          ? listing.images[0]
+          : listing.image || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
+        status: listing.status === 'published' ? 'published' : 'draft',
+        views: listing.views || 0,
+        requests: 0,
+        propertyType: listing.propertyType,
+        bedrooms: listing.bedrooms,
+        bathrooms: listing.bathrooms,
+        area: listing.area,
+        owner: { name: listing.ownerName || '', phone: listing.ownerPhone || '' },
+        ownerName: listing.ownerName,
+        isHidden: visibilityState[`offer_${listing.id}`] ?? listing.isHidden ?? false,
+        liveViewers: 0,
+        ownerIdNumber: listing.ownerIdNumber,
+        ownerBirthDate: listing.ownerBirthDate,
+        ownerCity: listing.ownerCity,
+        ownerDistrict: listing.ownerDistrict,
+        ownerNationalAddress: listing.ownerNationalAddress,
+        deedNumber: listing.deedNumber,
+        deedDate: listing.deedDate,
+        deedCity: listing.deedCity,
+        contractDuration: listing.contractDuration,
+        contractStartDate: listing.contractStartDate,
+        contractEndDate: listing.contractEndDate,
+        isCurrentlyRented: listing.isCurrentlyRented,
+        city: listing.city,
+        district: listing.district,
+        street: listing.street,
+        tour3DUrl: listing.tour3DUrl,
+      });
+
+      setCityHierarchy(prev => {
+        const existingIds = new Set<string>();
+        prev.forEach(city => {
+          city.directOffers.forEach(o => existingIds.add(o.id));
+          city.districts.forEach(d => d.offers.forEach(o => existingIds.add(o.id)));
+        });
+
+        const newListings = dbListings.filter(l => !existingIds.has(l.id));
+        if (newListings.length === 0) return prev;
+
+        const updated = [...prev];
+        
+        newListings.forEach(listing => {
+          const city = listing.city || 'غير محدد';
+          const districtRaw = listing.district || 'غير محدد';
+          const offer = toSingleOfferFromDb(listing);
+
+          let cityObj = updated.find(c => c.cityName === city);
+          if (!cityObj) {
+            cityObj = { 
+              cityName: city, 
+              isExpanded: false, 
+              isHidden: visibilityState[`city_${city}`] ?? false, 
+              liveViewers: 0, 
+              directOffers: [], 
+              districts: [] 
+            };
+            updated.push(cityObj);
+          }
+
+          if (districtRaw && districtRaw !== 'عروض مباشرة' && districtRaw !== 'غير محدد') {
+            const districtName = districtRaw.startsWith('حي ') ? districtRaw : `حي ${districtRaw}`;
+            let districtObj = cityObj.districts.find(d => d.districtName === districtName);
+            if (!districtObj) {
+              districtObj = { 
+                districtName, 
+                offers: [], 
+                isExpanded: false, 
+                isHidden: visibilityState[`district_${city}_${districtName}`] ?? false, 
+                liveViewers: 0 
+              };
+              cityObj.districts.push(districtObj);
+            }
+            if (!districtObj.offers.some(o => o.id === offer.id)) {
+              districtObj.offers.push(offer);
+            }
+          } else {
+            if (!cityObj.directOffers.some(o => o.id === offer.id)) {
+              cityObj.directOffers.push(offer);
+            }
+          }
+        });
+
+        return updated;
+      });
+    }
+  }, [dbListings]);
 
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
