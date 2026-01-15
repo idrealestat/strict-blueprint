@@ -4,7 +4,8 @@
  * تصميم مشابه للصورة المرفقة مع التبويبات والصور
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -107,18 +108,23 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
   onSave
 }) => {
   const [activeTab, setActiveTab] = useState('basic');
+  
+  // جلب بيانات بطاقة الأعمال الرقمية
+  const { data: businessCardData, loading: businessCardLoading } = useBusinessCardData();
 
-  const buildInitialFormData = (l: Listing) => ({
+  const buildInitialFormData = useMemo(() => (l: Listing, cardData: typeof businessCardData) => ({
     title: l.title || '',
     sku: `AD${l.id.slice(0, 6).toUpperCase()}`,
     price: l.price || 0,
     priceType: 'total',
     description: l.description || '',
-    phone: l.ownerPhone || '+966541176696',
-    whatsapp: '720' + l.id.slice(0, 7),
-    website: 'https://www.id-realestat.com',
-    company: 'شركة مبتكر ومميز العقارية',
-    companyEn: 'Innovative and Distinguished Real Estate Company',
+    phone: l.ownerPhone || cardData.phone || '',
+    // استخدام بيانات بطاقة الأعمال الرقمية
+    falLicense: cardData.falLicense || '',
+    whatsapp: cardData.phone || '',
+    website: cardData.website || '',
+    company: cardData.companyName || cardData.name || '',
+    companyEn: '',
     city: l.city || '',
     district: l.district || '',
     street: l.street || '',
@@ -157,14 +163,14 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     contractEndDate: l.contractEndDate || '',
     rentalContractFile: null as string | null,
     rentalContractFileName: '',
-  });
+  }), []);
 
-  const [formData, setFormData] = useState(() => buildInitialFormData(listing));
+  const [formData, setFormData] = useState(() => buildInitialFormData(listing, businessCardData));
 
   useEffect(() => {
-    setFormData(buildInitialFormData(listing));
+    setFormData(buildInitialFormData(listing, businessCardData));
     setSelectedImageIndex(0);
-  }, [listing.id]);
+  }, [listing.id, businessCardData, buildInitialFormData]);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
@@ -744,10 +750,10 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     dir="ltr"
                   />
                   <div className="pt-2 border-t">
-                    <p className="text-sm text-[#01411C] font-bold">ترخيص فال: {formData.whatsapp}</p>
-                    <p className="text-sm text-gray-600">{formData.company}</p>
-                    <p className="text-sm text-gray-500">{formData.companyEn}</p>
-                    <a href={formData.website} className="text-sm text-blue-600 underline">{formData.website}</a>
+                    {formData.falLicense && <p className="text-sm text-[#01411C] font-bold">ترخيص فال: {formData.falLicense}</p>}
+                    {formData.company && <p className="text-sm text-gray-600">{formData.company}</p>}
+                    {formData.companyEn && <p className="text-sm text-gray-500">{formData.companyEn}</p>}
+                    {formData.website && <a href={formData.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 underline">{formData.website}</a>}
                   </div>
                 </div>
 
