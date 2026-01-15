@@ -71,6 +71,7 @@ import {
 } from "lucide-react";
 import PropertyPublishForm from "./PropertyPublishForm";
 import MyPublicPlatformContent from "./MyPublicPlatformContent";
+import CreateRequestForm from "./CreateRequestForm";
 import OfferEditPage from "./OfferEditPage";
 import { 
   CollapsibleStatsSection, 
@@ -305,6 +306,12 @@ export default function MyPlatformComplete({
   const [activeMainTab, setActiveMainTab] = useState<'platform' | 'offers' | 'requests'>('offers');
   const [offers, setOffers] = useState<HierarchicalOffer[]>(() => loadFromStorage());
   const [requests, setRequests] = useState<Request[]>([]);
+  const [publishedRequests, setPublishedRequests] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('wasata_published_requests') || '[]');
+    } catch { return []; }
+  });
+  const [showCreateRequestForm, setShowCreateRequestForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
@@ -2426,58 +2433,130 @@ export default function MyPlatformComplete({
 
           {/* Tab: الطلبات */}
           <TabsContent value="requests" className="space-y-4">
-            {requests.map(request => (
-              <Card key={request.id} className="border-2 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-[#01411C]">{request.title}</h3>
-                        <Badge 
-                          className={
-                            request.status === 'new' ? 'bg-blue-500' :
-                            request.status === 'inProgress' ? 'bg-yellow-500' :
-                            request.status === 'matched' ? 'bg-green-500' : 'bg-gray-500'
-                          }
-                        >
-                          {request.status === 'new' ? 'جديد' :
-                           request.status === 'inProgress' ? 'قيد المعالجة' :
-                           request.status === 'matched' ? 'تم المطابقة' : 'مغلق'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        <span className="font-medium">{request.customerName}</span> - {request.customerPhone}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Building className="w-4 h-4" />
-                          {request.propertyType}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {request.city} {request.district && `- ${request.district}`}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          {request.budget.min.toLocaleString()} - {request.budget.max.toLocaleString()} ريال
-                        </span>
-                      </div>
-                      {request.notes && (
-                        <p className="text-sm text-gray-500 mt-2 bg-gray-50 p-2 rounded">{request.notes}</p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" className="bg-green-500 text-white" onClick={() => handleWhatsApp(request.customerPhone, request.title)}>
-                        <MessageSquare className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(request.customerPhone)}>
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
+            {/* زر إنشاء طلب جديد */}
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-[#01411C]">الطلبات المنشورة</h3>
+              <Button 
+                onClick={() => setShowCreateRequestForm(true)}
+                className="bg-[#01411C] hover:bg-[#065f41] text-white"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                إنشاء طلب
+              </Button>
+            </div>
+
+            {publishedRequests.length === 0 && requests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Search className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-xl font-bold text-gray-500 mb-2">لا توجد طلبات</h3>
+                <p className="text-gray-400 mb-4">قم بإنشاء طلب جديد ليظهر هنا</p>
+                <Button 
+                  onClick={() => setShowCreateRequestForm(true)}
+                  className="bg-[#01411C] hover:bg-[#065f41] text-white"
+                >
+                  <Plus className="w-4 h-4 ml-2" />
+                  إنشاء طلب جديد
+                </Button>
               </Card>
-            ))}
+            ) : (
+              <>
+                {/* الطلبات المنشورة من النموذج الجديد */}
+                {publishedRequests.map((req: any) => (
+                  <Card key={req.id} className="border-2 border-blue-200 bg-blue-50/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-[#01411C]">
+                              طلب {req.purpose} - {req.propertyType}
+                            </h3>
+                            <Badge className={req.status === 'fulfilled' ? 'bg-green-500' : 'bg-blue-500'}>
+                              {req.status === 'fulfilled' ? 'تم التوفير' : 'منشور'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            <span className="font-medium">{req.ownerName}</span> - {req.ownerPhone}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Building className="w-4 h-4" />
+                              {req.propertyType}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {req.preferredCity} {req.preferredDistricts && `- ${req.preferredDistricts}`}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4" />
+                              {req.minBudget ? parseInt(req.minBudget).toLocaleString() : '-'} - {req.maxBudget ? parseInt(req.maxBudget).toLocaleString() : '-'} ريال
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-green-500 text-white" onClick={() => handleWhatsApp(req.ownerPhone, `طلب ${req.purpose} - ${req.propertyType}`)}>
+                            <MessageSquare className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(req.ownerPhone)}>
+                            <Phone className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* الطلبات القديمة */}
+                {requests.map(request => (
+                  <Card key={request.id} className="border-2 border-gray-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-[#01411C]">{request.title}</h3>
+                            <Badge 
+                              className={
+                                request.status === 'new' ? 'bg-blue-500' :
+                                request.status === 'inProgress' ? 'bg-yellow-500' :
+                                request.status === 'matched' ? 'bg-green-500' : 'bg-gray-500'
+                              }
+                            >
+                              {request.status === 'new' ? 'جديد' :
+                               request.status === 'inProgress' ? 'قيد المعالجة' :
+                               request.status === 'matched' ? 'تم المطابقة' : 'مغلق'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            <span className="font-medium">{request.customerName}</span> - {request.customerPhone}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <Building className="w-4 h-4" />
+                              {request.propertyType}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {request.city} {request.district && `- ${request.district}`}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4" />
+                              {request.budget.min.toLocaleString()} - {request.budget.max.toLocaleString()} ريال
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-green-500 text-white" onClick={() => handleWhatsApp(request.customerPhone, request.title)}>
+                            <MessageSquare className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(request.customerPhone)}>
+                            <Phone className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </main>
