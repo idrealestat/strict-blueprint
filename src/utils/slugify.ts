@@ -121,10 +121,18 @@ export function buildOfferUrl(baseSlug: string, cityName: string, districtName: 
 }
 
 /**
+ * الحصول على الدومين المنشور
+ */
+export function getPublishedDomain(): string {
+  return import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+}
+
+/**
  * الحصول على الرابط الكامل
  */
-export function getFullUrl(path: string, origin = 'https://wasataai.com'): string {
-  return `${origin}${path}`;
+export function getFullUrl(path: string, origin?: string): string {
+  const defaultOrigin = `https://${getPublishedDomain()}`;
+  return `${origin || defaultOrigin}${path}`;
 }
 
 /**

@@ -706,9 +706,11 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     );
   };
 
-  // إنشاء رابط المنصة العامة (بدون أي prefix)
+  // إنشاء رابط المنصة العامة (باستخدام الدومين المنشور)
   const getPlatformUrl = () => {
-    const origin = window.location.origin;
+    // استخدام الدومين المنشور بدلاً من window.location.origin
+    const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+    const origin = `https://${publishedDomain}`;
 
     const slugFromProps = typeof platformSlug === 'string' ? platformSlug.trim() : '';
     const slugFromOverride = typeof (businessCardOverride as any)?.slug === 'string'

@@ -514,7 +514,9 @@ export default function MyPlatform({ onBack, onNavigate, user }: MyPlatformProps
                      } catch (e) {}
                    }
                    slug = String(slug || 'default').toLowerCase();
-                   const platformUrl = `https://wasataai.com/${slug}`;
+                   // استخدام الدومين المنشور
+                   const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+                   const platformUrl = `https://${publishedDomain}/${slug}`;
                    navigator.clipboard.writeText(platformUrl);
                    toast.success('تم نسخ رابط منصتك العامة!', {
                      description: platformUrl

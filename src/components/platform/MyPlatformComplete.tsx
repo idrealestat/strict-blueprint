@@ -1380,16 +1380,18 @@ export default function MyPlatformComplete({
     const ad = publishedAds.find((a: any) => a.id === id);
     const safeSlug = (platformSlug || '').trim().toLowerCase();
     
-    // بناء الرابط الهرمي الجديد حسب نوع العنصر
-    let shareUrl = window.location.origin;
+    // بناء الرابط الهرمي الجديد حسب نوع العنصر (باستخدام الدومين المنشور)
+    const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+    const publishedOrigin = `https://${publishedDomain}`;
+    let shareUrl = publishedOrigin;
     if (type === 'offer' && safeSlug && cityName && districtName) {
-      shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id), window.location.origin);
+      shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id));
     } else if (type === 'district' && safeSlug && cityName && districtName) {
-      shareUrl = getFullUrl(buildDistrictUrl(safeSlug, cityName, districtName), window.location.origin);
+      shareUrl = getFullUrl(buildDistrictUrl(safeSlug, cityName, districtName));
     } else if (type === 'city' && safeSlug && cityName) {
-      shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName), window.location.origin);
+      shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName));
     } else if (safeSlug) {
-      shareUrl = `${window.location.origin}/${safeSlug}`;
+      shareUrl = `${publishedOrigin}/${safeSlug}`;
     }
 
     let text = `🏠 *${title}*\n\n`;

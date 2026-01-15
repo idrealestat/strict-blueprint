@@ -140,8 +140,9 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
       } catch {}
       
       const slug = localStorage.getItem('public_platform_slug') || '';
+      const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
       const offerUrl = slug && ad.location?.city && ad.location?.district
-        ? `${window.location.origin}/${slug}/${ad.location.city}/${ad.location.district}/${ad.id}`
+        ? `https://${publishedDomain}/${slug}/${ad.location.city}/${ad.location.district}/${ad.id}`
         : '';
       
       const propertyData = {
