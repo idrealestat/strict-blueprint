@@ -86,6 +86,8 @@ import { useCustomerInvoices } from "@/hooks/useCustomerInvoices";
 import { useEventTracker } from "@/hooks/useEventTracker";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationSounds } from "@/utils/notificationSounds";
+import { markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
+import PulsingDot from "@/components/ui/PulsingDot";
 
 interface Customer {
   id: string;
@@ -1527,7 +1529,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 {publishedAds.length > 0 ? (
                   <div className="space-y-4">
                     {publishedAds.map((ad) => (
-                      <div key={ad.id} className="p-4 border-2 border-[#D4AF37]/50 rounded-lg bg-gradient-to-r from-amber-50/50 to-yellow-50/50">
+                      <div key={ad.id} className="relative p-4 border-2 border-[#D4AF37]/50 rounded-lg bg-gradient-to-r from-amber-50/50 to-yellow-50/50">
+                        {/* نقطة حمراء نابضة على العرض الجديد */}
+                        <PulsingDot show={isNew('published_ad', ad.id)} size="md" position="top-right" />
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                           {/* معلومات العقار */}
                           <div className="flex-1 space-y-3">
@@ -1686,12 +1690,17 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               variant="outline"
                               onClick={() => {
+                                // إزالة النقطة الحمراء عند فتح العرض
+                                markAsViewed('published_ad', ad.id);
+                                markAsViewed('customer', customer.id);
                                 setSelectedPropertyForDetails(ad);
                                 setShowPropertyDetailsDialog(true);
                               }}
+                              className="relative"
                             >
                               <Eye className="w-4 h-4 ml-1" />
                               عرض التفاصيل
+                              <PulsingDot show={isNew('published_ad', ad.id)} size="sm" position="top-right" />
                             </Button>
                           </div>
                         </div>
