@@ -474,6 +474,26 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
     } else {
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
     }
+    
+    // إضافة رابط قابل للنقر في أسفل آخر صفحة
+    const offerUrl = property.offerUrl;
+    if (offerUrl) {
+      const lastPage = pdf.getNumberOfPages();
+      pdf.setPage(lastPage);
+      
+      // إضافة مستطيل خلفية للرابط
+      pdf.setFillColor(240, 247, 242);
+      pdf.roundedRect(15, 270, 180, 15, 3, 3, 'F');
+      
+      // إضافة النص والرابط
+      pdf.setTextColor(1, 65, 28);
+      pdf.setFontSize(9);
+      pdf.text('🔗 اضغط هنا لفتح العرض:', 190, 278, { align: 'right' });
+      
+      // إضافة الرابط القابل للنقر
+      pdf.setTextColor(0, 0, 255);
+      pdf.textWithLink(offerUrl.length > 50 ? offerUrl.substring(0, 50) + '...' : offerUrl, 20, 281, { url: offerUrl });
+    }
 
     // اسم الملف بالعربية
     const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
