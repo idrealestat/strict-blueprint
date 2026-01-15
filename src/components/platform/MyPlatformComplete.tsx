@@ -1299,8 +1299,26 @@ export default function MyPlatformComplete({
     }));
   };
 
-  // إخفاء/إظهار العرض الفردي
-  const toggleOfferVisibility = (cityName: string, districtName: string, offerId: string) => {
+  // إخفاء/إظهار العرض الفردي - يحفظ مباشرة في قاعدة البيانات
+  const toggleOfferVisibility = async (cityName: string, districtName: string, offerId: string) => {
+    // البحث عن العرض وحالته الحالية
+    let currentHiddenState = false;
+    cityHierarchy.forEach(c => {
+      if (c.cityName === cityName) {
+        c.districts.forEach(d => {
+          d.offers.forEach(o => {
+            if (o.id === offerId) currentHiddenState = o.isHidden;
+          });
+        });
+        c.directOffers.forEach(o => {
+          if (o.id === offerId) currentHiddenState = o.isHidden;
+        });
+      }
+    });
+
+    const newHidden = !currentHiddenState;
+
+    // تحديث الحالة المحلية فوراً
     setCityHierarchy(prev => prev.map(c => {
       if (c.cityName === cityName) {
         return {
@@ -1311,8 +1329,6 @@ export default function MyPlatformComplete({
                 ...d,
                 offers: d.offers.map(o => {
                   if (o.id === offerId) {
-                    const newHidden = !o.isHidden;
-                    toast.success(newHidden ? 'تم إخفاء العرض من منصتي' : 'تم إظهار العرض على منصتي');
                     return { ...o, isHidden: newHidden };
                   }
                   return o;
@@ -1323,8 +1339,6 @@ export default function MyPlatformComplete({
           }),
           directOffers: c.directOffers.map(o => {
             if (o.id === offerId) {
-              const newHidden = !o.isHidden;
-              toast.success(newHidden ? 'تم إخفاء العرض من منصتي' : 'تم إظهار العرض على منصتي');
               return { ...o, isHidden: newHidden };
             }
             return o;
@@ -1333,6 +1347,29 @@ export default function MyPlatformComplete({
       }
       return c;
     }));
+
+    // ✅ حفظ التغيير مباشرة في قاعدة البيانات
+    try {
+      await updateListing(offerId, { isHidden: newHidden });
+      toast.success(newHidden ? 'تم إخفاء العرض من المنصة العامة' : 'تم إظهار العرض على المنصة العامة');
+    } catch (error) {
+      console.error('Error updating visibility in database:', error);
+      // إعادة الحالة السابقة في حالة الخطأ
+      setCityHierarchy(prev => prev.map(c => {
+        if (c.cityName === cityName) {
+          return {
+            ...c,
+            districts: c.districts.map(d => ({
+              ...d,
+              offers: d.offers.map(o => o.id === offerId ? { ...o, isHidden: currentHiddenState } : o)
+            })),
+            directOffers: c.directOffers.map(o => o.id === offerId ? { ...o, isHidden: currentHiddenState } : o)
+          };
+        }
+        return c;
+      }));
+      toast.error('فشل في تحديث حالة العرض');
+    }
   };
 
   // مشاركة عبر واتساب (للهيكل الهرمي) - روابط هرمية جديدة
