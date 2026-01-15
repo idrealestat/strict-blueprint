@@ -1185,17 +1185,20 @@ export default function MyPlatformComplete({
   };
 
   // مشاركة عبر واتساب (للهيكل الهرمي) - روابط هرمية جديدة
-  const shareItemWhatsApp = (title: string, id: string, cityName?: string, districtName?: string) => {
+  // type: 'city' | 'district' | 'offer' لتحديد نوع العنصر
+  const shareItemWhatsApp = (title: string, id: string, cityName?: string, districtName?: string, type: 'city' | 'district' | 'offer' = 'offer') => {
     // جلب بيانات العرض الكاملة
     const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
     const ad = publishedAds.find((a: any) => a.id === id);
     const safeSlug = (platformSlug || '').trim().toLowerCase();
     
-    // بناء الرابط الهرمي الجديد
+    // بناء الرابط الهرمي الجديد حسب نوع العنصر
     let shareUrl = window.location.origin;
-    if (safeSlug && cityName && districtName) {
+    if (type === 'offer' && safeSlug && cityName && districtName) {
       shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id), window.location.origin);
-    } else if (safeSlug && cityName) {
+    } else if (type === 'district' && safeSlug && cityName && districtName) {
+      shareUrl = getFullUrl(buildDistrictUrl(safeSlug, cityName, districtName), window.location.origin);
+    } else if (type === 'city' && safeSlug && cityName) {
       shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName), window.location.origin);
     } else if (safeSlug) {
       shareUrl = `${window.location.origin}/${safeSlug}`;
@@ -1203,29 +1206,36 @@ export default function MyPlatformComplete({
 
     let text = `🏠 *${title}*\n\n`;
 
-    if (ad) {
+    if (type === 'offer' && ad) {
       text += `📍 الموقع: ${ad.locationDetails?.city || cityName || ''} - ${ad.locationDetails?.district || districtName || ''}\n`;
       if (ad.area) text += `📐 المساحة: ${ad.area} م²\n`;
       if (ad.price) text += `💰 السعر: ${parseInt(ad.price).toLocaleString()} ريال\n`;
       if (ad.bedrooms) text += `🛏️ الغرف: ${ad.bedrooms}\n`;
       if (ad.aiDescription) text += `\n📝 ${ad.aiDescription.slice(0, 150)}${ad.aiDescription.length > 150 ? '...' : ''}\n`;
+    } else if (type === 'city' && cityName) {
+      text += `📍 عروض ${cityName}\n`;
+    } else if (type === 'district' && cityName && districtName) {
+      text += `📍 عروض ${districtName} - ${cityName}\n`;
     }
 
-    text += `\n🔗 شاهد العرض:\n${shareUrl}`;
+    text += `\n🔗 شاهد العروض:\n${shareUrl}`;
 
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     toast.success('تم فتح واتساب للمشاركة');
   };
 
   // مشاركة رابط - روابط هرمية جديدة
-  const shareItemLink = async (title: string, id: string, cityName?: string, districtName?: string) => {
+  // type: 'city' | 'district' | 'offer' لتحديد نوع العنصر
+  const shareItemLink = async (title: string, id: string, cityName?: string, districtName?: string, type: 'city' | 'district' | 'offer' = 'offer') => {
     const safeSlug = (platformSlug || '').trim().toLowerCase();
     
-    // بناء الرابط الهرمي
+    // بناء الرابط الهرمي حسب نوع العنصر
     let shareUrl = window.location.origin;
-    if (safeSlug && cityName && districtName) {
+    if (type === 'offer' && safeSlug && cityName && districtName) {
       shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id), window.location.origin);
-    } else if (safeSlug && cityName) {
+    } else if (type === 'district' && safeSlug && cityName && districtName) {
+      shareUrl = getFullUrl(buildDistrictUrl(safeSlug, cityName, districtName), window.location.origin);
+    } else if (type === 'city' && safeSlug && cityName) {
       shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName), window.location.origin);
     } else if (safeSlug) {
       shareUrl = `${window.location.origin}/${safeSlug}`;
@@ -2011,7 +2021,7 @@ export default function MyPlatformComplete({
                           {/* واتساب */}
                           <Button
                             size="sm"
-                            onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(city.cityName, `city-${city.cityName}`); }}
+                            onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(city.cityName, `city-${city.cityName}`, city.cityName, undefined, 'city'); }}
                             className="h-8 px-2 md:px-3 bg-green-500 text-white hover:bg-green-600"
                           >
                             <MessageSquare className="w-4 h-4" />
@@ -2022,7 +2032,7 @@ export default function MyPlatformComplete({
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); shareItemLink(city.cityName, `city-${city.cityName}`); }}
+                            onClick={(e) => { e.stopPropagation(); shareItemLink(city.cityName, `city-${city.cityName}`, city.cityName, undefined, 'city'); }}
                             className={`h-8 px-2 md:px-3 ${isCityExpanded ? 'text-white hover:bg-white/20' : 'hover:bg-gray-100'}`}
                           >
                             <Link className="w-4 h-4" />
@@ -2035,12 +2045,12 @@ export default function MyPlatformComplete({
                             variant="ghost"
                             onClick={(e) => { 
                               e.stopPropagation(); 
-                              const slug = localStorage.getItem('public_platform_slug') || 'default';
-                              const shareUrl = `https://wasataai.com/${slug}?city=${city.cityName}`;
+                              const safeSlug = (platformSlug || '').trim().toLowerCase();
+                              const shareUrl = getFullUrl(buildCityUrl(safeSlug, city.cityName), window.location.origin);
                               if (navigator.share) {
-                                navigator.share({ title: city.cityName, url: shareUrl });
+                                navigator.share({ title: `عروض ${city.cityName}`, url: shareUrl });
                               } else {
-                                shareItemLink(city.cityName, `city-${city.cityName}`);
+                                shareItemLink(city.cityName, `city-${city.cityName}`, city.cityName, undefined, 'city');
                               }
                             }}
                             className={`h-8 px-2 md:px-3 ${isCityExpanded ? 'text-white hover:bg-white/20' : 'hover:bg-gray-100'}`}
@@ -2097,7 +2107,7 @@ export default function MyPlatformComplete({
                                       <Button size="sm" variant="ghost" onClick={() => toggleOfferVisibility(city.cityName, '', offer.id)} className="flex-1 text-xs">
                                         {offer.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                       </Button>
-                                      <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id)}>
+                                      <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id, city.cityName, undefined, 'offer')}>
                                         <MessageSquare className="w-3 h-3" />
                                       </Button>
                                       <Button size="sm" className="flex-1 text-xs bg-red-500 text-white" onClick={() => exportOfferToPDF(offer, city.cityName)}>
@@ -2195,22 +2205,24 @@ export default function MyPlatformComplete({
                                       </Button>
 
                                       {/* واتساب */}
-                                      <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(district.districtName, `district-${districtKey}`); }}>
+                                      <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(district.districtName, `district-${districtKey}`, city.cityName, district.districtName, 'district'); }}>
                                         <MessageSquare className="w-3 h-3" />
                                       </Button>
 
                                       {/* نسخ الرابط */}
-                                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); shareItemLink(district.districtName, `district-${districtKey}`); }}>
+                                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); shareItemLink(district.districtName, `district-${districtKey}`, city.cityName, district.districtName, 'district'); }}>
                                         <Link className="w-3 h-3" />
                                       </Button>
 
                                       {/* مشاركة */}
                                       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { 
                                         e.stopPropagation(); 
+                                        const safeSlug = (platformSlug || '').trim().toLowerCase();
+                                        const shareUrl = getFullUrl(buildDistrictUrl(safeSlug, city.cityName, district.districtName), window.location.origin);
                                         if (navigator.share) {
-                                          navigator.share({ title: district.districtName, url: `${platformUrl}/district/${districtKey}` });
+                                          navigator.share({ title: `عروض ${district.districtName} - ${city.cityName}`, url: shareUrl });
                                         } else {
-                                          shareItemLink(district.districtName, `district-${districtKey}`);
+                                          shareItemLink(district.districtName, `district-${districtKey}`, city.cityName, district.districtName, 'district');
                                         }
                                       }}>
                                         <Share2 className="w-3 h-3" />
@@ -2345,7 +2357,7 @@ export default function MyPlatformComplete({
                                                 {offer.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                               </Button>
                                               {/* واتساب */}
-                                              <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(offer.title, offer.id, city.cityName, district.districtName); }}>
+                                              <Button size="sm" className="h-7 px-2 text-xs bg-green-500 text-white flex-1 min-w-0" onClick={(e) => { e.stopPropagation(); shareItemWhatsApp(offer.title, offer.id, city.cityName, district.districtName, 'offer'); }}>
                                                 <MessageSquare className="w-3 h-3" />
                                               </Button>
                                               {/* PDF */}
@@ -2353,7 +2365,7 @@ export default function MyPlatformComplete({
                                                 <FileDown className="w-3 h-3" />
                                               </Button>
                                               {/* رابط */}
-                                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => shareItemLink(offer.title, offer.id)}>
+                                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => shareItemLink(offer.title, offer.id, city.cityName, district.districtName, 'offer')}>
                                                 <Link className="w-3 h-3" />
                                               </Button>
                                               {/* نقل */}
