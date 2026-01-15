@@ -232,6 +232,8 @@ interface SingleOffer {
   street?: string;
   tour3DUrl?: string;
   linkedCustomerId?: string;
+  // الترخيص الإعلاني
+  adLicense?: string;
 }
 
 // مستوى الحي (يحتوي على عروض)
@@ -801,7 +803,7 @@ export default function MyPlatformComplete({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSlug]);
 
-  // ✅ دمج العروض من قاعدة البيانات مع الهيكل الهرمي
+  // ✅ قاعدة البيانات هي المصدر الأساسي - استبدال العروض المحلية بالعروض من قاعدة البيانات
   useEffect(() => {
     if (dbListings && dbListings.length > 0) {
       const visibilityState = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
@@ -842,63 +844,59 @@ export default function MyPlatformComplete({
         district: listing.district,
         street: listing.street,
         tour3DUrl: listing.tour3DUrl,
+        adLicense: listing.adLicense,
       });
 
-      setCityHierarchy(prev => {
-        const existingIds = new Set<string>();
-        prev.forEach(city => {
-          city.directOffers.forEach(o => existingIds.add(o.id));
-          city.districts.forEach(d => d.offers.forEach(o => existingIds.add(o.id)));
-        });
+      // بناء الهيكل الهرمي من قاعدة البيانات كمصدر أساسي
+      const dbCityHierarchy: CityLevel[] = [];
+      
+      dbListings.forEach(listing => {
+        const city = listing.city || 'غير محدد';
+        const districtRaw = listing.district || 'غير محدد';
+        const offer = toSingleOfferFromDb(listing);
 
-        const newListings = dbListings.filter(l => !existingIds.has(l.id));
-        if (newListings.length === 0) return prev;
+        let cityObj = dbCityHierarchy.find(c => c.cityName === city);
+        if (!cityObj) {
+          cityObj = { 
+            cityName: city, 
+            isExpanded: false, 
+            isHidden: visibilityState[`city_${city}`] ?? false, 
+            liveViewers: 0, 
+            directOffers: [], 
+            districts: [] 
+          };
+          dbCityHierarchy.push(cityObj);
+        }
 
-        const updated = [...prev];
-        
-        newListings.forEach(listing => {
-          const city = listing.city || 'غير محدد';
-          const districtRaw = listing.district || 'غير محدد';
-          const offer = toSingleOfferFromDb(listing);
-
-          let cityObj = updated.find(c => c.cityName === city);
-          if (!cityObj) {
-            cityObj = { 
-              cityName: city, 
+        if (districtRaw && districtRaw !== 'عروض مباشرة' && districtRaw !== 'غير محدد') {
+          const districtName = districtRaw.startsWith('حي ') ? districtRaw : `حي ${districtRaw}`;
+          let districtObj = cityObj.districts.find(d => d.districtName === districtName);
+          if (!districtObj) {
+            districtObj = { 
+              districtName, 
+              offers: [], 
               isExpanded: false, 
-              isHidden: visibilityState[`city_${city}`] ?? false, 
-              liveViewers: 0, 
-              directOffers: [], 
-              districts: [] 
+              isHidden: visibilityState[`district_${city}_${districtName}`] ?? false, 
+              liveViewers: 0 
             };
-            updated.push(cityObj);
+            cityObj.districts.push(districtObj);
           }
-
-          if (districtRaw && districtRaw !== 'عروض مباشرة' && districtRaw !== 'غير محدد') {
-            const districtName = districtRaw.startsWith('حي ') ? districtRaw : `حي ${districtRaw}`;
-            let districtObj = cityObj.districts.find(d => d.districtName === districtName);
-            if (!districtObj) {
-              districtObj = { 
-                districtName, 
-                offers: [], 
-                isExpanded: false, 
-                isHidden: visibilityState[`district_${city}_${districtName}`] ?? false, 
-                liveViewers: 0 
-              };
-              cityObj.districts.push(districtObj);
-            }
-            if (!districtObj.offers.some(o => o.id === offer.id)) {
-              districtObj.offers.push(offer);
-            }
-          } else {
-            if (!cityObj.directOffers.some(o => o.id === offer.id)) {
-              cityObj.directOffers.push(offer);
-            }
+          // منع التكرار
+          if (!districtObj.offers.some(o => o.id === offer.id)) {
+            districtObj.offers.push(offer);
           }
-        });
-
-        return updated;
+        } else {
+          // منع التكرار
+          if (!cityObj.directOffers.some(o => o.id === offer.id)) {
+            cityObj.directOffers.push(offer);
+          }
+        }
       });
+
+      // تحديث الهيكل الهرمي فقط إذا كانت هناك عروض من قاعدة البيانات
+      if (dbCityHierarchy.length > 0) {
+        setCityHierarchy(dbCityHierarchy);
+      }
     }
   }, [dbListings]);
 
