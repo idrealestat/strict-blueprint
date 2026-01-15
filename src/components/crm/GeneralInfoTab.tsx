@@ -74,6 +74,12 @@ interface Customer {
   createdAt: string;
   lastContact?: string;
   nextFollowUp?: string;
+  // الحقول الإضافية من بيانات المالك
+  idNumber?: string;
+  birthDate?: string;
+  city?: string;
+  district?: string;
+  metadata?: Record<string, any>;
 }
 
 interface AddressDetails {
@@ -361,6 +367,148 @@ export default function GeneralInfoTab({
               </div>
             </div>
 
+            {/* رقم الهوية */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
+              <div className="flex items-center gap-3 flex-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500 block mb-1">رقم الهوية</Label>
+                  {isEditing ? (
+                    <Input 
+                      value={(editedCustomer as any).idNumber || (editedCustomer.metadata as any)?.idNumber || ''}
+                      onChange={(e) => setEditedCustomer({
+                        ...editedCustomer, 
+                        metadata: { ...(editedCustomer.metadata || {}), idNumber: e.target.value }
+                      } as any)}
+                      placeholder="1xxxxxxxxx"
+                      className="h-9"
+                      dir="ltr"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">
+                      {(customer as any).idNumber || (customer.metadata as any)?.idNumber || '-'}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <Lock className="w-4 h-4 text-gray-400" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* تاريخ الميلاد */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
+              <div className="flex items-center gap-3 flex-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500 block mb-1">تاريخ الميلاد</Label>
+                  {isEditing ? (
+                    <Input 
+                      type="date"
+                      value={(editedCustomer as any).birthDate || (editedCustomer.metadata as any)?.birthDate || ''}
+                      onChange={(e) => setEditedCustomer({
+                        ...editedCustomer, 
+                        metadata: { ...(editedCustomer.metadata || {}), birthDate: e.target.value }
+                      } as any)}
+                      className="h-9"
+                      dir="ltr"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">
+                      {(customer as any).birthDate || (customer.metadata as any)?.birthDate || '-'}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* المدينة */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
+              <div className="flex items-center gap-3 flex-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500 block mb-1">المدينة</Label>
+                  {isEditing ? (
+                    <Input 
+                      value={(editedCustomer as any).city || (editedCustomer.metadata as any)?.ownerCity || editedCustomer.location?.split(' - ')[0] || ''}
+                      onChange={(e) => setEditedCustomer({
+                        ...editedCustomer, 
+                        metadata: { ...(editedCustomer.metadata || {}), ownerCity: e.target.value }
+                      } as any)}
+                      placeholder="الرياض"
+                      className="h-9"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">
+                      {(customer as any).city || (customer.metadata as any)?.ownerCity || customer.location?.split(' - ')[0] || '-'}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <MapPin className="w-4 h-4 text-gray-400" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* الحي */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
+              <div className="flex items-center gap-3 flex-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500 block mb-1">الحي</Label>
+                  {isEditing ? (
+                    <Input 
+                      value={(editedCustomer as any).district || (editedCustomer.metadata as any)?.ownerDistrict || ''}
+                      onChange={(e) => setEditedCustomer({
+                        ...editedCustomer, 
+                        metadata: { ...(editedCustomer.metadata || {}), ownerDistrict: e.target.value }
+                      } as any)}
+                      placeholder="النرجس"
+                      className="h-9"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">
+                      {(customer as any).district || (customer.metadata as any)?.ownerDistrict || '-'}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <Building2 className="w-4 h-4 text-gray-400" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
             {/* الوظيفة */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
               <div className="flex items-center gap-3 flex-1">
@@ -375,7 +523,7 @@ export default function GeneralInfoTab({
                       className="h-9"
                     />
                   ) : (
-                    <div className="text-sm font-medium text-gray-800">مدير مبيعات</div>
+                    <div className="text-sm font-medium text-gray-800">-</div>
                   )}
                 </div>
               </div>
