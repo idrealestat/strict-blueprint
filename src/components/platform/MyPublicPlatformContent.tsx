@@ -1348,10 +1348,24 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {city.districts[0].listings.map((listing) => (
-                          <ListingCard key={listing.id} listing={listing} />
-                        ))}
+                      <div>
+                        {/* عرض اسم الحي مع المشاهدين المباشرين حتى لو كان حي واحد */}
+                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 pb-2 border-b border-gray-200">
+                          <MapPin className="w-5 h-5 text-[#D4AF37]" />
+                          {city.districts[0].name}
+                          <LiveViewerIndicator 
+                            liveViewers={city.districts[0].listings.reduce((s, l) => s + (getLiveViewers(l.id) || 0), 0)} 
+                            size="sm"
+                          />
+                          <Badge variant="outline" className="text-xs">
+                            {city.districts[0].listings.length} عقار
+                          </Badge>
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {city.districts[0].listings.map((listing) => (
+                            <ListingCard key={listing.id} listing={listing} />
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
