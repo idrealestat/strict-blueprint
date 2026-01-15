@@ -97,6 +97,11 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const { conversationId, createConversation, loadConversation, saveMessage, clearHistory } = useChatHistory();
   
   // إعدادات الصوت - تحميل من localStorage
+  // إعدادات الصوت - تحميل من localStorage (الإعدادات الجديدة)
+  const [voiceFeaturesEnabled, setVoiceFeaturesEnabled] = useState(() => {
+    return localStorage.getItem('voice_features_enabled') !== 'false';
+  });
+  
   const [autoSpeak, setAutoSpeak] = useState(() => {
     const saved = localStorage.getItem('wasata_ai_auto_speak');
     return saved !== null ? saved === 'true' : true;
@@ -104,9 +109,24 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   
   // اختيار نوع الصوت (رجل/امرأة) - تحميل من localStorage
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>(() => {
+    // أولاً نتحقق من الإعدادات الجديدة
+    const newSetting = localStorage.getItem('voice_type');
+    if (newSetting) return newSetting as 'male' | 'female';
+    // ثم من الإعدادات القديمة
     const saved = localStorage.getItem('wasata_ai_voice_gender');
-    return (saved as 'male' | 'female') || 'male'; // افتراضياً صوت رجل
+    return (saved as 'male' | 'female') || 'male';
   });
+  
+  // الاستماع لتغييرات الإعدادات
+  useEffect(() => {
+    const handleVoiceSettingsChange = () => {
+      setVoiceFeaturesEnabled(localStorage.getItem('voice_features_enabled') !== 'false');
+      const newVoiceType = localStorage.getItem('voice_type');
+      if (newVoiceType) setVoiceGender(newVoiceType as 'male' | 'female');
+    };
+    window.addEventListener('voiceSettingsChanged', handleVoiceSettingsChange);
+    return () => window.removeEventListener('voiceSettingsChanged', handleVoiceSettingsChange);
+  }, []);
   
   // لوحة سجل المحادثات
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -890,31 +910,36 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             >
               <History className="w-4 h-4" />
             </button>
-            {/* زر اختيار الصوت (رجل/امرأة) */}
-            <button
-              onClick={() => {
-                const newGender = voiceGender === 'male' ? 'female' : 'male';
-                setVoiceGender(newGender);
-                localStorage.setItem('wasata_ai_voice_gender', newGender);
-                toast.info(newGender === 'male' ? '🧔 صوت رجل' : '👩 صوت امرأة');
-              }}
-              className="p-2 rounded-full transition-all bg-white/20 text-white hover:bg-white/30 flex items-center gap-1"
-              title={voiceGender === 'male' ? 'تغيير إلى صوت امرأة' : 'تغيير إلى صوت رجل'}
-            >
-              <span className="text-sm">{voiceGender === 'male' ? '🧔' : '👩'}</span>
-            </button>
-            {/* زر الرد الصوتي التلقائي */}
-            <button
-              onClick={toggleAutoSpeak}
-              className={`p-2 rounded-full transition-all ${
-                autoSpeak 
-                  ? 'bg-[#D4AF37] text-[#01411C]' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
-              }`}
-              title={autoSpeak ? "إيقاف الرد الصوتي التلقائي" : "تفعيل الرد الصوتي التلقائي"}
-            >
-              {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
+            {/* زر اختيار الصوت (رجل/امرأة) - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
+            {voiceFeaturesEnabled && (
+              <button
+                onClick={() => {
+                  const newGender = voiceGender === 'male' ? 'female' : 'male';
+                  setVoiceGender(newGender);
+                  localStorage.setItem('wasata_ai_voice_gender', newGender);
+                  localStorage.setItem('voice_type', newGender);
+                  toast.info(newGender === 'male' ? '🧔 صوت رجل' : '👩 صوت امرأة');
+                }}
+                className="p-2 rounded-full transition-all bg-white/20 text-white hover:bg-white/30 flex items-center gap-1"
+                title={voiceGender === 'male' ? 'تغيير إلى صوت امرأة' : 'تغيير إلى صوت رجل'}
+              >
+                <span className="text-sm">{voiceGender === 'male' ? '🧔' : '👩'}</span>
+              </button>
+            )}
+            {/* زر الرد الصوتي التلقائي - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
+            {voiceFeaturesEnabled && (
+              <button
+                onClick={toggleAutoSpeak}
+                className={`p-2 rounded-full transition-all ${
+                  autoSpeak 
+                    ? 'bg-[#D4AF37] text-[#01411C]' 
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+                title={autoSpeak ? "إيقاف الرد الصوتي التلقائي" : "تفعيل الرد الصوتي التلقائي"}
+              >
+                {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -1022,8 +1047,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                         {message.content}
                       </p>
                       
-                      {/* زر تشغيل الصوت لرسائل المساعد */}
-                      {message.role === "assistant" && message.content.length > 10 && (
+                      {/* زر تشغيل الصوت لرسائل المساعد - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
+                      {voiceFeaturesEnabled && message.role === "assistant" && message.content.length > 10 && (
                         <button
                           onClick={() => speakMessage(message.content)}
                           className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
@@ -1134,23 +1159,25 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             )}
 
             <div className="flex gap-2 items-stretch">
-              {/* Voice Button - يفتح الووكي توكي الكبير */}
-              <button
-                onClick={() => setShowWalkieTalkie(true)}
-                disabled={isTranscribing || ttsLoading || isProcessingVoice || isRecording}
-                className={`px-4 py-3 rounded-xl transition-all duration-150 border flex items-center justify-center flex-shrink-0 select-none cursor-pointer ${
-                  isTranscribing || ttsLoading || isProcessingVoice
-                    ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-[#01411C] to-[#065f41] text-white border-[#D4AF37] hover:scale-105 active:scale-110'
-                }`}
-                title="افتح الووكي توكي للتحدث 🎤"
-              >
-                {isTranscribing || ttsLoading || isProcessingVoice ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Mic className="w-5 h-5" />
-                )}
-              </button>
+              {/* Voice Button - يفتح الووكي توكي الكبير - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
+              {voiceFeaturesEnabled && (
+                <button
+                  onClick={() => setShowWalkieTalkie(true)}
+                  disabled={isTranscribing || ttsLoading || isProcessingVoice || isRecording}
+                  className={`px-4 py-3 rounded-xl transition-all duration-150 border flex items-center justify-center flex-shrink-0 select-none cursor-pointer ${
+                    isTranscribing || ttsLoading || isProcessingVoice
+                      ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#01411C] to-[#065f41] text-white border-[#D4AF37] hover:scale-105 active:scale-110'
+                  }`}
+                  title="افتح الووكي توكي للتحدث 🎤"
+                >
+                  {isTranscribing || ttsLoading || isProcessingVoice ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Mic className="w-5 h-5" />
+                  )}
+                </button>
+              )}
 
               <input
                 type="text"

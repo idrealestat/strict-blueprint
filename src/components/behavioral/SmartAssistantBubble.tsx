@@ -54,6 +54,20 @@ export function SmartAssistantBubble() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'context'>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // التحقق من إعدادات إظهار المساعد
+  const [assistantEnabled, setAssistantEnabled] = useState(() => {
+    return localStorage.getItem('smart_assistant_visible') !== 'false';
+  });
+
+  // الاستماع لتغييرات الإعدادات
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      setAssistantEnabled(localStorage.getItem('smart_assistant_visible') !== 'false');
+    };
+    window.addEventListener('smartAssistantSettingsChanged', handleSettingsChange);
+    return () => window.removeEventListener('smartAssistantSettingsChanged', handleSettingsChange);
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -82,8 +96,8 @@ export function SmartAssistantBubble() {
     handleQuickOption(optionId, inputValue);
   };
 
-  // Don't show on excluded pages
-  if (silentMode || !isVisible || isExcludedPage) return null;
+  // Don't show on excluded pages or if disabled in settings
+  if (silentMode || !isVisible || isExcludedPage || !assistantEnabled) return null;
 
   const contextOptions = getContextualOptions(location.pathname);
 
