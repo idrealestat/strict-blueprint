@@ -1151,69 +1151,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               </Button>
               <Button 
                 size="sm" 
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={async () => {
-                  // إذا كان هناك عرض واحد فقط، نقوم بتحميله مباشرة
-                  // وإلا نظهر رسالة للمستخدم
-                  if (allListings.length === 0) {
-                    toast.error('لا توجد عروض متاحة للتحميل');
-                    return;
-                  }
-                  
-                  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
-                  
-                  // تحميل أول عرض متاح (أو يمكن للمستخدم اختيار عرض معين)
-                  const firstListing = allListings[0];
-                  const offerUrl = `https://${publishedDomain}/${currentSlug}/offers/${firstListing.id}`;
-                  
-                  await generatePropertyPDF({
-                    id: firstListing.id,
-                    title: firstListing.title,
-                    propertyType: firstListing.propertyType,
-                    category: firstListing.category || 'للبيع',
-                    purpose: firstListing.purpose,
-                    area: firstListing.area?.toString(),
-                    price: firstListing.price?.toString(),
-                    locationDetails: {
-                      city: firstListing.city,
-                      district: firstListing.district,
-                      street: firstListing.street
-                    },
-                    bedrooms: firstListing.bedrooms?.toString(),
-                    bathrooms: firstListing.bathrooms?.toString(),
-                    livingRooms: firstListing.livingRooms,
-                    floors: firstListing.floors,
-                    floorNumber: firstListing.floorNumber,
-                    streetWidth: firstListing.streetWidth,
-                    propertyAge: firstListing.age?.toString(),
-                    facade: firstListing.direction,
-                    furnishing: firstListing.furnishing,
-                    features: firstListing.features,
-                    aiDescription: firstListing.description,
-                    images: firstListing.images || (firstListing.image ? [firstListing.image] : []),
-                    image: firstListing.image,
-                    brokerPhone: effectiveBusinessCardData?.primaryPhone,
-                    adLicense: firstListing.adLicense,
-                    offerUrl: offerUrl
-                  }, true, {
-                    name: effectiveBusinessCardData?.userName,
-                    company: effectiveBusinessCardData?.companyName,
-                    phone: effectiveBusinessCardData?.primaryPhone,
-                    location: effectiveBusinessCardData?.location,
-                    licenseNumber: effectiveBusinessCardData?.falLicense,
-                    profileImage: effectiveBusinessCardData?.profileImage,
-                    coverImage: effectiveBusinessCardData?.coverImage,
-                    logoImage: effectiveBusinessCardData?.logoImage
-                  });
-                  
-                  toast.success('تم تحميل ملف PDF بنجاح!');
-                }}
-              >
-                <FileDown className="w-4 h-4 ml-2" />
-                تحميل PDF
-              </Button>
-              <Button 
-                size="sm" 
                 className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
                 onClick={() => {
                   // إنشاء vCard للوسيط
