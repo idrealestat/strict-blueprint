@@ -242,9 +242,9 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
     <div style="padding: 15px;">
       
       <!-- السعر - في الأعلى لتجنب القطع -->
-      <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
-        <div style="color: #D4AF37; font-size: 28px; font-weight: bold;">${property.price ? formatArabicPrice(property.price) : '-'}</div>
-        <div style="color: #fff; font-size: 13px;">ريال سعودي ${property.purpose === 'rent' ? 'سنوياً' : ''}</div>
+      <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 10px 20px; border-radius: 10px; text-align: center; margin-bottom: 15px; display: inline-block; width: auto; margin-left: auto; margin-right: auto;">
+        <span style="color: #D4AF37; font-size: 22px; font-weight: bold;">${property.price ? formatArabicPrice(property.price) : '-'}</span>
+        <span style="color: #fff; font-size: 12px; margin-right: 8px;">ريال سعودي ${property.purpose === 'rent' ? 'سنوياً' : ''}</span>
       </div>
       
       <!-- بطاقات المعلومات الأساسية -->
