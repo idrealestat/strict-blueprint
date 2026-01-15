@@ -481,18 +481,23 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
       const lastPage = pdf.getNumberOfPages();
       pdf.setPage(lastPage);
       
-      // إضافة مستطيل خلفية للرابط
-      pdf.setFillColor(240, 247, 242);
-      pdf.roundedRect(15, 270, 180, 15, 3, 3, 'F');
+      // إضافة مستطيل خلفية للرابط (أزرق فاتح)
+      pdf.setFillColor(230, 240, 255);
+      pdf.roundedRect(15, 268, 180, 18, 3, 3, 'F');
       
-      // إضافة النص والرابط
-      pdf.setTextColor(1, 65, 28);
-      pdf.setFontSize(9);
-      pdf.text('🔗 اضغط هنا لفتح العرض:', 190, 278, { align: 'right' });
+      // إضافة حدود زرقاء
+      pdf.setDrawColor(0, 100, 200);
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect(15, 268, 180, 18, 3, 3, 'S');
       
-      // إضافة الرابط القابل للنقر
-      pdf.setTextColor(0, 0, 255);
-      pdf.textWithLink(offerUrl.length > 50 ? offerUrl.substring(0, 50) + '...' : offerUrl, 20, 281, { url: offerUrl });
+      // إضافة نص الرابط باللون الأزرق
+      pdf.setTextColor(0, 80, 180);
+      pdf.setFontSize(8);
+      const displayUrl = offerUrl.length > 60 ? offerUrl.substring(0, 60) + '...' : offerUrl;
+      pdf.text(displayUrl, 105, 279, { align: 'center' });
+      
+      // إضافة منطقة الرابط القابلة للنقر فوق المستطيل بالكامل
+      pdf.link(15, 268, 180, 18, { url: offerUrl });
     }
 
     // اسم الملف بالعربية
