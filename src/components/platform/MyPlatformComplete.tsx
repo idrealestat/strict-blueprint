@@ -199,6 +199,7 @@ interface SingleOffer {
   description?: string;
   price: string;
   image: string;
+  images?: string[];
   status: 'published' | 'draft';
   views: number;
   requests: number;
@@ -1577,7 +1578,7 @@ export default function MyPlatformComplete({
           ownerPhone: offer.owner?.phone,
           brokerPhone: user?.phone || businessCardData?.userName,
           image: offer.image,
-          images: offer.image ? [offer.image] : undefined,
+          images: offer.images && offer.images.length > 0 ? offer.images : (offer.image ? [offer.image] : undefined),
           locationDetails: {
             city: cityName,
             district: districtName,
