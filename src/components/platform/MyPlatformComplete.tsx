@@ -2521,6 +2521,52 @@ export default function MyPlatformComplete({
                             <Button size="sm" className="bg-blue-500 text-white" onClick={(e) => { e.stopPropagation(); handleCall(req.ownerPhone); }}>
                               <Phone className="w-4 h-4" />
                             </Button>
+                            <Button size="sm" className="bg-red-500 text-white" onClick={async (e) => { 
+                              e.stopPropagation(); 
+                              try {
+                                const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
+                                let brokerData: any = undefined;
+                                try {
+                                  const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+                                  if (businessCard) {
+                                    brokerData = {
+                                      name: businessCard.userName || businessCard.name,
+                                      company: businessCard.companyName,
+                                      phone: businessCard.primaryPhone || businessCard.phone,
+                                      location: req.preferredCity,
+                                      licenseNumber: businessCard.falLicense,
+                                      profileImage: businessCard.profileImage,
+                                      coverImage: businessCard.coverImage,
+                                      logoImage: businessCard.logoImage,
+                                    };
+                                  }
+                                } catch {}
+                                await generateRequestPDF({
+                                  id: req.id,
+                                  purpose: req.purpose,
+                                  propertyType: req.propertyType,
+                                  preferredCity: req.preferredCity,
+                                  preferredDistricts: Array.isArray(req.preferredDistricts) ? req.preferredDistricts.join('، ') : req.preferredDistricts,
+                                  minBudget: req.minBudget,
+                                  maxBudget: req.maxBudget,
+                                  bedrooms: req.bedrooms,
+                                  bathrooms: req.bathrooms,
+                                  minArea: req.minArea,
+                                  maxArea: req.maxArea,
+                                  furnishing: req.furnishing,
+                                  additionalRequirements: req.additionalRequirements,
+                                  ownerName: req.ownerName,
+                                  ownerPhone: req.ownerPhone,
+                                  createdAt: req.createdAt,
+                                }, true, brokerData);
+                                toast.success('تم تحميل ملف PDF');
+                              } catch (e) {
+                                console.error('PDF error', e);
+                                toast.error('تعذر إنشاء PDF');
+                              }
+                            }}>
+                              <FileDown className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -2572,6 +2618,45 @@ export default function MyPlatformComplete({
                           </Button>
                           <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(request.customerPhone)}>
                             <Phone className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" className="bg-red-500 text-white" onClick={async () => { 
+                            try {
+                              const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
+                              let brokerData: any = undefined;
+                              try {
+                                const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+                                if (businessCard) {
+                                  brokerData = {
+                                    name: businessCard.userName || businessCard.name,
+                                    company: businessCard.companyName,
+                                    phone: businessCard.primaryPhone || businessCard.phone,
+                                    location: request.city,
+                                    licenseNumber: businessCard.falLicense,
+                                    profileImage: businessCard.profileImage,
+                                    coverImage: businessCard.coverImage,
+                                    logoImage: businessCard.logoImage,
+                                  };
+                                }
+                              } catch {}
+                              await generateRequestPDF({
+                                id: request.id,
+                                purpose: request.purpose || 'شراء',
+                                propertyType: request.propertyType,
+                                preferredCity: request.city,
+                                preferredDistricts: request.district || '',
+                                minBudget: request.budget?.min?.toString(),
+                                maxBudget: request.budget?.max?.toString(),
+                                ownerName: request.customerName,
+                                ownerPhone: request.customerPhone,
+                                createdAt: typeof request.createdAt === 'string' ? request.createdAt : request.createdAt?.toISOString?.() || new Date().toISOString(),
+                              }, true, brokerData);
+                              toast.success('تم تحميل ملف PDF');
+                            } catch (e) {
+                              console.error('PDF error', e);
+                              toast.error('تعذر إنشاء PDF');
+                            }
+                          }}>
+                            <FileDown className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
