@@ -190,7 +190,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   // slug المستخدم للمنصة العامة
   const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
   // مزامنة (للـمالك فقط)
-  const { syncFromLocalStorage } = usePlatformListings(!isPublicViewer ? currentSlug : undefined);
+  const { syncFromLocalStorage, listings: ownerDbListings, fetchListings: ownerFetchListings } = usePlatformListings(!isPublicViewer ? currentSlug : undefined);
 
   // جلب العروض للزوار من قاعدة البيانات (حتى تظهر على أي جهاز)
   // يستخدم slug أولاً، ثم user_id كخيار ثانٍ
@@ -225,10 +225,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // ===== تحميل العروض =====
   useEffect(() => {
-    // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات + localStorage كـ fallback
+    // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات
     if (isPublicViewer) {
       // بطاقة الوسيط للزائر تأتي من businessCardOverride (من الـ backend)
-      // ملاحظة: businessCardOverride قد يكون صف DB يحتوي على data، لذلك نطبعّه لشكل BusinessCardData المتوقع.
       if (typeof businessCardOverride !== 'undefined' && businessCardOverride !== null) {
         const overrideAny = businessCardOverride as any;
         const normalizedCard = overrideAny?.data && typeof overrideAny.data === 'object'
@@ -251,71 +250,36 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         setHierarchyData(hierarchy);
         setAllListings(flattenListings(hierarchy));
       } else {
-        // Fallback: جلب من localStorage (مؤقتاً حتى تتم المزامنة)
-        try {
-          const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-          const visibility = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
-          
-          if (Array.isArray(publishedAds) && publishedAds.length > 0) {
-            const visibleAds = publishedAds.filter((ad: any) => {
-              const isHidden = visibility[`offer_${ad.id}`] ?? ad.isHidden ?? false;
-              const status = ad.status ?? 'published';
-              return !isHidden && status === 'published';
-            });
-            
-            if (visibleAds.length > 0) {
-              const hierarchy = buildHierarchy(visibleAds);
-              setHierarchyData(hierarchy);
-              setAllListings(flattenListings(hierarchy));
-            } else {
-              setHierarchyData([]);
-              setAllListings([]);
-            }
-          } else {
-            setHierarchyData([]);
-            setAllListings([]);
-          }
-        } catch (e) {
-          console.error('Error loading from localStorage:', e);
-          setHierarchyData([]);
-          setAllListings([]);
-        }
+        setHierarchyData([]);
+        setAllListings([]);
       }
       return;
     }
 
-    // (2) منصة المالك داخل نفس المتصفح: المصدر هو localStorage (كما في منصتي)
-    const loadData = () => {
-      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-      const visibility = JSON.parse(localStorage.getItem('platform_visibility_state') || '{}');
-
-      if (!Array.isArray(publishedAds) || publishedAds.length === 0) {
-        setHierarchyData([]);
-        setAllListings([]);
-        return;
-      }
-
-      const visibleAds = publishedAds.filter((ad: any) => {
-        const isHidden = visibility[`offer_${ad.id}`] ?? ad.isHidden ?? false;
-        const status = ad.status ?? 'published';
-        return !isHidden && status === 'published';
-      });
-
-      if (visibleAds.length > 0) {
-        const hierarchy = buildHierarchy(visibleAds);
-        setHierarchyData(hierarchy);
-        setAllListings(flattenListings(hierarchy));
+    // (2) تبويب المنصة للمالك: المصدر هو قاعدة البيانات (نفس مصدر تبويب العروض)
+    // ✅ يعرض فقط العروض الظاهرة (غير المخفية) كما يراها الزوار
+    const loadFromDatabase = () => {
+      if (ownerDbListings && ownerDbListings.length > 0) {
+        // فلترة العروض المخفية والمسودات - تبويب المنصة يعرض ما يراه الزوار فقط
+        const visibleListings = ownerDbListings.filter(listing => 
+          listing.status === 'published' && !listing.isHidden
+        );
+        
+        if (visibleListings.length > 0) {
+          const hierarchy = buildHierarchy(visibleListings as any[]);
+          setHierarchyData(hierarchy);
+          setAllListings(flattenListings(hierarchy));
+        } else {
+          setHierarchyData([]);
+          setAllListings([]);
+        }
       } else {
         setHierarchyData([]);
         setAllListings([]);
       }
     };
 
-    loadData();
-
-    const autoRefreshInterval = setInterval(() => {
-      loadData();
-    }, 2000);
+    loadFromDatabase();
 
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
     if (typeof businessCardOverride !== 'undefined') {
@@ -328,9 +292,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         setBusinessCardData(normalizedCard);
         setIsSwapped(Boolean(overrideAny?.data?.swapState ?? overrideAny?.swapState));
       }
-      return () => {
-        clearInterval(autoRefreshInterval);
-      };
+      return;
     }
 
     const loadCardData = async () => {
@@ -404,7 +366,10 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     loadCardData();
 
     const handleUpdate = () => {
-      loadData();
+      // إعادة جلب العروض من قاعدة البيانات
+      if (ownerFetchListings) {
+        ownerFetchListings();
+      }
       loadCardData();
     };
 
@@ -418,7 +383,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     window.addEventListener('publishedAdSaved', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
-      clearInterval(autoRefreshInterval);
       window.removeEventListener('businessCardUpdated', handleUpdate);
       window.removeEventListener('businessCardSwapped', handleSwap);
       window.removeEventListener('publishedAdSaved', handleUpdate);
@@ -430,10 +394,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     publicDbLoading,
     publicDbError,
     publicDbListings,
+    ownerDbListings,
+    ownerFetchListings,
     currentUser,
     STORAGE_KEY,
     SWAP_KEY,
     businessCardOverride,
+    userId,
   ]);
 
   // دالة مزامنة العروض إلى قاعدة البيانات
