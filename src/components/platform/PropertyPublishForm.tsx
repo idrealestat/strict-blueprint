@@ -989,8 +989,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 </div>
                 <div className="flex gap-3">
                   <Button
+                    variant="outline"
                     onClick={restoreSavedData}
-                    className="bg-[hsl(var(--forest-green))] hover:bg-[hsl(var(--forest-green))]/90 text-white"
+                    className="border-[hsl(var(--forest-green))] text-[hsl(var(--forest-green))] bg-white hover:bg-[hsl(var(--forest-green))]/10"
                   >
                     <RefreshCw className="w-4 h-4 ml-2" />
                     نعم، استعد البيانات
