@@ -817,7 +817,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                     }
 
                     window.dispatchEvent(new CustomEvent('openCustomerDetails', {
-                      detail: { customerId, activeTab: 'overview' }
+                      detail: { customerId, activeTab: 'published_ads' }
                     }));
                   }}
                   className="w-full bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold"
