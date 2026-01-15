@@ -210,6 +210,27 @@ interface SingleOffer {
   ownerName?: string;
   isHidden: boolean;
   liveViewers: number;
+  // حقول المالك الإضافية
+  ownerIdNumber?: string;
+  ownerBirthDate?: string;
+  ownerCity?: string;
+  ownerDistrict?: string;
+  ownerNationalAddress?: string;
+  // حقول الصك
+  deedNumber?: string;
+  deedDate?: string;
+  deedCity?: string;
+  // حقول التأجير
+  contractDuration?: number;
+  contractStartDate?: string;
+  contractEndDate?: string;
+  isCurrentlyRented?: boolean;
+  // حقول إضافية
+  city?: string;
+  district?: string;
+  street?: string;
+  tour3DUrl?: string;
+  linkedCustomerId?: string;
 }
 
 // مستوى الحي (يحتوي على عروض)
@@ -488,7 +509,7 @@ export default function MyPlatformComplete({
   digitalCardHeader 
 }: MyPlatformCompleteProps) {
   // State
-  const [activeMainTab, setActiveMainTab] = useState<'platform' | 'offers' | 'requests'>('platform');
+  const [activeMainTab, setActiveMainTab] = useState<'platform' | 'offers' | 'requests'>('offers');
   const [offers, setOffers] = useState<HierarchicalOffer[]>(() => loadFromStorage());
   const [requests, setRequests] = useState<Request[]>(mockRequests);
   const [searchQuery, setSearchQuery] = useState('');
