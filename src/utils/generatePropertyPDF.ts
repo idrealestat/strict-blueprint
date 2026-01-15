@@ -153,6 +153,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
       * { font-family: 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
+      .no-break { page-break-inside: avoid; break-inside: avoid; }
     </style>
     
     <!-- رأس الصفحة مع معلومات الوسيط -->
@@ -241,7 +242,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
     <div style="padding: 15px;">
       
       <!-- بطاقات المعلومات الأساسية -->
-      <div style="display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap;">
+      <div class="no-break" style="display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap;">
         <div style="text-align: center; padding: 12px; background: #f0f7f2; border-radius: 10px; min-width: 100px; margin: 5px;">
           <div style="color: #01411C; font-size: 22px; font-weight: bold;">${safeArea ? toArabicNumerals(safeArea) : '-'}</div>
           <div style="color: #666; font-size: 11px;">م² المساحة</div>
@@ -257,13 +258,13 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
       </div>
 
       <!-- السعر -->
-      <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
+      <div class="no-break" style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
         <div style="color: #D4AF37; font-size: 28px; font-weight: bold;">${property.price ? formatArabicPrice(property.price) : '-'}</div>
         <div style="color: #fff; font-size: 13px;">ريال سعودي ${property.purpose === 'rent' ? 'سنوياً' : ''}</div>
       </div>
 
       <!-- قسم الموقع -->
-      <div style="margin-bottom: 15px;">
+      <div class="no-break" style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📍 الموقع والعنوان
         </h3>
@@ -284,7 +285,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
       </div>
 
       <!-- قسم المواصفات -->
-      <div style="margin-bottom: 15px;">
+      <div class="no-break" style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           🏠 المواصفات التفصيلية
         </h3>
@@ -315,7 +316,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
 
       <!-- المميزات -->
       ${safeFeatures.length > 0 ? `
-      <div style="margin-bottom: 15px;">
+      <div class="no-break" style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           ✨ المميزات الإضافية
         </h3>
@@ -343,7 +344,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
 
       <!-- معلومات التواصل (الوسيط فقط) -->
       ${safeBrokerPhone ? `
-      <div style="margin-bottom: 15px;">
+      <div class="no-break" style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
           📞 معلومات التواصل
         </h3>
