@@ -475,29 +475,33 @@ export async function generatePropertyPDF(property: PropertyData, includeOwner: 
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
     }
     
-    // إضافة رابط قابل للنقر في أسفل آخر صفحة
+    // إضافة رابط قابل للنقر والنسخ في أسفل آخر صفحة
     const offerUrl = property.offerUrl;
     if (offerUrl) {
       const lastPage = pdf.getNumberOfPages();
       pdf.setPage(lastPage);
       
-      // إضافة مستطيل خلفية للرابط (أزرق فاتح)
-      pdf.setFillColor(230, 240, 255);
-      pdf.roundedRect(15, 268, 180, 18, 3, 3, 'F');
+      const linkY = 265;
+      const linkHeight = 22;
       
-      // إضافة حدود زرقاء
-      pdf.setDrawColor(0, 100, 200);
-      pdf.setLineWidth(0.5);
-      pdf.roundedRect(15, 268, 180, 18, 3, 3, 'S');
+      // خلفية زر الرابط
+      pdf.setFillColor(0, 100, 180);
+      pdf.roundedRect(20, linkY, 170, linkHeight, 4, 4, 'F');
       
-      // إضافة نص الرابط باللون الأزرق
-      pdf.setTextColor(0, 80, 180);
-      pdf.setFontSize(8);
-      const displayUrl = offerUrl.length > 60 ? offerUrl.substring(0, 60) + '...' : offerUrl;
-      pdf.text(displayUrl, 105, 279, { align: 'center' });
+      // نص "افتح العرض" بالأبيض (سيظهر كمربعات لأن jsPDF لا يدعم العربية)
+      // لذلك سنستخدم رمز فقط
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.text('Click to Open / ', 105, linkY + 9, { align: 'center' });
       
-      // إضافة منطقة الرابط القابلة للنقر فوق المستطيل بالكامل
-      pdf.link(15, 268, 180, 18, { url: offerUrl });
+      // عرض الرابط كنص قابل للتحديد
+      pdf.setFontSize(7);
+      pdf.setTextColor(220, 240, 255);
+      const displayUrl = offerUrl.length > 55 ? offerUrl.substring(0, 55) + '...' : offerUrl;
+      pdf.text(displayUrl, 105, linkY + 16, { align: 'center' });
+      
+      // جعل المنطقة كاملة قابلة للنقر
+      pdf.link(20, linkY, 170, linkHeight, { url: offerUrl });
     }
 
     // اسم الملف بالعربية
