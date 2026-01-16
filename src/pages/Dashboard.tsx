@@ -4,8 +4,11 @@ import MainServices from "@/components/MainServices";
 import QuickCalculator from "@/components/QuickCalculator";
 import CalendarTabs from "@/components/CalendarTabs";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import { useAppointmentReminders } from "@/hooks/useAppointmentReminders";
 
 const Dashboard = () => {
+  // تفعيل نظام التذكير بالمواعيد
+  useAppointmentReminders();
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6 space-y-6">
