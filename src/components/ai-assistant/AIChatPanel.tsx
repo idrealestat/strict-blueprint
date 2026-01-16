@@ -542,7 +542,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
   // تشغيل الرد الصوتي
   const speakResponse = async (text: string) => {
-    if (!autoSpeak) return;
+    // التحقق من تفعيل ميزات الصوت من إعدادات المالك + الإعداد المحلي
+    if (!voiceFeaturesEnabled || !autoSpeak) return;
     
     // تنظيف النص من الإيموجي والرموز
     const cleanText = text
@@ -859,20 +860,22 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
 
   return (
     <div className="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-2xl shadow-2xl overflow-hidden h-full flex flex-col border-2 border-[#D4AF37] relative">
-      {/* شاشة معالجة الصوت / زر الووكي توكي */}
-      <AnimatePresence>
-        <AudioProcessingOverlay
-          isTranscribing={isTranscribing}
-          isTTSLoading={ttsLoading}
-          isRecording={isRecording}
-          recordingDuration={recordingDuration}
-          audioLevel={audioLevel}
-          onVoiceStart={handleVoiceStart}
-          onVoiceEnd={handleVoiceEnd}
-          isProcessingVoice={isProcessingVoice}
-          showWalkieTalkie={showWalkieTalkie}
-        />
-      </AnimatePresence>
+      {/* شاشة معالجة الصوت / زر الووكي توكي - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
+      {voiceFeaturesEnabled && (
+        <AnimatePresence>
+          <AudioProcessingOverlay
+            isTranscribing={isTranscribing}
+            isTTSLoading={ttsLoading}
+            isRecording={isRecording}
+            recordingDuration={recordingDuration}
+            audioLevel={audioLevel}
+            onVoiceStart={handleVoiceStart}
+            onVoiceEnd={handleVoiceEnd}
+            isProcessingVoice={isProcessingVoice}
+            showWalkieTalkie={showWalkieTalkie}
+          />
+        </AnimatePresence>
+      )}
 
       {/* لوحة سجل المحادثات */}
       <ConversationHistoryPanel
@@ -1201,16 +1204,18 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               <div className="flex items-center gap-2 text-[10px] text-[#01411C]/60">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                 <span>وساطه AI - متصل</span>
-                {isSpeaking && (
+                {voiceFeaturesEnabled && isSpeaking && (
                   <span className="flex items-center gap-1 text-[#D4AF37]">
                     <Volume2 className="w-3 h-3" />
                     جاري التحدث...
                   </span>
                 )}
               </div>
-              <div className="text-[10px] text-[#01411C]/40">
-                {autoSpeak ? '🔊 الرد الصوتي مفعّل' : '🔇 الرد الصوتي متوقف'}
-              </div>
+              {voiceFeaturesEnabled && (
+                <div className="text-[10px] text-[#01411C]/40">
+                  {autoSpeak ? '🔊 الرد الصوتي مفعّل' : '🔇 الرد الصوتي متوقف'}
+                </div>
+              )}
             </div>
           </div>
         </div>
