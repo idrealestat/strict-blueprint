@@ -18,18 +18,11 @@ const Dashboard = () => {
           <MainServices />
         </div>
 
-        {/* 4 & 5. التقويم والحاسبة */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* التقويم - 9 تبويبات */}
-          <div className="lg:col-span-2">
-            <CalendarTabs />
-          </div>
-          
-          {/* الحاسبة السريعة */}
-          <div>
-            <QuickCalculator />
-          </div>
-        </div>
+        {/* التقويم الرئيسي - مرتبط بقاعدة البيانات */}
+        <CalendarTabs />
+
+        {/* الحاسبة السريعة */}
+        <QuickCalculator />
 
         {/* 6. التحليلات */}
         <div>

@@ -52,6 +52,8 @@ import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
 import SlugOfferPage from "./pages/SlugOfferPage";
 import SlugRequestPage from "./pages/SlugRequestPage";
 import SlugQuotePage from "./pages/SlugQuotePage";
+import SlugAppointmentApprovalBroker from "./pages/SlugAppointmentApprovalBroker";
+import SlugAppointmentApprovalCustomer from "./pages/SlugAppointmentApprovalCustomer";
 import ChoosePlanPage from "./pages/ChoosePlanPage";
 import { AuthProvider } from "./context/AuthContext";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
@@ -560,6 +562,8 @@ const App = () => {
                   <Route path="/:slug/offer" element={<SlugOfferPage />} />
                   <Route path="/:slug/request" element={<SlugRequestPage />} />
                   <Route path="/:slug/quote" element={<SlugQuotePage />} />
+                  <Route path="/:slug/appointmentapproval/broker/:appointmentId" element={<SlugAppointmentApprovalBroker />} />
+                  <Route path="/:slug/appointmentapproval/customer/:appointmentId" element={<SlugAppointmentApprovalCustomer />} />
                   
                   {/* Hierarchical City/District/Offer Routes */}
                   <Route path="/:slug/:citySlug" element={<SlugCityPage />} />
