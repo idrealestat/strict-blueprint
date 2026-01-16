@@ -393,8 +393,13 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
                 })}
               </div>
 
+              {/* ملاحظة المس للنسخ */}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                💡 المس لنسخ الروابط
+              </p>
+
               {!userSlug && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 text-center">
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
                   ⚠️ انشر بطاقة أعمالك لتفعيل الروابط
                 </p>
               )}
