@@ -4,7 +4,7 @@
  * مع الخريطة والتعبئة التلقائية للعنوان
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -127,8 +127,13 @@ export default function GeneralInfoTab({
   setEditedCustomer 
 }: GeneralInfoTabProps) {
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<{ url: string; type: 'image' | 'video'; name: string }[]>([]);
   const [documents, setDocuments] = useState<File[]>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
+  
+  // Session storage key للحفاظ على البيانات عند فتح المعرض على الهواتف
+  const SESSION_STORAGE_KEY = `crm_customer_media_${customer.id}`;
   const [showMap, setShowMap] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showFinancialForm, setShowFinancialForm] = useState(false);
@@ -152,6 +157,48 @@ export default function GeneralInfoTab({
 
   // جلب بيانات البطاقة للمستندات المالية
   const { data: businessCardData } = useBusinessCardData();
+
+  // استعادة الوسائط من sessionStorage عند تحميل الصفحة (للتعامل مع تجديد الصفحة على الهواتف)
+  useEffect(() => {
+    try {
+      const savedMedia = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (savedMedia) {
+        const parsed = JSON.parse(savedMedia);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMediaFiles(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore media from sessionStorage:', e);
+    }
+  }, [SESSION_STORAGE_KEY]);
+
+  // حفظ الوسائط في sessionStorage و localStorage عند التغيير
+  useEffect(() => {
+    if (mediaFiles.length > 0) {
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(mediaFiles));
+        // حفظ في localStorage أيضاً للاستمرارية
+        const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+        const customerIndex = customers.findIndex((c: any) => c.id === customer.id || c.phone === customer.phone);
+        if (customerIndex !== -1) {
+          customers[customerIndex].mediaFiles = mediaFiles;
+          localStorage.setItem('crm_customers', JSON.stringify(customers));
+        }
+      } catch (e) {
+        console.warn('Failed to save media:', e);
+      }
+    }
+  }, [mediaFiles, customer.id, customer.phone, SESSION_STORAGE_KEY]);
+
+  // تحميل الوسائط المحفوظة من localStorage
+  useEffect(() => {
+    const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+    const currentCustomer = customers.find((c: any) => c.id === customer.id || c.phone === customer.phone);
+    if (currentCustomer?.mediaFiles && currentCustomer.mediaFiles.length > 0) {
+      setMediaFiles(currentCustomer.mediaFiles);
+    }
+  }, [customer.id, customer.phone]);
 
   // تحميل المستندات المحفوظة
   useEffect(() => {
@@ -177,6 +224,68 @@ export default function GeneralInfoTab({
       window.removeEventListener('customerDocumentAdded', handleDocumentAdded as EventListener);
     };
   }, [customer.id, customer.phone]);
+
+  // معالجة اختيار ملفات الوسائط
+  const handleMediaSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingMedia(true);
+
+    try {
+      const newMedia: { url: string; type: 'image' | 'video'; name: string }[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // تحويل الملف إلى base64 data URL
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const isVideo = file.type.startsWith('video/');
+        newMedia.push({
+          url: dataUrl,
+          type: isVideo ? 'video' : 'image',
+          name: file.name
+        });
+      }
+
+      setMediaFiles(prev => [...prev, ...newMedia]);
+      toast.success(`تم رفع ${newMedia.length} ملف بنجاح`);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      toast.error('حدث خطأ أثناء رفع الملفات');
+    } finally {
+      setIsUploadingMedia(false);
+      // إعادة تعيين input للسماح برفع نفس الملف مرة أخرى
+      if (mediaInputRef.current) {
+        mediaInputRef.current.value = '';
+      }
+    }
+  }, []);
+
+  // حذف ملف وسائط
+  const handleRemoveMedia = useCallback((index: number) => {
+    setMediaFiles(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // تحديث sessionStorage
+      try {
+        if (updated.length > 0) {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
+        } else {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      } catch (e) {
+        console.warn('Failed to update sessionStorage:', e);
+      }
+      return updated;
+    });
+    toast.success('تم حذف الملف');
+  }, [SESSION_STORAGE_KEY]);
 
   const customerType = CUSTOMER_TYPES.find(t => t.id === customer.type);
   const interestLevel = INTEREST_LEVELS.find(l => l.id === customer.interestLevel);
@@ -880,16 +989,91 @@ export default function GeneralInfoTab({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Image className="w-4 h-4 text-emerald-600" />
-              <span className="text-sm font-medium text-gray-700">الوسائط المتعددة (0/27)</span>
+              <span className="text-sm font-medium text-gray-700">
+                الوسائط المتعددة ({mediaFiles.length}/27)
+              </span>
             </div>
-            <Button variant="ghost" size="sm" className="text-emerald-600 gap-1">
-              <Upload className="w-4 h-4" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-emerald-600 gap-1"
+              onClick={() => mediaInputRef.current?.click()}
+              disabled={isUploadingMedia}
+            >
+              {isUploadingMedia ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
               رفع صور/فيديو
             </Button>
+            {/* Input مخفي لاختيار الملفات - بدون capture للسماح بالاختيار من المعرض */}
+            <input
+              ref={mediaInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleMediaSelect}
+              className="hidden"
+            />
           </div>
-          <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
-            <p className="text-sm text-gray-400">اسحب وأفلت الملفات هنا أو اضغط للرفع</p>
-          </div>
+          
+          {mediaFiles.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {mediaFiles.map((media, index) => (
+                <div 
+                  key={index} 
+                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group"
+                >
+                  {media.type === 'video' ? (
+                    <video 
+                      src={media.url} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img 
+                      src={media.url} 
+                      alt={media.name}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {/* زر الحذف */}
+                  <button
+                    onClick={() => handleRemoveMedia(index)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                  {/* مؤشر نوع الملف */}
+                  {media.type === 'video' && (
+                    <div className="absolute bottom-1 left-1 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded">
+                      فيديو
+                    </div>
+                  )}
+                </div>
+              ))}
+              {/* زر إضافة المزيد */}
+              <button
+                onClick={() => mediaInputRef.current?.click()}
+                className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-emerald-400 hover:text-emerald-500 transition-colors"
+                disabled={isUploadingMedia}
+              >
+                <Plus className="w-6 h-6 mb-1" />
+                <span className="text-xs">إضافة</span>
+              </button>
+            </div>
+          ) : (
+            <div 
+              className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors"
+              onClick={() => mediaInputRef.current?.click()}
+            >
+              <div className="flex flex-col items-center">
+                <Upload className="w-8 h-8 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-400">اسحب وأفلت الملفات هنا أو اضغط للرفع</p>
+                <p className="text-xs text-gray-300 mt-1">صور أو فيديو (حد أقصى 27)</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
