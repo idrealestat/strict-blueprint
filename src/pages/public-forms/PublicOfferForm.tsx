@@ -484,12 +484,14 @@ export default function PublicOfferForm() {
       };
 
       // 1. الحصول على معرف الوسيط من business_cards باستخدام الـ slug
-      const { data: businessCard } = await supabase
+      const { data: businessCard, error: cardError } = await supabase
         .from('business_cards')
         .select('user_id, data')
-        .eq('slug', brokerId)
+        .eq('slug', brokerSlug)
         .eq('published', true)
         .single();
+      
+      console.log('[PublicOfferForm] brokerSlug:', brokerSlug, 'businessCard:', businessCard, 'error:', cardError);
 
       const brokerUserId = businessCard?.user_id;
 
