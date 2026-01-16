@@ -20,8 +20,6 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
-import { triggerOfferNotification, createNotification } from '@/utils/notificationTriggers';
-import { markAsNew } from '@/hooks/usePublishedAdsManager';
 import LocationPickerMap from '@/components/auth/LocationPickerMap';
 
 // Mock broker data
@@ -483,132 +481,28 @@ export default function PublicOfferForm() {
         isViewed: false,
       };
 
-      // 1. الحصول على معرف الوسيط من business_cards باستخدام الـ slug
-      const { data: businessCard, error: cardError } = await supabase
-        .from('business_cards')
-        .select('user_id, data')
-        .eq('slug', brokerSlug)
-        .eq('published', true)
-        .single();
-      
-      console.log('[PublicOfferForm] brokerSlug:', brokerSlug, 'businessCard:', businessCard, 'error:', cardError);
-
-      const brokerUserId = businessCard?.user_id;
-
-      if (brokerUserId) {
-        // 2. البحث عن العميل برقم الجوال في CRM
-        const { data: existingCustomer } = await supabase
-          .from('crm_customers')
-          .select('*')
-          .eq('user_id', brokerUserId)
-          .or(`phone.eq.${formData.ownerPhone},whatsapp.eq.${formData.ownerPhone}`)
-          .maybeSingle();
-
-        let customerId: string;
-        let isNewCustomer = false;
-
-        if (existingCustomer) {
-          // 3a. العميل موجود - تحديث بياناته وإضافة العرض
-          customerId = existingCustomer.id;
-          
-          // تحديث البيانات الأساسية إذا كانت فارغة
-          const updates: Record<string, any> = {
-            last_contact: new Date().toISOString().split('T')[0],
-          };
-          
-          // تحديث الاسم إذا كان فارغاً
-          if (!existingCustomer.name || existingCustomer.name === 'غير معروف') {
-            updates.name = formData.ownerName;
-          }
-          
-          // إضافة العرض للـ metadata
-          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
-          const existingOffers = currentMetadata.property_offers || [];
-          
-          updates.metadata = {
-            ...currentMetadata,
-            property_offers: [...existingOffers, submissionData],
-            hasUnreadOffer: true,
-            lastOfferAt: new Date().toISOString(),
-          };
-          
-          await supabase
-            .from('crm_customers')
-            .update(updates)
-            .eq('id', customerId);
-
-        } else {
-          // 3b. العميل غير موجود - إنشاء بطاقة جديدة
-          isNewCustomer = true;
-          
-          const { data: newCustomer, error: createError } = await supabase
-            .from('crm_customers')
-            .insert([{
-              user_id: brokerUserId,
-              name: formData.ownerName,
-              phone: formData.ownerPhone,
-              status: 'جديد',
-              priority: 'عالي',
-              property_type: 'owner',
-              source: 'نموذج عرض عقاري',
-              location: formData.locationCity || null,
-              notes: `عرض عقاري: ${formData.propertyType} ${formData.purpose}`,
-              last_contact: new Date().toISOString().split('T')[0],
-              metadata: {
-                idNumber: formData.ownerIdNumber,
-                nationalAddress: formData.ownerNationalAddress,
-                property_offers: [submissionData],
-                hasUnreadOffer: true,
-                isNewCard: true,
-                lastOfferAt: new Date().toISOString(),
-              } as Record<string, any>,
-            }])
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating customer:', createError);
-          } else if (newCustomer) {
-            customerId = newCustomer.id;
-          }
-        }
-
-        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
-        await createNotification({
-          userId: brokerUserId,
-          title: '🏠 عرض عقاري جديد',
-          message: `استلمت عرض من ${formData.ownerName} - ${formData.propertyType} ${formData.purpose}`,
-          notificationType: 'offer',
-          category: 'incoming',
-          priority: 'high',
-          relatedEntityType: 'offer_form',
-          relatedEntityId: offerId,
-          actionUrl: '/app/crm',
-          metadata: {
-            ownerName: formData.ownerName,
-            ownerPhone: formData.ownerPhone,
-            propertyType: formData.propertyType,
-            purpose: formData.purpose,
-            city: formData.locationCity,
-            customerId: customerId!,
-            isNewCustomer,
-            isPulsing: true,
-          },
-          sendPush: true,
-          pushData: {
-            type: 'new_offer',
-            ownerName: formData.ownerName,
-            propertyType: formData.propertyType,
-          },
-        });
-
-        // 5. تتبع الدوائر النابضة
-        markAsNew('offer', offerId);
-        if (customerId!) {
-          markAsNew('customer', customerId!);
-        }
-        markAsNew('tab', 'property-offer');
+      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
+      if (!brokerSlug) {
+        throw new Error('missing broker slug');
       }
+
+      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
+        body: {
+          slug: brokerSlug,
+          formType: 'offer',
+          data: submissionData,
+        },
+      });
+
+      if (submitError) {
+        console.error('[PublicOfferForm] public submit error:', submitError);
+        throw submitError;
+      }
+
+      const customerId = (submitResult as any)?.customerId as string | undefined;
+      // ملاحظة: إنشاء بطاقة العميل + إضافة العرض + إنشاء الإشعار يتم بالكامل في الخلفية
+      console.log('[PublicOfferForm] submitResult:', submitResult, 'customerId:', customerId);
+
 
       // 6. حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
