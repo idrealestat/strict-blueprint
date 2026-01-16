@@ -831,7 +831,6 @@ export default function PublicOfferForm() {
               type="file"
               accept="image/*,video/*"
               multiple
-              capture="environment"
               onChange={handleFileSelect}
               className="hidden"
             />
