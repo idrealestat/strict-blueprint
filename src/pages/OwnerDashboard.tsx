@@ -1381,90 +1381,6 @@ const OwnerDashboard: React.FC = () => {
             {/* إعدادات المساعد الذكي */}
             <SmartAssistantSettingsCard />
 
-            {/* إعدادات النطاقات */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Cog className="w-5 h-5 text-[#01411C]" />
-                  إعدادات النطاقات
-                </CardTitle>
-                <CardDescription>إعدادات عامة للتسعير والتحذيرات</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {domainSettings ? (
-                  <>
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">تفعيل التسعير</p>
-                        <p className="text-sm text-gray-500">السماح بتحديد أسعار للنطاقات المميزة</p>
-                      </div>
-                      <Switch
-                        checked={domainSettings.pricing_enabled ?? false}
-                        onCheckedChange={async (v) => {
-                          const { error } = await supabase.from('domain_settings').update({ pricing_enabled: v }).eq('id', domainSettings.id);
-                          if (!error) setDomainSettings(prev => prev ? { ...prev, pricing_enabled: v } : null);
-                        }}
-                      />
-                    </div>
-
-                    <div className="p-4 border rounded-lg space-y-3">
-                      <Label>السعر الافتراضي (ريال)</Label>
-                      <Input
-                        type="number"
-                        value={domainSettings.default_price || ''}
-                        onChange={async (e) => {
-                          const value = e.target.value ? Number(e.target.value) : null;
-                          const { error } = await supabase.from('domain_settings').update({ default_price: value }).eq('id', domainSettings.id);
-                          if (!error) setDomainSettings(prev => prev ? { ...prev, default_price: value } : null);
-                        }}
-                        className="max-w-[200px]"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">تحذير الأولوية</p>
-                        <p className="text-sm text-gray-500">عرض تحذير عند محاولة حجز نطاق له أولوية</p>
-                      </div>
-                      <Switch
-                        checked={domainSettings.priority_warning_enabled ?? false}
-                        onCheckedChange={async (v) => {
-                          const { error } = await supabase.from('domain_settings').update({ priority_warning_enabled: v }).eq('id', domainSettings.id);
-                          if (!error) setDomainSettings(prev => prev ? { ...prev, priority_warning_enabled: v } : null);
-                        }}
-                      />
-                    </div>
-
-                    <div className="p-4 border rounded-lg space-y-3">
-                      <Label>رسالة تحذير الأولوية</Label>
-                      <Textarea
-                        value={domainSettings.priority_warning_message || ''}
-                        onChange={async (e) => {
-                          const { error } = await supabase.from('domain_settings').update({ priority_warning_message: e.target.value }).eq('id', domainSettings.id);
-                          if (!error) setDomainSettings(prev => prev ? { ...prev, priority_warning_message: e.target.value } : null);
-                        }}
-                        placeholder="الرسالة التي ستظهر للمستخدم..."
-                        rows={3}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Cog className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p>لم يتم العثور على إعدادات النطاقات</p>
-                    <Button 
-                      className="mt-4"
-                      onClick={async () => {
-                        const { data, error } = await supabase.from('domain_settings').insert({}).select().single();
-                        if (!error && data) setDomainSettings(data);
-                      }}
-                    >
-                      إنشاء الإعدادات
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* =============== TAB: USER OVERRIDES (LAYER 2) =============== */}
@@ -1690,6 +1606,91 @@ const OwnerDashboard: React.FC = () => {
 
           {/* =============== TAB: SLUG MANAGEMENT =============== */}
           <TabsContent value="slugs">
+            {/* إعدادات النطاقات */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cog className="w-5 h-5 text-[#01411C]" />
+                  إعدادات النطاقات
+                </CardTitle>
+                <CardDescription>إعدادات عامة للتسعير والتحذيرات</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {domainSettings ? (
+                  <>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">تفعيل التسعير</p>
+                        <p className="text-sm text-gray-500">السماح بتحديد أسعار للنطاقات المميزة</p>
+                      </div>
+                      <Switch
+                        checked={domainSettings.pricing_enabled ?? false}
+                        onCheckedChange={async (v) => {
+                          const { error } = await supabase.from('domain_settings').update({ pricing_enabled: v }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, pricing_enabled: v } : null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-4 border rounded-lg space-y-3">
+                      <Label>السعر الافتراضي (ريال)</Label>
+                      <Input
+                        type="number"
+                        value={domainSettings.default_price || ''}
+                        onChange={async (e) => {
+                          const value = e.target.value ? Number(e.target.value) : null;
+                          const { error } = await supabase.from('domain_settings').update({ default_price: value }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, default_price: value } : null);
+                        }}
+                        className="max-w-[200px]"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">تحذير الأولوية</p>
+                        <p className="text-sm text-gray-500">عرض تحذير عند محاولة حجز نطاق له أولوية</p>
+                      </div>
+                      <Switch
+                        checked={domainSettings.priority_warning_enabled ?? false}
+                        onCheckedChange={async (v) => {
+                          const { error } = await supabase.from('domain_settings').update({ priority_warning_enabled: v }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, priority_warning_enabled: v } : null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-4 border rounded-lg space-y-3">
+                      <Label>رسالة تحذير الأولوية</Label>
+                      <Textarea
+                        value={domainSettings.priority_warning_message || ''}
+                        onChange={async (e) => {
+                          const { error } = await supabase.from('domain_settings').update({ priority_warning_message: e.target.value }).eq('id', domainSettings.id);
+                          if (!error) setDomainSettings(prev => prev ? { ...prev, priority_warning_message: e.target.value } : null);
+                        }}
+                        placeholder="الرسالة التي ستظهر للمستخدم..."
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Cog className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>لم يتم العثور على إعدادات النطاقات</p>
+                    <Button 
+                      className="mt-4"
+                      onClick={async () => {
+                        const { data, error } = await supabase.from('domain_settings').insert({}).select().single();
+                        if (!error && data) setDomainSettings(data);
+                      }}
+                    >
+                      إنشاء الإعدادات
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
