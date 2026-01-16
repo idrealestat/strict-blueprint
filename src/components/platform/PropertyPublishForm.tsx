@@ -220,6 +220,7 @@ const defaultFeatures = [
 // ===================== Constants =====================
 
 const STORAGE_KEY = 'wasata_property_draft';
+const SESSION_STORAGE_KEY = 'wasata_property_session_draft'; // للحفاظ على البيانات عند فتح معرض الصور على الهواتف
 
 // Default empty property data
 const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
@@ -330,7 +331,25 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  const [propertyData, setPropertyData] = useState<PropertyData>(getDefaultPropertyData(user?.phone));
+  // استعادة البيانات من sessionStorage أولاً (للتعامل مع فقدان البيانات عند فتح المعرض على الهواتف)
+  const getInitialPropertyData = (): PropertyData => {
+    try {
+      const sessionData = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        return {
+          ...getDefaultPropertyData(user?.phone),
+          ...parsed,
+          brokerPhone: parsed.brokerPhone || user?.phone || '',
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to restore session data:', e);
+    }
+    return getDefaultPropertyData(user?.phone);
+  };
+
+  const [propertyData, setPropertyData] = useState<PropertyData>(getInitialPropertyData);
 
   // Check for republish data first (higher priority), then saved draft
   useEffect(() => {
@@ -403,7 +422,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     }
   }, [user?.phone]);
 
-  // Auto-save to localStorage on changes (debounced)
+  // Auto-save to localStorage AND sessionStorage on changes (debounced)
+  // sessionStorage مهم لمنع فقدان البيانات عند فتح معرض الصور على iOS/Android
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       // Only save if there's meaningful data
@@ -419,9 +439,16 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         propertyData.locationDetails.city ||
         propertyData.media.length > 0;
       if (hasData) {
+        // حفظ في localStorage للاستمرارية بين الجلسات
         localStorage.setItem(STORAGE_KEY, JSON.stringify(propertyData));
+        // حفظ في sessionStorage لمنع فقدان البيانات عند فتح المعرض على الهواتف
+        try {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(propertyData));
+        } catch (e) {
+          console.warn('Failed to save to sessionStorage:', e);
+        }
       }
-    }, 1000);
+    }, 500); // تسريع الحفظ إلى 500ms للتعامل مع الهواتف
     
     return () => clearTimeout(timeoutId);
   }, [propertyData]);
@@ -449,6 +476,12 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   // Clear saved data and start fresh
   const clearSavedData = () => {
     localStorage.removeItem(STORAGE_KEY);
+    // مسح sessionStorage أيضاً
+    try {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Failed to clear sessionStorage:', e);
+    }
     setPropertyData(getDefaultPropertyData(user?.phone));
     setHasSavedDraft(false);
     setShowRecoveryDialog(false);
@@ -988,6 +1021,14 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         setPublishedAd({ ...adData, linkedCustomerId: result.customerId || undefined });
         setShowSuccessActions(true);
         onPublish(propertyData);
+        
+        // مسح البيانات المحفوظة بعد النشر الناجح
+        localStorage.removeItem(STORAGE_KEY);
+        try {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        } catch (e) {
+          console.warn('Failed to clear sessionStorage:', e);
+        }
         
         // تحديث حالة العرض الأصلي في بطاقة العميل
         if (propertyData.originalTabId && propertyData.source === 'customer_tab') {
