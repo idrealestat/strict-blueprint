@@ -48,28 +48,46 @@ export default function SlugAppointmentApprovalSorry() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!slug) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         // جلب بيانات البطاقة
         const { data: cardData, error } = await supabase
           .from('business_cards')
-          .select('*, profiles!business_cards_user_id_fkey(full_name, company_name, phone)')
+          .select('*')
           .eq('slug', slug)
           .eq('published', true)
           .maybeSingle();
 
-        if (error || !cardData) {
+        if (error) {
+          console.error('Error fetching card:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!cardData) {
+          console.log('No card found for slug:', slug);
           setIsLoading(false);
           return;
         }
 
         const cardJson = cardData.data as Record<string, any>;
-        const profile = (cardData as any).profiles;
+        
+        // جلب بيانات الملف الشخصي منفصلاً
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name, company_name, phone')
+          .eq('user_id', cardData.user_id)
+          .maybeSingle();
         
         setBroker({
           id: cardData.user_id,
-          name: cardJson?.name || profile?.full_name || 'وسيط',
-          company: cardJson?.companyName || profile?.company_name || '',
-          phone: cardJson?.primaryPhone || cardData.phone || profile?.phone || '',
+          name: cardJson?.name || profileData?.full_name || 'وسيط',
+          company: cardJson?.companyName || profileData?.company_name || '',
+          phone: cardJson?.primaryPhone || cardData.phone || profileData?.phone || '',
           email: cardData.email || '',
           location: cardJson?.location || '',
           licenseNumber: cardData.fal_license_number || '',
