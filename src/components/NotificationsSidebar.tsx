@@ -180,12 +180,27 @@ export default function NotificationsSidebar({
   const handleNotificationClick = (notification: SystemNotification) => {
     markAsRead(notification.id);
 
-    // Navigate based on action type
+    // Navigate based on actionUrl if available
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+      onClose();
+      return;
+    }
+
+    // Fallback: Navigate based on action type
     if (notification.actionType?.startsWith('task') && onNavigate) {
       onNavigate('tasks', { taskId: notification.relatedId });
       onClose();
     } else if (notification.actionType?.startsWith('appointment') && onNavigate) {
       onNavigate('calendar', { appointmentId: notification.relatedId });
+      onClose();
+    } else if (notification.metadata?.customerId) {
+      // Navigate to CRM with customer
+      const tab = notification.metadata?.formType === 'offer' ? 'offers' 
+        : notification.metadata?.formType === 'request' ? 'requests' 
+        : notification.metadata?.formType === 'quote' ? 'quotes' 
+        : '';
+      navigate(`/app/crm?customerId=${notification.metadata.customerId}${tab ? `&tab=${tab}` : ''}`);
       onClose();
     }
   };
