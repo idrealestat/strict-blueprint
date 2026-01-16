@@ -507,7 +507,7 @@ export function LeftSliderComplete({
           icon={<Share2 className="w-6 h-6 text-[#01411C]" />}
           label="النشر على التواصل"
           onClick={() => {
-            onNavigate?.("social-media-post");
+            onNavigate?.("advertising");
             onClose();
           }}
         />
