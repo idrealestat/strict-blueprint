@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation } from 'lucide-react';
+import { MapPin, Navigation, Satellite, Map } from 'lucide-react';
 
 // Fix Leaflet default marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -26,9 +26,12 @@ export default function LocationPickerMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const streetLayerRef = useRef<L.TileLayer | null>(null);
+  const satelliteLayerRef = useRef<L.TileLayer | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(
     initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
   );
+  const [mapLayer, setMapLayer] = useState<'satellite' | 'street'>('satellite');
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -39,10 +42,20 @@ export default function LocationPickerMap({
       zoomControl: true,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Street layer (OpenStreetMap)
+    streetLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
-    }).addTo(mapRef.current);
+    });
+
+    // Satellite layer (ESRI)
+    satelliteLayerRef.current = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '© ESRI',
+      maxZoom: 19,
+    });
+
+    // Add satellite layer by default
+    satelliteLayerRef.current.addTo(mapRef.current);
 
     // إضافة علامة أولية إذا كانت موجودة
     if (initialLat && initialLng) {
@@ -83,6 +96,20 @@ export default function LocationPickerMap({
     };
   }, []);
 
+  const toggleMapLayer = () => {
+    if (!mapRef.current) return;
+    
+    if (mapLayer === 'satellite') {
+      if (satelliteLayerRef.current) mapRef.current.removeLayer(satelliteLayerRef.current);
+      if (streetLayerRef.current) streetLayerRef.current.addTo(mapRef.current);
+      setMapLayer('street');
+    } else {
+      if (streetLayerRef.current) mapRef.current.removeLayer(streetLayerRef.current);
+      if (satelliteLayerRef.current) satelliteLayerRef.current.addTo(mapRef.current);
+      setMapLayer('satellite');
+    }
+  };
+
   const goToMyLocation = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -119,16 +146,37 @@ export default function LocationPickerMap({
     <div className="relative w-full h-64 rounded-lg overflow-hidden border border-border">
       <div ref={mapContainer} className="w-full h-full" />
       
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className="absolute top-2 right-2 z-[1000]"
-        onClick={goToMyLocation}
-      >
-        <Navigation className="w-4 h-4 ml-1" />
-        موقعي
-      </Button>
+      <div className="absolute top-2 right-2 z-[1000] flex gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={goToMyLocation}
+        >
+          <Navigation className="w-4 h-4 ml-1" />
+          موقعي
+        </Button>
+        
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={toggleMapLayer}
+          className="gap-1"
+        >
+          {mapLayer === 'satellite' ? (
+            <>
+              <Satellite className="w-4 h-4" />
+              <span className="text-xs">أقمار</span>
+            </>
+          ) : (
+            <>
+              <Map className="w-4 h-4" />
+              <span className="text-xs">خريطة</span>
+            </>
+          )}
+        </Button>
+      </div>
       
       {selectedLocation && (
         <div className="absolute bottom-2 right-2 z-[1000] bg-background/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs flex items-center gap-1">
