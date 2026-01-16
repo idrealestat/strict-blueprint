@@ -183,26 +183,53 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     }
   };
 
-  const handleQuickOptionClick = (option: typeof quickOptions[0]) => {
+  const handleQuickOptionClick = async (option: typeof quickOptions[0]) => {
     if (option.action === 'form') {
       setShowQuickOptions(false);
       setShowAddCustomer(true);
       return;
     }
 
-    if (option.action === 'copy' && option.url) {
+    if (option.action === 'copy') {
       if (!userSlug) {
         toast.error('يرجى نشر بطاقة أعمالك أولاً');
         return;
       }
+
+      const urlToCopy = option.url;
+      if (!urlToCopy) {
+        toast.error('لا يوجد رابط للنسخ');
+        return;
+      }
       
-      navigator.clipboard.writeText(option.url);
-      setCopiedLink(option.id);
-      toast.success('تم نسخ الرابط');
-      
-      setTimeout(() => {
-        setCopiedLink(null);
-      }, 2000);
+      try {
+        // محاولة استخدام clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(urlToCopy);
+        } else {
+          // fallback للمتصفحات القديمة
+          const textArea = document.createElement('textarea');
+          textArea.value = urlToCopy;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-9999px';
+          textArea.style.top = '-9999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        
+        setCopiedLink(option.id);
+        toast.success('تم نسخ الرابط ✓');
+        
+        setTimeout(() => {
+          setCopiedLink(null);
+        }, 2000);
+      } catch (error) {
+        console.error('Failed to copy:', error);
+        toast.error('فشل في نسخ الرابط');
+      }
     }
   };
 
