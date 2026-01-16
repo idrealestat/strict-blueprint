@@ -130,6 +130,99 @@ interface DomainSettingsData {
   priority_warning_message: string | null;
 }
 
+// مكون إعدادات المساعد الذكي
+const SmartAssistantSettingsCard: React.FC = () => {
+  const [assistantVisible, setAssistantVisible] = useState(() => {
+    return localStorage.getItem('smart_assistant_visible') !== 'false';
+  });
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    return localStorage.getItem('voice_features_enabled') !== 'false';
+  });
+  const [voiceType, setVoiceType] = useState<'male' | 'female'>(() => {
+    return (localStorage.getItem('voice_type') as 'male' | 'female') || 'male';
+  });
+
+  const handleAssistantToggle = (checked: boolean) => {
+    setAssistantVisible(checked);
+    localStorage.setItem('smart_assistant_visible', checked.toString());
+    window.dispatchEvent(new CustomEvent('smartAssistantSettingsChanged'));
+  };
+
+  const handleVoiceToggle = (checked: boolean) => {
+    setVoiceEnabled(checked);
+    localStorage.setItem('voice_features_enabled', checked.toString());
+    window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
+  };
+
+  const handleVoiceTypeChange = (value: 'male' | 'female') => {
+    setVoiceType(value);
+    localStorage.setItem('voice_type', value);
+    window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-[#D4AF37]" />
+          إعدادات المساعد الذكي
+        </CardTitle>
+        <CardDescription>التحكم في ظهور المساعد الذكي وميزات الصوت</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* إظهار/إخفاء المساعد الذكي */}
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div>
+            <p className="font-medium flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              إظهار المساعد الذكي
+            </p>
+            <p className="text-sm text-gray-500">عرض زر المساعد الذكي في جميع الصفحات</p>
+          </div>
+          <Switch
+            checked={assistantVisible}
+            onCheckedChange={handleAssistantToggle}
+          />
+        </div>
+
+        {/* إظهار/إخفاء ميزات الصوت */}
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div>
+            <p className="font-medium flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              تفعيل ميزات الصوت
+            </p>
+            <p className="text-sm text-gray-500">إرسال واستقبال الرسائل الصوتية</p>
+          </div>
+          <Switch
+            checked={voiceEnabled}
+            onCheckedChange={handleVoiceToggle}
+          />
+        </div>
+
+        {/* اختيار نوع الصوت */}
+        {voiceEnabled && (
+          <div className="p-4 border rounded-lg space-y-3">
+            <Label className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              نوع صوت الرد
+            </Label>
+            <Select value={voiceType} onValueChange={handleVoiceTypeChange}>
+              <SelectTrigger className="w-full max-w-[200px]">
+                <SelectValue placeholder="اختر نوع الصوت" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">صوت رجل</SelectItem>
+                <SelectItem value="female">صوت امرأة</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // ============ COMPONENT ============
 const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -1982,7 +2075,10 @@ const OwnerDashboard: React.FC = () => {
 
           {/* =============== TAB: DOMAIN SETTINGS =============== */}
           <TabsContent value="settings">
-            <Card>
+            {/* إعدادات المساعد الذكي */}
+            <SmartAssistantSettingsCard />
+
+            <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Cog className="w-5 h-5 text-[#01411C]" />

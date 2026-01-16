@@ -115,96 +115,7 @@ interface SettingsTabContentProps {
   deleteScheduledMessage: (id: string) => void;
 }
 
-// مكون إعدادات المساعد الذكي
-function SmartAssistantSettings() {
-  const [assistantVisible, setAssistantVisible] = React.useState(() => {
-    return localStorage.getItem('smart_assistant_visible') !== 'false';
-  });
-  const [voiceEnabled, setVoiceEnabled] = React.useState(() => {
-    return localStorage.getItem('voice_features_enabled') !== 'false';
-  });
-  const [voiceType, setVoiceType] = React.useState<'male' | 'female'>(() => {
-    return (localStorage.getItem('voice_type') as 'male' | 'female') || 'male';
-  });
-
-  const handleAssistantToggle = (checked: boolean) => {
-    setAssistantVisible(checked);
-    localStorage.setItem('smart_assistant_visible', checked.toString());
-    window.dispatchEvent(new CustomEvent('smartAssistantSettingsChanged'));
-  };
-
-  const handleVoiceToggle = (checked: boolean) => {
-    setVoiceEnabled(checked);
-    localStorage.setItem('voice_features_enabled', checked.toString());
-    window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
-  };
-
-  const handleVoiceTypeChange = (value: 'male' | 'female') => {
-    setVoiceType(value);
-    localStorage.setItem('voice_type', value);
-    window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-[#D4AF37]" />
-          إعدادات المساعد الذكي
-        </CardTitle>
-        <CardDescription>التحكم في ظهور المساعد الذكي وميزات الصوت</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* إظهار/إخفاء المساعد الذكي */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="assistantVisible" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            إظهار المساعد الذكي
-          </Label>
-          <Switch
-            id="assistantVisible"
-            checked={assistantVisible}
-            onCheckedChange={handleAssistantToggle}
-          />
-        </div>
-
-        <Separator />
-
-        {/* إظهار/إخفاء ميزات الصوت */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="voiceEnabled" className="flex items-center gap-2">
-            <Mic className="h-4 w-4" />
-            تفعيل ميزات الصوت (إرسال واستقبال)
-          </Label>
-          <Switch
-            id="voiceEnabled"
-            checked={voiceEnabled}
-            onCheckedChange={handleVoiceToggle}
-          />
-        </div>
-
-        {/* اختيار نوع الصوت */}
-        {voiceEnabled && (
-          <div className="space-y-2 pr-6">
-            <Label className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              نوع صوت الرد
-            </Label>
-            <Select value={voiceType} onValueChange={handleVoiceTypeChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="اختر نوع الصوت" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">صوت رجل</SelectItem>
-                <SelectItem value="female">صوت امرأة</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+// مكون إعدادات المساعد الذكي - تم نقله إلى لوحة تحكم المالك
 
 
 export function SettingsTabContent({
@@ -371,8 +282,6 @@ export function SettingsTabContent({
         </CardContent>
       </Card>
 
-      {/* إعدادات المساعد الذكي */}
-      <SmartAssistantSettings />
 
       {/* أنواع الإشعارات */}
       <Card>
