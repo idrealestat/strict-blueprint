@@ -47,6 +47,10 @@ export default function SlugAppointmentApprovalCustomer() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState('');
+  
+  // أوقات الدوام والمواعيد المحجوزة
+  const [workingHours, setWorkingHours] = useState<Record<string, { open: string; close: string; isOpen: boolean }>>({});
+  const [bookedSlots, setBookedSlots] = useState<{ date: string; time: string }[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -82,6 +86,25 @@ export default function SlugAppointmentApprovalCustomer() {
           coverImage: cardJson?.coverImage,
           logoImage: cardJson?.logoImage,
         });
+
+        // جلب أوقات الدوام من بطاقة الأعمال
+        if (cardJson?.workingHours) {
+          setWorkingHours(cardJson.workingHours);
+        }
+
+        // جلب المواعيد المحجوزة لمنع الحجز المزدوج
+        const { data: appointments } = await supabase
+          .from('calendar_appointments')
+          .select('appointment_date, appointment_time')
+          .eq('user_id', cardData.user_id)
+          .not('status', 'in', '("cancelled","client_rejected","broker_rejected")');
+
+        if (appointments) {
+          setBookedSlots(appointments.map(a => ({
+            date: a.appointment_date,
+            time: a.appointment_time
+          })));
+        }
 
         // جلب بيانات الموعد
         if (appointmentId) {
@@ -279,12 +302,53 @@ export default function SlugAppointmentApprovalCustomer() {
     return [...emptyDays, ...days];
   }, [currentMonth]);
 
-  const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
-    '19:00', '19:30', '20:00', '20:30'
-  ];
+  // الأوقات المتاحة حسب يوم الأسبوع وأوقات الدوام
+  const availableTimeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+
+    const dayName = format(selectedDate, 'EEEE').toLowerCase();
+    const dayHours = workingHours[dayName];
+    
+    // إذا كان اليوم مغلق أو لا توجد أوقات عمل محددة، نستخدم الأوقات الافتراضية
+    if (!dayHours || !dayHours.isOpen) {
+      // أوقات افتراضية إذا لم تكن أوقات العمل محددة
+      if (Object.keys(workingHours).length === 0) {
+        return [
+          '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+          '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
+          '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+          '19:00', '19:30', '20:00', '20:30'
+        ];
+      }
+      return []; // اليوم مغلق
+    }
+
+    const slots: string[] = [];
+    const openHour = parseInt(dayHours.open.split(':')[0]);
+    const closeHour = parseInt(dayHours.close.split(':')[0]);
+    
+    for (let h = openHour; h < closeHour; h++) {
+      slots.push(`${h.toString().padStart(2, '0')}:00`);
+      slots.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+
+    // استبعاد المواعيد المحجوزة
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    return slots.filter(time => {
+      const isBooked = bookedSlots.some(
+        slot => slot.date === dateStr && slot.time === time
+      );
+      return !isBooked;
+    });
+  }, [selectedDate, workingHours, bookedSlots]);
+
+  // هل اليوم يوم عمل؟
+  const isWorkingDay = (date: Date) => {
+    if (Object.keys(workingHours).length === 0) return true; // لا توجد قيود
+    const dayName = format(date, 'EEEE').toLowerCase();
+    const dayHours = workingHours[dayName];
+    return dayHours && dayHours.isOpen;
+  };
 
   if (isLoading) {
     return (
@@ -413,23 +477,29 @@ export default function SlugAppointmentApprovalCustomer() {
           {/* اختيار الوقت */}
           {selectedDate && (
             <div>
-              <Label className="mb-2 block">اختر الوقت</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {timeSlots.map(time => (
-                  <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    className={cn(
-                      "py-2 px-3 rounded-lg text-sm border transition-all",
-                      selectedTime === time
-                        ? 'bg-[#01411C] text-white border-[#01411C]'
-                        : 'bg-white border-gray-200 hover:border-[#01411C]'
-                    )}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
+              <Label className="mb-2 block">اختر الوقت المتاح</Label>
+              {availableTimeSlots.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">
+                  {Object.keys(workingHours).length > 0 ? 'هذا اليوم إجازة أو لا توجد أوقات متاحة' : 'لا توجد أوقات متاحة'}
+                </p>
+              ) : (
+                <div className="grid grid-cols-4 gap-2">
+                  {availableTimeSlots.map(time => (
+                    <button
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={cn(
+                        "py-2 px-3 rounded-lg text-sm border transition-all",
+                        selectedTime === time
+                          ? 'bg-[#01411C] text-white border-[#01411C]'
+                          : 'bg-white border-gray-200 hover:border-[#01411C]'
+                      )}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

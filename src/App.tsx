@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import SlugAppointmentApprovalSorry from "./pages/SlugAppointmentApprovalSorry";
 import { toast } from "@/hooks/use-toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -564,6 +565,7 @@ const App = () => {
                   <Route path="/:slug/quote" element={<SlugQuotePage />} />
                   <Route path="/:slug/appointmentapproval/broker/:appointmentId" element={<SlugAppointmentApprovalBroker />} />
                   <Route path="/:slug/appointmentapproval/customer/:appointmentId" element={<SlugAppointmentApprovalCustomer />} />
+                  <Route path="/:slug/appointmentapproval/sorry" element={<SlugAppointmentApprovalSorry />} />
                   
                   {/* Hierarchical City/District/Offer Routes */}
                   <Route path="/:slug/:citySlug" element={<SlugCityPage />} />

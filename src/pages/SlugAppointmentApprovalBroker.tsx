@@ -192,8 +192,8 @@ export default function SlugAppointmentApprovalBroker() {
         });
       }
 
-      // إرسال رسالة اعتذار للعميل
-      const rescheduleLink = `${window.location.origin}/${slug}/calendar`;
+      // إرسال رسالة اعتذار للعميل مع رابط صفحة الاعتذار
+      const rescheduleLink = `${window.location.origin}/${slug}/appointmentapproval/sorry?name=${encodeURIComponent(appointment.customer_name)}&phone=${encodeURIComponent(appointment.customer_phone || '')}`;
       
       if (appointment.customer_phone) {
         await supabase.functions.invoke('send-sms', {
