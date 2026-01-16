@@ -499,7 +499,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       lastContact: c.last_contact || undefined,
       nextFollowUp: c.next_follow_up || undefined,
 
-      // ملاحظة: لا نربط type/interestLevel بـ property_type/priority حتى لا تختلط البيانات
+      // ✅ تمرير metadata كاملة لضمان وصول property_offers و property_requests وغيرها للتفاصيل
+      metadata: metadataObj,
+      hasUnreadOffer: !!metadataObj.hasUnreadOffer,
+      isNewCard: !!metadataObj.isNewCard,
     };
   }, []);
 
