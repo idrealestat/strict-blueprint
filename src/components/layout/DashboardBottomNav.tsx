@@ -67,7 +67,7 @@ const BUTTON_NAVIGATION: Record<BottomNavButtonId, string> = {
   'requests-tab': 'my-platform-requests',
   'market-analytics': 'analytics-dashboard',
   'team-management': 'team-management',
-  'publishing-platforms': 'advertising',
+  'publishing-platforms': 'social-media-post',
 };
 
 export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavProps) {
