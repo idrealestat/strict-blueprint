@@ -471,7 +471,7 @@ const CalendarTabs = () => {
                       size="sm"
                       variant="ghost"
                       className="h-7 text-xs gap-1"
-                      onClick={() => copyToClipboard(`wasataai.com/${slug}/appointmentapproval/customer/{appointmentId}`, 'customer')}
+                      onClick={() => copyToClipboard(`${window.location.origin}/${slug}/appointmentapproval/customer/{appointmentId}`, 'customer')}
                     >
                       {copiedLink === 'customer' ? (
                         <><CheckCircle2 className="w-3 h-3 text-green-500" /> تم</>
@@ -486,7 +486,7 @@ const CalendarTabs = () => {
                       size="sm"
                       variant="ghost"
                       className="h-7 text-xs gap-1"
-                      onClick={() => copyToClipboard(`wasataai.com/${slug}/appointmentapproval/sorry`, 'sorry')}
+                      onClick={() => copyToClipboard(`${window.location.origin}/${slug}/appointmentapproval/sorry`, 'sorry')}
                     >
                       {copiedLink === 'sorry' ? (
                         <><CheckCircle2 className="w-3 h-3 text-green-500" /> تم</>
