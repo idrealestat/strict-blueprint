@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type FormType = 'offer' | 'request' | 'quote' | 'appointment';
+type FormType = 'request' | 'quote' | 'appointment';
 
 interface PublicFormSubmitRequest {
   slug: string;
@@ -85,22 +85,18 @@ serve(async (req) => {
 
     // 2) Normalize customer identity
     const phoneRaw =
-      formType === 'offer'
-        ? data.ownerPhone
-        : formType === 'request'
+      formType === 'request'
+        ? data.clientPhone
+        : formType === 'quote'
           ? data.clientPhone
-          : formType === 'quote'
-            ? data.clientPhone
-            : data.clientPhone;
+          : data.clientPhone;
 
     const nameRaw =
-      formType === 'offer'
-        ? data.ownerName
-        : formType === 'request'
+      formType === 'request'
+        ? data.clientName
+        : formType === 'quote'
           ? data.clientName
-          : formType === 'quote'
-            ? data.clientName
-            : data.clientName;
+          : data.clientName;
 
     const customerPhone = sanitizePhone(phoneRaw);
     const customerName = sanitizeString(nameRaw, 200) || 'عميل';
@@ -133,23 +129,7 @@ serve(async (req) => {
     // Create entity id if not supplied
     const entityId = sanitizeString(data.id, 120) || `${formType}_${Date.now()}`;
 
-    if (formType === 'offer') {
-      const list = (nextMetadata.property_offers as unknown[]) || [];
-      nextMetadata.property_offers = [...list, { ...data, id: entityId, type: 'property_offer', submittedAt: nowIso }];
-
-      // ✅ حفظ بيانات المالك/العنوان على مستوى العميل لتعبئة (المعلومات العامة) تلقائياً
-      const offerAny = data as any;
-      const ownerCity = sanitizeString(offerAny.ownerCity || offerAny.locationCity, 120);
-      const ownerDistrict = sanitizeString(offerAny.locationDistrict, 120);
-      const ownerIdNumber = sanitizeString(offerAny.ownerIdNumber, 50);
-
-      if (ownerCity && !nextMetadata.ownerCity) nextMetadata.ownerCity = ownerCity;
-      if (ownerDistrict && !nextMetadata.ownerDistrict) nextMetadata.ownerDistrict = ownerDistrict;
-      if (ownerIdNumber && !nextMetadata.ownerIdNumber) nextMetadata.ownerIdNumber = ownerIdNumber;
-
-      nextMetadata.hasUnreadOffer = true;
-      nextMetadata.lastOfferAt = nowIso;
-    }
+    // offer type removed - offer form deleted
 
     if (formType === 'request') {
       const list = (nextMetadata.property_requests as unknown[]) || [];
@@ -196,13 +176,11 @@ serve(async (req) => {
           status: 'جديد',
           priority: 'عالي',
           source:
-            formType === 'offer'
-              ? 'نموذج عرض عقاري'
-              : formType === 'request'
-                ? 'نموذج طلب عقاري'
-                : formType === 'quote'
-                  ? 'نموذج عرض سعر'
-                  : 'نموذج موعد',
+            formType === 'request'
+              ? 'نموذج طلب عقاري'
+              : formType === 'quote'
+                ? 'نموذج عرض سعر'
+                : 'نموذج موعد',
           last_contact: today,
           metadata: { ...nextMetadata, isNewCard: true },
         })
@@ -259,33 +237,28 @@ serve(async (req) => {
 
     // 5) Insert notification (this is what drives bell + sound + push + pulsing dots)
     const notifTitle =
-      formType === 'offer'
-        ? '🏠 عرض عقاري جديد'
-        : formType === 'request'
-          ? '🔍 طلب عقاري جديد'
-          : formType === 'quote'
-            ? '💰 طلب عرض سعر جديد'
-            : '📅 موعد جديد';
+      formType === 'request'
+        ? '🔍 طلب عقاري جديد'
+        : formType === 'quote'
+          ? '💰 طلب عرض سعر جديد'
+          : '📅 موعد جديد';
 
     const notifMessage =
-      formType === 'offer'
-        ? `${customerName} أرسل عرض عقاري`
-        : formType === 'request'
-          ? `${customerName} أرسل طلب عقاري`
-          : formType === 'quote'
-            ? `${customerName} طلب عرض سعر`
-            : `${customerName} طلب موعد`;
+      formType === 'request'
+        ? `${customerName} أرسل طلب عقاري`
+        : formType === 'quote'
+          ? `${customerName} طلب عرض سعر`
+          : `${customerName} طلب موعد`;
 
     const relatedEntityId =
       formType === 'appointment' ? (calendarAppointmentId || entityId) : entityId;
 
-    const notification_type =
-      formType === 'offer' ? 'offer' : formType === 'request' ? 'request' : formType === 'quote' ? 'offer' : 'calendar';
+    const notification_type = formType === 'request' ? 'request' : formType === 'quote' ? 'offer' : 'calendar';
 
     // إنشاء action_url مع customerId للانتقال المباشر للعميل
     const actionUrl = formType === 'appointment' 
       ? `/app/calendar?customerId=${customerId}` 
-      : `/app/crm?customerId=${customerId}&tab=${formType === 'offer' ? 'offers' : formType === 'request' ? 'requests' : 'quotes'}`;
+      : `/app/crm?customerId=${customerId}&tab=${formType === 'request' ? 'requests' : 'quotes'}`;
 
     const { data: insertedNotif, error: notifError } = await supabase
       .from('notifications')
