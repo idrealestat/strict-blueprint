@@ -364,18 +364,51 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
           console.error('[App] Failed to fetch customer:', error);
         }
 
-        const customer = dbCustomer || {
-          id: customerId,
-          name: 'عميل',
-          phone: '',
-          email: '',
-          type: 'owner',
-          status: 'active',
-          columnId: 'active',
-          createdAt: new Date().toISOString(),
-        };
+        // ✅ Normalize DB shape -> UI shape (CustomerDetailsPage expects camelCase + extra fields)
+        const meta = (dbCustomer?.metadata && typeof dbCustomer.metadata === 'object' && !Array.isArray(dbCustomer.metadata))
+          ? (dbCustomer.metadata as Record<string, any>)
+          : {};
 
-        setSelectedCustomerForDetails({ ...customer, activeTab: activeTab || 'overview' });
+        const lastOffer = Array.isArray(meta?.property_offers)
+          ? meta.property_offers[meta.property_offers.length - 1]
+          : undefined;
+
+        const normalizedCustomer = dbCustomer
+          ? {
+              id: dbCustomer.id,
+              name: dbCustomer.name || 'عميل',
+              phone: dbCustomer.phone || '',
+              email: dbCustomer.email || '',
+              whatsapp: dbCustomer.whatsapp || dbCustomer.phone || '',
+              company: dbCustomer.company || '',
+              status: dbCustomer.status || 'active',
+              columnId: 'active',
+              createdAt: (dbCustomer.created_at as any) || new Date().toISOString(),
+              lastContact: dbCustomer.last_contact || undefined,
+              nextFollowUp: dbCustomer.next_follow_up || undefined,
+              location: dbCustomer.location || undefined,
+              notes: dbCustomer.notes || undefined,
+              tags: (dbCustomer.tags as any) || [],
+              metadata: meta,
+              // ✅ fields used by GeneralInfoTab
+              idNumber: meta.ownerIdNumber || lastOffer?.ownerIdNumber || undefined,
+              city: meta.ownerCity || lastOffer?.locationCity || lastOffer?.ownerCity || undefined,
+              district: meta.ownerDistrict || lastOffer?.locationDistrict || undefined,
+            }
+          : {
+              id: customerId,
+              name: 'عميل',
+              phone: '',
+              email: '',
+              whatsapp: '',
+              company: '',
+              status: 'active',
+              columnId: 'active',
+              createdAt: new Date().toISOString(),
+              metadata: {},
+            };
+
+        setSelectedCustomerForDetails({ ...normalizedCustomer, activeTab: activeTab || 'overview' });
         setCurrentPage('customer-details');
       } catch (e) {
         console.error('[App] handleOpenCustomerDetails error:', e);

@@ -136,6 +136,17 @@ serve(async (req) => {
     if (formType === 'offer') {
       const list = (nextMetadata.property_offers as unknown[]) || [];
       nextMetadata.property_offers = [...list, { ...data, id: entityId, type: 'property_offer', submittedAt: nowIso }];
+
+      // ✅ حفظ بيانات المالك/العنوان على مستوى العميل لتعبئة (المعلومات العامة) تلقائياً
+      const offerAny = data as any;
+      const ownerCity = sanitizeString(offerAny.ownerCity || offerAny.locationCity, 120);
+      const ownerDistrict = sanitizeString(offerAny.locationDistrict, 120);
+      const ownerIdNumber = sanitizeString(offerAny.ownerIdNumber, 50);
+
+      if (ownerCity && !nextMetadata.ownerCity) nextMetadata.ownerCity = ownerCity;
+      if (ownerDistrict && !nextMetadata.ownerDistrict) nextMetadata.ownerDistrict = ownerDistrict;
+      if (ownerIdNumber && !nextMetadata.ownerIdNumber) nextMetadata.ownerIdNumber = ownerIdNumber;
+
       nextMetadata.hasUnreadOffer = true;
       nextMetadata.lastOfferAt = nowIso;
     }
