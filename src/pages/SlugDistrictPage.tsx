@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, MapPin, Building2, ChevronLeft, Home, Eye, BedDouble, Bath, Maximize } from 'lucide-react';
@@ -38,6 +38,12 @@ const SlugDistrictPage: React.FC = () => {
     citySlug: string; 
     districtSlug: string;
   }>();
+
+  // حماية من تداخل المسارات: /:slug/appointmentapproval/sorry قد يُلتقط أحياناً كمدينة/حي
+  if (slug && citySlug === 'appointmentapproval' && districtSlug) {
+    return <Navigate to={`/${slug}/appointmentapproval/${districtSlug}`} replace />;
+  }
+
   const navigate = useNavigate();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +54,6 @@ const SlugDistrictPage: React.FC = () => {
   const [offerLiveViewers, setOfferLiveViewers] = useState<Record<string, number>>({});
 
   const { liveCount } = usePagePresence('district', `${slug}-${citySlug}-${districtSlug}`);
-  
   // تتبع المشاهدين لكل عرض
   useEffect(() => {
     if (listings.length === 0) return;
