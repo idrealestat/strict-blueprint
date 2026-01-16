@@ -50,7 +50,7 @@ import SlugDistrictPage from "./pages/SlugDistrictPage";
 import SlugOfferDetailsPage from "./pages/SlugOfferDetailsPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
 import SlugBusinessCardPage from "./pages/SlugBusinessCardPage";
-import SlugOfferPage from "./pages/SlugOfferPage";
+// SlugOfferPage removed - offer form deleted
 import SlugRequestPage from "./pages/SlugRequestPage";
 import SlugQuotePage from "./pages/SlugQuotePage";
 import SlugAppointmentApprovalBroker from "./pages/SlugAppointmentApprovalBroker";
@@ -626,7 +626,7 @@ const App = () => {
                   <Route path="/:slug/card" element={<SlugBusinessCardPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
                   <Route path="/:slug/offers" element={<SlugOffersPage />} />
-                  <Route path="/:slug/offer" element={<SlugOfferPage />} />
+                  {/* Route /:slug/offer removed - offer form deleted */}
                   <Route path="/:slug/request" element={<SlugRequestPage />} />
                   <Route path="/:slug/quote" element={<SlugQuotePage />} />
                   <Route path="/:slug/appointmentapproval/broker/:appointmentId" element={<SlugAppointmentApprovalBroker />} />

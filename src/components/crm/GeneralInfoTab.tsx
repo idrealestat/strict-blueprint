@@ -128,12 +128,9 @@ export default function GeneralInfoTab({
   editedCustomer, 
   setEditedCustomer 
 }: GeneralInfoTabProps) {
-  // ✅ تحميل معلومات المالك من metadata.property_offers إذا كانت فارغة
+  // customer info mapping (offer metadata removed)
   const customerWithOwnerInfo = {
     ...customer,
-    idNumber: customer.idNumber || (customer.metadata?.ownerIdNumber as string),
-    city: customer.city || (customer.metadata?.ownerCity as string),
-    district: customer.district || (customer.metadata?.ownerDistrict as string),
   };
 
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);

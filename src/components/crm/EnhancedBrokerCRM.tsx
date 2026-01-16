@@ -499,9 +499,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       lastContact: c.last_contact || undefined,
       nextFollowUp: c.next_follow_up || undefined,
 
-      // ✅ تمرير metadata كاملة لضمان وصول property_offers و property_requests وغيرها للتفاصيل
+      // metadata (offer fields removed)
       metadata: metadataObj,
-      hasUnreadOffer: !!metadataObj.hasUnreadOffer,
       isNewCard: !!metadataObj.isNewCard,
     };
   }, []);
