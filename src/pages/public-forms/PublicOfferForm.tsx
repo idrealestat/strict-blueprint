@@ -233,59 +233,97 @@ export default function PublicOfferForm() {
     loadBrokerData();
   }, [brokerSlug]);
 
-  const [formData, setFormData] = useState<FormData>({
-    ownerName: '',
-    ownerPhone: '',
-    ownerIdNumber: '',
-    ownerNationalAddress: '',
-    ownerCity: '',
-    deedNumber: '',
-    deedDate: '',
-    deedCity: '',
-    tour3dUrl: '',
-    propertyType: '',
-    purpose: '',
-    area: '',
-    price: '',
-    locationLat: '',
-    locationLng: '',
-    locationCity: '',
-    locationDistrict: '',
-    locationStreet: '',
-    locationBuilding: '',
-    locationAdditionalNumber: '',
-    locationPostalCode: '',
-    googleMapsUrl: '',
-    paymentPrices: {
-      onePayment: '',
-      twoPayments: '',
-      fourPayments: '',
-      monthly: '',
-    },
-    floors: '',
-    floorNumber: '',
-    bedrooms: '',
-    bathrooms: '',
-    livingRooms: '',
-    councils: '',
-    streetWidth: '',
-    facade: '',
-    furnishing: '',
-    propertyAge: '',
-    entrances: '',
-    warehouses: '',
-    hasLaundryRoom: false,
-    balconies: '',
-    acUnits: '',
-    hasExtraKitchen: false,
-    hasPool: false,
-    hasGarden: false,
-    hasElevator: false,
-    hasParking: false,
-    customFeatures: '',
-    description: '',
-    agreeToTerms: false,
-  });
+  // حفظ واستعادة البيانات من sessionStorage لمنع فقدانها على الأندرويد
+  const STORAGE_KEY = `public_offer_form_${brokerSlug}`;
+  
+  const getInitialFormData = (): FormData => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to restore form data:', e);
+    }
+    return {
+      ownerName: '',
+      ownerPhone: '',
+      ownerIdNumber: '',
+      ownerNationalAddress: '',
+      ownerCity: '',
+      deedNumber: '',
+      deedDate: '',
+      deedCity: '',
+      tour3dUrl: '',
+      propertyType: '',
+      purpose: '',
+      area: '',
+      price: '',
+      locationLat: '',
+      locationLng: '',
+      locationCity: '',
+      locationDistrict: '',
+      locationStreet: '',
+      locationBuilding: '',
+      locationAdditionalNumber: '',
+      locationPostalCode: '',
+      googleMapsUrl: '',
+      paymentPrices: {
+        onePayment: '',
+        twoPayments: '',
+        fourPayments: '',
+        monthly: '',
+      },
+      floors: '',
+      floorNumber: '',
+      bedrooms: '',
+      bathrooms: '',
+      livingRooms: '',
+      councils: '',
+      streetWidth: '',
+      facade: '',
+      furnishing: '',
+      propertyAge: '',
+      entrances: '',
+      warehouses: '',
+      hasLaundryRoom: false,
+      balconies: '',
+      acUnits: '',
+      hasExtraKitchen: false,
+      hasPool: false,
+      hasGarden: false,
+      hasElevator: false,
+      hasParking: false,
+      customFeatures: '',
+      description: '',
+      agreeToTerms: false,
+    };
+  };
+
+  const [formData, setFormData] = useState<FormData>(getInitialFormData);
+  
+  // حفظ البيانات تلقائياً عند كل تغيير
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    } catch (e) {
+      console.warn('Failed to save form data:', e);
+    }
+  }, [formData, STORAGE_KEY]);
+  
+  // حفظ واستعادة الوسائط أيضاً
+  const MEDIA_STORAGE_KEY = `public_offer_media_${brokerSlug}`;
+  
+  useEffect(() => {
+    try {
+      const savedMedia = sessionStorage.getItem(MEDIA_STORAGE_KEY);
+      if (savedMedia) {
+        setMedia(JSON.parse(savedMedia));
+      }
+    } catch (e) {
+      console.warn('Failed to restore media:', e);
+    }
+  }, [brokerSlug]);
 
   const updateField = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -378,7 +416,14 @@ export default function PublicOfferForm() {
     }
 
     if (newMedia.length > 0) {
-      setMedia([...media, ...newMedia]);
+      const updatedMedia = [...media, ...newMedia];
+      setMedia(updatedMedia);
+      // حفظ الوسائط في sessionStorage لمنع فقدانها
+      try {
+        sessionStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(updatedMedia));
+      } catch (e) {
+        console.warn('Failed to save media:', e);
+      }
       toast.success(`تم رفع ${newMedia.length} ملف بنجاح`);
     }
 
@@ -394,6 +439,12 @@ export default function PublicOfferForm() {
       updatedMedia[0].isMain = true;
     }
     setMedia(updatedMedia);
+    // حفظ التحديثات في sessionStorage
+    try {
+      sessionStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(updatedMedia));
+    } catch (e) {
+      console.warn('Failed to save media:', e);
+    }
     toast.success('تم حذف الملف');
   };
 
@@ -622,6 +673,14 @@ export default function PublicOfferForm() {
         }
       }));
 
+      // مسح البيانات المحفوظة بعد الإرسال الناجح
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(MEDIA_STORAGE_KEY);
+      } catch (e) {
+        console.warn('Failed to clear saved form data:', e);
+      }
+      
       setIsSubmitted(true);
       toast.success('تم إرسال العرض بنجاح');
     } catch (error) {
@@ -772,6 +831,7 @@ export default function PublicOfferForm() {
               type="file"
               accept="image/*,video/*"
               multiple
+              capture="environment"
               onChange={handleFileSelect}
               className="hidden"
             />
