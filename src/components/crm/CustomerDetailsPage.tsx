@@ -378,6 +378,10 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [extensionDays, setExtensionDays] = useState('30');
   const [renewalMonths, setRenewalMonths] = useState('12');
   
+  // حالة عرض تفاصيل العرض المستلم (معاينة كاملة)
+  const [showOfferPreviewDialog, setShowOfferPreviewDialog] = useState(false);
+  const [selectedOfferForPreview, setSelectedOfferForPreview] = useState<any>(null);
+  
   // حالات نموذج إضافة عقد إيجار جديد
   const [showNewRentalForm, setShowNewRentalForm] = useState(false);
   const [rentalFilter, setRentalFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
@@ -755,10 +759,15 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     return [];
   });
   
+  // الحصول على حالة العروض غير المقروءة
+  const customerMetadata = (customer as any).metadata || {};
+  const hasUnreadOffer = customerMetadata.hasUnreadOffer === true;
+  const offersCount = (customerMetadata.property_offers as any[] || []).length;
+  
   // Default tabs - مرتبة: المعلومات العامة، العروض، عرض منشور، طلب منشور، الطلبات، عروض الأسعار، عقار مؤجر، المهام
   const defaultTabs = [
     { id: 'overview', name: '📊 المعلومات العامة', removable: false },
-    { id: 'offers', name: '🎯 العروض', removable: false },
+    { id: 'offers', name: '🎯 العروض', removable: false, hasUnread: hasUnreadOffer, count: offersCount },
     { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
     { id: 'published_requests', name: '📋 طلب منشور', removable: false },
     { id: 'requests', name: '📝 الطلبات', removable: false },
@@ -1143,21 +1152,45 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
             >
               <TabsList className="flex flex-nowrap gap-1 bg-white border-2 border-[#D4AF37] p-1 min-w-max">
                 {defaultTabs.filter(tab => visibleTabs.includes(tab.id)).map((tab) => {
-                  // التحقق من وجود طلبات منشورة جديدة
+                  // التحقق من وجود عناصر جديدة في كل تبويب
                   const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
                   const hasNewPublishedRequest = customerMeta?.hasNewPublishedRequest && tab.id === 'published_requests';
                   const hasNewPublishedAd = customerMeta?.hasNewPublishedAd && tab.id === 'published_ads';
+                  // الدائرة النابضة لتبويب العروض
+                  const hasNewOffer = (tab as any).hasUnread && tab.id === 'offers';
                   
                   return (
                     <div key={tab.id} className="relative group flex items-center">
                       <TabsTrigger 
                         value={tab.id} 
                         className="text-xs whitespace-nowrap pr-6 relative"
+                        onClick={() => {
+                          // إزالة علامة غير مقروء عند فتح تبويب العروض
+                          if (tab.id === 'offers' && customerMeta?.hasUnreadOffer) {
+                            // تحديث في قاعدة البيانات
+                            supabase
+                              .from('crm_customers')
+                              .update({
+                                metadata: {
+                                  ...customerMeta,
+                                  hasUnreadOffer: false,
+                                }
+                              })
+                              .eq('id', customer.id)
+                              .then(() => {
+                                markAsViewed('offer', customer.id);
+                                window.dispatchEvent(new CustomEvent('customerUpdated'));
+                              });
+                          }
+                        }}
                       >
                         {tab.name}
+                        {(tab as any).count > 0 && (
+                          <Badge className="mr-1 bg-[#D4AF37] text-[#01411C] text-[10px] px-1.5">{(tab as any).count}</Badge>
+                        )}
                         {/* نقطة نابضة للتبويبات الجديدة */}
                         <PulsingDot 
-                          show={hasNewPublishedRequest || hasNewPublishedAd} 
+                          show={hasNewPublishedRequest || hasNewPublishedAd || hasNewOffer} 
                           size="sm" 
                           position="top-left" 
                           className="m-0"
@@ -4076,8 +4109,21 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             </Badge>
                           </div>
 
-                          {/* أزرار (نشر إعلان) و (PDF) مثل النظام القديم */}
+                          {/* أزرار: معاينة، نشر إعلان، PDF */}
                           <div className="mt-3 flex flex-wrap gap-2">
+                            {/* زر المعاينة */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                              onClick={() => {
+                                setSelectedOfferForPreview(offer);
+                                setShowOfferPreviewDialog(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4 ml-1" />
+                              معاينة
+                            </Button>
                             <Button
                               size="sm"
                               className="bg-[#01411C] hover:bg-[#065f41]"
@@ -4910,6 +4956,196 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               <Clock className="w-4 h-4 ml-1" />
               منح المهلة
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog معاينة العرض المستلم - كامل التفاصيل كما أرسله العميل */}
+      <Dialog open={showOfferPreviewDialog} onOpenChange={setShowOfferPreviewDialog}>
+        <DialogContent dir="rtl" className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <Eye className="w-5 h-5" />
+              معاينة العرض المستلم
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOfferForPreview && (
+            <div className="space-y-4">
+              {/* معلومات المالك */}
+              <div className="p-4 bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5 rounded-xl border border-[#D4AF37]">
+                <h3 className="font-bold text-[#01411C] mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  معلومات المالك
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">الاسم:</span> <strong>{selectedOfferForPreview.ownerName || customer.name}</strong></div>
+                  <div><span className="text-gray-500">الجوال:</span> <strong dir="ltr">{selectedOfferForPreview.ownerPhone || customer.phone}</strong></div>
+                  {selectedOfferForPreview.ownerIdNumber && (
+                    <div><span className="text-gray-500">رقم الهوية:</span> <strong>{selectedOfferForPreview.ownerIdNumber}</strong></div>
+                  )}
+                  {selectedOfferForPreview.ownerNationalAddress && (
+                    <div className="col-span-2"><span className="text-gray-500">العنوان الوطني:</span> <strong>{selectedOfferForPreview.ownerNationalAddress}</strong></div>
+                  )}
+                  {selectedOfferForPreview.ownerCity && (
+                    <div><span className="text-gray-500">المدينة:</span> <strong>{selectedOfferForPreview.ownerCity}</strong></div>
+                  )}
+                </div>
+              </div>
+
+              {/* معلومات العقار */}
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  معلومات العقار
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">نوع العقار:</span> <strong>{selectedOfferForPreview.propertyType}</strong></div>
+                  <div><span className="text-gray-500">الغرض:</span> <strong>{selectedOfferForPreview.purpose}</strong></div>
+                  {selectedOfferForPreview.price && (
+                    <div><span className="text-gray-500">السعر:</span> <strong className="text-[#D4AF37]">{selectedOfferForPreview.price} ريال</strong></div>
+                  )}
+                  {selectedOfferForPreview.area && (
+                    <div><span className="text-gray-500">المساحة:</span> <strong>{selectedOfferForPreview.area} م²</strong></div>
+                  )}
+                  {selectedOfferForPreview.city && (
+                    <div><span className="text-gray-500">المدينة:</span> <strong>{selectedOfferForPreview.city}</strong></div>
+                  )}
+                  {selectedOfferForPreview.district && (
+                    <div><span className="text-gray-500">الحي:</span> <strong>{selectedOfferForPreview.district}</strong></div>
+                  )}
+                  {selectedOfferForPreview.street && (
+                    <div><span className="text-gray-500">الشارع:</span> <strong>{selectedOfferForPreview.street}</strong></div>
+                  )}
+                </div>
+              </div>
+
+              {/* المواصفات */}
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <h3 className="font-bold text-purple-800 mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  المواصفات
+                </h3>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  {selectedOfferForPreview.bedrooms && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedOfferForPreview.bedrooms}</div><div className="text-xs text-gray-500">غرف نوم</div></div>
+                  )}
+                  {selectedOfferForPreview.bathrooms && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedOfferForPreview.bathrooms}</div><div className="text-xs text-gray-500">دورات مياه</div></div>
+                  )}
+                  {selectedOfferForPreview.livingRooms && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedOfferForPreview.livingRooms}</div><div className="text-xs text-gray-500">صالات</div></div>
+                  )}
+                  {selectedOfferForPreview.floors && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedOfferForPreview.floors}</div><div className="text-xs text-gray-500">طوابق</div></div>
+                  )}
+                  {selectedOfferForPreview.propertyAge && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedOfferForPreview.propertyAge}</div><div className="text-xs text-gray-500">عمر العقار</div></div>
+                  )}
+                  {selectedOfferForPreview.streetWidth && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedOfferForPreview.streetWidth}م</div><div className="text-xs text-gray-500">عرض الشارع</div></div>
+                  )}
+                </div>
+                {(selectedOfferForPreview.facade || selectedOfferForPreview.furnishing) && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {selectedOfferForPreview.facade && (
+                      <Badge variant="outline" className="bg-white">{selectedOfferForPreview.facade}</Badge>
+                    )}
+                    {selectedOfferForPreview.furnishing && (
+                      <Badge variant="outline" className="bg-white">{selectedOfferForPreview.furnishing}</Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* معلومات الصك */}
+              {(selectedOfferForPreview.deedNumber || selectedOfferForPreview.deedDate) && (
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                  <h3 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    معلومات الصك
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {selectedOfferForPreview.deedNumber && (
+                      <div><span className="text-gray-500">رقم الصك:</span> <strong>{selectedOfferForPreview.deedNumber}</strong></div>
+                    )}
+                    {selectedOfferForPreview.deedDate && (
+                      <div><span className="text-gray-500">تاريخ الصك:</span> <strong>{selectedOfferForPreview.deedDate}</strong></div>
+                    )}
+                    {selectedOfferForPreview.deedCity && (
+                      <div><span className="text-gray-500">مدينة الصك:</span> <strong>{selectedOfferForPreview.deedCity}</strong></div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* الوصف */}
+              {selectedOfferForPreview.description && (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h3 className="font-bold text-gray-800 mb-2">الوصف</h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{selectedOfferForPreview.description}</p>
+                </div>
+              )}
+
+              {/* الضمانات */}
+              {selectedOfferForPreview.warranties && selectedOfferForPreview.warranties.length > 0 && (
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                  <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    الضمانات
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedOfferForPreview.warranties.map((warranty: any, idx: number) => (
+                      <Badge key={idx} className="bg-green-100 text-green-800 border-green-300">
+                        {warranty.type} - {warranty.duration}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* الوسائط - الصور والفيديو */}
+              {selectedOfferForPreview.media && selectedOfferForPreview.media.length > 0 && (
+                <div className="p-4 bg-rose-50 rounded-xl border border-rose-200">
+                  <h3 className="font-bold text-rose-800 mb-3 flex items-center gap-2">
+                    <Home className="w-4 h-4" />
+                    الوسائط ({selectedOfferForPreview.media.length})
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedOfferForPreview.media.map((mediaItem: any, idx: number) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group">
+                        {mediaItem.type === 'video' ? (
+                          <video src={mediaItem.url} className="w-full h-full object-cover" controls />
+                        ) : (
+                          <img 
+                            src={mediaItem.url} 
+                            alt={`صورة ${idx + 1}`} 
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => window.open(mediaItem.url, '_blank')}
+                          />
+                        )}
+                        {mediaItem.isMain && (
+                          <Badge className="absolute top-1 right-1 bg-[#D4AF37] text-white text-[10px]">رئيسية</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* تاريخ الإرسال */}
+              <div className="text-center text-sm text-gray-500 pt-2 border-t">
+                تم الإرسال في: {selectedOfferForPreview.submittedAt ? new Date(selectedOfferForPreview.submittedAt).toLocaleDateString('ar-SA', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }) : 'غير محدد'}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowOfferPreviewDialog(false)}>إغلاق</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
