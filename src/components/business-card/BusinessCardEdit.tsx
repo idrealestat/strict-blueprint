@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeatureFlags } from "@/context/FeatureFlagsContext";
+import { useEntitlementsContext } from "@/context/EntitlementsContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -192,6 +193,7 @@ const businessCardValidationSchema = z.object({
 
 const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNewUser = false }) => {
   const { flags, loading: flagsLoading } = useFeatureFlags();
+  const { completeOnboarding } = useEntitlementsContext();
   const showOfficialCard = !flagsLoading && flags.official_business_card_enabled !== false;
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -670,11 +672,8 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         }
       }
 
-      // تحديث حالة الـ onboarding
-      await supabase
-        .from('user_entitlements')
-        .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
-        .eq('user_id', authUser.id);
+      // تحديث حالة الـ onboarding في الـ context والـ database معاً
+      await completeOnboarding();
 
       // حفظ الـ slug المستخدم للرابط العام
       localStorage.setItem('public_platform_slug', selectedSlug);
