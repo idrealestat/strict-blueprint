@@ -119,11 +119,19 @@ export default function PropertyMediaUpload({
     setDragOverIndex(null);
   };
 
-  // Upload file to Supabase Storage
+  // Upload file to Supabase Storage with user ownership path
   const uploadFile = useCallback(async (file: File): Promise<string | null> => {
+    // Get current user for ownership-based storage path
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('يجب تسجيل الدخول لرفع الملفات');
+      return null;
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-    const filePath = `properties/${fileName}`;
+    // SECURITY: Path must start with user_id for RLS policy enforcement
+    const filePath = `${user.id}/properties/${fileName}`;
 
     try {
       const { error: uploadError } = await supabase.storage
@@ -207,16 +215,20 @@ export default function PropertyMediaUpload({
     }
   };
 
-  // Remove media
+  // Remove media with ownership verification
   const removeMedia = async (mediaId: string) => {
     const mediaItem = media.find(m => m.id === mediaId);
     if (!mediaItem) return;
 
-    // Try to delete from storage
+    // Try to delete from storage - extract full path including user_id
     try {
-      const urlParts = mediaItem.url.split('/');
-      const filePath = `properties/${urlParts[urlParts.length - 1]}`;
-      await supabase.storage.from('property-media').remove([filePath]);
+      const url = new URL(mediaItem.url);
+      // Path format: /storage/v1/object/public/property-media/{user_id}/properties/{filename}
+      const pathParts = url.pathname.split('/property-media/');
+      if (pathParts.length > 1) {
+        const filePath = pathParts[1]; // Gets: {user_id}/properties/{filename}
+        await supabase.storage.from('property-media').remove([filePath]);
+      }
     } catch (error) {
       console.error('Error deleting file:', error);
     }

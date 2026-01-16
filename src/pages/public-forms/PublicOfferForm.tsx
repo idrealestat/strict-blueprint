@@ -308,11 +308,14 @@ export default function PublicOfferForm() {
     setWarranties(updated);
   };
 
-  // Upload file to Supabase Storage
+  // Upload file to Supabase Storage with broker ownership path
+  // Note: Public forms upload to broker's folder using broker id from URL params
   const uploadFile = useCallback(async (file: File): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-    const filePath = `client-offers/${fileName}`;
+    // SECURITY: Path uses broker's id for ownership, falling back to 'public-submissions' for anonymous
+    const ownerId = broker?.id || 'public-submissions';
+    const filePath = `${ownerId}/client-offers/${fileName}`;
 
     try {
       const { error: uploadError } = await supabase.storage
@@ -330,7 +333,7 @@ export default function PublicOfferForm() {
       console.error('Error uploading file:', error);
       return null;
     }
-  }, []);
+  }, [broker?.id]);
 
   // Handle file selection
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
