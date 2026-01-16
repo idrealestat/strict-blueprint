@@ -17,18 +17,10 @@ export interface SystemNotification {
   time: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'task' | 'appointment' | 'reminder';
   read: boolean;
-  category: 'task' | 'appointment' | 'system' | 'customer' | 'incoming';
-  actionType?: 'task_overdue' | 'task_due_soon' | 'appointment_upcoming' | 'appointment_now' | 'offer' | 'request' | 'calendar';
+  category: 'task' | 'appointment' | 'system' | 'customer';
+  actionType?: 'task_overdue' | 'task_due_soon' | 'appointment_upcoming' | 'appointment_now';
   relatedId?: string;
   createdAt: Date;
-  actionUrl?: string;
-  metadata?: {
-    customerId?: string;
-    formType?: string;
-    customerName?: string;
-    customerPhone?: string;
-    [key: string]: any;
-  };
 }
 
 export interface Task {
@@ -517,8 +509,6 @@ export function useNotificationSystem() {
             createdAt: new Date(n.created_at),
             relatedId: n.related_entity_id,
             actionType: n.notification_type,
-            actionUrl: n.action_url,
-            metadata: n.metadata,
           }));
 
           setNotifications(mappedNotifs);
@@ -597,9 +587,6 @@ export function useNotificationSystem() {
               read: false,
               createdAt: new Date(newNotif.created_at),
               relatedId: newNotif.related_entity_id,
-              actionType: newNotif.notification_type,
-              actionUrl: newNotif.action_url,
-              metadata: newNotif.metadata,
             };
 
             setNotifications(prev => [systemNotif, ...prev]);

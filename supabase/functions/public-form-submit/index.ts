@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type FormType = 'request' | 'quote' | 'appointment';
+type FormType = 'offer' | 'request' | 'quote' | 'appointment';
 
 interface PublicFormSubmitRequest {
   slug: string;
@@ -85,18 +85,22 @@ serve(async (req) => {
 
     // 2) Normalize customer identity
     const phoneRaw =
-      formType === 'request'
-        ? data.clientPhone
-        : formType === 'quote'
+      formType === 'offer'
+        ? data.ownerPhone
+        : formType === 'request'
           ? data.clientPhone
-          : data.clientPhone;
+          : formType === 'quote'
+            ? data.clientPhone
+            : data.clientPhone;
 
     const nameRaw =
-      formType === 'request'
-        ? data.clientName
-        : formType === 'quote'
+      formType === 'offer'
+        ? data.ownerName
+        : formType === 'request'
           ? data.clientName
-          : data.clientName;
+          : formType === 'quote'
+            ? data.clientName
+            : data.clientName;
 
     const customerPhone = sanitizePhone(phoneRaw);
     const customerName = sanitizeString(nameRaw, 200) || 'عميل';
@@ -129,7 +133,12 @@ serve(async (req) => {
     // Create entity id if not supplied
     const entityId = sanitizeString(data.id, 120) || `${formType}_${Date.now()}`;
 
-    // offer type removed - offer form deleted
+    if (formType === 'offer') {
+      const list = (nextMetadata.property_offers as unknown[]) || [];
+      nextMetadata.property_offers = [...list, { ...data, id: entityId, type: 'property_offer', submittedAt: nowIso }];
+      nextMetadata.hasUnreadOffer = true;
+      nextMetadata.lastOfferAt = nowIso;
+    }
 
     if (formType === 'request') {
       const list = (nextMetadata.property_requests as unknown[]) || [];
@@ -176,11 +185,13 @@ serve(async (req) => {
           status: 'جديد',
           priority: 'عالي',
           source:
-            formType === 'request'
-              ? 'نموذج طلب عقاري'
-              : formType === 'quote'
-                ? 'نموذج عرض سعر'
-                : 'نموذج موعد',
+            formType === 'offer'
+              ? 'نموذج عرض عقاري'
+              : formType === 'request'
+                ? 'نموذج طلب عقاري'
+                : formType === 'quote'
+                  ? 'نموذج عرض سعر'
+                  : 'نموذج موعد',
           last_contact: today,
           metadata: { ...nextMetadata, isNewCard: true },
         })
@@ -237,28 +248,28 @@ serve(async (req) => {
 
     // 5) Insert notification (this is what drives bell + sound + push + pulsing dots)
     const notifTitle =
-      formType === 'request'
-        ? '🔍 طلب عقاري جديد'
-        : formType === 'quote'
-          ? '💰 طلب عرض سعر جديد'
-          : '📅 موعد جديد';
+      formType === 'offer'
+        ? '🏠 عرض عقاري جديد'
+        : formType === 'request'
+          ? '🔍 طلب عقاري جديد'
+          : formType === 'quote'
+            ? '💰 طلب عرض سعر جديد'
+            : '📅 موعد جديد';
 
     const notifMessage =
-      formType === 'request'
-        ? `${customerName} أرسل طلب عقاري`
-        : formType === 'quote'
-          ? `${customerName} طلب عرض سعر`
-          : `${customerName} طلب موعد`;
+      formType === 'offer'
+        ? `${customerName} أرسل عرض عقاري`
+        : formType === 'request'
+          ? `${customerName} أرسل طلب عقاري`
+          : formType === 'quote'
+            ? `${customerName} طلب عرض سعر`
+            : `${customerName} طلب موعد`;
 
     const relatedEntityId =
       formType === 'appointment' ? (calendarAppointmentId || entityId) : entityId;
 
-    const notification_type = formType === 'request' ? 'request' : formType === 'quote' ? 'offer' : 'calendar';
-
-    // إنشاء action_url مع customerId للانتقال المباشر للعميل
-    const actionUrl = formType === 'appointment' 
-      ? `/app/calendar?customerId=${customerId}` 
-      : `/app/crm?customerId=${customerId}&tab=${formType === 'request' ? 'requests' : 'quotes'}`;
+    const notification_type =
+      formType === 'offer' ? 'offer' : formType === 'request' ? 'request' : formType === 'quote' ? 'offer' : 'calendar';
 
     const { data: insertedNotif, error: notifError } = await supabase
       .from('notifications')
@@ -270,8 +281,8 @@ serve(async (req) => {
         category: 'incoming',
         priority: 'high',
         related_entity_type: `${formType}_form`,
-        related_entity_id: customerId, // استخدام customerId كـ related_entity_id
-        action_url: actionUrl,
+        related_entity_id: relatedEntityId,
+        action_url: formType === 'appointment' ? '/app/calendar' : '/app/crm',
         metadata: {
           customerId,
           isNewCustomer,
@@ -279,7 +290,6 @@ serve(async (req) => {
           formType,
           customerName,
           customerPhone,
-          entityId: relatedEntityId,
         },
       })
       .select('id')

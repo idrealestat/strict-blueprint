@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useEventTracker } from '@/hooks/useEventTracker';
+import { createNotification } from '@/utils/notificationTriggers';
+import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 const getMockBroker = (brokerId: string): BrokerInfo => ({
   id: brokerId,
@@ -133,6 +135,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
   const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [brokerUserId, setBrokerUserId] = useState<string | null>(null);
   const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
   const { track, trackPageView } = useEventTracker();
   
@@ -148,6 +151,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
           .single();
         
         if (data) {
+          setBrokerUserId(data.user_id);
           // Track page view
           trackPageView('calendar', data.id, 'public_web');
           
@@ -168,9 +172,9 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
             logoImage: cardData?.logoImage || '',
           });
         }
+      } else if (brokerInfo) {
+        setBrokerUserId(brokerInfo.id);
       }
-      // إذا brokerInfo مررناه مباشرة، لا نحتاج تخزين brokerUserId هنا لأن الإرسال يتم عبر الخلفية بناءً على slug
-
     };
     fetchBrokerData();
   }, [slug, brokerInfo, trackPageView]);
@@ -225,30 +229,136 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
         status: 'pending',
       };
 
-      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
-      const identifier = slug || brokerId;
-      if (!identifier) {
-        throw new Error('missing broker slug');
+      // 1. الحصول على معرف الوسيط من business_cards
+      let actualBrokerUserId = brokerUserId;
+      if (!actualBrokerUserId && slug) {
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('user_id')
+          .eq('slug', slug)
+          .eq('published', true)
+          .single();
+        actualBrokerUserId = businessCard?.user_id || null;
       }
 
-      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
-        body: {
-          slug: identifier,
-          formType: 'appointment',
-          data: submissionData,
-        },
-      });
+      if (actualBrokerUserId) {
+        // 2. حفظ الموعد في جدول calendar_appointments
+        const { data: newAppointment, error: appointmentError } = await supabase
+          .from('calendar_appointments')
+          .insert([{
+            user_id: actualBrokerUserId,
+            title: `${formData.appointmentType} - ${formData.clientName}`,
+            customer_name: formData.clientName,
+            customer_phone: formData.clientPhone,
+            appointment_date: formData.preferredDate,
+            appointment_time: formData.preferredTime,
+            appointment_type: formData.appointmentType,
+            location: formData.meetingLocation || null,
+            notes: formData.notes || null,
+            status: 'pending',
+            reminder: true,
+            reminder_time: 30,
+          }])
+          .select()
+          .single();
 
-      if (submitError) {
-        console.error('[PublicAppointmentForm] public submit error:', submitError);
-        throw submitError;
+        if (appointmentError) {
+          console.error('Error creating appointment:', appointmentError);
+        }
+
+        const dbAppointmentId = newAppointment?.id || appointmentId;
+
+        // 3. البحث عن العميل أو إنشاء بطاقة جديدة
+        const { data: existingCustomer } = await supabase
+          .from('crm_customers')
+          .select('*')
+          .eq('user_id', actualBrokerUserId)
+          .or(`phone.eq.${formData.clientPhone},whatsapp.eq.${formData.clientPhone}`)
+          .maybeSingle();
+
+        let customerId: string;
+        let isNewCustomer = false;
+
+        if (existingCustomer) {
+          customerId = existingCustomer.id;
+          
+          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
+          const existingAppointments = currentMetadata.appointments || [];
+          
+          await supabase
+            .from('crm_customers')
+            .update({
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                ...currentMetadata,
+                appointments: [...existingAppointments, submissionData],
+                hasUnreadAppointment: true,
+                lastAppointmentAt: new Date().toISOString(),
+              },
+            })
+            .eq('id', customerId);
+        } else {
+          isNewCustomer = true;
+          
+          const { data: newCustomer } = await supabase
+            .from('crm_customers')
+            .insert([{
+              user_id: actualBrokerUserId,
+              name: formData.clientName,
+              phone: formData.clientPhone,
+              status: 'جديد',
+              priority: 'عادي',
+              source: 'نموذج موعد',
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                appointments: [submissionData],
+                hasUnreadAppointment: true,
+                isNewCard: true,
+                lastAppointmentAt: new Date().toISOString(),
+              } as Record<string, any>,
+            }])
+            .select()
+            .single();
+
+          customerId = newCustomer?.id || '';
+        }
+
+        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
+        await createNotification({
+          userId: actualBrokerUserId,
+          title: '📅 موعد جديد',
+          message: `${formData.clientName} طلب موعد ${formData.appointmentType} - ${formData.preferredDate} ${formData.preferredTime}`,
+          notificationType: 'calendar',
+          category: 'appointment',
+          priority: 'high',
+          relatedEntityType: 'calendar',
+          relatedEntityId: dbAppointmentId,
+          actionUrl: '/app/calendar',
+          metadata: {
+            customerName: formData.clientName,
+            customerPhone: formData.clientPhone,
+            appointmentType: formData.appointmentType,
+            date: formData.preferredDate,
+            time: formData.preferredTime,
+            customerId: customerId,
+            isNewCustomer,
+            isPulsing: true,
+          },
+          sendPush: true,
+          pushData: {
+            type: 'new_appointment',
+            customerName: formData.clientName,
+            appointmentType: formData.appointmentType,
+          },
+        });
+
+        // 5. تتبع الدوائر النابضة
+        markAsNew('offer', dbAppointmentId);
+        if (customerId) {
+          markAsNew('customer', customerId);
+        }
+        markAsNew('tab', 'calendar');
       }
-
-      const customerId = (submitResult as any)?.customerId as string | undefined;
-      const createdAppointmentId = ((submitResult as any)?.appointmentId || (submitResult as any)?.relatedEntityId || appointmentId) as string;
-      console.log('[PublicAppointmentForm] submitResult:', submitResult, 'customerId:', customerId, 'appointmentId:', createdAppointmentId);
-
-
 
       // 6. حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');

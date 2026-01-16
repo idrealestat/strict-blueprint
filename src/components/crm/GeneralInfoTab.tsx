@@ -128,11 +128,6 @@ export default function GeneralInfoTab({
   editedCustomer, 
   setEditedCustomer 
 }: GeneralInfoTabProps) {
-  // customer info mapping (offer metadata removed)
-  const customerWithOwnerInfo = {
-    ...customer,
-  };
-
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<{ url: string; type: 'image' | 'video'; name: string }[]>([]);
   const [documents, setDocuments] = useState<File[]>([]);
@@ -509,26 +504,18 @@ export default function GeneralInfoTab({
                   <Label className="text-xs text-gray-500 block mb-1">رقم الهوية</Label>
                   {isEditing ? (
                     <Input 
-                      value={
-                        (editedCustomer as any).idNumber ||
-                        (editedCustomer.metadata as any)?.ownerIdNumber ||
-                        (editedCustomer.metadata as any)?.idNumber ||
-                        ''
-                      }
-                      onChange={(e) =>
-                        setEditedCustomer({
-                          ...editedCustomer,
-                          // ✅ نخزنها بالمفتاح الصحيح القادم من نموذج العرض (ownerIdNumber)
-                          metadata: { ...(editedCustomer.metadata || {}), ownerIdNumber: e.target.value, idNumber: e.target.value },
-                        } as any)
-                      }
+                      value={(editedCustomer as any).idNumber || (editedCustomer.metadata as any)?.idNumber || ''}
+                      onChange={(e) => setEditedCustomer({
+                        ...editedCustomer, 
+                        metadata: { ...(editedCustomer.metadata || {}), idNumber: e.target.value }
+                      } as any)}
                       placeholder="1xxxxxxxxx"
                       className="h-9"
                       dir="ltr"
                     />
                   ) : (
                     <div className="text-sm font-medium text-gray-800">
-                      {(customer as any).idNumber || (customer.metadata as any)?.ownerIdNumber || (customer.metadata as any)?.idNumber || '-'}
+                      {(customer as any).idNumber || (customer.metadata as any)?.idNumber || '-'}
                     </div>
                   )}
                 </div>

@@ -19,6 +19,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
+import { createNotification } from '@/utils/notificationTriggers';
+import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 // Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
@@ -259,27 +261,129 @@ export default function PublicRequestForm() {
         isViewed: false,
       };
 
-      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
-      if (!brokerSlug) {
-        throw new Error('missing broker slug');
+      // 1. الحصول على معرف الوسيط من business_cards
+      const { data: businessCard } = await supabase
+        .from('business_cards')
+        .select('user_id, data')
+        .eq('slug', brokerSlug)
+        .eq('published', true)
+        .single();
+
+      const brokerUserId = businessCard?.user_id;
+
+      if (brokerUserId) {
+        // 2. البحث عن العميل برقم الجوال
+        const { data: existingCustomer } = await supabase
+          .from('crm_customers')
+          .select('*')
+          .eq('user_id', brokerUserId)
+          .or(`phone.eq.${formData.clientPhone},whatsapp.eq.${formData.clientPhone}`)
+          .maybeSingle();
+
+        let customerId: string;
+        let isNewCustomer = false;
+
+        if (existingCustomer) {
+          // 3a. العميل موجود - تحديث بياناته وإضافة الطلب
+          customerId = existingCustomer.id;
+          
+          const updates: Record<string, any> = {
+            last_contact: new Date().toISOString().split('T')[0],
+          };
+          
+          if (!existingCustomer.name || existingCustomer.name === 'غير معروف') {
+            updates.name = formData.clientName;
+          }
+          
+          // إضافة الطلب للـ metadata
+          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
+          const existingRequests = currentMetadata.property_requests || [];
+          
+          updates.metadata = {
+            ...currentMetadata,
+            property_requests: [...existingRequests, submissionData],
+            hasUnreadRequest: true,
+            lastRequestAt: new Date().toISOString(),
+          };
+          
+          await supabase
+            .from('crm_customers')
+            .update(updates)
+            .eq('id', customerId);
+
+        } else {
+          // 3b. العميل غير موجود - إنشاء بطاقة جديدة
+          isNewCustomer = true;
+          
+          const { data: newCustomer, error: createError } = await supabase
+            .from('crm_customers')
+            .insert([{
+              user_id: brokerUserId,
+              name: formData.clientName,
+              phone: formData.clientPhone,
+              status: 'جديد',
+              priority: 'عالي',
+              property_type: formData.purpose === 'للشراء' ? 'buyer' : 'renter',
+              source: 'نموذج طلب عقاري',
+              location: formData.preferredCity || null,
+              budget: formData.maxBudget ? `${formData.minBudget || 0} - ${formData.maxBudget}` : null,
+              notes: `طلب عقاري: ${formData.propertyType} ${formData.purpose}`,
+              last_contact: new Date().toISOString().split('T')[0],
+              metadata: {
+                idNumber: formData.clientIdNumber,
+                nationalAddress: formData.clientNationalAddress,
+                property_requests: [submissionData],
+                hasUnreadRequest: true,
+                isNewCard: true,
+                lastRequestAt: new Date().toISOString(),
+              } as Record<string, any>,
+            }])
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating customer:', createError);
+          } else if (newCustomer) {
+            customerId = newCustomer.id;
+          }
+        }
+
+        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
+        await createNotification({
+          userId: brokerUserId,
+          title: '🔍 طلب عقاري جديد',
+          message: `استلمت طلب من ${formData.clientName} - ${formData.propertyType} ${formData.purpose}`,
+          notificationType: 'request',
+          category: 'incoming',
+          priority: 'high',
+          relatedEntityType: 'request_form',
+          relatedEntityId: requestId,
+          actionUrl: '/app/crm',
+          metadata: {
+            clientName: formData.clientName,
+            clientPhone: formData.clientPhone,
+            propertyType: formData.propertyType,
+            purpose: formData.purpose,
+            city: formData.preferredCity,
+            customerId: customerId!,
+            isNewCustomer,
+            isPulsing: true,
+          },
+          sendPush: true,
+          pushData: {
+            type: 'new_request',
+            clientName: formData.clientName,
+            propertyType: formData.propertyType,
+          },
+        });
+
+        // 5. تتبع الدوائر النابضة
+        markAsNew('offer', requestId);
+        if (customerId!) {
+          markAsNew('customer', customerId!);
+        }
+        markAsNew('tab', 'property-request');
       }
-
-      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
-        body: {
-          slug: brokerSlug,
-          formType: 'request',
-          data: submissionData,
-        },
-      });
-
-      if (submitError) {
-        console.error('[PublicRequestForm] public submit error:', submitError);
-        throw submitError;
-      }
-
-      const customerId = (submitResult as any)?.customerId as string | undefined;
-      console.log('[PublicRequestForm] submitResult:', submitResult, 'customerId:', customerId);
-
 
       // 6. حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
