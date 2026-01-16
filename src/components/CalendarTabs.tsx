@@ -7,12 +7,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { useCalendarAppointments, CalendarAppointment } from '@/hooks/useCalendarAppointments';
 import { format, isToday, isTomorrow, isThisWeek, isThisMonth, isPast, isFuture, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { Settings, Plus, ChevronRight, ChevronLeft, Phone, MapPin, Clock, User, Calendar, Eye, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Settings, Plus, ChevronRight, ChevronLeft, Phone, MapPin, Clock, User, Calendar, Eye, CheckCircle, XCircle, AlertCircle, Loader2, Copy, Link, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import CalendarSettingsPanel from './calendar/CalendarSettingsPanel';
 import { cn } from '@/lib/utils';
+import { useAuthContext } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Tab {
   id: string;
@@ -21,11 +24,44 @@ interface Tab {
 }
 
 const CalendarTabs = () => {
+  const { user } = useAuthContext();
   const { appointments, loading } = useCalendarAppointments();
   const [activeTab, setActiveTab] = useState('today');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [slug, setSlug] = useState<string>('');
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
+  // جلب الـ slug من بطاقة الأعمال
+  useEffect(() => {
+    const fetchSlug = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('business_cards')
+        .select('slug')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data?.slug) {
+        setSlug(data.slug);
+      }
+    };
+    
+    fetchSlug();
+  }, [user?.id]);
+
+  const copyToClipboard = async (text: string, linkId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedLink(linkId);
+      toast.success('تم نسخ الرابط');
+      setTimeout(() => setCopiedLink(null), 2000);
+    } catch (e) {
+      toast.error('فشل في نسخ الرابط');
+    }
+  };
 
   // تصنيف المواعيد حسب التبويبات
   const categorizedAppointments = useMemo(() => {
@@ -420,6 +456,48 @@ const CalendarTabs = () => {
                 );
               })}
             </div>
+
+            {/* روابط للنسخ */}
+            {slug && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                  <Link className="w-3 h-3" />
+                  روابط سريعة للنسخ
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <span className="text-xs text-green-700 dark:text-green-400">رابط تذكير العميل</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(`wasataai.com/${slug}/appointmentapproval/customer/{appointmentId}`, 'customer')}
+                    >
+                      {copiedLink === 'customer' ? (
+                        <><CheckCircle2 className="w-3 h-3 text-green-500" /> تم</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> نسخ</>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    <span className="text-xs text-amber-700 dark:text-amber-400">رابط الاعتذار للعميل</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => copyToClipboard(`wasataai.com/${slug}/appointmentapproval/sorry`, 'sorry')}
+                    >
+                      {copiedLink === 'sorry' ? (
+                        <><CheckCircle2 className="w-3 h-3 text-green-500" /> تم</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> نسخ</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
