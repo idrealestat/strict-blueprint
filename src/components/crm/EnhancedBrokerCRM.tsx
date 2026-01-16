@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
 import { useCRMCustomTags } from "@/hooks/useCRMCustomTags";
 import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
@@ -423,6 +424,11 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   // Reference for scrolling to right
   const kanbanContainerRef = useRef<HTMLDivElement>(null);
   
+  // URL Parameters for deep linking
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCustomerId = searchParams.get('customerId');
+  const urlTab = searchParams.get('tab');
+  
   // Feature Flags for visibility control
   const { flags: featureFlags } = useFeatureFlags();
   
@@ -661,6 +667,20 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     }, 800);
     return () => clearTimeout(timer);
   }, []);
+  
+  // Handle URL parameters for deep linking (from notifications)
+  useEffect(() => {
+    if (urlCustomerId && customers.length > 0 && !isLoading) {
+      const customer = customers.find(c => c.id === urlCustomerId);
+      if (customer) {
+        setSelectedCustomer(customer);
+        setShowCustomerDetails(true);
+        setShowFullDetails(true);
+        // Clear URL params after opening customer
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [urlCustomerId, customers, isLoading, setSearchParams]);
   
   // Filter State
   const [filters, setFilters] = useState({

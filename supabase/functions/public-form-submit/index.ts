@@ -271,6 +271,11 @@ serve(async (req) => {
     const notification_type =
       formType === 'offer' ? 'offer' : formType === 'request' ? 'request' : formType === 'quote' ? 'offer' : 'calendar';
 
+    // إنشاء action_url مع customerId للانتقال المباشر للعميل
+    const actionUrl = formType === 'appointment' 
+      ? `/app/calendar?customerId=${customerId}` 
+      : `/app/crm?customerId=${customerId}&tab=${formType === 'offer' ? 'offers' : formType === 'request' ? 'requests' : 'quotes'}`;
+
     const { data: insertedNotif, error: notifError } = await supabase
       .from('notifications')
       .insert({
@@ -281,8 +286,8 @@ serve(async (req) => {
         category: 'incoming',
         priority: 'high',
         related_entity_type: `${formType}_form`,
-        related_entity_id: relatedEntityId,
-        action_url: formType === 'appointment' ? '/app/calendar' : '/app/crm',
+        related_entity_id: customerId, // استخدام customerId كـ related_entity_id
+        action_url: actionUrl,
         metadata: {
           customerId,
           isNewCustomer,
@@ -290,6 +295,7 @@ serve(async (req) => {
           formType,
           customerName,
           customerPhone,
+          entityId: relatedEntityId,
         },
       })
       .select('id')
