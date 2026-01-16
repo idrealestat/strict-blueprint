@@ -42,7 +42,7 @@ import RecoverDomainPage from "./pages/RecoverDomainPage";
 import DomainAdminPage from "./pages/DomainAdminPage";
 import DomainRequestsListPage from "./pages/DomainRequestsListPage";
 import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
-import PublishAdPage from "./pages/PublishAdPage";
+
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugCityPage from "./pages/SlugCityPage";
@@ -495,11 +495,6 @@ const App = () => {
                       </OnboardingGuard>
                     } />
                   
-                  <Route path="/app/publish-ad" element={
-                    <BusinessCardGuard>
-                      <PublishAdPage />
-                    </BusinessCardGuard>
-                  } />
                   
                   <Route path="/app/settings" element={
                     <BusinessCardGuard>

@@ -58,7 +58,7 @@ const BUTTON_ICONS: Record<BottomNavButtonId, React.ElementType> = {
 const BUTTON_NAVIGATION: Record<BottomNavButtonId, string> = {
   'home': 'dashboard-main-252',
   'add-customer': '', // يفتح dialog
-  'publish-ad': 'advertising', // صفحة نشر الإعلانات
+  'publish-ad': 'my-platform-offers', // اختصار لصفحة نشر إعلان عقاري في منصتي
   'quick-calculator': 'quick-calculator',
   'smart-opportunities': 'smart-matches',
   'calendar': 'calendar-system-complete',
