@@ -1782,7 +1782,7 @@ export default function MyPlatformComplete({
             </div>
             
             <Button
-              onClick={() => window.location.href = '/app/publish-ad'}
+              onClick={() => onNavigate?.('advertising')}
               className="text-white"
               style={{ 
                 backgroundColor: digitalCardHeader?.secondaryColor || '#D4AF37',
