@@ -4061,6 +4061,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       const city = offer.city || offer.locationCity || offer.ownerCity || '';
                       const district = offer.district || offer.locationDistrict || '';
 
+                      const media = Array.isArray(offer.media) ? offer.media : [];
+                      const mediaPreview = media.slice(0, 4);
+
                       return (
                         <div key={offer.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="flex items-start justify-between gap-3">
@@ -4078,6 +4081,39 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               {offer.status === 'pending' ? 'جديد' : (offer.status || 'معلق')}
                             </Badge>
                           </div>
+
+                          {/* ✅ معاينة الصور/الفيديو (حتى 4 عناصر) */}
+                          {mediaPreview.length > 0 && (
+                            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {mediaPreview.map((m: any) => {
+                                const url = m?.url as string | undefined;
+                                const type = (m?.type as string | undefined) || '';
+                                if (!url) return null;
+
+                                if (type === 'video' || url.toLowerCase().endsWith('.mp4')) {
+                                  return (
+                                    <video
+                                      key={m.id || url}
+                                      src={url}
+                                      className="h-24 w-full rounded-md object-cover border"
+                                      controls
+                                      preload="metadata"
+                                    />
+                                  );
+                                }
+
+                                return (
+                                  <img
+                                    key={m.id || url}
+                                    src={url}
+                                    alt={`صورة للعرض: ${title}`}
+                                    className="h-24 w-full rounded-md object-cover border"
+                                    loading="lazy"
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
 
                           {/* أزرار (نشر إعلان) و (PDF) مثل النظام القديم */}
                           <div className="mt-3 flex flex-wrap gap-2">
