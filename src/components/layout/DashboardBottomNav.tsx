@@ -107,14 +107,23 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
   const quickOptions = [
     {
       id: 'add-customer',
-      label: 'إضافة اسم عميل',
+      label: 'إضافة عميل',
       icon: UserPlus,
       action: 'form',
+      url: '',
       color: 'bg-emerald-500'
     },
     {
+      id: 'copy-card',
+      label: 'بطاقة أعمالي',
+      icon: Globe,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/card` : '',
+      color: 'bg-[#01411C]'
+    },
+    {
       id: 'copy-offer',
-      label: 'نسخ رابط إرسال عرض',
+      label: 'إرسال عرض',
       icon: Send,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/offer` : '',
@@ -122,7 +131,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-request',
-      label: 'نسخ رابط إرسال طلب',
+      label: 'إرسال طلب',
       icon: FileText,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/request` : '',
@@ -130,7 +139,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-calendar',
-      label: 'نسخ رابط إنشاء موعد',
+      label: 'إنشاء موعد',
       icon: Calendar,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/calendar` : '',
@@ -138,7 +147,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-quote',
-      label: 'نسخ رابط عرض سعر',
+      label: 'عرض سعر',
       icon: MessageSquare,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/quote` : '',
@@ -146,7 +155,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-reminder',
-      label: 'نسخ رابط تذكير العميل',
+      label: 'تذكير العميل',
       icon: CalendarCheck,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/appointmentapproval/customer/{appointmentId}` : '',
@@ -154,7 +163,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-sorry',
-      label: 'نسخ رابط الاعتذار',
+      label: 'الاعتذار',
       icon: LinkIcon,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/appointmentapproval/sorry` : '',
@@ -323,8 +332,8 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
                 </button>
               </div>
 
-              {/* Options Grid */}
-              <div className="space-y-2">
+              {/* Options Grid - بطاقات صغيرة طولية */}
+              <div className="grid grid-cols-4 gap-2">
                 {quickOptions.map((option) => {
                   const Icon = option.icon;
                   const isCopied = copiedLink === option.id;
@@ -333,30 +342,33 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
                     <motion.button
                       key={option.id}
                       onClick={() => handleQuickOptionClick(option)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all group"
-                      whileTap={{ scale: 0.98 }}
+                      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all ${
+                        isCopied 
+                          ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-500' 
+                          : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                      }`}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <div className={`w-10 h-10 rounded-full ${option.color} flex items-center justify-center`}>
+                      <div className={`w-9 h-9 rounded-full ${option.color} flex items-center justify-center mb-1.5 ${
+                        isCopied ? 'bg-green-500' : ''
+                      }`}>
                         {isCopied ? (
-                          <CheckCircle2 className="w-5 h-5 text-white" />
+                          <CheckCircle2 className="w-4 h-4 text-white" />
                         ) : (
-                          <Icon className="w-5 h-5 text-white" />
+                          <Icon className="w-4 h-4 text-white" />
                         )}
                       </div>
-                      <span className="flex-1 text-right font-medium text-gray-900 dark:text-white">
-                        {option.label}
+                      <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
+                        {isCopied ? 'تم النسخ' : option.label}
                       </span>
-                      {option.action === 'copy' && (
-                        <Copy className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                      )}
                     </motion.button>
                   );
                 })}
               </div>
 
               {!userSlug && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-4 text-center">
-                  ⚠️ يرجى نشر بطاقة أعمالك لتفعيل روابط النسخ
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 text-center">
+                  ⚠️ انشر بطاقة أعمالك لتفعيل الروابط
                 </p>
               )}
             </motion.div>
