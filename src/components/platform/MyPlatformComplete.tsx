@@ -725,20 +725,24 @@ export default function MyPlatformComplete({
   
   useEffect(() => {
     const action = searchParams.get('action');
+
     if (action === 'publish') {
       setShowPublishDialog(true);
       // مسح البارامتر من URL بعد فتح النموذج
       window.history.replaceState({}, '', window.location.pathname);
-    } else if (action === 'requests') {
+      return;
+    }
+
+    if (action === 'requests') {
       // الانتقال لتبويب الطلبات وإضافة الطلب الجديد
       setActiveMainTab('requests');
-      
+
       // التحقق من وجود بيانات طلب محفوظة
       const savedRequest = localStorage.getItem('wasata_republish_request');
       if (savedRequest) {
         try {
           const requestData = JSON.parse(savedRequest);
-          
+
           // إنشاء طلب جديد وإضافته للقائمة
           const newRequest: Request = {
             id: `R-${Date.now()}`,
@@ -749,18 +753,18 @@ export default function MyPlatformComplete({
             purpose: requestData.purpose === 'للإيجار' ? 'rent' : 'sale',
             city: requestData.preferredCity || '',
             district: requestData.preferredDistricts || '',
-            budget: { 
-              min: parseInt(requestData.minBudget) || 0, 
-              max: parseInt(requestData.maxBudget) || 0 
+            budget: {
+              min: parseInt(requestData.minBudget) || 0,
+              max: parseInt(requestData.maxBudget) || 0,
             },
             bedrooms: parseInt(requestData.bedrooms) || undefined,
             status: 'new',
             createdAt: new Date(),
             notes: requestData.additionalRequirements || '',
           };
-          
-          setRequests(prev => [newRequest, ...prev]);
-          
+
+          setRequests((prev) => [newRequest, ...prev]);
+
           // تحديث حالة الطلب الأصلي
           if (requestData.originalTabId && requestData.source === 'customer_tab') {
             const { updateOriginalRequestStatus } = require('@/hooks/usePublishedAdsManager');
@@ -772,12 +776,12 @@ export default function MyPlatformComplete({
               });
             }
           }
-          
+
           toast.success('✅ تم إضافة الطلب إلى قسم الطلبات بنجاح', {
             description: `طلب ${requestData.propertyType} ${requestData.purpose}`,
             duration: 5000,
           });
-          
+
           // حذف البيانات المحفوظة
           localStorage.removeItem('wasata_republish_request');
         } catch (e) {
@@ -785,11 +789,18 @@ export default function MyPlatformComplete({
           localStorage.removeItem('wasata_republish_request');
         }
       }
-      
+
       // مسح البارامتر من URL
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams]);
+
+  // فتح نموذج النشر من أماكن خارج منصتي (مثل زر الفوتر)
+  useEffect(() => {
+    const handler = () => setShowPublishDialog(true);
+    window.addEventListener('wasata:openPublishAd', handler as EventListener);
+    return () => window.removeEventListener('wasata:openPublishAd', handler as EventListener);
+  }, []);
 
   // PDF Report & Comparison Dialogs
   const [showPDFReport, setShowPDFReport] = useState(false);
@@ -1782,7 +1793,7 @@ export default function MyPlatformComplete({
             </div>
             
             <Button
-              onClick={() => onNavigate?.('advertising')}
+              onClick={() => setShowPublishDialog(true)}
               className="text-white"
               style={{ 
                 backgroundColor: digitalCardHeader?.secondaryColor || '#D4AF37',

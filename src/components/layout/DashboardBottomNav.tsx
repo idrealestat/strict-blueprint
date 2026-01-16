@@ -58,7 +58,7 @@ const BUTTON_ICONS: Record<BottomNavButtonId, React.ElementType> = {
 const BUTTON_NAVIGATION: Record<BottomNavButtonId, string> = {
   'home': 'dashboard-main-252',
   'add-customer': '', // يفتح dialog
-  'publish-ad': 'advertising', // اختصار لصفحة نشر إعلان عقاري
+  'publish-ad': 'dashboard-main-252', // اختصار لزر نشر إعلان داخل "منصتي"
   'quick-calculator': 'quick-calculator',
   'smart-opportunities': 'smart-matches',
   'calendar': 'calendar-system-complete',
@@ -176,7 +176,17 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
       setShowQuickOptions(true);
       return;
     }
-    
+
+    // زر "نشر إعلان" في الفوتر يجب أن يفتح نفس نموذج النشر داخل "منصتي"
+    if (buttonId === 'publish-ad') {
+      onNavigate('dashboard-main-252');
+      // بعد الانتقال، افتح نافذة النشر داخل منصتي
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('wasata:openPublishAd'));
+      }, 0);
+      return;
+    }
+
     const destination = BUTTON_NAVIGATION[buttonId];
     if (destination) {
       onNavigate(destination);
