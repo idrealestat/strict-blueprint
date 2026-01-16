@@ -4,9 +4,9 @@ import { toast } from "@/hooks/use-toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { runHardResetOnce } from "@/utils/hardReset";
 import SimpleDashboard from "./components/layout/SimpleDashboard";
 import EnhancedBrokerCRM from "./components/crm/EnhancedBrokerCRM";
@@ -174,9 +174,40 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
   const [linkedCustomerForTask, setLinkedCustomerForTask] = useState<LinkedCustomer | null>(null);
   const [linkedCustomerForAppointment, setLinkedCustomerForAppointment] = useState<LinkedCustomer | null>(null);
   const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<any>(null);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handledDeepLinkRef = useRef(false);
   
   const { user, isAuthenticated } = useAuthContext();
   const [userData, setUserData] = useState<any>(null);
+
+  // ✅ Deep link handler: /app/crm?customerId=...&tab=offers
+  useEffect(() => {
+    if (handledDeepLinkRef.current) return;
+    if (location.pathname !== '/app/crm') return;
+
+    handledDeepLinkRef.current = true;
+
+    const customerId = searchParams.get('customerId');
+    const tab = searchParams.get('tab') || 'overview';
+
+    if (customerId) {
+      window.dispatchEvent(
+        new CustomEvent('openCustomerDetails', {
+          detail: { customerId, activeTab: tab },
+        })
+      );
+    } else {
+      // إذا لم يوجد customerId افتح إدارة العملاء
+      setCurrentPage('customer-management-72');
+    }
+
+    // تنظيف الرابط حتى لا يدخل في تعارض مع المسارات العامة
+    navigate('/app/dashboard', { replace: true });
+    setSearchParams({}, { replace: true });
+  }, [location.pathname, navigate, searchParams, setSearchParams]);
 
   // ✅ تنظيف جذري لبيانات التجارب المحلية مرة واحدة (بدون لمس بطاقة الأعمال أو تسجيل الدخول)
   useEffect(() => {
@@ -494,8 +525,15 @@ const App = () => {
                         </BusinessCardGuard>
                       </OnboardingGuard>
                     } />
-                  
-                  
+
+                    {/* ✅ Deep link: CRM */}
+                    <Route path="/app/crm" element={
+                      <OnboardingGuard>
+                        <BusinessCardGuard>
+                          <DashboardContent isNewUser={isNewUser} />
+                        </BusinessCardGuard>
+                      </OnboardingGuard>
+                    } />
                   <Route path="/app/settings" element={
                     <BusinessCardGuard>
                       <RoleGuard allowedRoles={['admin', 'owner']} showAccessDenied>
