@@ -4058,6 +4058,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       const price = offer.price ? `${offer.price} ريال` : '';
                       const date = offer.submittedAt ? new Date(offer.submittedAt).toLocaleDateString('ar-SA') : '';
 
+                      const city = offer.city || offer.locationCity || offer.ownerCity || '';
+                      const district = offer.district || offer.locationDistrict || '';
+
                       return (
                         <div key={offer.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="flex items-start justify-between gap-3">
@@ -4065,8 +4068,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
                               <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
                                 {price && <span className="font-bold text-[#D4AF37]">{price}</span>}
-                                {offer.city && <span>• {offer.city}</span>}
-                                {offer.district && <span>• {offer.district}</span>}
+                                {city && <span>• {city}</span>}
+                                {district && <span>• {district}</span>}
                                 {date && <span>• {date}</span>}
                               </div>
                             </div>
