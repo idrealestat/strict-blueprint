@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, 
@@ -73,6 +74,7 @@ const BUTTON_NAVIGATION: Record<BottomNavButtonId, string> = {
 export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavProps) {
   const { config, isButtonHidden, getButtonInfo } = useBottomNavCustomization();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showQuickOptions, setShowQuickOptions] = useState(false);
   const [userSlug, setUserSlug] = useState<string | null>(null);
@@ -184,6 +186,12 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('wasata:openPublishAd'));
       }, 0);
+      return;
+    }
+
+    // زر "الفرص الذكية" ينتقل مباشرة لصفحة الفرص الذكية
+    if (buttonId === 'smart-opportunities') {
+      navigate('/app/smart-opportunities');
       return;
     }
 
