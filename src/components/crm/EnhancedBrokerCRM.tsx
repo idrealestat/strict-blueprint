@@ -493,7 +493,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       lastContact: c.last_contact || undefined,
       nextFollowUp: c.next_follow_up || undefined,
 
-      // ملاحظة: لا نربط type/interestLevel بـ property_type/priority حتى لا تختلط البيانات
+      // ✅ نقل بيانات metadata للنقطة النابضة
+      hasUnreadOffer: !!metadataObj.hasUnreadOffer,
+      isNewCard: !!metadataObj.isNewCard,
+      metadata: metadataObj,
     };
   }, []);
 
@@ -910,11 +913,37 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const isCustomerUnread = (customerId: string) => unreadCustomers.includes(customerId);
 
   // Mark customer as read
-  const markAsRead = (customerId: string) => {
+  const markAsRead = useCallback(async (customerId: string) => {
     setUnreadCustomers(prev => prev.filter(id => id !== customerId));
     // أيضاً إزالة علامة "جديد" من نظام التتبع
     markAsViewed('customer', customerId);
-  };
+    
+    // ✅ تحديث قاعدة البيانات لإزالة hasUnreadOffer و isNewCard
+    const customer = dbCustomers.find(c => c.id === customerId);
+    if (customer) {
+      const currentMeta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+        ? (customer.metadata as Record<string, any>)
+        : {};
+      
+      // فقط نحدث إذا كان هناك علامات للإزالة
+      if (currentMeta.hasUnreadOffer || currentMeta.isNewCard) {
+        await dbUpdateCustomer(customerId, {
+          metadata: {
+            ...currentMeta,
+            hasUnreadOffer: false,
+            isNewCard: false,
+          },
+        });
+        
+        // تحديث الحالة المحلية
+        setCustomers(prev => prev.map(c => 
+          c.id === customerId 
+            ? { ...c, hasUnreadOffer: false, isNewCard: false }
+            : c
+        ));
+      }
+    }
+  }, [dbCustomers, dbUpdateCustomer]);
 
   // Handle opening customer details
   const handleOpenCustomerDetails = (customer: Customer) => {
@@ -1920,7 +1949,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         </Avatar>
                                         
                                         {/* 1.2 مؤشر غير مقروء - النقطة الحمراء النابضة */}
-                                        {(isCustomerUnread(customer.id) || isNew('customer', customer.id)) && (
+                                        {(isCustomerUnread(customer.id) || isNew('customer', customer.id) || customer.hasUnreadOffer || customer.isNewCard) && (
                                           <PulsingDot show={true} size="sm" position="top-right" />
                                         )}
                                       </div>
