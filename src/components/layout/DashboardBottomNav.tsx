@@ -3,7 +3,7 @@
  * الشريط السفلي للواجهة الرئيسية
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, 
@@ -17,12 +17,22 @@ import {
   FileText,
   Users,
   Globe,
-  BarChart3
+  BarChart3,
+  Copy,
+  CheckCircle2,
+  Send,
+  X,
+  UserPlus,
+  Link as LinkIcon,
+  CalendarCheck,
+  MessageSquare
 } from 'lucide-react';
 import { useBottomNavCustomization, BottomNavButtonId } from '@/hooks/useBottomNavCustomization';
 import { CustomerForm } from '@/components/crm/CustomerForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardBottomNavProps {
   onNavigate: (page: string) => void;
@@ -62,17 +72,128 @@ const BUTTON_NAVIGATION: Record<BottomNavButtonId, string> = {
 
 export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavProps) {
   const { config, isButtonHidden, getButtonInfo } = useBottomNavCustomization();
+  const { user } = useAuth();
   const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [showQuickOptions, setShowQuickOptions] = useState(false);
+  const [userSlug, setUserSlug] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
+  // جلب slug المستخدم
+  useEffect(() => {
+    const fetchUserSlug = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('slug')
+          .eq('user_id', user.id)
+          .eq('published', true)
+          .maybeSingle();
+        
+        if (data?.slug) {
+          setUserSlug(data.slug);
+        }
+      } catch (error) {
+        console.error('Error fetching user slug:', error);
+      }
+    };
+
+    fetchUserSlug();
+  }, [user]);
+
+  const baseDomain = 'https://wasataai.com';
+
+  const quickOptions = [
+    {
+      id: 'add-customer',
+      label: 'إضافة اسم عميل',
+      icon: UserPlus,
+      action: 'form',
+      color: 'bg-emerald-500'
+    },
+    {
+      id: 'copy-offer',
+      label: 'نسخ رابط إرسال عرض',
+      icon: Send,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/offer` : '',
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'copy-request',
+      label: 'نسخ رابط إرسال طلب',
+      icon: FileText,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/request` : '',
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'copy-calendar',
+      label: 'نسخ رابط إنشاء موعد',
+      icon: Calendar,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/calendar` : '',
+      color: 'bg-orange-500'
+    },
+    {
+      id: 'copy-quote',
+      label: 'نسخ رابط عرض سعر',
+      icon: MessageSquare,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/quote` : '',
+      color: 'bg-pink-500'
+    },
+    {
+      id: 'copy-reminder',
+      label: 'نسخ رابط تذكير العميل',
+      icon: CalendarCheck,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/appointmentapproval/customer/{appointmentId}` : '',
+      color: 'bg-teal-500'
+    },
+    {
+      id: 'copy-sorry',
+      label: 'نسخ رابط الاعتذار',
+      icon: LinkIcon,
+      action: 'copy',
+      url: userSlug ? `${baseDomain}/${userSlug}/appointmentapproval/sorry` : '',
+      color: 'bg-amber-500'
+    },
+  ];
 
   const handleButtonClick = (buttonId: BottomNavButtonId) => {
     if (buttonId === 'add-customer') {
-      setShowAddCustomer(true);
+      setShowQuickOptions(true);
       return;
     }
     
     const destination = BUTTON_NAVIGATION[buttonId];
     if (destination) {
       onNavigate(destination);
+    }
+  };
+
+  const handleQuickOptionClick = (option: typeof quickOptions[0]) => {
+    if (option.action === 'form') {
+      setShowQuickOptions(false);
+      setShowAddCustomer(true);
+      return;
+    }
+
+    if (option.action === 'copy' && option.url) {
+      if (!userSlug) {
+        toast.error('يرجى نشر بطاقة أعمالك أولاً');
+        return;
+      }
+      
+      navigator.clipboard.writeText(option.url);
+      setCopiedLink(option.id);
+      toast.success('تم نسخ الرابط');
+      
+      setTimeout(() => {
+        setCopiedLink(null);
+      }, 2000);
     }
   };
 
@@ -106,7 +227,22 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
 
     const Icon = BUTTON_ICONS[buttonId];
     const isCenter = position === 'center';
-    const isFixed = buttonInfo.isFixed;
+
+    // الزر المركزي الكبير بدون نص
+    if (isCenter) {
+      return (
+        <motion.button
+          key={buttonId}
+          onClick={() => handleButtonClick(buttonId)}
+          className="relative flex items-center justify-center -mt-8"
+          whileTap={{ scale: 0.95 }}
+        >
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8960C] shadow-[0_4px_20px_rgba(212,175,55,0.5)] flex items-center justify-center border-4 border-[#01411C]">
+            <Plus className="w-8 h-8 text-[#01411C]" />
+          </div>
+        </motion.button>
+      );
+    }
 
     return (
       <motion.button
@@ -116,21 +252,11 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
         whileTap={{ scale: 0.95 }}
       >
         <div 
-          className={`
-            flex items-center justify-center transition-transform group-hover:scale-110
-            ${isCenter 
-              ? 'w-10 h-10 md:w-9 md:h-9 rounded-full bg-[#D4AF37] shadow-lg' 
-              : 'w-8 h-8 md:w-7 md:h-7 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50'
-            }
-          `}
+          className="flex items-center justify-center transition-transform group-hover:scale-110 w-8 h-8 md:w-7 md:h-7 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50"
         >
-          <Icon 
-            className={`
-              ${isCenter ? 'w-5 h-5 md:w-4 md:h-4 text-[#01411C]' : 'w-4 h-4 md:w-3.5 md:h-3.5 text-[#D4AF37]'}
-            `} 
-          />
+          <Icon className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#D4AF37]" />
         </div>
-        <span className={`text-[9px] md:text-[8px] ${isCenter ? 'text-white font-medium' : 'text-white/80'}`}>
+        <span className="text-[9px] md:text-[8px] text-white/80">
           {buttonInfo.label}
         </span>
       </motion.button>
@@ -152,7 +278,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
               {/* يمين الوسط - نشر إعلان */}
               {renderButton('right-center')}
               
-              {/* الوسط - إضافة عميل */}
+              {/* الوسط - الزر الكبير */}
               {renderButton('center')}
               
               {/* يسار الوسط - حاسبة سريعة */}
@@ -165,12 +291,85 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
         </div>
       </div>
 
+      {/* قائمة الخيارات السريعة */}
+      <AnimatePresence>
+        {showQuickOptions && (
+          <>
+            {/* خلفية معتمة */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[60]"
+              onClick={() => setShowQuickOptions(false)}
+            />
+            
+            {/* القائمة */}
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="fixed bottom-20 left-4 right-4 z-[70] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-4 max-h-[70vh] overflow-y-auto"
+              dir="rtl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">خيارات سريعة</h3>
+                <button
+                  onClick={() => setShowQuickOptions(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Options Grid */}
+              <div className="space-y-2">
+                {quickOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isCopied = copiedLink === option.id;
+                  
+                  return (
+                    <motion.button
+                      key={option.id}
+                      onClick={() => handleQuickOptionClick(option)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all group"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className={`w-10 h-10 rounded-full ${option.color} flex items-center justify-center`}>
+                        {isCopied ? (
+                          <CheckCircle2 className="w-5 h-5 text-white" />
+                        ) : (
+                          <Icon className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                      <span className="flex-1 text-right font-medium text-gray-900 dark:text-white">
+                        {option.label}
+                      </span>
+                      {option.action === 'copy' && (
+                        <Copy className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {!userSlug && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-4 text-center">
+                  ⚠️ يرجى نشر بطاقة أعمالك لتفعيل روابط النسخ
+                </p>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* نافذة إضافة عميل */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right flex items-center gap-2">
-              <Plus className="w-5 h-5 text-[#D4AF37]" />
+              <UserPlus className="w-5 h-5 text-[#D4AF37]" />
               إضافة عميل جديد
             </DialogTitle>
           </DialogHeader>
