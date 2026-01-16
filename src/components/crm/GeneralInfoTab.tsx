@@ -45,6 +45,8 @@ import {
   Check,
   XCircle,
   Clock,
+  Satellite,
+  Map,
 } from "lucide-react";
 import { toast } from "sonner";
 import FinancialDocumentModal from './FinancialDocumentModal';
@@ -350,9 +352,25 @@ export default function GeneralInfoTab({
         
         const map = L.map(mapRef.current).setView([addressDetails.latitude, addressDetails.longitude], 15);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        // Street layer (OpenStreetMap)
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        });
+        
+        // Satellite layer (ESRI)
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: '© ESRI',
+          maxZoom: 19,
+        });
+        
+        // Add satellite layer by default
+        satelliteLayer.addTo(map);
+        
+        // Store layers for toggle
+        (map as any)._streetLayer = streetLayer;
+        (map as any)._satelliteLayer = satelliteLayer;
+        (map as any)._currentLayer = 'satellite';
         
         // إضافة علامة قابلة للسحب
         const marker = L.marker([addressDetails.latitude, addressDetails.longitude], {
@@ -888,10 +906,46 @@ export default function GeneralInfoTab({
           ) : (
             <div className="space-y-4">
               {/* الخريطة */}
-              <div 
-                ref={mapRef}
-                className="w-full h-64 rounded-lg border border-gray-200 bg-gray-100"
-              />
+              <div className="relative">
+                <div 
+                  ref={mapRef}
+                  className="w-full h-64 rounded-lg border border-gray-200 bg-gray-100"
+                />
+                
+                {/* زر تبديل طبقة الخريطة */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="absolute top-2 left-2 z-[1000] gap-1"
+                  onClick={() => {
+                    if (mapInstanceRef.current) {
+                      const map = mapInstanceRef.current as any;
+                      if (map._currentLayer === 'satellite') {
+                        map.removeLayer(map._satelliteLayer);
+                        map._streetLayer.addTo(map);
+                        map._currentLayer = 'street';
+                      } else {
+                        map.removeLayer(map._streetLayer);
+                        map._satelliteLayer.addTo(map);
+                        map._currentLayer = 'satellite';
+                      }
+                    }
+                  }}
+                >
+                  {mapInstanceRef.current && (mapInstanceRef.current as any)._currentLayer === 'satellite' ? (
+                    <>
+                      <Satellite className="w-4 h-4" />
+                      <span className="text-xs">أقمار</span>
+                    </>
+                  ) : (
+                    <>
+                      <Map className="w-4 h-4" />
+                      <span className="text-xs">خريطة</span>
+                    </>
+                  )}
+                </Button>
+              </div>
               
               {/* زر الموقع الحالي */}
               <Button 
