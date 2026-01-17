@@ -23,7 +23,7 @@ import {
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
   ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2,
-  Download, Upload, FileJson, FileSpreadsheet, Brain
+  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall
 } from "lucide-react";
 import { BehavioralDashboard } from "@/components/behavioral";
 import {
@@ -218,6 +218,48 @@ const SmartAssistantSettingsCard: React.FC = () => {
             </Select>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// مكون إعدادات إدارة العملاء
+const CustomerManagementSettingsCard: React.FC = () => {
+  const [recentCallsVisible, setRecentCallsVisible] = useState(() => {
+    return localStorage.getItem('recent_calls_visible') !== 'false';
+  });
+
+  const handleRecentCallsToggle = (checked: boolean) => {
+    setRecentCallsVisible(checked);
+    localStorage.setItem('recent_calls_visible', checked.toString());
+    window.dispatchEvent(new CustomEvent('crmSettingsChanged'));
+    toast.success(checked ? 'تم تفعيل عرض الاتصالات الأخيرة' : 'تم إخفاء الاتصالات الأخيرة');
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-[#01411C]" />
+          إدارة العملاء
+        </CardTitle>
+        <CardDescription>التحكم في إعدادات نظام إدارة العملاء (CRM)</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* إظهار/إخفاء الاتصالات الأخيرة */}
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div>
+            <p className="font-medium flex items-center gap-2">
+              <PhoneCall className="h-4 w-4" />
+              عرض الاتصالات الأخيرة
+            </p>
+            <p className="text-sm text-gray-500">إظهار قسم الاتصالات الأخيرة في نظام إدارة العملاء</p>
+          </div>
+          <Switch
+            checked={recentCallsVisible}
+            onCheckedChange={handleRecentCallsToggle}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -1380,6 +1422,9 @@ const OwnerDashboard: React.FC = () => {
 
             {/* إعدادات المساعد الذكي */}
             <SmartAssistantSettingsCard />
+
+            {/* إعدادات إدارة العملاء */}
+            <CustomerManagementSettingsCard />
 
           </TabsContent>
 
