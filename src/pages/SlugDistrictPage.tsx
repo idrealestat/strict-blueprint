@@ -207,9 +207,7 @@ const SlugDistrictPage: React.FC = () => {
                 {brokerName || 'المنصة'}
               </Link>
               <ChevronLeft className="w-4 h-4" />
-              <Link to={`/${slug}/${citySlug}`} className="hover:text-white transition-colors">
-                {cityName}
-              </Link>
+              <span className="text-white/70">{cityName}</span>
               <ChevronLeft className="w-4 h-4" />
               <span className="text-[#D4AF37]">{districtName}</span>
             </nav>
