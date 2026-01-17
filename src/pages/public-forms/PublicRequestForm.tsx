@@ -19,8 +19,6 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
-import { createNotification } from '@/utils/notificationTriggers';
-import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 // Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
@@ -254,143 +252,69 @@ export default function PublicRequestForm() {
         type: 'property_request',
         brokerId: broker.id,
         brokerName: broker.name,
-        ...formData,
+        // معلومات العميل - بأسماء موحدة مع backend
+        clientName: formData.clientName,
+        clientPhone: formData.clientPhone,
+        ownerIdNumber: formData.clientIdNumber,
+        ownerNationalAddress: formData.clientNationalAddress,
+        ownerCity: formData.clientCity,
+        // معلومات العقار المطلوب
+        propertyType: formData.propertyType,
+        purpose: formData.purpose,
+        locationCity: formData.preferredCity,
+        locationDistrict: formData.preferredDistricts,
+        // المساحة والمواصفات
+        minArea: formData.minArea,
+        maxArea: formData.maxArea,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        livingRooms: formData.livingRooms,
+        floors: formData.floors,
+        furnishing: formData.furnishing,
+        // الميزانية
+        minBudget: formData.minBudget,
+        maxBudget: formData.maxBudget,
+        paymentPrices: formData.paymentPrices,
+        // الميزات
+        hasPool: formData.hasPool,
+        hasGarden: formData.hasGarden,
+        hasElevator: formData.hasElevator,
+        hasParking: formData.hasParking,
+        hasMaidRoom: formData.hasMaidRoom,
+        hasDriverRoom: formData.hasDriverRoom,
+        // إضافي
+        additionalRequirements: formData.additionalRequirements,
+        urgency: formData.urgency,
         submittedAt: new Date().toISOString(),
         status: 'pending',
         isNew: true,
         isViewed: false,
       };
 
-      // 1. الحصول على معرف الوسيط من business_cards
-      const { data: businessCard } = await supabase
-        .from('business_cards')
-        .select('user_id, data')
-        .eq('slug', brokerSlug)
-        .eq('published', true)
-        .single();
+      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
+      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
+        body: {
+          slug: brokerSlug,
+          formType: 'request',
+          data: submissionData,
+        },
+      });
 
-      const brokerUserId = businessCard?.user_id;
-
-      if (brokerUserId) {
-        // 2. البحث عن العميل برقم الجوال
-        const { data: existingCustomer } = await supabase
-          .from('crm_customers')
-          .select('*')
-          .eq('user_id', brokerUserId)
-          .or(`phone.eq.${formData.clientPhone},whatsapp.eq.${formData.clientPhone}`)
-          .maybeSingle();
-
-        let customerId: string;
-        let isNewCustomer = false;
-
-        if (existingCustomer) {
-          // 3a. العميل موجود - تحديث بياناته وإضافة الطلب
-          customerId = existingCustomer.id;
-          
-          const updates: Record<string, any> = {
-            last_contact: new Date().toISOString().split('T')[0],
-          };
-          
-          if (!existingCustomer.name || existingCustomer.name === 'غير معروف') {
-            updates.name = formData.clientName;
-          }
-          
-          // إضافة الطلب للـ metadata
-          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
-          const existingRequests = currentMetadata.property_requests || [];
-          
-          updates.metadata = {
-            ...currentMetadata,
-            property_requests: [...existingRequests, submissionData],
-            hasUnreadRequest: true,
-            lastRequestAt: new Date().toISOString(),
-          };
-          
-          await supabase
-            .from('crm_customers')
-            .update(updates)
-            .eq('id', customerId);
-
-        } else {
-          // 3b. العميل غير موجود - إنشاء بطاقة جديدة
-          isNewCustomer = true;
-          
-          const { data: newCustomer, error: createError } = await supabase
-            .from('crm_customers')
-            .insert([{
-              user_id: brokerUserId,
-              name: formData.clientName,
-              phone: formData.clientPhone,
-              status: 'جديد',
-              priority: 'عالي',
-              property_type: formData.purpose === 'للشراء' ? 'buyer' : 'renter',
-              source: 'نموذج طلب عقاري',
-              location: formData.preferredCity || null,
-              budget: formData.maxBudget ? `${formData.minBudget || 0} - ${formData.maxBudget}` : null,
-              notes: `طلب عقاري: ${formData.propertyType} ${formData.purpose}`,
-              last_contact: new Date().toISOString().split('T')[0],
-              metadata: {
-                idNumber: formData.clientIdNumber,
-                nationalAddress: formData.clientNationalAddress,
-                property_requests: [submissionData],
-                hasUnreadRequest: true,
-                isNewCard: true,
-                lastRequestAt: new Date().toISOString(),
-              } as Record<string, any>,
-            }])
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating customer:', createError);
-          } else if (newCustomer) {
-            customerId = newCustomer.id;
-          }
-        }
-
-        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
-        await createNotification({
-          userId: brokerUserId,
-          title: '🔍 طلب عقاري جديد',
-          message: `استلمت طلب من ${formData.clientName} - ${formData.propertyType} ${formData.purpose}`,
-          notificationType: 'request',
-          category: 'incoming',
-          priority: 'high',
-          relatedEntityType: 'request_form',
-          relatedEntityId: requestId,
-          actionUrl: '/app/crm',
-          metadata: {
-            clientName: formData.clientName,
-            clientPhone: formData.clientPhone,
-            propertyType: formData.propertyType,
-            purpose: formData.purpose,
-            city: formData.preferredCity,
-            customerId: customerId!,
-            isNewCustomer,
-            isPulsing: true,
-          },
-          sendPush: true,
-          pushData: {
-            type: 'new_request',
-            clientName: formData.clientName,
-            propertyType: formData.propertyType,
-          },
-        });
-
-        // 5. تتبع الدوائر النابضة
-        markAsNew('offer', requestId);
-        if (customerId!) {
-          markAsNew('customer', customerId!);
-        }
-        markAsNew('tab', 'property-request');
+      if (submitError) {
+        console.error('Public request submit error:', submitError);
+        toast.error('حدث خطأ أثناء الإرسال');
+        setIsSubmitting(false);
+        return;
       }
 
-      // 6. حفظ نسخة محلية احتياطية
+      const customerId = (submitResult as any)?.customerId as string | undefined;
+
+      // حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
       existingSubmissions.push(submissionData);
       localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
 
-      // 7. تحديث localStorage للعملاء
+      // تحديث localStorage للعملاء للتوافق
       const localCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
       const existingLocalCustomer = localCustomers.find((c: any) => c.phone === formData.clientPhone);
       
@@ -413,7 +337,7 @@ export default function PublicRequestForm() {
         existingLocalCustomer.nationalAddress = formData.clientNationalAddress;
       } else {
         localCustomers.push({
-          id: `cust_${Date.now()}`,
+          id: customerId || `cust_${Date.now()}`,
           name: formData.clientName,
           phone: formData.clientPhone,
           idNumber: formData.clientIdNumber,
@@ -429,7 +353,7 @@ export default function PublicRequestForm() {
       }
       localStorage.setItem('crm_customers', JSON.stringify(localCustomers));
 
-      // 8. إرسال حدث لتحديث واجهة المستخدم
+      // إطلاق حدث UI محلي
       window.dispatchEvent(new CustomEvent('addNotification', {
         detail: {
           title: '🔍 طلب عقاري جديد',
