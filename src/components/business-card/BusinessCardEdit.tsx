@@ -908,217 +908,222 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] px-4 py-4">
-        <div className="flex justify-between items-center">
+      <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] px-4 py-3">
+        {/* الصف الأول: العنوان وحالة النشر - بارز في الأعلى */}
+        <div className="flex items-center justify-between mb-3">
           <Button
             variant="ghost"
+            size="sm"
             onClick={onBack}
-            className="text-white hover:bg-white/20"
+            className="text-white hover:bg-white/20 h-8 px-2"
           >
-            <ArrowRight className="w-5 h-5 ml-2" />
-            عودة
+            <ArrowRight className="w-4 h-4 ml-1" />
+            <span className="hidden sm:inline">عودة</span>
           </Button>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              onClick={async () => {
-                try {
-                  await supabase.auth.signOut();
-                } catch (e) {
-                  console.error('Logout error:', e);
-                } finally {
-                  // تأكد من إعادة التوجيه حتى لو فشل signOut
-                  window.location.href = '/app/login';
-                }
-              }}
-              className="text-white hover:bg-white/20"
-            >
-              <LogOut className="w-4 h-4 ml-1" />
-              خروج
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setShowPreview(!showPreview)}
-              className="text-white hover:bg-white/20"
-            >
-              {showPreview ? <EyeOff className="w-4 h-4 ml-1" /> : <Eye className="w-4 h-4 ml-1" />}
-              {showPreview ? 'إخفاء' : 'معاينة'}
-            </Button>
-            
-            {/* زر نشر/إيقاف النشر */}
-            {isPublished !== null && (
-              <>
-                {isPublished ? (
-                  // زر إيقاف النشر مع تأكيد
-                  <AlertDialog open={showUnpublishConfirm} onOpenChange={setShowUnpublishConfirm}>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/30"
-                      >
-                        <EyeOff className="w-4 h-4 ml-1" />
-                        إيقاف النشر
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent dir="rtl">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>تأكيد إيقاف النشر</AlertDialogTitle>
-                        <AlertDialogDescription className="text-right">
-                          هل أنت متأكد من إيقاف نشر صفحتك العامة؟
-                          <br />
-                          <span className="text-muted-foreground">لن يتمكن أحد من زيارة صفحتك على الرابط التالي:</span>
-                          <br />
-                          <span className="font-mono text-sm text-primary">wasataai.com/{currentSlug}</span>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter className="flex-row-reverse gap-2">
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={async () => {
-                            try {
-                              const { data: { user: authUser } } = await supabase.auth.getUser();
-                              if (!authUser) {
-                                toast.error('يجب تسجيل الدخول أولاً');
-                                return;
-                              }
-                              
-                              const { error } = await supabase
-                                .from('business_cards')
-                                .update({ 
-                                  published: false,
-                                  updated_at: new Date().toISOString()
-                                })
-                                .eq('user_id', authUser.id);
-                              
-                              if (error) {
-                                console.error('Error unpublishing:', error);
-                                toast.error('حدث خطأ في إيقاف النشر');
-                                return;
-                              }
-                              
-                              setIsPublished(false);
-                              toast.success('تم إيقاف نشر صفحتك');
-                            } catch (err) {
-                              console.error('Unpublish error:', err);
-                              toast.error('حدث خطأ غير متوقع');
-                            }
-                          }}
-                        >
-                          إيقاف النشر
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : (
-                  // زر النشر بدون تأكيد
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        const { data: { user: authUser } } = await supabase.auth.getUser();
-                        if (!authUser) {
-                          toast.error('يجب تسجيل الدخول أولاً');
-                          return;
-                        }
-                        
-                        // التحقق من وجود slug قبل النشر
-                        if (!currentSlug) {
-                          toast.error('يجب حفظ الصفحة أولاً مع اختيار رابط متاح');
-                          return;
-                        }
-                        
-                        const { error } = await supabase
-                          .from('business_cards')
-                          .update({ 
-                            published: true,
-                            updated_at: new Date().toISOString()
-                          })
-                          .eq('user_id', authUser.id);
-                        
-                        if (error) {
-                          console.error('Error publishing:', error);
-                          toast.error('حدث خطأ في النشر');
-                          return;
-                        }
-                        
-                        setIsPublished(true);
-                        toast.success(`تم نشر صفحتك ✨ رابطك: wasataai.com/${currentSlug}`);
-                      } catch (err) {
-                        console.error('Publish error:', err);
-                        toast.error('حدث خطأ غير متوقع');
-                      }
-                    }}
-                    className="bg-primary/15 text-primary hover:bg-primary/25 border border-primary/30"
-                  >
-                    <Globe className="w-4 h-4 ml-1" />
-                    نشر
-                  </Button>
-                )}
-              </>
-            )}
-            
-            {/* زر معاينة الصفحة العامة */}
-            {isPublished && currentSlug && (
-              <Button
-                variant="ghost"
-                onClick={() => window.open(`/${currentSlug}`, '_blank')}
-                className="bg-white/10 text-white hover:bg-white/20 border border-white/30"
-              >
-                <Eye className="w-4 h-4 ml-1" />
-                معاينة
-              </Button>
-            )}
-            
-            <Button
-              onClick={handleSave}
-              className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
-            >
-              <Save className="w-4 h-4 ml-2" />
-              حفظ
-            </Button>
-          </div>
-        </div>
-        
-        {/* عنوان الصفحة مع مؤشر حالة النشر */}
-        <div className="flex items-center justify-center gap-3 mt-2">
-          <h1 className="text-white text-lg font-bold">تعديل بطاقة الأعمال</h1>
           
-          {/* مؤشر حالة النشر */}
-          {isPublished !== null && (
-            isPublished ? (
-              // مؤشر مباشر النابض
-              <div className="inline-flex items-center gap-1.5 bg-green-400/20 text-green-100 px-3 py-1 rounded-full border border-green-400/40 animate-pulse">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
-                </span>
-                <span className="text-xs font-bold">مباشر</span>
-              </div>
-            ) : (
-              // مؤشر غير منشورة
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-100 border border-yellow-400/30">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>غير منشورة</span>
-              </div>
-            )
-          )}
+          <div className="flex items-center gap-2">
+            <h1 className="text-white text-base sm:text-lg font-bold">تعديل البطاقة</h1>
+            {/* مؤشر حالة النشر */}
+            {isPublished !== null && (
+              isPublished ? (
+                <div className="inline-flex items-center gap-1 bg-green-400/20 text-green-100 px-2 py-0.5 rounded-full border border-green-400/40">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                  </span>
+                  <span className="text-xs font-bold">مباشر</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-100 border border-yellow-400/30">
+                  <AlertCircle className="w-3 h-3" />
+                  <span className="hidden sm:inline">غير منشورة</span>
+                </div>
+              )
+            )}
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              try {
+                await supabase.auth.signOut();
+              } catch (e) {
+                console.error('Logout error:', e);
+              } finally {
+                window.location.href = '/app/login';
+              }
+            }}
+            className="text-white hover:bg-white/20 h-8 px-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline mr-1">خروج</span>
+          </Button>
         </div>
         
         {/* رابط الصفحة العامة إذا كانت منشورة */}
         {isPublished && currentSlug && (
-          <div className="flex items-center justify-center mt-2">
+          <div className="flex items-center justify-center mb-3">
             <a
               href={`https://wasataai.com/${currentSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#D4AF37] text-sm hover:underline flex items-center gap-1"
+              className="text-[#D4AF37] text-sm hover:underline flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full"
             >
               <Globe className="w-3.5 h-3.5" />
               wasataai.com/{currentSlug}
             </a>
           </div>
         )}
+        
+        {/* الصف الثاني: أزرار التحكم - منظمة بشكل أفقي */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {/* زر المعاينة المحلية */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+            className="text-white hover:bg-white/20 h-8 text-xs border border-white/20"
+          >
+            {showPreview ? <EyeOff className="w-3.5 h-3.5 ml-1" /> : <Eye className="w-3.5 h-3.5 ml-1" />}
+            {showPreview ? 'إخفاء' : 'معاينة'}
+          </Button>
+          
+          {/* زر نشر/إيقاف النشر */}
+          {isPublished !== null && (
+            <>
+              {isPublished ? (
+                <AlertDialog open={showUnpublishConfirm} onOpenChange={setShowUnpublishConfirm}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="bg-destructive/15 text-red-200 hover:bg-destructive/25 border border-destructive/30 h-8 text-xs"
+                    >
+                      <EyeOff className="w-3.5 h-3.5 ml-1" />
+                      إيقاف النشر
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent dir="rtl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>تأكيد إيقاف النشر</AlertDialogTitle>
+                      <AlertDialogDescription className="text-right">
+                        هل أنت متأكد من إيقاف نشر صفحتك العامة؟
+                        <br />
+                        <span className="text-muted-foreground">لن يتمكن أحد من زيارة صفحتك على الرابط التالي:</span>
+                        <br />
+                        <span className="font-mono text-sm text-primary">wasataai.com/{currentSlug}</span>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-row-reverse gap-2">
+                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          try {
+                            const { data: { user: authUser } } = await supabase.auth.getUser();
+                            if (!authUser) {
+                              toast.error('يجب تسجيل الدخول أولاً');
+                              return;
+                            }
+                            
+                            const { error } = await supabase
+                              .from('business_cards')
+                              .update({ 
+                                published: false,
+                                updated_at: new Date().toISOString()
+                              })
+                              .eq('user_id', authUser.id);
+                            
+                            if (error) {
+                              console.error('Error unpublishing:', error);
+                              toast.error('حدث خطأ في إيقاف النشر');
+                              return;
+                            }
+                            
+                            setIsPublished(false);
+                            toast.success('تم إيقاف نشر صفحتك');
+                          } catch (err) {
+                            console.error('Unpublish error:', err);
+                            toast.error('حدث خطأ غير متوقع');
+                          }
+                        }}
+                      >
+                        إيقاف النشر
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const { data: { user: authUser } } = await supabase.auth.getUser();
+                      if (!authUser) {
+                        toast.error('يجب تسجيل الدخول أولاً');
+                        return;
+                      }
+                      
+                      if (!currentSlug) {
+                        toast.error('يجب حفظ الصفحة أولاً مع اختيار رابط متاح');
+                        return;
+                      }
+                      
+                      const { error } = await supabase
+                        .from('business_cards')
+                        .update({ 
+                          published: true,
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('user_id', authUser.id);
+                      
+                      if (error) {
+                        console.error('Error publishing:', error);
+                        toast.error('حدث خطأ في النشر');
+                        return;
+                      }
+                      
+                      setIsPublished(true);
+                      toast.success(`تم نشر صفحتك ✨ رابطك: wasataai.com/${currentSlug}`);
+                    } catch (err) {
+                      console.error('Publish error:', err);
+                      toast.error('حدث خطأ غير متوقع');
+                    }
+                  }}
+                  className="bg-green-500/20 text-green-100 hover:bg-green-500/30 border border-green-400/30 h-8 text-xs"
+                >
+                  <Globe className="w-3.5 h-3.5 ml-1" />
+                  نشر
+                </Button>
+              )}
+            </>
+          )}
+          
+          {/* زر معاينة الصفحة العامة */}
+          {isPublished && currentSlug && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(`/${currentSlug}`, '_blank')}
+              className="bg-white/10 text-white hover:bg-white/20 border border-white/30 h-8 text-xs"
+            >
+              <Eye className="w-3.5 h-3.5 ml-1" />
+              فتح الصفحة
+            </Button>
+          )}
+          
+          {/* زر الحفظ - مميز */}
+          <Button
+            onClick={handleSave}
+            size="sm"
+            className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f] h-8 text-xs font-bold"
+          >
+            <Save className="w-3.5 h-3.5 ml-1" />
+            حفظ
+          </Button>
+        </div>
       </div>
 
       {/* Live Preview Section */}
