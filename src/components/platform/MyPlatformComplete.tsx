@@ -312,6 +312,10 @@ export default function MyPlatformComplete({
     } catch { return []; }
   });
   const [showCreateRequestForm, setShowCreateRequestForm] = useState(false);
+  const [showEditRequestDialog, setShowEditRequestDialog] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<any | null>(null);
+  const [showDeleteRequestConfirm, setShowDeleteRequestConfirm] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
@@ -2525,7 +2529,33 @@ export default function MyPlatformComplete({
                               </span>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
+                            {/* زر التعديل */}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-amber-500 text-amber-600 hover:bg-amber-50" 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setEditingRequest(req);
+                                setShowEditRequestDialog(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            {/* زر الحذف */}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-red-500 text-red-600 hover:bg-red-50" 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setRequestToDelete(req);
+                                setShowDeleteRequestConfirm(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                             <Button size="sm" className="bg-green-500 text-white" onClick={(e) => { e.stopPropagation(); handleWhatsApp(req.ownerPhone, `طلب ${req.purpose} - ${req.propertyType}`); }}>
                               <MessageSquare className="w-4 h-4" />
                             </Button>
@@ -2999,6 +3029,298 @@ export default function MyPlatformComplete({
           phone: user?.phone,
         }}
       />
+
+      {/* نافذة تعديل الطلب */}
+      <Dialog open={showEditRequestDialog} onOpenChange={setShowEditRequestDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <Edit className="w-5 h-5" />
+              تعديل الطلب
+            </DialogTitle>
+          </DialogHeader>
+          
+          {editingRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>اسم العميل</Label>
+                  <Input
+                    value={editingRequest.ownerName || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, ownerName: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>رقم الجوال</Label>
+                  <Input
+                    value={editingRequest.ownerPhone || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, ownerPhone: e.target.value })}
+                    className="mt-1"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>نوع العقار</Label>
+                  <Select
+                    value={editingRequest.propertyType || ''}
+                    onValueChange={(value) => setEditingRequest({ ...editingRequest, propertyType: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر نوع العقار" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {propertyTypes.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>الغرض</Label>
+                  <Select
+                    value={editingRequest.purpose || ''}
+                    onValueChange={(value) => setEditingRequest({ ...editingRequest, purpose: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر الغرض" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="شراء">شراء</SelectItem>
+                      <SelectItem value="إيجار">إيجار</SelectItem>
+                      <SelectItem value="للشراء">للشراء</SelectItem>
+                      <SelectItem value="للإيجار">للإيجار</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>المدينة المفضلة</Label>
+                  <Select
+                    value={editingRequest.preferredCity || ''}
+                    onValueChange={(value) => setEditingRequest({ ...editingRequest, preferredCity: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر المدينة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map(city => (
+                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>الأحياء المفضلة</Label>
+                  <Input
+                    value={editingRequest.preferredDistricts || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, preferredDistricts: e.target.value })}
+                    className="mt-1"
+                    placeholder="مثال: حي الملقا، حي النرجس"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>الميزانية الدنيا</Label>
+                  <Input
+                    type="number"
+                    value={editingRequest.minBudget || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, minBudget: e.target.value })}
+                    className="mt-1"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>الميزانية القصوى</Label>
+                  <Input
+                    type="number"
+                    value={editingRequest.maxBudget || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, maxBudget: e.target.value })}
+                    className="mt-1"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>عدد الغرف</Label>
+                  <Input
+                    type="number"
+                    value={editingRequest.bedrooms || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, bedrooms: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>عدد الحمامات</Label>
+                  <Input
+                    type="number"
+                    value={editingRequest.bathrooms || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, bathrooms: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>التأثيث</Label>
+                  <Select
+                    value={editingRequest.furnishing || ''}
+                    onValueChange={(value) => setEditingRequest({ ...editingRequest, furnishing: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="اختر" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="مفروش">مفروش</SelectItem>
+                      <SelectItem value="غير مفروش">غير مفروش</SelectItem>
+                      <SelectItem value="شبه مفروش">شبه مفروش</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>المساحة الدنيا (م²)</Label>
+                  <Input
+                    type="number"
+                    value={editingRequest.minArea || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, minArea: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>المساحة القصوى (م²)</Label>
+                  <Input
+                    type="number"
+                    value={editingRequest.maxArea || ''}
+                    onChange={(e) => setEditingRequest({ ...editingRequest, maxArea: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>متطلبات إضافية</Label>
+                <Textarea
+                  value={editingRequest.additionalRequirements || ''}
+                  onChange={(e) => setEditingRequest({ ...editingRequest, additionalRequirements: e.target.value })}
+                  className="mt-1"
+                  rows={3}
+                  placeholder="أي متطلبات أخرى..."
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => {
+              setShowEditRequestDialog(false);
+              setEditingRequest(null);
+            }}>
+              إلغاء
+            </Button>
+            <Button 
+              className="bg-[#01411C] text-white hover:bg-[#065f41]"
+              onClick={() => {
+                if (!editingRequest) return;
+                
+                // تحديث الطلب في localStorage
+                const updatedRequests = publishedRequests.map(req => 
+                  req.id === editingRequest.id ? { ...editingRequest, updatedAt: new Date().toISOString() } : req
+                );
+                
+                setPublishedRequests(updatedRequests);
+                localStorage.setItem('wasata_published_requests', JSON.stringify(updatedRequests));
+                
+                toast.success('تم تحديث الطلب بنجاح');
+                setShowEditRequestDialog(false);
+                setEditingRequest(null);
+                
+                // إرسال حدث لتحديث الواجهة
+                window.dispatchEvent(new CustomEvent('requestUpdated'));
+              }}
+            >
+              <Check className="w-4 h-4 ml-2" />
+              حفظ التعديلات
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تأكيد حذف الطلب */}
+      <Dialog open={showDeleteRequestConfirm} onOpenChange={setShowDeleteRequestConfirm}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              تأكيد حذف الطلب
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-gray-700">
+              هل أنت متأكد من حذف هذا الطلب نهائياً؟
+            </p>
+            {requestToDelete && (
+              <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                <p className="font-bold text-[#01411C]">
+                  طلب {requestToDelete.purpose} - {requestToDelete.propertyType}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {requestToDelete.ownerName} - {requestToDelete.preferredCity}
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-red-500 mt-3">
+              ⚠️ لا يمكن التراجع عن هذا الإجراء
+            </p>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowDeleteRequestConfirm(false);
+              setRequestToDelete(null);
+            }}>
+              إلغاء
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (!requestToDelete) return;
+                
+                // حذف الطلب من localStorage
+                const updatedRequests = publishedRequests.filter(req => req.id !== requestToDelete.id);
+                
+                setPublishedRequests(updatedRequests);
+                localStorage.setItem('wasata_published_requests', JSON.stringify(updatedRequests));
+                
+                // إزالة من قائمة الجديد أيضاً
+                const newRequestIds = JSON.parse(localStorage.getItem('new_request_ids') || '[]');
+                const updatedNewIds = newRequestIds.filter((id: string) => id !== requestToDelete.id);
+                localStorage.setItem('new_request_ids', JSON.stringify(updatedNewIds));
+                
+                toast.success('تم حذف الطلب بنجاح');
+                setShowDeleteRequestConfirm(false);
+                setRequestToDelete(null);
+                
+                // إرسال حدث لتحديث الواجهة
+                window.dispatchEvent(new CustomEvent('requestDeleted'));
+              }}
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف نهائياً
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
