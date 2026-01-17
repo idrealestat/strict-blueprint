@@ -142,16 +142,20 @@ export default function GeneralInfoTab({
   const [savedDocuments, setSavedDocuments] = useState<any[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<any | null>(null);
   const [selectedReceivedDoc, setSelectedReceivedDoc] = useState<any | null>(null);
-  const [addressDetails, setAddressDetails] = useState<AddressDetails>({
-    city: '',
-    district: '',
-    street: '',
-    nationalAddress: '',
-    postalCode: '',
-    buildingNumber: '',
-    additionalNumber: '',
-    latitude: 24.7136,
-    longitude: 46.6753,
+  const [addressDetails, setAddressDetails] = useState<AddressDetails>(() => {
+    // تهيئة من metadata العميل إذا وجدت
+    const meta = customer.metadata as Record<string, any> | undefined;
+    return {
+      city: meta?.city || meta?.ownerCity || (customer as any).city || '',
+      district: meta?.district || meta?.ownerDistrict || (customer as any).district || '',
+      street: meta?.street || '',
+      nationalAddress: '',
+      postalCode: meta?.postalCode || '',
+      buildingNumber: meta?.buildingNumber || '',
+      additionalNumber: '',
+      latitude: meta?.lat || 24.7136,
+      longitude: meta?.lng || 46.6753,
+    };
   });
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);

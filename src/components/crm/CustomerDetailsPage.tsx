@@ -5703,6 +5703,72 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                 </div>
               </div>
 
+              {/* معلومات الموقع المفصلة */}
+              {(selectedRequestForPreview.street || selectedRequestForPreview.buildingNumber || selectedRequestForPreview.postalCode) && (
+                <div className="p-4 bg-cyan-50 rounded-xl border border-cyan-200">
+                  <h3 className="font-bold text-cyan-800 mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    تفاصيل الموقع
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {selectedRequestForPreview.street && (
+                      <div><span className="text-gray-500">الشارع:</span> <strong>{selectedRequestForPreview.street}</strong></div>
+                    )}
+                    {selectedRequestForPreview.buildingNumber && (
+                      <div><span className="text-gray-500">رقم المبنى:</span> <strong>{selectedRequestForPreview.buildingNumber}</strong></div>
+                    )}
+                    {selectedRequestForPreview.postalCode && (
+                      <div><span className="text-gray-500">الرمز البريدي:</span> <strong>{selectedRequestForPreview.postalCode}</strong></div>
+                    )}
+                    {selectedRequestForPreview.lat && selectedRequestForPreview.lng && (
+                      <div className="col-span-2"><span className="text-gray-500">الإحداثيات:</span> <strong dir="ltr">{selectedRequestForPreview.lat?.toFixed(4)}, {selectedRequestForPreview.lng?.toFixed(4)}</strong></div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* تقييم السعر بالذكاء الاصطناعي */}
+              {selectedRequestForPreview.priceEvaluation && (
+                <div className={`p-4 rounded-xl border-2 ${
+                  selectedRequestForPreview.priceEvaluation.color === 'green' ? 'bg-green-50 border-green-300' :
+                  selectedRequestForPreview.priceEvaluation.color === 'blue' ? 'bg-blue-50 border-blue-300' :
+                  'bg-red-50 border-red-300'
+                }`}>
+                  <h3 className={`font-bold mb-2 flex items-center gap-2 ${
+                    selectedRequestForPreview.priceEvaluation.color === 'green' ? 'text-green-800' :
+                    selectedRequestForPreview.priceEvaluation.color === 'blue' ? 'text-blue-800' :
+                    'text-red-800'
+                  }`}>
+                    <DollarSign className="w-4 h-4" />
+                    تقييم السعر بالذكاء الاصطناعي
+                  </h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className={`${
+                      selectedRequestForPreview.priceEvaluation.color === 'green' ? 'bg-green-600' :
+                      selectedRequestForPreview.priceEvaluation.color === 'blue' ? 'bg-blue-600' :
+                      'bg-red-600'
+                    } text-white`}>
+                      {selectedRequestForPreview.priceEvaluation.status}
+                    </Badge>
+                    {selectedRequestForPreview.requestedPrice && (
+                      <span className="text-sm font-medium">السعر المطلوب: {Number(selectedRequestForPreview.requestedPrice).toLocaleString()} ريال</span>
+                    )}
+                  </div>
+                  <p className={`text-sm ${
+                    selectedRequestForPreview.priceEvaluation.color === 'green' ? 'text-green-700' :
+                    selectedRequestForPreview.priceEvaluation.color === 'blue' ? 'text-blue-700' :
+                    'text-red-700'
+                  }`}>
+                    {selectedRequestForPreview.priceEvaluation.message}
+                  </p>
+                  {selectedRequestForPreview.marketAverage && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      متوسط السوق: <strong>{Number(selectedRequestForPreview.marketAverage).toLocaleString()} ريال</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* المواصفات المطلوبة */}
               <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
                 <h3 className="font-bold text-purple-800 mb-3 flex items-center gap-2">
