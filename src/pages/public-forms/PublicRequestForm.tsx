@@ -89,8 +89,8 @@ interface FormData {
   clientPhone: string;
   clientIdNumber: string;
   clientBirthDate: string;
-  clientNationalAddress: string;
   clientCity: string;
+  clientDistrict: string;
   
   // معلومات العقار المطلوب
   propertyType: string;
@@ -187,8 +187,8 @@ export default function PublicRequestForm() {
     clientPhone: '',
     clientIdNumber: '',
     clientBirthDate: '',
-    clientNationalAddress: '',
     clientCity: '',
+    clientDistrict: '',
     propertyType: '',
     purpose: '',
     preferredCity: '',
@@ -259,8 +259,8 @@ export default function PublicRequestForm() {
         clientPhone: formData.clientPhone,
         ownerIdNumber: formData.clientIdNumber,
         ownerBirthDate: formData.clientBirthDate,
-        ownerNationalAddress: formData.clientNationalAddress,
         ownerCity: formData.clientCity,
+        ownerDistrict: formData.clientDistrict,
         // معلومات العقار المطلوب
         propertyType: formData.propertyType,
         purpose: formData.purpose,
@@ -337,14 +337,14 @@ export default function PublicRequestForm() {
         existingLocalCustomer.hasUnreadRequest = true;
         existingLocalCustomer.name = formData.clientName;
         existingLocalCustomer.idNumber = formData.clientIdNumber;
-        existingLocalCustomer.nationalAddress = formData.clientNationalAddress;
+        existingLocalCustomer.district = formData.clientDistrict;
       } else {
         localCustomers.push({
           id: customerId || `cust_${Date.now()}`,
           name: formData.clientName,
           phone: formData.clientPhone,
           idNumber: formData.clientIdNumber,
-          nationalAddress: formData.clientNationalAddress,
+          district: formData.clientDistrict,
           type: formData.purpose === 'للشراء' ? 'buyer' : 'renter',
           source: 'public_form',
           status: 'new',
@@ -454,15 +454,6 @@ export default function PublicRequestForm() {
               />
             </div>
             <div>
-              <Label>العنوان الوطني (اختياري)</Label>
-              <Input
-                value={formData.clientNationalAddress}
-                onChange={(e) => updateField('clientNationalAddress', e.target.value)}
-                placeholder="العنوان الوطني"
-                className="bg-white"
-              />
-            </div>
-            <div className="md:col-span-2">
               <Label>المدينة</Label>
               <Select value={formData.clientCity} onValueChange={(v) => updateField('clientCity', v)}>
                 <SelectTrigger className="bg-white">
@@ -474,6 +465,15 @@ export default function PublicRequestForm() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>الحي</Label>
+              <Input
+                value={formData.clientDistrict}
+                onChange={(e) => updateField('clientDistrict', e.target.value)}
+                placeholder="اسم الحي"
+                className="bg-white"
+              />
             </div>
           </div>
         </Section>

@@ -576,17 +576,17 @@ export default function GeneralInfoTab({
                   <Label className="text-xs text-gray-500 block mb-1">المدينة</Label>
                   {isEditing ? (
                     <Input 
-                      value={(editedCustomer as any).city || (editedCustomer.metadata as any)?.ownerCity || editedCustomer.location?.split(' - ')[0] || ''}
+                      value={(editedCustomer as any).city || (editedCustomer.metadata as any)?.city || (editedCustomer.metadata as any)?.ownerCity || editedCustomer.location?.split(' - ')[0] || ''}
                       onChange={(e) => setEditedCustomer({
                         ...editedCustomer, 
-                        metadata: { ...(editedCustomer.metadata || {}), ownerCity: e.target.value }
+                        metadata: { ...(editedCustomer.metadata || {}), city: e.target.value }
                       } as any)}
                       placeholder="الرياض"
                       className="h-9"
                     />
                   ) : (
                     <div className="text-sm font-medium text-gray-800">
-                      {(customer as any).city || (customer.metadata as any)?.ownerCity || customer.location?.split(' - ')[0] || '-'}
+                      {(customer as any).city || (customer.metadata as any)?.city || (customer.metadata as any)?.ownerCity || customer.location?.split(' - ')[0] || '-'}
                     </div>
                   )}
                 </div>
@@ -611,17 +611,17 @@ export default function GeneralInfoTab({
                   <Label className="text-xs text-gray-500 block mb-1">الحي</Label>
                   {isEditing ? (
                     <Input 
-                      value={(editedCustomer as any).district || (editedCustomer.metadata as any)?.ownerDistrict || ''}
+                      value={(editedCustomer as any).district || (editedCustomer.metadata as any)?.district || (editedCustomer.metadata as any)?.ownerDistrict || ''}
                       onChange={(e) => setEditedCustomer({
                         ...editedCustomer, 
-                        metadata: { ...(editedCustomer.metadata || {}), ownerDistrict: e.target.value }
+                        metadata: { ...(editedCustomer.metadata || {}), district: e.target.value }
                       } as any)}
                       placeholder="النرجس"
                       className="h-9"
                     />
                   ) : (
                     <div className="text-sm font-medium text-gray-800">
-                      {(customer as any).district || (customer.metadata as any)?.ownerDistrict || '-'}
+                      {(customer as any).district || (customer.metadata as any)?.district || (customer.metadata as any)?.ownerDistrict || '-'}
                     </div>
                   )}
                 </div>

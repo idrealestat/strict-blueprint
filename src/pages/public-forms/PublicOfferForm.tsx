@@ -71,8 +71,8 @@ interface FormData {
   ownerPhone: string;
   ownerIdNumber: string;
   ownerBirthDate: string;
-  ownerNationalAddress: string;
   ownerCity: string;
+  ownerDistrict: string;
   
   // معلومات الصك
   deedNumber: string;
@@ -251,8 +251,8 @@ export default function PublicOfferForm() {
       ownerPhone: '',
       ownerIdNumber: '',
       ownerBirthDate: '',
-      ownerNationalAddress: '',
       ownerCity: '',
+      ownerDistrict: '',
       deedNumber: '',
       deedDate: '',
       deedCity: '',
@@ -479,8 +479,8 @@ export default function PublicOfferForm() {
         ownerPhone: formData.ownerPhone,
         ownerIdNumber: formData.ownerIdNumber,
         ownerBirthDate: formData.ownerBirthDate,
-        ownerNationalAddress: formData.ownerNationalAddress,
         ownerCity: formData.ownerCity,
+        ownerDistrict: formData.ownerDistrict,
         deedNumber: formData.deedNumber,
         deedDate: formData.deedDate,
         deedCity: formData.deedCity,
@@ -643,12 +643,12 @@ export default function PublicOfferForm() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2">
-              <Label className="text-green-800">العنوان الوطني</Label>
+            <div>
+              <Label className="text-green-800">الحي</Label>
               <Input
-                value={formData.ownerNationalAddress}
-                onChange={(e) => updateField('ownerNationalAddress', e.target.value)}
-                placeholder="العنوان الوطني الكامل"
+                value={formData.ownerDistrict}
+                onChange={(e) => updateField('ownerDistrict', e.target.value)}
+                placeholder="اسم الحي"
                 className="border-green-200 focus:border-green-400"
               />
             </div>

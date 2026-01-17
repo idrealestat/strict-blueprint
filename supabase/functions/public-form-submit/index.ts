@@ -116,9 +116,8 @@ serve(async (req) => {
     // GeneralInfoTab reads these keys from customer.metadata
     const ownerIdNumber = sanitizeString((data as any).ownerIdNumber, 50);
     const ownerBirthDate = sanitizeString((data as any).ownerBirthDate, 30);
-    const ownerNationalAddress = sanitizeString((data as any).ownerNationalAddress, 500);
     const ownerCity = sanitizeString((data as any).ownerCity, 120) || sanitizeString((data as any).locationCity, 120);
-    const ownerDistrict = sanitizeString((data as any).district, 120) || sanitizeString((data as any).locationDistrict, 120);
+    const ownerDistrict = sanitizeString((data as any).ownerDistrict, 120) || sanitizeString((data as any).district, 120) || sanitizeString((data as any).locationDistrict, 120);
 
     const locationCity = sanitizeString((data as any).locationCity, 120) || ownerCity;
     const locationDistrict = sanitizeString((data as any).locationDistrict, 120) || ownerDistrict;
@@ -145,7 +144,6 @@ serve(async (req) => {
       // Keep these synced so "المعلومات العامة" لا تكون فارغة
       ...(ownerIdNumber ? { idNumber: ownerIdNumber } : {}),
       ...(ownerBirthDate ? { birthDate: ownerBirthDate } : {}),
-      ...(ownerNationalAddress ? { nationalAddress: ownerNationalAddress } : {}),
       ...(ownerCity ? { city: ownerCity } : {}),
       ...(ownerDistrict ? { district: ownerDistrict } : {}),
     };
