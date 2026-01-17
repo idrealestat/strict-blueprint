@@ -367,7 +367,40 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
             setSelectedCustomerForDetails(null);
           }}
           onUpdate={(updatedCustomer: any) => {
+            // تحديث فوري للواجهة
             setSelectedCustomerForDetails(updatedCustomer);
+
+            // حفظ حقيقي في قاعدة البيانات (حتى لا ترجع القيم القديمة)
+            supabase
+              .from('crm_customers')
+              .update({
+                name: updatedCustomer.name,
+                phone: updatedCustomer.phone || null,
+                whatsapp: updatedCustomer.whatsapp || null,
+                email: updatedCustomer.email || null,
+                company: updatedCustomer.company || null,
+                status: updatedCustomer.status || 'active',
+                budget: updatedCustomer.budget || null,
+                location: updatedCustomer.location || null,
+                notes: updatedCustomer.notes || null,
+                source: updatedCustomer.source || null,
+                tags: updatedCustomer.tags || [],
+                next_follow_up: updatedCustomer.nextFollowUp || null,
+                metadata: (updatedCustomer.metadata && typeof updatedCustomer.metadata === 'object' && !Array.isArray(updatedCustomer.metadata))
+                  ? {
+                      ...(updatedCustomer.metadata || {}),
+                      clientType: updatedCustomer.type,
+                      interestLevel: updatedCustomer.interestLevel,
+                    }
+                  : {
+                      clientType: updatedCustomer.type,
+                      interestLevel: updatedCustomer.interestLevel,
+                    },
+              })
+              .eq('id', updatedCustomer.id)
+              .then(({ error }) => {
+                if (error) console.error('[App] Failed to persist customer update:', error);
+              });
           }}
         />
         <AIFloatingButton />

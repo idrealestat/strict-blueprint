@@ -880,9 +880,41 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   // Handle customer update from details page
-  const handleCustomerUpdate = (updatedCustomer: Customer) => {
+  const handleCustomerUpdate = async (updatedCustomer: Customer) => {
+    // تحديث فوري للواجهة (Optimistic)
     setCustomers(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
     setSelectedCustomer(updatedCustomer);
+
+    // حفظ حقيقي في قاعدة البيانات لضمان عدم رجوع القيم القديمة
+    try {
+      const currentMeta = (updatedCustomer.metadata && typeof updatedCustomer.metadata === 'object' && !Array.isArray(updatedCustomer.metadata))
+        ? (updatedCustomer.metadata as Record<string, any>)
+        : {};
+
+      const metadataToSave = {
+        ...currentMeta,
+        clientType: updatedCustomer.type,
+        interestLevel: updatedCustomer.interestLevel,
+      };
+
+      await dbUpdateCustomer(updatedCustomer.id, {
+        name: updatedCustomer.name,
+        phone: updatedCustomer.phone || null,
+        whatsapp: updatedCustomer.whatsapp || null,
+        email: updatedCustomer.email || null,
+        company: updatedCustomer.company || null,
+        status: updatedCustomer.status || 'active',
+        budget: updatedCustomer.budget || null,
+        location: updatedCustomer.location || null,
+        notes: updatedCustomer.notes || null,
+        source: updatedCustomer.source || null,
+        tags: updatedCustomer.tags || [],
+        next_follow_up: updatedCustomer.nextFollowUp || null,
+        metadata: metadataToSave,
+      });
+    } catch (e) {
+      console.error('[CRM] Failed to persist customer update:', e);
+    }
   };
 
   // Handle delete customer
