@@ -157,7 +157,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-reminder',
-      label: 'تذكير العميل',
+      label: 'إرسال تذكير للعميل',
       icon: CalendarCheck,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/appointmentapproval/customer/{appointmentId}` : '',
@@ -165,7 +165,7 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
     },
     {
       id: 'copy-sorry',
-      label: 'الاعتذار',
+      label: 'إرسال اعتذار',
       icon: LinkIcon,
       action: 'copy',
       url: userSlug ? `${baseDomain}/${userSlug}/appointmentapproval/sorry` : '',

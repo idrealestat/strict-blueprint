@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { getFullUrl } from '@/utils/slugify';
 
 interface CalendarSettings {
   brokerReminderEnabled: boolean;
@@ -150,7 +151,7 @@ export function useAppointmentReminders() {
 
   // إنشاء رابط التأكيد
   const createConfirmLink = useCallback((slug: string, appointmentId: string, type: 'broker' | 'customer') => {
-    return `${window.location.origin}/${slug}/appointmentapproval/${type}/${appointmentId}`;
+    return getFullUrl(`/${slug}/appointmentapproval/${type}/${appointmentId}`);
   }, []);
 
   // التحقق من المواعيد وإرسال التذكيرات

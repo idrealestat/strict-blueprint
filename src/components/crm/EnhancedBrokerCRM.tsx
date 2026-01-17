@@ -103,6 +103,7 @@ import TasksPanel from "./TasksPanel";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { clientTypes, interestLevels, reportCategories, ClientType, InterestLevel } from "@/types/offer";
+import { getFullUrl } from "@/utils/slugify";
 
 // Types
 interface Customer {
@@ -1238,8 +1239,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   // Share actions - إرسال روابط الصفحات عبر واتساب للعميل
-  const getBaseUrl = () => {
-    return window.location.origin;
+  const getPublicPlatformSlug = () => {
+    return localStorage.getItem('public_platform_slug') || 'broker';
   };
 
   const normalizeWhatsAppPhone = (raw: string) => {
@@ -1275,7 +1276,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   const handleShareOffer = (customer: Customer) => {
-    const offerUrl = `${getBaseUrl()}/public/offer?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const offerUrl = getFullUrl(`/public/offer?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`);
     const message = `مرحباً ${customer.name}،\n\nيسعدنا تقديم عروضنا العقارية لك.\n\nيمكنك الاطلاع على العروض المتاحة من خلال الرابط:\n${offerUrl}\n\nنتطلع لخدمتك 🏠`;
     openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
@@ -1283,7 +1284,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   const handleShareRequest = (customer: Customer) => {
-    const requestUrl = `${getBaseUrl()}/public/request?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const requestUrl = getFullUrl(`/public/request?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`);
     const message = `مرحباً ${customer.name}،\n\nنحن هنا لمساعدتك في البحث عن عقارك المثالي.\n\nيمكنك تسجيل طلبك من خلال الرابط:\n${requestUrl}\n\nسنتواصل معك فور توفر ما يناسب احتياجاتك 🔍`;
     openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
@@ -1291,7 +1292,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   const handleShareQuote = (customer: Customer) => {
-    const quoteUrl = `${getBaseUrl()}/public/quote?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const quoteUrl = getFullUrl(`/public/quote?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`);
     const message = `مرحباً ${customer.name}،\n\nيسرنا تقديم عرض سعر خاص لك.\n\nيمكنك الاطلاع على التفاصيل من خلال الرابط:\n${quoteUrl}\n\nنحن بانتظار ردك 💰`;
     openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
@@ -1299,11 +1300,29 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   const handleShareAppointment = (customer: Customer) => {
-    const appointmentUrl = `${getBaseUrl()}/public/appointment?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`;
+    const appointmentUrl = getFullUrl(`/public/appointment?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`);
     const message = `مرحباً ${customer.name}،\n\nيسعدنا ترتيب موعد لك لمعاينة العقارات المتاحة.\n\nيمكنك حجز موعدك من خلال الرابط:\n${appointmentUrl}\n\nنتطلع للقائك 📅`;
     openWhatsApp(customer.whatsapp || customer.phone, message);
     setShowShareMenu(null);
     toast.success('تم فتح واتساب لإرسال رابط الموعد');
+  };
+
+  const handleShareReminderToClient = (customer: Customer) => {
+    const slug = getPublicPlatformSlug();
+    const reminderUrl = getFullUrl(`/${slug}/appointmentapproval/customer/{appointmentId}`);
+    const message = `مرحباً ${customer.name}،\n\nتذكير بموعد المعاينة.\n\nيرجى تأكيد الحضور عبر الرابط التالي (ضع رقم الموعد مكان {appointmentId}):\n${reminderUrl}\n\nشاكرين تعاونك.`;
+    openWhatsApp(customer.whatsapp || customer.phone, message);
+    setShowShareMenu(null);
+    toast.success('تم فتح واتساب لإرسال تذكير للعميل');
+  };
+
+  const handleShareApology = (customer: Customer) => {
+    const slug = getPublicPlatformSlug();
+    const sorryUrl = getFullUrl(`/${slug}/appointmentapproval/sorry`);
+    const message = `مرحباً ${customer.name}،\n\nنعتذر عن تعذر الموعد لظرف طارئ.\n\nيمكنك اختيار موعد بديل عبر الرابط:\n${sorryUrl}\n\nنقدر تفهمك.`;
+    openWhatsApp(customer.whatsapp || customer.phone, message);
+    setShowShareMenu(null);
+    toast.success('تم فتح واتساب لإرسال الاعتذار');
   };
 
   // Handle add customer
@@ -2442,6 +2461,23 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                 >
                                                   <Calendar className="w-3 h-3 text-purple-600" />
                                                   إنشاء موعد
+                                                </button>
+
+                                                <div className="my-1 h-px bg-gray-100" />
+
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-teal-50 rounded"
+                                                  onClick={() => handleShareReminderToClient(customer)}
+                                                >
+                                                  <Calendar className="w-3 h-3 text-teal-600" />
+                                                  إرسال تذكير للعميل
+                                                </button>
+                                                <button
+                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-rose-50 rounded"
+                                                  onClick={() => handleShareApology(customer)}
+                                                >
+                                                  <MessageSquare className="w-3 h-3 text-rose-600" />
+                                                  إرسال اعتذار
                                                 </button>
                                               </div>
                                             </div>
