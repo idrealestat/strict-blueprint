@@ -1925,9 +1925,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     } : {})
                                   }}
                                 >
-                                  {/* خط درجة الاهتمام: ثابت أسفل البطاقة دائماً */}
+                                {/* خط نوع العميل في أعلى البطاقة */}
+                                <div 
+                                  className="h-1.5 w-full flex-shrink-0"
+                                  style={{ 
+                                    backgroundColor: clientTypes[customer.type as ClientType]?.color || '#9CA3AF'
+                                  }}
+                                />
 
-                                  {/* البطاقة المضغوطة */}
+                                {/* البطاقة المضغوطة */}
                                   <div 
                                     className="p-3"
                                     onClick={() => toggleCardExpansion(customer.id)}
@@ -2145,118 +2151,37 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         )}
                                       </div>
 
-                                      {/* نوع العميل + درجة الاهتمام - يسار الشاشة */}
+                                      {/* نوع العميل + درجة الاهتمام - عرض فقط بدون تحكم */}
                                       <div className="order-2 flex flex-col gap-1">
-                                        <Select
-                                          value={customer.type || 'buyer'}
-                                          onValueChange={async (value) => {
-                                            setCustomers(prev => prev.map(c =>
-                                              c.id === customer.id ? { ...c, type: value as Customer['type'] } : c
-                                            ));
-
-                                            const current = dbCustomers.find(c => c.id === customer.id);
-                                            const currentMeta = (current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata))
-                                              ? (current.metadata as Record<string, any>)
-                                              : {};
-
-                                            await dbUpdateCustomer(customer.id, {
-                                              metadata: {
-                                                ...currentMeta,
-                                                clientType: value,
-                                              },
-                                            });
+                                        {/* نوع العميل - Badge فقط */}
+                                        <div 
+                                          className="h-6 text-[10px] px-2 rounded-md flex items-center justify-center min-w-[70px]"
+                                          style={{ 
+                                            backgroundColor: `${clientTypes[customer.type as ClientType]?.color || '#6B7280'}20`,
                                           }}
                                         >
-                                          <SelectTrigger 
-                                            className="h-6 text-[10px] w-auto px-2 border-2 border-amber-400 rounded-md bg-white min-w-[70px]"
-                                            onClick={(e) => e.stopPropagation()}
+                                          <span 
+                                            className="font-medium"
+                                            style={{ color: clientTypes[customer.type as ClientType]?.color || '#6B7280' }}
                                           >
-                                            <div className="flex items-center gap-1.5">
-                                              <span 
-                                                className="w-3 h-3 rounded-full flex-shrink-0" 
-                                                style={{ backgroundColor: clientTypes[customer.type as ClientType]?.color || '#6B7280' }}
-                                              />
-                                              <span className="font-medium text-gray-800">{clientTypes[customer.type as ClientType]?.label || 'اختر'}</span>
-                                            </div>
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-white z-50 border-0 shadow-lg min-w-[100px]">
-                                            {Object.entries(clientTypes).map(([key, config]) => (
-                                              <SelectItem 
-                                                key={key} 
-                                                value={key}
-                                                className={`text-xs cursor-pointer ${
-                                                  customer.type === key 
-                                                    ? 'bg-blue-600 text-white' 
-                                                    : 'hover:bg-gray-100'
-                                                }`}
-                                              >
-                                                <div className="flex items-center gap-2 w-full justify-end">
-                                                  <span className="font-medium">{config.label}</span>
-                                                  <span 
-                                                    className="w-3 h-3 rounded-full flex-shrink-0" 
-                                                    style={{ backgroundColor: config.color }}
-                                                  />
-                                                </div>
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                            {clientTypes[customer.type as ClientType]?.label || 'غير محدد'}
+                                          </span>
+                                        </div>
 
-                                        {/* درجة الاهتمام */}
-                                        <Select
-                                          value={customer.interestLevel || 'medium'}
-                                          onValueChange={async (value) => {
-                                            setCustomers(prev => prev.map(c =>
-                                              c.id === customer.id ? { ...c, interestLevel: value as Customer['interestLevel'] } : c
-                                            ));
-
-                                            const current = dbCustomers.find(c => c.id === customer.id);
-                                            const currentMeta = (current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata))
-                                              ? (current.metadata as Record<string, any>)
-                                              : {};
-
-                                            await dbUpdateCustomer(customer.id, {
-                                              metadata: {
-                                                ...currentMeta,
-                                                interestLevel: value,
-                                              },
-                                            });
+                                        {/* درجة الاهتمام - Badge فقط */}
+                                        <div 
+                                          className="h-6 text-[10px] px-2 rounded-md flex items-center justify-center min-w-[70px]"
+                                          style={{ 
+                                            backgroundColor: `${interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280'}20`,
                                           }}
                                         >
-                                          <SelectTrigger 
-                                            className="h-6 text-[10px] w-auto px-2 border-2 border-amber-400 rounded-md bg-white min-w-[70px]"
-                                            onClick={(e) => e.stopPropagation()}
+                                          <span 
+                                            className="font-medium"
+                                            style={{ color: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280' }}
                                           >
-                                            <div className="flex items-center gap-1.5">
-                                              <span 
-                                                className="w-3 h-3 rounded-full flex-shrink-0" 
-                                                style={{ backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#6B7280' }}
-                                              />
-                                              <span className="font-medium text-gray-800">{interestLevels[customer.interestLevel as InterestLevel]?.label || 'اختر'}</span>
-                                            </div>
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-white z-50 border-0 shadow-lg min-w-[100px]">
-                                            {Object.entries(interestLevels).map(([key, config]) => (
-                                              <SelectItem 
-                                                key={key} 
-                                                value={key}
-                                                className={`text-xs cursor-pointer ${
-                                                  customer.interestLevel === key 
-                                                    ? 'bg-blue-600 text-white' 
-                                                    : 'hover:bg-gray-100'
-                                                }`}
-                                              >
-                                                <div className="flex items-center gap-2 w-full justify-end">
-                                                  <span className="font-medium">{config.label}</span>
-                                                  <span 
-                                                    className="w-3 h-3 rounded-full flex-shrink-0" 
-                                                    style={{ backgroundColor: config.color }}
-                                                  />
-                                                </div>
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                            {interestLevels[customer.interestLevel as InterestLevel]?.label || 'غير محدد'}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                     
