@@ -698,53 +698,57 @@ export default function GeneralInfoTab({
               </div>
             </div>
 
-            {/* نوع العميل - مطابق للصورة */}
+            {/* نوع العميل - مفتوح للتعديل دائماً */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100 group">
               <div className="flex items-center gap-3 flex-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500 block mb-1">نوع العميل</Label>
                   <Select 
-                    value={isEditing ? editedCustomer.type : customer.type} 
+                    value={editedCustomer.type || customer.type} 
                     onValueChange={(value: any) => {
-                      if (isEditing) {
-                        setEditedCustomer({...editedCustomer, type: value});
-                      }
+                      setEditedCustomer({...editedCustomer, type: value});
                     }}
                   >
                     <SelectTrigger 
-                      className="h-10 border-2 border-amber-400 rounded-lg bg-white"
-                      style={{ borderTopColor: customerType?.dotColor }}
+                      className="h-10 border-2 rounded-lg bg-white"
+                      style={{ 
+                        borderColor: customerType?.dotColor,
+                        backgroundColor: `${customerType?.dotColor}15`
+                      }}
                     >
                       <SelectValue>
-                        <div className="flex items-center gap-2">
+                        <div 
+                          className="flex items-center gap-2 px-2 py-1 rounded"
+                          style={{ backgroundColor: `${customerType?.dotColor}20` }}
+                        >
                           <span 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: customerType?.dotColor }}
-                          />
-                          <span className="font-medium">{customerType?.name || 'اختر نوع العميل'}</span>
+                            className="font-medium"
+                            style={{ color: customerType?.dotColor }}
+                          >
+                            {customerType?.name || 'اختر نوع العميل'}
+                          </span>
                         </div>
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-white z-50 border-0 shadow-lg">
-                      {CUSTOMER_TYPES.map((type, index) => (
+                      {CUSTOMER_TYPES.map((type) => (
                         <SelectItem 
                           key={type.id} 
                           value={type.id}
-                          className={`cursor-pointer ${
-                            (isEditing ? editedCustomer.type : customer.type) === type.id 
-                              ? 'bg-blue-600 text-white' 
-                              : 'hover:bg-gray-100'
-                          }`}
+                          className="cursor-pointer hover:bg-gray-100"
                         >
-                          <div className="flex items-center gap-2 w-full justify-end">
-                            <span className="font-medium">{type.name}</span>
+                          <div 
+                            className="flex items-center gap-2 w-full justify-end px-2 py-1 rounded"
+                            style={{ 
+                              backgroundColor: (editedCustomer.type || customer.type) === type.id ? `${type.dotColor}30` : 'transparent'
+                            }}
+                          >
                             <span 
-                              className="w-4 h-4 rounded-full" 
-                              style={{ backgroundColor: type.dotColor }}
-                            />
+                              className="font-medium"
+                              style={{ color: type.dotColor }}
+                            >
+                              {type.name}
+                            </span>
                           </div>
                         </SelectItem>
                       ))}
@@ -752,43 +756,37 @@ export default function GeneralInfoTab({
                   </Select>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                  <Lock className="w-4 h-4 text-gray-400" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-              </div>
             </div>
 
-            {/* درجة الاهتمام - مطابق للصورة */}
+            {/* درجة الاهتمام - مفتوح للتعديل دائماً */}
             <div className="flex items-center justify-between py-3 group">
               <div className="flex items-center gap-3 flex-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                  <Lock className="w-4 h-4 text-gray-400" />
-                </Button>
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500 block mb-1">درجة الاهتمام</Label>
                   <Select 
-                    value={isEditing ? editedCustomer.interestLevel : customer.interestLevel} 
+                    value={editedCustomer.interestLevel || customer.interestLevel} 
                     onValueChange={(value: any) => {
-                      if (isEditing) {
-                        setEditedCustomer({...editedCustomer, interestLevel: value});
-                      }
+                      setEditedCustomer({...editedCustomer, interestLevel: value});
                     }}
                   >
                     <SelectTrigger 
-                      className="h-10 border-2 border-amber-400 rounded-lg bg-white"
-                      style={{ borderTopColor: interestLevel?.dotColor }}
+                      className="h-10 border-2 rounded-lg bg-white"
+                      style={{ 
+                        borderColor: interestLevel?.dotColor,
+                        backgroundColor: `${interestLevel?.dotColor}15`
+                      }}
                     >
                       <SelectValue>
-                        <div className="flex items-center gap-2">
+                        <div 
+                          className="flex items-center gap-2 px-2 py-1 rounded"
+                          style={{ backgroundColor: `${interestLevel?.dotColor}20` }}
+                        >
                           <span 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: interestLevel?.dotColor }}
-                          />
-                          <span className="font-medium">{interestLevel?.name || 'اختر درجة الاهتمام'}</span>
+                            className="font-medium"
+                            style={{ color: interestLevel?.dotColor }}
+                          >
+                            {interestLevel?.name || 'اختر درجة الاهتمام'}
+                          </span>
                         </div>
                       </SelectValue>
                     </SelectTrigger>
@@ -797,18 +795,20 @@ export default function GeneralInfoTab({
                         <SelectItem 
                           key={level.id} 
                           value={level.id}
-                          className={`cursor-pointer ${
-                            (isEditing ? editedCustomer.interestLevel : customer.interestLevel) === level.id 
-                              ? 'bg-blue-600 text-white' 
-                              : 'hover:bg-gray-100'
-                          }`}
+                          className="cursor-pointer hover:bg-gray-100"
                         >
-                          <div className="flex items-center gap-2 w-full justify-end">
-                            <span className="font-medium">{level.name}</span>
+                          <div 
+                            className="flex items-center gap-2 w-full justify-end px-2 py-1 rounded"
+                            style={{ 
+                              backgroundColor: (editedCustomer.interestLevel || customer.interestLevel) === level.id ? `${level.dotColor}30` : 'transparent'
+                            }}
+                          >
                             <span 
-                              className="w-4 h-4 rounded-full" 
-                              style={{ backgroundColor: level.dotColor }}
-                            />
+                              className="font-medium"
+                              style={{ color: level.dotColor }}
+                            >
+                              {level.name}
+                            </span>
                           </div>
                         </SelectItem>
                       ))}
