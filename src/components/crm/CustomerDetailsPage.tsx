@@ -382,6 +382,17 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [showOfferPreviewDialog, setShowOfferPreviewDialog] = useState(false);
   const [selectedOfferForPreview, setSelectedOfferForPreview] = useState<any>(null);
   
+  // ✅ حالة نافذة اختيار محتويات PDF
+  const [showPdfOptionsDialog, setShowPdfOptionsDialog] = useState(false);
+  const [selectedOfferForPdf, setSelectedOfferForPdf] = useState<any>(null);
+  const [pdfOptions, setPdfOptions] = useState({
+    includeOwner: true,
+    includeDeed: true,
+    includeImages: true,
+    includeProperty: true,
+    includeDescription: true,
+  });
+  
   // حالات نموذج إضافة عقد إيجار جديد
   const [showNewRentalForm, setShowNewRentalForm] = useState(false);
   const [rentalFilter, setRentalFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
@@ -1156,8 +1167,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
                   const hasNewPublishedRequest = customerMeta?.hasNewPublishedRequest && tab.id === 'published_requests';
                   const hasNewPublishedAd = customerMeta?.hasNewPublishedAd && tab.id === 'published_ads';
-                  // الدائرة النابضة لتبويب العروض
-                  const hasNewOffer = (tab as any).hasUnread && tab.id === 'offers';
+                  // ✅ الدائرة النابضة لتبويب العروض - من metadata العميل
+                  const hasNewOffer = customerMeta?.hasUnreadOffer && tab.id === 'offers';
                   
                   return (
                     <div key={tab.id} className="relative group flex items-center">
@@ -4092,8 +4103,24 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       const date = offer.submittedAt ? new Date(offer.submittedAt).toLocaleDateString('ar-SA') : '';
 
                       return (
-                        <div key={offer.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex items-start justify-between gap-3">
+                        <div 
+                          key={offer.id} 
+                          className={`p-4 border rounded-lg hover:bg-gray-50 transition-colors relative ${
+                            offer.status === 'sold' || offer.status === 'rented' 
+                              ? 'border-red-300 bg-red-50' 
+                              : ''
+                          }`}
+                        >
+                          {/* شريط تم البيع/التأجير */}
+                          {(offer.status === 'sold' || offer.status === 'rented') && (
+                            <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-center text-xs py-1 rounded-t-lg">
+                              {offer.status === 'sold' ? '✓ تم البيع' : '✓ تم التأجير'}
+                            </div>
+                          )}
+                          
+                          <div className={`flex items-start justify-between gap-3 ${
+                            offer.status === 'sold' || offer.status === 'rented' ? 'mt-4' : ''
+                          }`}>
                             <div className="min-w-0">
                               <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
                               <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
@@ -4104,8 +4131,15 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               </div>
                             </div>
 
-                            <Badge className={offer.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}>
-                              {offer.status === 'pending' ? 'جديد' : (offer.status || 'معلق')}
+                            <Badge className={
+                              offer.status === 'sold' ? 'bg-red-500 text-white' :
+                              offer.status === 'rented' ? 'bg-red-500 text-white' :
+                              offer.status === 'pending' ? 'bg-amber-100 text-amber-800' : 
+                              'bg-green-100 text-green-800'
+                            }>
+                              {offer.status === 'sold' ? 'مباع' :
+                               offer.status === 'rented' ? 'مؤجر' :
+                               offer.status === 'pending' ? 'جديد' : (offer.status || 'معلق')}
                             </Badge>
                           </div>
 
@@ -4185,60 +4219,21 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               نشر إعلان
                             </Button>
 
+                            {/* ✅ زر PDF - يفتح نافذة اختيار المحتويات */}
                             <Button
                               size="sm"
                               variant="outline"
                               className="border-[#D4AF37] text-[#01411C]"
-                              onClick={async () => {
-                                try {
-                                  // جلب بيانات الوسيط من localStorage
-                                  let brokerData: any = undefined;
-                                  try {
-                                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
-                                    if (businessCard) {
-                                      brokerData = {
-                                        name: businessCard.userName || businessCard.name,
-                                        company: businessCard.companyName,
-                                        phone: businessCard.primaryPhone || businessCard.phone,
-                                        location: offer.city,
-                                        licenseNumber: businessCard.falLicense,
-                                        profileImage: businessCard.profileImage,
-                                        coverImage: businessCard.coverImage,
-                                        logoImage: businessCard.logoImage,
-                                      };
-                                    }
-                                  } catch {}
-                                  
-                                  const slug = localStorage.getItem('public_platform_slug') || '';
-                                  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
-                                  const offerUrl = slug && offer.city && offer.district
-                                    ? `https://${publishedDomain}/${slug}/${offer.city}/${offer.district}/${offer.id}`
-                                    : '';
-                                  
-                                  const pdfData = {
-                                    id: offer.id,
-                                    title: title,
-                                    ownerName: offer.ownerName || customer.name,
-                                    ownerPhone: offer.ownerPhone || customer.phone,
-                                    locationDetails: {
-                                      city: offer.city,
-                                      district: offer.district,
-                                    },
-                                    propertyType: offer.propertyType,
-                                    purpose: offer.purpose,
-                                    price: offer.price,
-                                    area: offer.area,
-                                    aiDescription: offer.description,
-                                    images: (offer.media || []).filter((m: any) => m.type === 'image').map((m: any) => m.url),
-                                    image: (offer.media || []).find((m: any) => m.type === 'image')?.url,
-                                    offerUrl,
-                                  };
-                                  await generatePropertyPDF(pdfData as any, true, brokerData);
-                                  toast.success('تم تحميل ملف PDF');
-                                } catch (e) {
-                                  console.error('PDF error', e);
-                                  toast.error('تعذر إنشاء PDF');
-                                }
+                              onClick={() => {
+                                setSelectedOfferForPdf(offer);
+                                setPdfOptions({
+                                  includeOwner: true,
+                                  includeDeed: true,
+                                  includeImages: true,
+                                  includeProperty: true,
+                                  includeDescription: true,
+                                });
+                                setShowPdfOptionsDialog(true);
                               }}
                             >
                               <Download className="w-4 h-4 ml-1" />
@@ -5144,8 +5139,206 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               </div>
             </div>
           )}
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 flex-wrap">
+            {/* زر تم البيع/التأجير */}
+            {selectedOfferForPreview?.status !== 'sold' && selectedOfferForPreview?.status !== 'rented' && (
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  try {
+                    const newStatus = selectedOfferForPreview?.purpose === 'بيع' ? 'sold' : 'rented';
+                    const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                    const offers = customerMeta?.property_offers || [];
+                    const updatedOffers = offers.map((o: any) =>
+                      o.id === selectedOfferForPreview?.id ? { ...o, status: newStatus } : o
+                    );
+
+                    await supabase
+                      .from('crm_customers')
+                      .update({
+                        metadata: {
+                          ...customerMeta,
+                          property_offers: updatedOffers,
+                        }
+                      })
+                      .eq('id', customer.id);
+
+                    setSelectedOfferForPreview({ ...selectedOfferForPreview, status: newStatus });
+                    toast.success(newStatus === 'sold' ? 'تم تحديد العرض كمباع' : 'تم تحديد العرض كمؤجر');
+                    window.dispatchEvent(new CustomEvent('customerUpdated'));
+                  } catch (e) {
+                    toast.error('حدث خطأ في تحديث الحالة');
+                  }
+                }}
+              >
+                <CheckCircle className="w-4 h-4 ml-1" />
+                {selectedOfferForPreview?.purpose === 'بيع' ? 'تم البيع' : 'تم التأجير'}
+              </Button>
+            )}
+            {(selectedOfferForPreview?.status === 'sold' || selectedOfferForPreview?.status === 'rented') && (
+              <Badge className="bg-red-500 text-white px-4 py-2">
+                {selectedOfferForPreview?.status === 'sold' ? '✓ تم البيع' : '✓ تم التأجير'}
+              </Badge>
+            )}
             <Button variant="outline" onClick={() => setShowOfferPreviewDialog(false)}>إغلاق</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ Dialog اختيار محتويات PDF */}
+      <Dialog open={showPdfOptionsDialog} onOpenChange={setShowPdfOptionsDialog}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <Download className="w-5 h-5" />
+              اختر محتويات ملف PDF
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pdfOptions.includeOwner}
+                onChange={(e) => setPdfOptions(prev => ({ ...prev, includeOwner: e.target.checked }))}
+                className="w-5 h-5 accent-[#01411C]"
+              />
+              <div>
+                <div className="font-medium">معلومات المالك</div>
+                <div className="text-sm text-gray-500">الاسم، الجوال، الهوية، العنوان</div>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pdfOptions.includeDeed}
+                onChange={(e) => setPdfOptions(prev => ({ ...prev, includeDeed: e.target.checked }))}
+                className="w-5 h-5 accent-[#01411C]"
+              />
+              <div>
+                <div className="font-medium">معلومات الصك</div>
+                <div className="text-sm text-gray-500">رقم الصك، التاريخ، المدينة</div>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pdfOptions.includeImages}
+                onChange={(e) => setPdfOptions(prev => ({ ...prev, includeImages: e.target.checked }))}
+                className="w-5 h-5 accent-[#01411C]"
+              />
+              <div>
+                <div className="font-medium">الصور</div>
+                <div className="text-sm text-gray-500">صور العقار المرفقة</div>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pdfOptions.includeProperty}
+                onChange={(e) => setPdfOptions(prev => ({ ...prev, includeProperty: e.target.checked }))}
+                className="w-5 h-5 accent-[#01411C]"
+              />
+              <div>
+                <div className="font-medium">معلومات العقار الكاملة</div>
+                <div className="text-sm text-gray-500">النوع، المساحة، السعر، المواصفات</div>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pdfOptions.includeDescription}
+                onChange={(e) => setPdfOptions(prev => ({ ...prev, includeDescription: e.target.checked }))}
+                className="w-5 h-5 accent-[#01411C]"
+              />
+              <div>
+                <div className="font-medium">وصف العقار</div>
+                <div className="text-sm text-gray-500">الوصف التفصيلي للعقار</div>
+              </div>
+            </label>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowPdfOptionsDialog(false)}>إلغاء</Button>
+            <Button
+              className="bg-[#01411C] hover:bg-[#065f41]"
+              onClick={async () => {
+                try {
+                  const offer = selectedOfferForPdf;
+                  if (!offer) return;
+                  
+                  // جلب بيانات الوسيط
+                  let brokerData: any = undefined;
+                  try {
+                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+                    if (businessCard) {
+                      brokerData = {
+                        name: businessCard.userName || businessCard.name,
+                        company: businessCard.companyName,
+                        phone: businessCard.primaryPhone || businessCard.phone,
+                        location: offer.city,
+                        licenseNumber: businessCard.falLicense,
+                        profileImage: businessCard.profileImage,
+                        coverImage: businessCard.coverImage,
+                        logoImage: businessCard.logoImage,
+                      };
+                    }
+                  } catch {}
+                  
+                  const slug = localStorage.getItem('public_platform_slug') || '';
+                  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+                  const offerUrl = slug && offer.city && offer.district
+                    ? `https://${publishedDomain}/${slug}/${offer.city}/${offer.district}/${offer.id}`
+                    : '';
+                  
+                  const title = `${offer.propertyType || 'عقار'} ${offer.purpose || ''}`.trim();
+                  
+                  const pdfData = {
+                    id: offer.id,
+                    title: title,
+                    // معلومات المالك (حسب الاختيار)
+                    ownerName: pdfOptions.includeOwner ? (offer.ownerName || customer.name) : undefined,
+                    ownerPhone: pdfOptions.includeOwner ? (offer.ownerPhone || customer.phone) : undefined,
+                    // الموقع
+                    locationDetails: {
+                      city: offer.city,
+                      district: offer.district,
+                    },
+                    // معلومات العقار (حسب الاختيار)
+                    propertyType: pdfOptions.includeProperty ? offer.propertyType : undefined,
+                    purpose: pdfOptions.includeProperty ? offer.purpose : undefined,
+                    price: pdfOptions.includeProperty ? offer.price : undefined,
+                    area: pdfOptions.includeProperty ? offer.area : undefined,
+                    // الوصف (حسب الاختيار)
+                    aiDescription: pdfOptions.includeDescription ? offer.description : undefined,
+                    // الصور (حسب الاختيار)
+                    images: pdfOptions.includeImages 
+                      ? (offer.media || []).filter((m: any) => m.type === 'image').map((m: any) => m.url)
+                      : [],
+                    image: pdfOptions.includeImages 
+                      ? (offer.media || []).find((m: any) => m.type === 'image')?.url
+                      : undefined,
+                    offerUrl,
+                    // معلومات الصك (سيتم تمريرها كـ metadata)
+                    deedNumber: pdfOptions.includeDeed ? offer.deedNumber : undefined,
+                    deedDate: pdfOptions.includeDeed ? offer.deedDate : undefined,
+                    deedCity: pdfOptions.includeDeed ? offer.deedCity : undefined,
+                  };
+                  
+                  await generatePropertyPDF(pdfData as any, true, brokerData);
+                  toast.success('تم تحميل ملف PDF');
+                  setShowPdfOptionsDialog(false);
+                } catch (e) {
+                  console.error('PDF error', e);
+                  toast.error('تعذر إنشاء PDF');
+                }
+              }}
+            >
+              <Download className="w-4 h-4 ml-1" />
+              تحميل PDF
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
