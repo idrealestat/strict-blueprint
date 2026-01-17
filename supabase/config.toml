@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.owner-admin]
 verify_jwt = false
+
+[functions.public-form-submit]
+verify_jwt = false
+
+[functions.validate-domain]
+verify_jwt = false

@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { entitlementsGuard, corsHeaders } from '../_shared/entitlementsGuard.ts';
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Input validation helper functions
 function sanitizeString(input: unknown, maxLength: number = 100): string {
@@ -124,20 +124,39 @@ const furnishingMultipliers: Record<string, number> = {
   "غير مؤثث": 1.0,
 };
 
+// معاملات الأحياء حسب المدينة
+const districtMultipliers: Record<string, Record<string, number>> = {
+  "الرياض": {
+    "النخيل": 1.4,
+    "الملقا": 1.35,
+    "حي الياسمين": 1.3,
+    "العليا": 1.25,
+    "الورود": 1.2,
+    "الروضة": 1.15,
+    "السليمانية": 1.1,
+    "المروج": 1.1,
+    "الربوة": 1.05,
+    "default": 1.0,
+  },
+  "جدة": {
+    "الحمراء": 1.35,
+    "الروضة": 1.3,
+    "الشاطئ": 1.4,
+    "النزهة": 1.2,
+    "المرجان": 1.25,
+    "default": 1.0,
+  },
+  "default": {
+    "default": 1.0,
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // ============ ENTITLEMENTS GUARD ============
-    const guardResult = await entitlementsGuard(req, 'ai_assistant_basic');
-    if ('error' in guardResult) {
-      return guardResult.error;
-    }
-    const userId = guardResult.userId;
-    // ============ END ENTITLEMENTS GUARD ============
-
     // Validate content type
     const contentType = req.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
@@ -178,9 +197,11 @@ serve(async (req) => {
 
     const purpose = propertyData.purpose;
     const city = propertyData.city || "الرياض";
+    const district = propertyData.district || "";
     const propertyType = propertyData.propertyType || "شقة";
     const furnishing = propertyData.furnishing || "غير مؤثث";
-    const propertyAge = Math.min(Math.max(parseInt(propertyData.propertyAge) || 0, 0), 100); // Cap at 100 years
+    const bedrooms = parseInt(propertyData.bedrooms) || 0;
+    const propertyAge = Math.min(Math.max(parseInt(propertyData.propertyAge) || 0, 0), 100);
     const userPrice = propertyData.userPrice ? parseFloat(propertyData.userPrice.replace(/,/g, '')) : null;
     
     // Validate user price if provided
@@ -191,52 +212,59 @@ serve(async (req) => {
       });
     }
     
-    // الحصول على السعر الأساسي
-    let basePrice = purpose === "للإيجار" 
+    // تحديد إذا كان إيجار أو شراء
+    const isRent = purpose === "للإيجار" || purpose === "إيجار" || purpose.includes("إيجار");
+    
+    // الحصول على السعر الأساسي للمتر
+    let basePricePerMeter = isRent 
       ? (cityRentPrices[city] || 200)
       : (cityBasePrices[city] || 2500);
     
     // تطبيق معامل نوع العقار
     const typeMultiplier = propertyTypeMultipliers[propertyType] || 1.0;
-    basePrice *= typeMultiplier;
+    basePricePerMeter *= typeMultiplier;
+    
+    // تطبيق معامل الحي
+    const cityDistricts = districtMultipliers[city] || districtMultipliers["default"];
+    const districtMultiplier = cityDistricts[district] || cityDistricts["default"] || 1.0;
+    basePricePerMeter *= districtMultiplier;
     
     // تطبيق معامل التأثيث (للإيجار فقط)
-    if (purpose === "للإيجار") {
+    if (isRent) {
       const furnishMultiplier = furnishingMultipliers[furnishing] || 1.0;
-      basePrice *= furnishMultiplier;
+      basePricePerMeter *= furnishMultiplier;
+    }
+    
+    // تطبيق معامل عدد الغرف (للشقق والفيلات)
+    if ((propertyType === "شقة" || propertyType === "فيلا" || propertyType === "دور") && bedrooms > 0) {
+      const bedroomFactor = 1 + (bedrooms - 2) * 0.05; // زيادة 5% لكل غرفة فوق 2
+      basePricePerMeter *= Math.max(0.9, Math.min(bedroomFactor, 1.3)); // حد أدنى 90%، أقصى 130%
     }
     
     // تطبيق معامل عمر العقار (خصم 2% لكل سنة)
     const ageDiscount = Math.min(propertyAge * 0.02, 0.3); // حد أقصى 30%
-    basePrice *= (1 - ageDiscount);
+    basePricePerMeter *= (1 - ageDiscount);
     
     // حساب السعر الإجمالي
-    let totalPrice = basePrice * area;
+    let totalPrice = Math.round(basePricePerMeter * area);
     
-    // للإيجار، السعر هو سنوي
-    if (purpose === "للإيجار") {
-      totalPrice = Math.round(totalPrice);
-    } else {
-      totalPrice = Math.round(totalPrice);
-    }
-    
-    // توليد 3 أسعار مختلفة مع تباين
-    const variation = totalPrice * 0.1; // 10% تباين
+    // توليد 3 أسعار مختلفة مع تباين واقعي
+    const variation = totalPrice * 0.08; // 8% تباين
     
     const prices = [
       {
         source: "موقع عقار",
-        price: Math.round(totalPrice + variation * 0.5),
+        price: Math.round(totalPrice + variation * 0.7),
         url: "https://sa.aqar.fm/",
       },
       {
         source: "عقار ساس",
-        price: Math.round(totalPrice - variation * 0.3),
+        price: Math.round(totalPrice - variation * 0.5),
         url: "https://aqarsas.sa/",
       },
       {
         source: "المؤشرات العقارية",
-        price: Math.round(totalPrice),
+        price: Math.round(totalPrice + variation * 0.1),
         url: "#",
       },
     ];
@@ -244,12 +272,12 @@ serve(async (req) => {
     // حساب متوسط السوق
     const marketAverage = Math.round(prices.reduce((sum, p) => sum + p.price, 0) / prices.length);
     
-    // تقييم السعر بالذكاء الاصطناعي
+    // تقييم السعر
     let priceEvaluation = null;
     if (userPrice !== null && userPrice > 0) {
-      const lowerBound = marketAverage * 0.85; // 15% أقل من المتوسط
-      const upperBound = marketAverage * 1.15; // 15% أعلى من المتوسط
-      const highBound = marketAverage * 1.30; // 30% أعلى من المتوسط
+      const lowerBound = marketAverage * 0.85;
+      const upperBound = marketAverage * 1.15;
+      const highBound = marketAverage * 1.30;
       
       let status: 'أقل من السوق' | 'مناسب' | 'مبالغ فيه';
       let color: 'green' | 'blue' | 'red';
@@ -260,7 +288,9 @@ serve(async (req) => {
         status = 'أقل من السوق';
         color = 'green';
         percentage = Math.round(((marketAverage - userPrice) / marketAverage) * 100);
-        message = `السعر أقل من متوسط السوق بنسبة ${percentage}% - فرصة جيدة للمشتري`;
+        message = isRent 
+          ? `الإيجار أقل من متوسط السوق بنسبة ${percentage}% - فرصة ممتازة للمستأجر`
+          : `السعر أقل من متوسط السوق بنسبة ${percentage}% - فرصة جيدة للمشتري`;
       } else if (userPrice >= lowerBound && userPrice <= upperBound) {
         status = 'مناسب';
         color = 'blue';
@@ -271,7 +301,9 @@ serve(async (req) => {
         color = 'red';
         percentage = Math.round(((userPrice - marketAverage) / marketAverage) * 100);
         if (userPrice > highBound) {
-          message = `⚠️ تحذير: السعر أعلى من متوسط السوق بنسبة ${percentage}% - قد يصعب البيع/التأجير`;
+          message = isRent
+            ? `⚠️ تحذير: الإيجار أعلى من متوسط السوق بنسبة ${percentage}% - قد يصعب إيجاد مستأجر`
+            : `⚠️ تحذير: السعر أعلى من متوسط السوق بنسبة ${percentage}% - قد يصعب البيع`;
         } else {
           message = `السعر أعلى من متوسط السوق بنسبة ${percentage}% - يمكن التفاوض`;
         }
@@ -291,7 +323,7 @@ serve(async (req) => {
     
     // حساب الدفعات للإيجار
     let paymentBreakdown = null;
-    if (purpose === "للإيجار") {
+    if (isRent) {
       const annualPrice = userPrice || marketAverage;
       paymentBreakdown = {
         onePayment: annualPrice,
@@ -301,15 +333,32 @@ serve(async (req) => {
       };
     }
 
-    console.log('Price calculation completed successfully for user:', userId);
+    console.log('Price calculation completed:', { 
+      city, 
+      district, 
+      propertyType, 
+      area, 
+      purpose: isRent ? 'إيجار' : 'بيع',
+      marketAverage 
+    });
 
     return new Response(JSON.stringify({ 
       prices,
       marketAverage,
       paymentBreakdown,
-      purpose,
-      priceUnit: purpose === "للإيجار" ? "ريال/سنوياً" : "ريال",
+      purpose: isRent ? "للإيجار" : "للشراء",
+      priceUnit: isRent ? "ريال/سنوياً" : "ريال",
       priceEvaluation,
+      calculationDetails: {
+        basePricePerMeter: Math.round(basePricePerMeter),
+        area,
+        city,
+        district: district || "غير محدد",
+        propertyType,
+        furnishing: isRent ? furnishing : null,
+        bedrooms: bedrooms || null,
+        propertyAge: propertyAge || 0,
+      }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
