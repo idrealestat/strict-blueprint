@@ -709,7 +709,7 @@ export function markAsNew(type: 'published_ad' | 'customer' | 'tab' | 'offer', i
   window.dispatchEvent(new CustomEvent('newItemAdded', { detail: { type, id } }));
 }
 
-export function markAsViewed(type: 'published_ad' | 'customer' | 'tab' | 'offer', id: string) {
+export function markAsViewed(type: 'published_ad' | 'customer' | 'tab' | 'offer' | 'request', id: string) {
   const items = getNewItems();
   const key = `${type}_${id}`;
   delete items[key];
@@ -717,14 +717,14 @@ export function markAsViewed(type: 'published_ad' | 'customer' | 'tab' | 'offer'
   window.dispatchEvent(new CustomEvent('itemViewed', { detail: { type, id } }));
 }
 
-export function isNew(type: 'published_ad' | 'customer' | 'tab' | 'offer', id: string): boolean {
+export function isNew(type: 'published_ad' | 'customer' | 'tab' | 'offer' | 'request', id: string): boolean {
   const items = getNewItems();
   const key = `${type}_${id}`;
   return !!items[key];
 }
 
 // Hook for pulsing dot
-export function usePulsingDot(type: 'published_ad' | 'customer' | 'tab' | 'offer', id: string) {
+export function usePulsingDot(type: 'published_ad' | 'customer' | 'tab' | 'offer' | 'request', id: string) {
   const [showDot, setShowDot] = useState(false);
 
   useEffect(() => {
