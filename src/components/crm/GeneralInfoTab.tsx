@@ -102,6 +102,7 @@ interface GeneralInfoTabProps {
   isEditing: boolean;
   editedCustomer: Customer;
   setEditedCustomer: (customer: Customer) => void;
+  onImmediateUpdate?: (customer: Customer) => void;
 }
 
 // تحويل clientTypes من offer.ts إلى تنسيق CUSTOMER_TYPES المتوافق
@@ -126,7 +127,8 @@ export default function GeneralInfoTab({
   customer, 
   isEditing, 
   editedCustomer, 
-  setEditedCustomer 
+  setEditedCustomer,
+  onImmediateUpdate
 }: GeneralInfoTabProps) {
   const [additionalPhones, setAdditionalPhones] = useState<string[]>([]);
   const [mediaFiles, setMediaFiles] = useState<{ url: string; type: 'image' | 'video'; name: string }[]>([]);
@@ -725,7 +727,12 @@ export default function GeneralInfoTab({
                   <Select 
                     value={selectedClientType}
                     onValueChange={(value: any) => {
-                      setEditedCustomer({ ...editedCustomer, type: value });
+                      const updated = { ...editedCustomer, type: value };
+                      setEditedCustomer(updated);
+                      // حفظ مباشر للتغيير
+                      if (onImmediateUpdate) {
+                        onImmediateUpdate(updated);
+                      }
                     }}
                   >
                     <SelectTrigger 
@@ -785,7 +792,12 @@ export default function GeneralInfoTab({
                   <Select 
                     value={selectedInterestLevel}
                     onValueChange={(value: any) => {
-                      setEditedCustomer({ ...editedCustomer, interestLevel: value });
+                      const updated = { ...editedCustomer, interestLevel: value };
+                      setEditedCustomer(updated);
+                      // حفظ مباشر للتغيير
+                      if (onImmediateUpdate) {
+                        onImmediateUpdate(updated);
+                      }
                     }}
                   >
                     <SelectTrigger 

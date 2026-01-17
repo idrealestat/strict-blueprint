@@ -1323,6 +1323,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               isEditing={isEditing}
               editedCustomer={editedCustomer}
               setEditedCustomer={setEditedCustomer}
+              onImmediateUpdate={(updatedCustomer) => {
+                // حفظ مباشر للتغييرات (نوع العميل ودرجة الاهتمام)
+                onUpdate(updatedCustomer);
+                toast.success('تم حفظ التغييرات', { duration: 1500 });
+              }}
             />
           </TabsContent>
 
