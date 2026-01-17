@@ -74,6 +74,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import PropertyDetailsDialog from "./PropertyDetailsDialog";
 import PDFPreviewDialog from "./PDFPreviewDialog";
 import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
@@ -332,6 +333,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // استخدام hooks تتبع الأحداث والإشعارات
   const { trackCustomerEvent, track } = useEventTracker();
   const { createNotification } = useNotifications();
+  
+  // Hook للتنقل
+  const navigate = useNavigate();
   
   // ✅ جلب بيانات البطاقة الرقمية للمستخدم الحالي
   const { data: businessCardData, loading: businessCardLoading } = useBusinessCardData();
@@ -4391,7 +4395,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 };
 
                                 localStorage.setItem('wasata_republish_data', JSON.stringify(republishData));
-                                window.location.href = '/app/platform?action=publish';
+                                navigate('/app/platform?tab=platform&action=publish');
                               }}
                             >
                               <Share2 className="w-4 h-4 ml-1" />
@@ -4589,8 +4593,10 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               className="bg-[#01411C] hover:bg-[#065f41]"
                               onClick={() => {
-                                // تجهيز بيانات نشر الطلب كإعلان
-                                const publishData = {
+                                // تجهيز بيانات نشر الطلب في تبويب الطلبات في منصتي
+                                const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                                const publishedRequest = {
+                                  id: requestId,
                                   ownerName: request.ownerName || customer.name,
                                   ownerPhone: request.ownerPhone || customer.phone,
                                   ownerIdNumber: request.ownerIdNumber || '',
@@ -4599,8 +4605,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   ownerDistrict: request.ownerDistrict || '',
                                   propertyType: request.propertyType || '',
                                   purpose: request.purpose || 'شراء',
-                                  city: request.preferredCity || '',
-                                  district: request.preferredDistricts || '',
+                                  preferredCity: request.preferredCity || '',
+                                  preferredDistricts: request.preferredDistricts || '',
                                   bedrooms: request.bedrooms || '',
                                   bathrooms: request.bathrooms || '',
                                   livingRooms: request.livingRooms || '',
@@ -4611,10 +4617,25 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   minBudget: request.minBudget || '',
                                   maxBudget: request.maxBudget || '',
                                   additionalRequirements: request.additionalRequirements || '',
+                                  createdAt: new Date().toISOString(),
+                                  source: 'customer_metadata',
+                                  originalRequestId: request.id,
                                 };
-                                localStorage.setItem('republish_request_data', JSON.stringify(publishData));
-                                // TODO: التوجيه لصفحة النشر
-                                toast.success('تم تجهيز البيانات للنشر');
+                                
+                                // حفظ في localStorage
+                                const existingRequests = JSON.parse(localStorage.getItem('wasata_published_requests') || '[]');
+                                existingRequests.unshift(publishedRequest);
+                                localStorage.setItem('wasata_published_requests', JSON.stringify(existingRequests));
+                                
+                                // إضافة معرف الطلب الجديد لإظهار النقطة الحمراء
+                                const newRequestIds = JSON.parse(localStorage.getItem('new_request_ids') || '[]');
+                                newRequestIds.push(requestId);
+                                localStorage.setItem('new_request_ids', JSON.stringify(newRequestIds));
+                                
+                                // إرسال حدث لتحديث منصتي
+                                window.dispatchEvent(new CustomEvent('requestPublished', { detail: publishedRequest }));
+                                
+                                toast.success('تم نشر الطلب في منصتي بنجاح');
                               }}
                             >
                               <Share2 className="w-4 h-4 ml-1" />
