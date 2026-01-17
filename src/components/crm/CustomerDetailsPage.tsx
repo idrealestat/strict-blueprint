@@ -4024,6 +4024,19 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             <span>طريقة الدفع: {quote.paymentMethod === 'cash' ? 'نقداً' : quote.paymentMethod === 'finance' ? 'تمويل' : 'تقسيط'}</span>
                             <span>| {new Date(quote.createdAt).toLocaleDateString('ar-SA')}</span>
                           </div>
+                          {quote.propertyLink && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-gray-500">🔗 رابط العقار:</span>
+                              <a 
+                                href={quote.propertyLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-xs truncate max-w-[200px]"
+                              >
+                                {quote.propertyLink}
+                              </a>
+                            </div>
+                          )}
                           {quote.message && (
                             <div className="mt-2 p-2 bg-gray-100 rounded-lg text-xs">
                               <strong>رسالة العميل:</strong> {quote.message}
