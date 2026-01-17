@@ -180,11 +180,34 @@ export default function NotificationsSidebar({
   const handleNotificationClick = (notification: SystemNotification) => {
     markAsRead(notification.id);
 
-    // Navigate based on action type
-    if (notification.actionType?.startsWith('task') && onNavigate) {
+    if (!onNavigate) return;
+
+    // ✅ Offers/CRM notifications: افتح بطاقة العميل مباشرة (بدون أي صفحة وسيطة)
+    if (notification.actionType === 'offer') {
+      const meta = (notification.metadata && typeof notification.metadata === 'object') ? notification.metadata : {};
+      const customerId = (meta as any).customerId as string | undefined;
+
+      if (customerId) {
+        // افتح إدارة العملاء ثم افتح تفاصيل العميل
+        onNavigate('customer-management-72');
+        window.dispatchEvent(new CustomEvent('openCustomerDetails', {
+          detail: { customerId },
+        }));
+        onClose();
+        return;
+      }
+
+      // fallback: فقط افتح إدارة العملاء
+      onNavigate('customer-management-72');
+      onClose();
+      return;
+    }
+
+    // Existing: tasks / appointments
+    if (notification.actionType?.startsWith('task')) {
       onNavigate('tasks', { taskId: notification.relatedId });
       onClose();
-    } else if (notification.actionType?.startsWith('appointment') && onNavigate) {
+    } else if (notification.actionType?.startsWith('appointment')) {
       onNavigate('calendar', { appointmentId: notification.relatedId });
       onClose();
     }
@@ -582,7 +605,13 @@ export default function NotificationsSidebar({
                                 <span>{formatTime(notification.createdAt)}</span>
                               </div>
                               {notification.actionType && (
-                                <button className="flex items-center gap-1 text-xs text-[#01411C] hover:underline">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNotificationClick(notification);
+                                  }}
+                                  className="flex items-center gap-1 text-xs text-[#01411C] hover:underline"
+                                >
                                   <span>عرض</span>
                                   <ChevronRight className="w-3 h-3" />
                                 </button>

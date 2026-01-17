@@ -18,8 +18,13 @@ export interface SystemNotification {
   type: 'info' | 'success' | 'warning' | 'error' | 'task' | 'appointment' | 'reminder';
   read: boolean;
   category: 'task' | 'appointment' | 'system' | 'customer';
-  actionType?: 'task_overdue' | 'task_due_soon' | 'appointment_upcoming' | 'appointment_now';
+
+  // ✅ من قاعدة البيانات (notifications table)
+  actionType?: string;
   relatedId?: string;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
+
   createdAt: Date;
 }
 
@@ -497,23 +502,25 @@ export function useNotificationSystem() {
           return;
         }
 
-        if (dbNotifications && dbNotifications.length > 0) {
-          const mappedNotifs: SystemNotification[] = dbNotifications.map((n: any) => ({
-            id: n.id,
-            title: n.title,
-            message: n.message,
-            time: formatTimeAgo(new Date(n.created_at)),
-            type: mapPriorityToTypeStatic(n.priority),
-            category: mapCategoryToSystemStatic(n.category),
-            read: n.is_read || false,
-            createdAt: new Date(n.created_at),
-            relatedId: n.related_entity_id,
-            actionType: n.notification_type,
-          }));
+          if (dbNotifications && dbNotifications.length > 0) {
+            const mappedNotifs: SystemNotification[] = dbNotifications.map((n: any) => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              time: formatTimeAgo(new Date(n.created_at)),
+              type: mapPriorityToTypeStatic(n.priority),
+              category: mapCategoryToSystemStatic(n.category),
+              read: n.is_read || false,
+              createdAt: new Date(n.created_at),
+              relatedId: n.related_entity_id,
+              actionType: n.notification_type,
+              actionUrl: n.action_url || undefined,
+              metadata: (n.metadata && typeof n.metadata === 'object') ? (n.metadata as Record<string, any>) : {},
+            }));
 
-          setNotifications(mappedNotifs);
-          console.log('[NotificationSystem] Loaded', mappedNotifs.length, 'notifications from DB');
-        }
+            setNotifications(mappedNotifs);
+            console.log('[NotificationSystem] Loaded', mappedNotifs.length, 'notifications from DB');
+          }
       } catch (e) {
         console.error('Error fetching notifications:', e);
       }
@@ -587,6 +594,9 @@ export function useNotificationSystem() {
               read: false,
               createdAt: new Date(newNotif.created_at),
               relatedId: newNotif.related_entity_id,
+              actionType: newNotif.notification_type,
+              actionUrl: newNotif.action_url || undefined,
+              metadata: (newNotif.metadata && typeof newNotif.metadata === 'object') ? (newNotif.metadata as Record<string, any>) : {},
             };
 
             setNotifications(prev => [systemNotif, ...prev]);
