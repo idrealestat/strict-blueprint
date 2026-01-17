@@ -275,6 +275,26 @@ export default function PublicRequestForm() {
   const [priceEvaluation, setPriceEvaluation] = useState<PriceEvaluation | null>(null);
   const [marketAverage, setMarketAverage] = useState<number | null>(null);
 
+  // خريطة المدن السعودية الرئيسية مع أحيائها
+  const saudiCitiesMap: Record<string, string[]> = {
+    'الخبر': ['الحمراء', 'الثقبة', 'العقربية', 'الراكة', 'الجسر', 'الخزامى', 'الحزام الذهبي', 'البندرية', 'اللؤلؤة', 'الكورنيش', 'الروابي', 'المقطعة', 'الصناعية', 'قرطبة', 'اليرموك', 'الأندلس'],
+    'الدمام': ['الفيصلية', 'الشاطئ', 'العنود', 'النورس', 'المريكبات', 'طيبة', 'الجلوية', 'النخيل', 'الندى', 'الضباب', 'الامير محمد بن سعود', 'السلام', 'النزهة', 'الاثير', 'المزروعية', 'الطبيشي'],
+    'الرياض': ['النخيل', 'الياسمين', 'العليا', 'السليمانية', 'الملقا', 'حطين', 'الغدير', 'الورود', 'العقيق', 'الربيع', 'الرائد', 'الصحافة', 'النرجس', 'العارض', 'القيروان', 'الملك عبدالله'],
+    'جدة': ['الحمراء', 'الشاطئ', 'الروضة', 'الزهراء', 'السلامة', 'النعيم', 'الصفا', 'المرجان', 'الفيحاء', 'النزهة', 'البساتين', 'الاندلس', 'البوادي', 'ابحر الشمالية', 'ابحر الجنوبية'],
+    'مكة': ['العزيزية', 'الشوقية', 'النسيم', 'الزاهر', 'العوالي', 'الراشدية', 'التيسير', 'الحمراء', 'الخضراء'],
+    'المدينة': ['السلام', 'العنابس', 'قباء', 'الروضة', 'الاسكان', 'النخيل', 'الدفاع', 'العريض', 'الجصة'],
+  };
+
+  // دالة تحديد المدينة الصحيحة من الحي
+  const detectCityFromDistrict = (district: string): string | null => {
+    for (const [city, districts] of Object.entries(saudiCitiesMap)) {
+      if (districts.some(d => district.includes(d) || d.includes(district))) {
+        return city;
+      }
+    }
+    return null;
+  };
+
   // دالة جلب العنوان من الإحداثيات
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     setIsLoadingLocation(true);
@@ -286,10 +306,37 @@ export default function PublicRequestForm() {
 
       if (data && data.address) {
         const addr = data.address;
+        
+        // استخراج الحي أولاً
+        const rawDistrict = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '';
+        
+        // استخراج المدينة - نعطي أولوية لـ addr.city أو addr.county أو addr.state_district
+        // لأن Nominatim أحياناً يضع اسم الحي في city
+        let rawCity = addr.city || addr.town || addr.county || addr.state_district || addr.state || '';
+        
+        // تحقق إذا كانت المدينة المستخرجة هي فعلياً حي وليست مدينة
+        // (مثل الثقبة أو الحمراء)
+        const detectedCity = detectCityFromDistrict(rawCity);
+        if (detectedCity) {
+          // إذا كانت "المدينة" المستخرجة هي حي، استخدم المدينة المكتشفة بدلاً منها
+          rawCity = detectedCity;
+        }
+        
+        // أيضاً حاول اكتشاف المدينة من الحي
+        if (!rawCity || rawCity === rawDistrict) {
+          const cityFromDistrict = detectCityFromDistrict(rawDistrict);
+          if (cityFromDistrict) {
+            rawCity = cityFromDistrict;
+          }
+        }
+        
+        // تنظيف اسم الحي من كلمة "حي"
+        let cleanDistrict = rawDistrict.replace(/^حي\s*/i, '').trim();
+        
         setFormData(prev => ({
           ...prev,
-          preferredCity: addr.city || addr.town || addr.village || addr.state || prev.preferredCity,
-          preferredDistricts: addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || prev.preferredDistricts,
+          preferredCity: rawCity || prev.preferredCity,
+          preferredDistricts: cleanDistrict || prev.preferredDistricts,
           street: addr.road || addr.street || '',
           buildingNumber: addr.house_number || '',
           postalCode: addr.postcode || '',
@@ -735,7 +782,7 @@ export default function PublicRequestForm() {
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر مدينتك" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] bg-white">
                   {cities.map(city => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
@@ -763,7 +810,7 @@ export default function PublicRequestForm() {
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر نوع العقار" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] bg-white">
                   {propertyTypes.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -776,7 +823,7 @@ export default function PublicRequestForm() {
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="للشراء / للإيجار" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] bg-white">
                   {purposes.map(p => (
                     <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
@@ -789,7 +836,7 @@ export default function PublicRequestForm() {
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="اختر المدينة" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] bg-white">
                   {cities.map(city => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
@@ -982,7 +1029,7 @@ export default function PublicRequestForm() {
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="حالة الأثاث المطلوبة" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999] bg-white">
                   {furnishingOptions.map(opt => (
                     <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                   ))}
