@@ -88,6 +88,7 @@ interface FormData {
   clientName: string;
   clientPhone: string;
   clientIdNumber: string;
+  clientBirthDate: string;
   clientNationalAddress: string;
   clientCity: string;
   
@@ -185,6 +186,7 @@ export default function PublicRequestForm() {
     clientName: '',
     clientPhone: '',
     clientIdNumber: '',
+    clientBirthDate: '',
     clientNationalAddress: '',
     clientCity: '',
     propertyType: '',
@@ -256,6 +258,7 @@ export default function PublicRequestForm() {
         clientName: formData.clientName,
         clientPhone: formData.clientPhone,
         ownerIdNumber: formData.clientIdNumber,
+        ownerBirthDate: formData.clientBirthDate,
         ownerNationalAddress: formData.clientNationalAddress,
         ownerCity: formData.clientCity,
         // معلومات العقار المطلوب
@@ -438,6 +441,15 @@ export default function PublicRequestForm() {
                 value={formData.clientIdNumber}
                 onChange={(e) => updateField('clientIdNumber', e.target.value)}
                 placeholder="رقم الهوية الوطنية"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>تاريخ الميلاد (اختياري)</Label>
+              <Input
+                type="date"
+                value={formData.clientBirthDate}
+                onChange={(e) => updateField('clientBirthDate', e.target.value)}
                 className="bg-white"
               />
             </div>
