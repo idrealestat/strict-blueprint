@@ -23,7 +23,7 @@ import {
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
   ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2,
-  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall
+  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall, LayoutGrid, Edit
 } from "lucide-react";
 import { BehavioralDashboard } from "@/components/behavioral";
 import {
@@ -223,17 +223,86 @@ const SmartAssistantSettingsCard: React.FC = () => {
   );
 };
 
+// أنواع الأعمدة المخصصة
+interface CustomColumn {
+  id: string;
+  title: string;
+  color: string;
+}
+
 // مكون إعدادات إدارة العملاء
 const CustomerManagementSettingsCard: React.FC = () => {
   const [recentCallsVisible, setRecentCallsVisible] = useState(() => {
     return localStorage.getItem('recent_calls_visible') !== 'false';
   });
+  
+  // الأعمدة المخصصة
+  const [customColumns, setCustomColumns] = useState<CustomColumn[]>(() => {
+    const saved = localStorage.getItem('crm_custom_columns');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [showAddColumn, setShowAddColumn] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState('');
+  const [editingColumn, setEditingColumn] = useState<CustomColumn | null>(null);
+  const [editColumnTitle, setEditColumnTitle] = useState('');
 
   const handleRecentCallsToggle = (checked: boolean) => {
     setRecentCallsVisible(checked);
     localStorage.setItem('recent_calls_visible', checked.toString());
     window.dispatchEvent(new CustomEvent('crmSettingsChanged'));
     toast.success(checked ? 'تم تفعيل عرض الاتصالات الأخيرة' : 'تم إخفاء الاتصالات الأخيرة');
+  };
+  
+  // إضافة عمود جديد
+  const handleAddColumn = () => {
+    if (!newColumnTitle.trim()) {
+      toast.error('يرجى إدخال اسم العمود');
+      return;
+    }
+    
+    const newColumn: CustomColumn = {
+      id: `custom_${Date.now()}`,
+      title: newColumnTitle.trim(),
+      color: '#6366f1', // لون افتراضي
+    };
+    
+    const updatedColumns = [...customColumns, newColumn];
+    setCustomColumns(updatedColumns);
+    localStorage.setItem('crm_custom_columns', JSON.stringify(updatedColumns));
+    window.dispatchEvent(new CustomEvent('crmColumnsChanged'));
+    
+    setNewColumnTitle('');
+    setShowAddColumn(false);
+    toast.success('تم إضافة العمود بنجاح');
+  };
+  
+  // تعديل اسم العمود
+  const handleEditColumn = () => {
+    if (!editingColumn || !editColumnTitle.trim()) {
+      toast.error('يرجى إدخال اسم العمود');
+      return;
+    }
+    
+    const updatedColumns = customColumns.map(col => 
+      col.id === editingColumn.id ? { ...col, title: editColumnTitle.trim() } : col
+    );
+    setCustomColumns(updatedColumns);
+    localStorage.setItem('crm_custom_columns', JSON.stringify(updatedColumns));
+    window.dispatchEvent(new CustomEvent('crmColumnsChanged'));
+    
+    setEditingColumn(null);
+    setEditColumnTitle('');
+    toast.success('تم تعديل اسم العمود');
+  };
+  
+  // حذف عمود
+  const handleDeleteColumn = (columnId: string) => {
+    const updatedColumns = customColumns.filter(col => col.id !== columnId);
+    setCustomColumns(updatedColumns);
+    localStorage.setItem('crm_custom_columns', JSON.stringify(updatedColumns));
+    window.dispatchEvent(new CustomEvent('crmColumnsChanged'));
+    toast.success('تم حذف العمود');
   };
 
   return (
@@ -260,6 +329,131 @@ const CustomerManagementSettingsCard: React.FC = () => {
             onCheckedChange={handleRecentCallsToggle}
           />
         </div>
+        
+        {/* إدارة الأعمدة المخصصة */}
+        <div className="p-4 border rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium flex items-center gap-2">
+                <LayoutGrid className="h-4 w-4" />
+                الأعمدة المخصصة
+              </p>
+              <p className="text-sm text-gray-500">إضافة أعمدة جديدة لنظام إدارة العملاء</p>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={() => setShowAddColumn(true)}
+              className="bg-[#01411C] hover:bg-[#016630]"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              إضافة عمود
+            </Button>
+          </div>
+          
+          {/* قائمة الأعمدة المخصصة */}
+          {customColumns.length > 0 && (
+            <div className="space-y-2 mt-3">
+              {customColumns.map((column) => (
+                <div 
+                  key={column.id} 
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: column.color }}
+                    />
+                    <span className="font-medium">{column.title}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingColumn(column);
+                        setEditColumnTitle(column.title);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleDeleteColumn(column.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {customColumns.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-2">
+              لا توجد أعمدة مخصصة. اضغط على "إضافة عمود" لإنشاء عمود جديد.
+            </p>
+          )}
+        </div>
+        
+        {/* نافذة إضافة عمود جديد */}
+        <Dialog open={showAddColumn} onOpenChange={setShowAddColumn}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>إضافة عمود جديد</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="column-title">اسم العمود</Label>
+                <Input
+                  id="column-title"
+                  value={newColumnTitle}
+                  onChange={(e) => setNewColumnTitle(e.target.value)}
+                  placeholder="مثال: متابعة، مؤجل، VIP..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddColumn(false)}>
+                إلغاء
+              </Button>
+              <Button onClick={handleAddColumn} className="bg-[#01411C] hover:bg-[#016630]">
+                إضافة
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* نافذة تعديل اسم العمود */}
+        <Dialog open={!!editingColumn} onOpenChange={() => setEditingColumn(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>تعديل اسم العمود</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-column-title">اسم العمود</Label>
+                <Input
+                  id="edit-column-title"
+                  value={editColumnTitle}
+                  onChange={(e) => setEditColumnTitle(e.target.value)}
+                  placeholder="أدخل الاسم الجديد..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingColumn(null)}>
+                إلغاء
+              </Button>
+              <Button onClick={handleEditColumn} className="bg-[#01411C] hover:bg-[#016630]">
+                حفظ
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

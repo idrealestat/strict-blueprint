@@ -354,6 +354,20 @@ const defaultColumns: Column[] = [
   { id: 'lost', title: 'ضائع', customerIds: [] },
 ];
 
+// دالة لتحميل الأعمدة المخصصة من localStorage
+const getCustomColumns = (): Column[] => {
+  try {
+    const saved = localStorage.getItem('crm_custom_columns');
+    if (saved) {
+      const customCols = JSON.parse(saved) as { id: string; title: string; color: string }[];
+      return customCols.map(col => ({ id: col.id, title: col.title, customerIds: [] }));
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+};
+
 // Column Colors
 const COLUMN_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   'leads': { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700' },
@@ -532,6 +546,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   }, [dbCustomers, crmLoading, mapCRMToCustomer, mapLinkedToCustomer]);
 
   const [columns, setColumns] = useState<Column[]>(() => {
+    // دمج الأعمدة الافتراضية مع الأعمدة المخصصة
+    const customCols = getCustomColumns();
+    const allDefaultCols = [...defaultColumns, ...customCols];
+    
     // Try to load saved column order from localStorage
     const savedOrder = localStorage.getItem('crm_column_order');
     const baseColumns = (() => {
@@ -539,20 +557,46 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         try {
           const orderIds = JSON.parse(savedOrder) as string[];
           const reorderedColumns = orderIds
-            .map(id => defaultColumns.find(col => col.id === id))
+            .map(id => allDefaultCols.find(col => col.id === id))
             .filter(Boolean) as Column[];
-          defaultColumns.forEach(col => {
+          allDefaultCols.forEach(col => {
             if (!reorderedColumns.find(c => c.id === col.id)) reorderedColumns.push(col);
           });
           return reorderedColumns;
         } catch {
-          return defaultColumns;
+          return allDefaultCols;
         }
       }
-      return defaultColumns;
+      return allDefaultCols;
     })();
     return baseColumns;
   });
+  
+  // الاستماع لتغييرات الأعمدة المخصصة من لوحة تحكم المالك
+  useEffect(() => {
+    const handleColumnsChanged = () => {
+      const customCols = getCustomColumns();
+      const allCols = [...defaultColumns, ...customCols];
+      
+      setColumns(prev => {
+        // الحفاظ على الترتيب الحالي وإضافة الأعمدة الجديدة
+        const existingIds = prev.map(c => c.id);
+        const newCols = allCols.filter(c => !existingIds.includes(c.id));
+        // إزالة الأعمدة المحذوفة (الأعمدة المخصصة فقط)
+        const validIds = allCols.map(c => c.id);
+        const filteredPrev = prev.filter(c => validIds.includes(c.id));
+        // تحديث أسماء الأعمدة المعدلة
+        const updatedPrev = filteredPrev.map(col => {
+          const updated = allCols.find(c => c.id === col.id);
+          return updated ? { ...col, title: updated.title } : col;
+        });
+        return [...updatedPrev, ...newCols];
+      });
+    };
+    
+    window.addEventListener('crmColumnsChanged', handleColumnsChanged);
+    return () => window.removeEventListener('crmColumnsChanged', handleColumnsChanged);
+  }, []);
   
   // Sync columns with customers
   useEffect(() => {
