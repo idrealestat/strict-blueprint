@@ -293,8 +293,27 @@ export default function GeneralInfoTab({
     toast.success('تم حذف الملف');
   }, [SESSION_STORAGE_KEY]);
 
-  const customerType = CUSTOMER_TYPES.find(t => t.id === customer.type);
-  const interestLevel = INTEREST_LEVELS.find(l => l.id === customer.interestLevel);
+  const normalizeClientType = (value: any): ClientType => {
+    if (value === 'renter') return 'tenant';
+    if (value === 'owner') return 'landlord';
+    if (value && value in clientTypes) return value as ClientType;
+    return 'buyer';
+  };
+
+  const normalizeInterestLevel = (value: any): InterestLevel => {
+    if (value === 'hot' || value === 'passionate') return 'veryInterested';
+    if (value === 'warm') return 'interested';
+    if (value === 'cold' || value === 'limited') return 'lowInterest';
+    if (value === 'not_interested') return 'notInterested';
+    if (value && value in interestLevels) return value as InterestLevel;
+    return 'moderate';
+  };
+
+  const selectedClientType = normalizeClientType(editedCustomer.type ?? customer.type);
+  const selectedInterestLevel = normalizeInterestLevel(editedCustomer.interestLevel ?? customer.interestLevel);
+
+  const customerType = CUSTOMER_TYPES.find(t => t.id === selectedClientType);
+  const interestLevel = INTEREST_LEVELS.find(l => l.id === selectedInterestLevel);
 
   const handleAddPhone = () => {
     setAdditionalPhones([...additionalPhones, '']);
@@ -704,9 +723,9 @@ export default function GeneralInfoTab({
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500 block mb-1">نوع العميل</Label>
                   <Select 
-                    value={editedCustomer.type || customer.type} 
+                    value={selectedClientType}
                     onValueChange={(value: any) => {
-                      setEditedCustomer({...editedCustomer, type: value});
+                      setEditedCustomer({ ...editedCustomer, type: value });
                     }}
                   >
                     <SelectTrigger 
@@ -740,7 +759,7 @@ export default function GeneralInfoTab({
                           <div 
                             className="flex items-center gap-2 w-full justify-end px-2 py-1 rounded"
                             style={{ 
-                              backgroundColor: (editedCustomer.type || customer.type) === type.id ? `${type.dotColor}30` : 'transparent'
+                              backgroundColor: selectedClientType === type.id ? `${type.dotColor}30` : 'transparent'
                             }}
                           >
                             <span 
@@ -764,9 +783,9 @@ export default function GeneralInfoTab({
                 <div className="flex-1">
                   <Label className="text-xs text-gray-500 block mb-1">درجة الاهتمام</Label>
                   <Select 
-                    value={editedCustomer.interestLevel || customer.interestLevel} 
+                    value={selectedInterestLevel}
                     onValueChange={(value: any) => {
-                      setEditedCustomer({...editedCustomer, interestLevel: value});
+                      setEditedCustomer({ ...editedCustomer, interestLevel: value });
                     }}
                   >
                     <SelectTrigger 
@@ -800,7 +819,7 @@ export default function GeneralInfoTab({
                           <div 
                             className="flex items-center gap-2 w-full justify-end px-2 py-1 rounded"
                             style={{ 
-                              backgroundColor: (editedCustomer.interestLevel || customer.interestLevel) === level.id ? `${level.dotColor}30` : 'transparent'
+                              backgroundColor: selectedInterestLevel === level.id ? `${level.dotColor}30` : 'transparent'
                             }}
                           >
                             <span 
