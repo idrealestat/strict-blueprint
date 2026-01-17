@@ -612,6 +612,20 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showContactsPanel, setShowContactsPanel] = useState(false);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
   
+  // إظهار/إخفاء قسم الاتصالات الأخيرة (من إعدادات لوحة تحكم المالك)
+  const [recentCallsVisible, setRecentCallsVisible] = useState(() => {
+    return localStorage.getItem('recent_calls_visible') !== 'false';
+  });
+  
+  // الاستماع لتغييرات إعدادات CRM
+  useEffect(() => {
+    const handleCRMSettingsChanged = () => {
+      setRecentCallsVisible(localStorage.getItem('recent_calls_visible') !== 'false');
+    };
+    window.addEventListener('crmSettingsChanged', handleCRMSettingsChanged);
+    return () => window.removeEventListener('crmSettingsChanged', handleCRMSettingsChanged);
+  }, []);
+  
   // استخدام hook المهام
   const { 
     tasks: crmTasks, 
@@ -1707,7 +1721,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
             >
               <div className="flex gap-3 md:gap-4 min-w-max px-2">
                 {/* عمود الاتصالات الأخيرة - ثابت - يمكن إخفاؤه من لوحة تحكم المالك */}
-                {featureFlags.crm_calls_section_enabled && (
+                {recentCallsVisible && (
                 <div className="w-56 md:w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
                   <div className="p-2 md:p-3 border-b-2 border-gray-300 bg-gray-200">
                     <div className="flex items-center justify-between mb-2">
