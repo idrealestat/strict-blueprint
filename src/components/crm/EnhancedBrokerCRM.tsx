@@ -656,6 +656,87 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showContactsPanel, setShowContactsPanel] = useState(false);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
   
+  // إدارة الأعمدة المخصصة
+  const [showColumnsManager, setShowColumnsManager] = useState(false);
+  const [showAddColumnDialog, setShowAddColumnDialog] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState('');
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [editColumnTitle, setEditColumnTitle] = useState('');
+  
+  // تحميل الأعمدة المخصصة
+  const [customColumnsData, setCustomColumnsData] = useState<{ id: string; title: string; color: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('crm_custom_columns');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  // إضافة عمود جديد
+  const handleAddNewColumn = () => {
+    if (!newColumnTitle.trim()) {
+      toast.error('يرجى إدخال اسم العمود');
+      return;
+    }
+    
+    const newColumn = {
+      id: `custom_${Date.now()}`,
+      title: newColumnTitle.trim(),
+      color: '#6366f1',
+    };
+    
+    const updatedData = [...customColumnsData, newColumn];
+    setCustomColumnsData(updatedData);
+    localStorage.setItem('crm_custom_columns', JSON.stringify(updatedData));
+    
+    // إضافة العمود للكانبان
+    setColumns(prev => [...prev, { id: newColumn.id, title: newColumn.title, customerIds: [] }]);
+    
+    setNewColumnTitle('');
+    setShowAddColumnDialog(false);
+    toast.success('تم إضافة العمود بنجاح');
+  };
+  
+  // تعديل اسم عمود
+  const handleEditColumnName = (columnId: string) => {
+    if (!editColumnTitle.trim()) {
+      toast.error('يرجى إدخال اسم العمود');
+      return;
+    }
+    
+    // تحديث الأعمدة المخصصة
+    const updatedData = customColumnsData.map(col => 
+      col.id === columnId ? { ...col, title: editColumnTitle.trim() } : col
+    );
+    setCustomColumnsData(updatedData);
+    localStorage.setItem('crm_custom_columns', JSON.stringify(updatedData));
+    
+    // تحديث الأعمدة في الكانبان
+    setColumns(prev => prev.map(col => 
+      col.id === columnId ? { ...col, title: editColumnTitle.trim() } : col
+    ));
+    
+    setEditingColumnId(null);
+    setEditColumnTitle('');
+    toast.success('تم تعديل اسم العمود');
+  };
+  
+  // حذف عمود مخصص
+  const handleDeleteCustomColumn = (columnId: string) => {
+    const updatedData = customColumnsData.filter(col => col.id !== columnId);
+    setCustomColumnsData(updatedData);
+    localStorage.setItem('crm_custom_columns', JSON.stringify(updatedData));
+    
+    // إزالة من الكانبان
+    setColumns(prev => prev.filter(col => col.id !== columnId));
+    
+    toast.success('تم حذف العمود');
+  };
+  
+  // التحقق إذا كان العمود مخصص
+  const isCustomColumn = (columnId: string) => columnId.startsWith('custom_');
+  
   // إظهار/إخفاء قسم الاتصالات الأخيرة (من إعدادات لوحة تحكم المالك)
   const [recentCallsVisible, setRecentCallsVisible] = useState(() => {
     return localStorage.getItem('recent_calls_visible') !== 'false';
@@ -1669,16 +1750,30 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       {/* View Tabs */}
       <div className="container mx-auto px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white border-2 border-[#D4AF37] mb-4">
-            <TabsTrigger value="kanban" className="flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4" />
-              كانبان
-            </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <List className="w-4 h-4" />
-              قائمة
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList className="grid grid-cols-2 bg-white border-2 border-[#D4AF37]">
+              <TabsTrigger value="kanban" className="flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4" />
+                كانبان
+              </TabsTrigger>
+              <TabsTrigger value="list" className="flex items-center gap-2">
+                <List className="w-4 h-4" />
+                قائمة
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* زر إدارة الأعمدة */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowColumnsManager(true)}
+              className="flex items-center gap-2 border-[#D4AF37] text-[#01411C] hover:bg-[#01411C]/10"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">إدارة الأعمدة</span>
+              <Plus className="w-3 h-3 sm:hidden" />
+            </Button>
+          </div>
 
           {/* Kanban View */}
           <TabsContent value="kanban" className="mt-0 relative">
@@ -3793,6 +3888,143 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               ))}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* حوار إدارة الأعمدة */}
+      <Dialog open={showColumnsManager} onOpenChange={setShowColumnsManager}>
+        <DialogContent dir="rtl" className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LayoutGrid className="w-5 h-5 text-[#01411C]" />
+              إدارة أعمدة الكانبان
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* زر إضافة عمود جديد */}
+            <Button
+              onClick={() => setShowAddColumnDialog(true)}
+              className="w-full bg-[#01411C] hover:bg-[#016630]"
+            >
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة عمود جديد
+            </Button>
+            
+            {/* قائمة الأعمدة */}
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              <p className="text-sm text-gray-500 font-medium">الأعمدة الأساسية (لا يمكن تعديلها)</p>
+              {defaultColumns.map((col) => (
+                <div key={col.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${COLUMN_COLORS[col.id]?.border || 'border-gray-300'}`} 
+                         style={{ backgroundColor: COLUMN_COLORS[col.id]?.bg?.includes('blue') ? '#3b82f6' : 
+                                  COLUMN_COLORS[col.id]?.bg?.includes('purple') ? '#8b5cf6' :
+                                  COLUMN_COLORS[col.id]?.bg?.includes('yellow') ? '#eab308' :
+                                  COLUMN_COLORS[col.id]?.bg?.includes('orange') ? '#f97316' :
+                                  COLUMN_COLORS[col.id]?.bg?.includes('green') ? '#22c55e' :
+                                  COLUMN_COLORS[col.id]?.bg?.includes('red') ? '#ef4444' : '#6b7280' }} />
+                    <span className="font-medium text-sm">{col.title}</span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">أساسي</Badge>
+                </div>
+              ))}
+              
+              {customColumnsData.length > 0 && (
+                <>
+                  <p className="text-sm text-gray-500 font-medium mt-4">الأعمدة المخصصة</p>
+                  {customColumnsData.map((col) => (
+                    <div key={col.id} className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                      {editingColumnId === col.id ? (
+                        <div className="flex-1 flex gap-2">
+                          <Input
+                            value={editColumnTitle}
+                            onChange={(e) => setEditColumnTitle(e.target.value)}
+                            placeholder="اسم العمود..."
+                            className="h-8 text-sm"
+                            autoFocus
+                          />
+                          <Button size="sm" onClick={() => handleEditColumnName(col.id)} className="bg-[#01411C] h-8">
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingColumnId(null)} className="h-8">
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: col.color }} />
+                            <span className="font-medium text-sm">{col.title}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => {
+                                setEditingColumnId(col.id);
+                                setEditColumnTitle(col.title);
+                              }}
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                              onClick={() => handleDeleteCustomColumn(col.id)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+              
+              {customColumnsData.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  لا توجد أعمدة مخصصة. اضغط على "إضافة عمود جديد" لإنشاء عمود.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowColumnsManager(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* حوار إضافة عمود جديد */}
+      <Dialog open={showAddColumnDialog} onOpenChange={setShowAddColumnDialog}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>إضافة عمود جديد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-column-title">اسم العمود</Label>
+              <Input
+                id="new-column-title"
+                value={newColumnTitle}
+                onChange={(e) => setNewColumnTitle(e.target.value)}
+                placeholder="مثال: متابعة، مؤجل، VIP..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddColumnDialog(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleAddNewColumn} className="bg-[#01411C] hover:bg-[#016630]">
+              إضافة
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
