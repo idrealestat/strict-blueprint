@@ -386,6 +386,10 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   const [showOfferPreviewDialog, setShowOfferPreviewDialog] = useState(false);
   const [selectedOfferForPreview, setSelectedOfferForPreview] = useState<any>(null);
   
+  // حالة عرض تفاصيل الطلب المستلم (معاينة كاملة)
+  const [showRequestPreviewDialog, setShowRequestPreviewDialog] = useState(false);
+  const [selectedRequestForPreview, setSelectedRequestForPreview] = useState<any>(null);
+  
   // ✅ حالة نافذة اختيار محتويات PDF
   const [showPdfOptionsDialog, setShowPdfOptionsDialog] = useState(false);
   const [selectedOfferForPdf, setSelectedOfferForPdf] = useState<any>(null);
@@ -4340,10 +4344,25 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       const city = request.preferredCity || request.city;
                       const budget = request.maxBudget || request.budget;
                       const date = request.submittedAt ? new Date(request.submittedAt).toLocaleDateString('ar-SA') : '';
+                      const isFulfilled = request.status === 'fulfilled';
 
                       return (
-                        <div key={request.id} className="p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors border-blue-200">
-                          <div className="flex items-start justify-between gap-3">
+                        <div 
+                          key={request.id} 
+                          className={`p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors relative ${
+                            isFulfilled 
+                              ? 'border-red-300 bg-red-50' 
+                              : 'border-blue-200'
+                          }`}
+                        >
+                          {/* شريط تم توفير الطلب */}
+                          {isFulfilled && (
+                            <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-center text-xs py-1 rounded-t-lg font-bold">
+                              ✓ تم توفير الطلب
+                            </div>
+                          )}
+                          
+                          <div className={`flex items-start justify-between gap-3 ${isFulfilled ? 'mt-4' : ''}`}>
                             <div className="min-w-0 flex-1">
                               <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
                               <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
@@ -4385,13 +4404,105 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 </div>
                               )}
                             </div>
-                            <Badge className={request.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}>
-                              {request.status === 'pending' ? 'جديد' : (request.status || 'معلق')}
+                            <Badge className={
+                              isFulfilled ? 'bg-red-500 text-white' :
+                              request.status === 'pending' ? 'bg-amber-100 text-amber-800' : 
+                              'bg-green-100 text-green-800'
+                            }>
+                              {isFulfilled ? 'تم التوفير' :
+                               request.status === 'pending' ? 'جديد' : (request.status || 'معلق')}
                             </Badge>
                           </div>
                           
                           {/* أزرار الإجراءات */}
-                          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
+                            {/* زر المعاينة */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                              onClick={() => {
+                                setSelectedRequestForPreview(request);
+                                setShowRequestPreviewDialog(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4 ml-1" />
+                              معاينة
+                            </Button>
+                            
+                            {/* زر نشر إعلان */}
+                            <Button
+                              size="sm"
+                              className="bg-[#01411C] hover:bg-[#065f41]"
+                              onClick={() => {
+                                // تجهيز بيانات نشر الطلب كإعلان
+                                const publishData = {
+                                  ownerName: request.ownerName || customer.name,
+                                  ownerPhone: request.ownerPhone || customer.phone,
+                                  ownerIdNumber: request.ownerIdNumber || '',
+                                  ownerBirthDate: request.ownerBirthDate || '',
+                                  ownerCity: request.ownerCity || '',
+                                  ownerDistrict: request.ownerDistrict || '',
+                                  propertyType: request.propertyType || '',
+                                  purpose: request.purpose || 'شراء',
+                                  city: request.preferredCity || '',
+                                  district: request.preferredDistricts || '',
+                                  bedrooms: request.bedrooms || '',
+                                  bathrooms: request.bathrooms || '',
+                                  livingRooms: request.livingRooms || '',
+                                  floors: request.floors || '',
+                                  minArea: request.minArea || '',
+                                  maxArea: request.maxArea || '',
+                                  furnishing: request.furnishing || '',
+                                  minBudget: request.minBudget || '',
+                                  maxBudget: request.maxBudget || '',
+                                  additionalRequirements: request.additionalRequirements || '',
+                                };
+                                localStorage.setItem('republish_request_data', JSON.stringify(publishData));
+                                // TODO: التوجيه لصفحة النشر
+                                toast.success('تم تجهيز البيانات للنشر');
+                              }}
+                            >
+                              <Share2 className="w-4 h-4 ml-1" />
+                              نشر إعلان
+                            </Button>
+                            
+                            {/* زر تم توفير الطلب */}
+                            <Button
+                              size="sm"
+                              variant={isFulfilled ? "outline" : "destructive"}
+                              className={isFulfilled ? "border-green-500 text-green-600 hover:bg-green-50" : ""}
+                              onClick={async () => {
+                                try {
+                                  const newStatus = isFulfilled ? 'pending' : 'fulfilled';
+                                  const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                                  const requests = customerMeta?.property_requests || [];
+                                  const updatedRequests = requests.map((r: any) =>
+                                    r.id === request.id ? { ...r, status: newStatus } : r
+                                  );
+
+                                  await supabase
+                                    .from('crm_customers')
+                                    .update({
+                                      metadata: {
+                                        ...customerMeta,
+                                        property_requests: updatedRequests,
+                                      }
+                                    })
+                                    .eq('id', customer.id);
+
+                                  toast.success(isFulfilled ? 'تم إلغاء حالة التوفير' : 'تم تحديد الطلب كموفّر');
+                                  window.dispatchEvent(new CustomEvent('customerUpdated'));
+                                } catch (e) {
+                                  toast.error('حدث خطأ في تحديث الحالة');
+                                }
+                              }}
+                            >
+                              <CheckCircle className="w-4 h-4 ml-1" />
+                              {isFulfilled ? 'إلغاء التوفير' : 'تم توفير الطلب'}
+                            </Button>
+                            
+                            {/* زر واتساب */}
                             <Button
                               size="sm"
                               className="bg-green-500 hover:bg-green-600 text-white"
@@ -4400,12 +4511,13 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               <MessageSquare className="w-4 h-4 ml-1" />
                               واتساب
                             </Button>
+                            
+                            {/* زر PDF */}
                             <Button
                               size="sm"
                               variant="outline"
                               className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
                               onClick={async () => {
-                                // ✅ تحميل PDF للطلب
                                 try {
                                   const brokerData = {
                                     name: businessCardData.name,
@@ -5357,6 +5469,211 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               </Badge>
             )}
             <Button variant="outline" onClick={() => setShowOfferPreviewDialog(false)}>إغلاق</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog معاينة الطلب المستلم - كامل التفاصيل كما أرسله العميل */}
+      <Dialog open={showRequestPreviewDialog} onOpenChange={setShowRequestPreviewDialog}>
+        <DialogContent dir="rtl" className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            {/* شريط تم توفير الطلب في المعاينة */}
+            {selectedRequestForPreview?.status === 'fulfilled' && (
+              <div className="bg-red-500 text-white text-center py-2 rounded-lg font-bold text-sm mb-3">
+                ✓ تم توفير الطلب
+              </div>
+            )}
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <Eye className="w-5 h-5" />
+              معاينة الطلب المستلم
+            </DialogTitle>
+          </DialogHeader>
+          {selectedRequestForPreview && (
+            <div className="space-y-4">
+              {/* معلومات العميل */}
+              <div className="p-4 bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5 rounded-xl border border-[#D4AF37]">
+                <h3 className="font-bold text-[#01411C] mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  معلومات العميل
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">الاسم:</span> <strong>{selectedRequestForPreview.ownerName || customer.name}</strong></div>
+                  <div><span className="text-gray-500">الجوال:</span> <strong dir="ltr">{selectedRequestForPreview.ownerPhone || customer.phone}</strong></div>
+                  {selectedRequestForPreview.ownerIdNumber && (
+                    <div><span className="text-gray-500">رقم الهوية:</span> <strong>{selectedRequestForPreview.ownerIdNumber}</strong></div>
+                  )}
+                  {selectedRequestForPreview.ownerBirthDate && (
+                    <div><span className="text-gray-500">تاريخ الميلاد:</span> <strong>{selectedRequestForPreview.ownerBirthDate}</strong></div>
+                  )}
+                  {selectedRequestForPreview.ownerCity && (
+                    <div><span className="text-gray-500">المدينة:</span> <strong>{selectedRequestForPreview.ownerCity}</strong></div>
+                  )}
+                  {selectedRequestForPreview.ownerDistrict && (
+                    <div><span className="text-gray-500">الحي:</span> <strong>{selectedRequestForPreview.ownerDistrict}</strong></div>
+                  )}
+                </div>
+              </div>
+
+              {/* معلومات الطلب */}
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  معلومات الطلب
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-500">نوع العقار:</span> <strong>{selectedRequestForPreview.propertyType}</strong></div>
+                  <div><span className="text-gray-500">الغرض:</span> <strong>{selectedRequestForPreview.purpose}</strong></div>
+                  {selectedRequestForPreview.preferredCity && (
+                    <div><span className="text-gray-500">المدينة المفضلة:</span> <strong>{selectedRequestForPreview.preferredCity}</strong></div>
+                  )}
+                  {selectedRequestForPreview.preferredDistricts && (
+                    <div><span className="text-gray-500">الأحياء المفضلة:</span> <strong>{selectedRequestForPreview.preferredDistricts}</strong></div>
+                  )}
+                  {(selectedRequestForPreview.minBudget || selectedRequestForPreview.maxBudget) && (
+                    <div className="col-span-2">
+                      <span className="text-gray-500">الميزانية:</span> 
+                      <strong className="text-[#D4AF37] mr-1">
+                        {selectedRequestForPreview.minBudget && `من ${selectedRequestForPreview.minBudget}`}
+                        {selectedRequestForPreview.minBudget && selectedRequestForPreview.maxBudget && ' - '}
+                        {selectedRequestForPreview.maxBudget && `إلى ${selectedRequestForPreview.maxBudget}`} ريال
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* المواصفات المطلوبة */}
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <h3 className="font-bold text-purple-800 mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  المواصفات المطلوبة
+                </h3>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  {selectedRequestForPreview.bedrooms && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedRequestForPreview.bedrooms}</div><div className="text-xs text-gray-500">غرف نوم</div></div>
+                  )}
+                  {selectedRequestForPreview.bathrooms && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedRequestForPreview.bathrooms}</div><div className="text-xs text-gray-500">دورات مياه</div></div>
+                  )}
+                  {selectedRequestForPreview.livingRooms && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedRequestForPreview.livingRooms}</div><div className="text-xs text-gray-500">صالات</div></div>
+                  )}
+                  {selectedRequestForPreview.floors && (
+                    <div className="text-center p-2 bg-white rounded-lg"><div className="text-lg font-bold">{selectedRequestForPreview.floors}</div><div className="text-xs text-gray-500">طوابق</div></div>
+                  )}
+                  {(selectedRequestForPreview.minArea || selectedRequestForPreview.maxArea) && (
+                    <div className="text-center p-2 bg-white rounded-lg">
+                      <div className="text-lg font-bold">{selectedRequestForPreview.minArea || '-'} - {selectedRequestForPreview.maxArea || '-'}</div>
+                      <div className="text-xs text-gray-500">المساحة (م²)</div>
+                    </div>
+                  )}
+                </div>
+                {selectedRequestForPreview.furnishing && (
+                  <div className="mt-3">
+                    <Badge variant="outline" className="bg-white">{selectedRequestForPreview.furnishing}</Badge>
+                  </div>
+                )}
+              </div>
+
+              {/* المميزات المطلوبة */}
+              {(selectedRequestForPreview.hasPool || selectedRequestForPreview.hasGarden || selectedRequestForPreview.hasElevator || 
+                selectedRequestForPreview.hasParking || selectedRequestForPreview.hasMaidRoom || selectedRequestForPreview.hasDriverRoom) && (
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                  <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    المميزات المطلوبة
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRequestForPreview.hasPool && <Badge className="bg-green-100 text-green-800">🏊 مسبح</Badge>}
+                    {selectedRequestForPreview.hasGarden && <Badge className="bg-green-100 text-green-800">🌳 حديقة</Badge>}
+                    {selectedRequestForPreview.hasElevator && <Badge className="bg-green-100 text-green-800">🛗 مصعد</Badge>}
+                    {selectedRequestForPreview.hasParking && <Badge className="bg-green-100 text-green-800">🚗 موقف</Badge>}
+                    {selectedRequestForPreview.hasMaidRoom && <Badge className="bg-green-100 text-green-800">🧹 غرفة خادمة</Badge>}
+                    {selectedRequestForPreview.hasDriverRoom && <Badge className="bg-green-100 text-green-800">🚘 غرفة سائق</Badge>}
+                  </div>
+                </div>
+              )}
+
+              {/* متطلبات إضافية */}
+              {selectedRequestForPreview.additionalRequirements && (
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h3 className="font-bold text-gray-800 mb-2">متطلبات إضافية</h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{selectedRequestForPreview.additionalRequirements}</p>
+                </div>
+              )}
+
+              {/* درجة الاستعجال */}
+              {selectedRequestForPreview.urgency && (
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                  <h3 className="font-bold text-amber-800 mb-2 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    درجة الاستعجال
+                  </h3>
+                  <Badge className={
+                    selectedRequestForPreview.urgency === 'urgent' ? 'bg-red-500 text-white' :
+                    selectedRequestForPreview.urgency === 'soon' ? 'bg-amber-500 text-white' :
+                    'bg-green-500 text-white'
+                  }>
+                    {selectedRequestForPreview.urgency === 'urgent' ? 'عاجل جداً' :
+                     selectedRequestForPreview.urgency === 'soon' ? 'قريباً' : 'غير مستعجل'}
+                  </Badge>
+                </div>
+              )}
+
+              {/* تاريخ الإرسال */}
+              <div className="text-center text-sm text-gray-500 pt-2 border-t">
+                تم الإرسال في: {selectedRequestForPreview.submittedAt ? new Date(selectedRequestForPreview.submittedAt).toLocaleDateString('ar-SA', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }) : 'غير محدد'}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 flex-wrap">
+            {/* زر تم توفير الطلب */}
+            <Button
+              variant={selectedRequestForPreview?.status === 'fulfilled' ? "outline" : "destructive"}
+              className={selectedRequestForPreview?.status === 'fulfilled' ? "border-green-500 text-green-600 hover:bg-green-50" : ""}
+              onClick={async () => {
+                try {
+                  const isFulfilled = selectedRequestForPreview?.status === 'fulfilled';
+                  const newStatus = isFulfilled ? 'pending' : 'fulfilled';
+                  const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                  const requests = customerMeta?.property_requests || [];
+                  const updatedRequests = requests.map((r: any) =>
+                    r.id === selectedRequestForPreview?.id ? { ...r, status: newStatus } : r
+                  );
+
+                  await supabase
+                    .from('crm_customers')
+                    .update({
+                      metadata: {
+                        ...customerMeta,
+                        property_requests: updatedRequests,
+                      }
+                    })
+                    .eq('id', customer.id);
+
+                  setSelectedRequestForPreview({ ...selectedRequestForPreview, status: newStatus });
+                  toast.success(isFulfilled ? 'تم إلغاء حالة التوفير' : 'تم تحديد الطلب كموفّر');
+                  window.dispatchEvent(new CustomEvent('customerUpdated'));
+                } catch (e) {
+                  toast.error('حدث خطأ في تحديث الحالة');
+                }
+              }}
+            >
+              <CheckCircle className="w-4 h-4 ml-1" />
+              {selectedRequestForPreview?.status === 'fulfilled' ? 'إلغاء التوفير' : 'تم توفير الطلب'}
+            </Button>
+            {selectedRequestForPreview?.status === 'fulfilled' && (
+              <Badge className="bg-red-500 text-white px-4 py-2">
+                ✓ تم توفير الطلب
+              </Badge>
+            )}
+            <Button variant="outline" onClick={() => setShowRequestPreviewDialog(false)}>إغلاق</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
