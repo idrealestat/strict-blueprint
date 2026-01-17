@@ -17,8 +17,6 @@ import { Send, Loader2, CheckCircle, FileText, User, Home, Calculator, Clock } f
 import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { triggerQuoteNotification } from '@/utils/notificationTriggers';
-import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
 const getMockBroker = (brokerId: string): BrokerInfo => ({
   id: brokerId,
@@ -184,7 +182,20 @@ export default function PublicPriceQuoteForm() {
         type: 'price_quote',
         brokerId: broker.id,
         brokerName: broker.name,
-        ...formData,
+        // معلومات العميل - بأسماء موحدة مع backend
+        clientName: formData.clientName,
+        clientPhone: formData.clientPhone,
+        clientEmail: formData.clientEmail,
+        // معلومات الخدمة والعقار
+        serviceType: formData.serviceType,
+        propertyType: formData.propertyType,
+        locationCity: formData.propertyLocation?.split(' - ')?.[0] || '',
+        locationDistrict: formData.propertyLocation?.split(' - ')?.[1] || '',
+        propertyLocation: formData.propertyLocation,
+        propertyArea: formData.propertyArea,
+        estimatedValue: formData.estimatedValue,
+        details: formData.details,
+        preferredContactTime: formData.preferredContactTime,
         submittedAt: new Date().toISOString(),
         status: 'pending',
       };
@@ -201,6 +212,9 @@ export default function PublicPriceQuoteForm() {
 
       if (submitError) {
         console.error('Public quote submit error:', submitError);
+        toast.error('حدث خطأ أثناء الإرسال');
+        setIsSubmitting(false);
+        return;
       }
 
       const customerId = (submitResult as any)?.customerId as string | undefined;
