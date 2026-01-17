@@ -124,7 +124,7 @@ export function buildOfferUrl(baseSlug: string, cityName: string, districtName: 
  * الحصول على الدومين المنشور
  */
 export function getPublishedDomain(): string {
-  return import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+  return import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com';
 }
 
 /**

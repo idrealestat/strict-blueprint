@@ -40,7 +40,7 @@ export function getPublicPlatformSlug(fallbacks?: Array<unknown>): string {
  * يجب تمرير الـ slug من DB، لا يوجد fallback افتراضي
  */
 export function getPublicPlatformUrl(origin?: string, slug?: unknown): string {
-  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+  const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com';
   const defaultOrigin = `https://${publishedDomain}`;
   const safeSlug = slug ? sanitizePublicPlatformSlug(slug) : '';
   if (!safeSlug) {
