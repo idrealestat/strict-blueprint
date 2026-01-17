@@ -12,17 +12,29 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   Send, Loader2, CheckCircle, Upload, Home, MapPin, User, Phone, 
   FileText, Building, X, Image as ImageIcon, Video, Star, Shield,
-  CreditCard, Calendar, Plus, Trash2, Ruler, DoorOpen, Car, Droplets
+  CreditCard, Calendar, Plus, Trash2, Ruler, DoorOpen, Car, Droplets,
+  Sparkles, Zap, Navigation, Satellite, Map as MapIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { triggerOfferNotification, createNotification } from '@/utils/notificationTriggers';
 import { markAsNew } from '@/hooks/usePublishedAdsManager';
-import LocationPickerMap from '@/components/auth/LocationPickerMap';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet marker icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 // Mock broker data
 const getMockBroker = (brokerId: string): BrokerInfo => ({
@@ -196,6 +208,21 @@ export default function PublicOfferForm() {
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerSlug || '1'));
   
+  // Map states
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const streetLayerRef = useRef<L.TileLayer | null>(null);
+  const satelliteLayerRef = useRef<L.TileLayer | null>(null);
+  const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('street');
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  
+  // Smart Price Generator states
+  const [isGeneratingPrices, setIsGeneratingPrices] = useState(false);
+  const [suggestedPrices, setSuggestedPrices] = useState<{min: number; max: number; average: number} | null>(null);
+  const [priceEvaluation, setPriceEvaluation] = useState<{status: 'low' | 'fair' | 'high'; message: string} | null>(null);
+  const [marketAverage, setMarketAverage] = useState<number | null>(null);
+  
   // تحميل بيانات الوسيط مع الصور من قاعدة البيانات
   useEffect(() => {
     const loadBrokerData = async () => {
@@ -327,6 +354,191 @@ export default function PublicOfferForm() {
     }
   }, [brokerSlug]);
 
+  // Fetch address from coordinates
+  const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+    setIsLoadingLocation(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar`
+      );
+      const data = await response.json();
+      
+      if (data && data.address) {
+        const address = data.address;
+        const city = address.city || address.town || address.village || address.state || '';
+        const district = address.suburb || address.neighbourhood || address.district || '';
+        const street = address.road || address.street || '';
+        const buildingNumber = address.house_number || '';
+        const postalCode = address.postcode || '';
+
+        setFormData(prev => ({
+          ...prev,
+          locationCity: city,
+          locationDistrict: district,
+          locationStreet: street,
+          locationBuilding: buildingNumber,
+          locationPostalCode: postalCode,
+          locationLat: lat.toString(),
+          locationLng: lng.toString(),
+          googleMapsUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching address:', error);
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  // Initialize Map
+  useEffect(() => {
+    if (!mapContainer.current || mapRef.current) return;
+
+    const map = L.map(mapContainer.current).setView([24.7136, 46.6753], 12);
+    mapRef.current = map;
+
+    // Street layer
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    });
+    streetLayerRef.current = streetLayer;
+    streetLayer.addTo(map);
+
+    // Satellite layer
+    const satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: '© Esri' }
+    );
+    satelliteLayerRef.current = satelliteLayer;
+
+    // Click to place marker
+    map.on('click', async (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+      } else {
+        const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        markerRef.current = marker;
+        
+        marker.on('dragend', async () => {
+          const pos = marker.getLatLng();
+          await fetchAddressFromCoordinates(pos.lat, pos.lng);
+        });
+      }
+      
+      await fetchAddressFromCoordinates(lat, lng);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Toggle map layer
+  const toggleMapLayer = () => {
+    if (!mapRef.current || !streetLayerRef.current || !satelliteLayerRef.current) return;
+    
+    if (mapLayer === 'street') {
+      mapRef.current.removeLayer(streetLayerRef.current);
+      satelliteLayerRef.current.addTo(mapRef.current);
+      setMapLayer('satellite');
+    } else {
+      mapRef.current.removeLayer(satelliteLayerRef.current);
+      streetLayerRef.current.addTo(mapRef.current);
+      setMapLayer('street');
+    }
+  };
+
+  // Go to my location
+  const goToMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('المتصفح لا يدعم تحديد الموقع');
+      return;
+    }
+    
+    setIsLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        if (mapRef.current) {
+          mapRef.current.setView([latitude, longitude], 16);
+          
+          if (markerRef.current) {
+            markerRef.current.setLatLng([latitude, longitude]);
+          } else {
+            const marker = L.marker([latitude, longitude], { draggable: true }).addTo(mapRef.current);
+            markerRef.current = marker;
+            
+            marker.on('dragend', async () => {
+              const pos = marker.getLatLng();
+              await fetchAddressFromCoordinates(pos.lat, pos.lng);
+            });
+          }
+        }
+        
+        await fetchAddressFromCoordinates(latitude, longitude);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        toast.error('تعذر تحديد موقعك');
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  // Smart Price Generator
+  const generateSmartPrices = async () => {
+    if (!formData.propertyType || !formData.locationCity || !formData.area) {
+      toast.error('يرجى تحديد نوع العقار والمدينة والمساحة أولاً');
+      return;
+    }
+
+    setIsGeneratingPrices(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-smart-prices', {
+        body: {
+          propertyType: formData.propertyType,
+          purpose: formData.purpose || 'للبيع',
+          area: parseInt(formData.area) || 0,
+          city: formData.locationCity,
+          district: formData.locationDistrict,
+          bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : undefined,
+          furnishing: formData.furnishing,
+          requestedPrice: formData.price ? parseInt(formData.price) : undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setSuggestedPrices({
+          min: data.minPrice,
+          max: data.maxPrice,
+          average: data.averagePrice,
+        });
+        setMarketAverage(data.averagePrice);
+
+        if (data.evaluation) {
+          setPriceEvaluation({
+            status: data.evaluation.status,
+            message: data.evaluation.message,
+          });
+        }
+
+        toast.success('تم توليد الأسعار المقترحة بنجاح');
+      }
+    } catch (error) {
+      console.error('Error generating prices:', error);
+      toast.error('حدث خطأ أثناء توليد الأسعار');
+    } finally {
+      setIsGeneratingPrices(false);
+    }
+  };
+
   const updateField = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -349,11 +561,9 @@ export default function PublicOfferForm() {
   };
 
   // Upload file to Supabase Storage with broker ownership path
-  // Note: Public forms upload to broker's folder using broker id from URL params
   const uploadFile = useCallback(async (file: File): Promise<string | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-    // SECURITY: Path uses broker's id for ownership, falling back to 'public-submissions' for anonymous
     const ownerId = broker?.id || 'public-submissions';
     const filePath = `${ownerId}/client-offers/${fileName}`;
 
@@ -420,7 +630,6 @@ export default function PublicOfferForm() {
     if (newMedia.length > 0) {
       const updatedMedia = [...media, ...newMedia];
       setMedia(updatedMedia);
-      // حفظ الوسائط في sessionStorage لمنع فقدانها
       try {
         sessionStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(updatedMedia));
       } catch (e) {
@@ -441,7 +650,6 @@ export default function PublicOfferForm() {
       updatedMedia[0].isMain = true;
     }
     setMedia(updatedMedia);
-    // حفظ التحديثات في sessionStorage
     try {
       sessionStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(updatedMedia));
     } catch (e) {
@@ -494,6 +702,8 @@ export default function PublicOfferForm() {
         locationCity: formData.locationCity,
         locationDistrict: formData.locationDistrict,
         locationStreet: formData.locationStreet,
+        locationBuilding: formData.locationBuilding,
+        locationPostalCode: formData.locationPostalCode,
         paymentPrices: formData.paymentPrices,
         floors: formData.floors,
         floorNumber: formData.floorNumber,
@@ -524,6 +734,14 @@ export default function PublicOfferForm() {
         status: 'pending',
         isNew: true,
         isViewed: false,
+        // Smart price data
+        priceEvaluation: priceEvaluation ? {
+          status: priceEvaluation.status,
+          message: priceEvaluation.message,
+          requestedPrice: formData.price,
+          marketAverage: marketAverage,
+        } : null,
+        suggestedPrices: suggestedPrices,
       };
 
       // استخدام Edge Function لإرسال البيانات (تتجاوز RLS)
@@ -789,7 +1007,7 @@ export default function PublicOfferForm() {
           )}
         </Section>
 
-        {/* ===== 3. معلومات العقار الأساسية ===== */}
+        {/* ===== 4. معلومات العقار الأساسية ===== */}
         <Section title="معلومات العقار" icon={<Home className="w-5 h-5" />} color="amber">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -825,29 +1043,213 @@ export default function PublicOfferForm() {
               />
             </div>
             <div>
-              <Label className="text-amber-800">المساحة (م²)</Label>
+              <Label className="text-amber-800">غرف النوم</Label>
               <Input
                 type="number"
-                value={formData.area}
-                onChange={(e) => updateField('area', e.target.value)}
-                placeholder="المساحة بالمتر المربع"
+                value={formData.bedrooms}
+                onChange={(e) => updateField('bedrooms', e.target.value)}
+                placeholder="عدد الغرف"
                 className="border-amber-200 focus:border-amber-400"
               />
             </div>
-            <div className="md:col-span-2">
+          </div>
+        </Section>
+
+        {/* ===== 5. موقع العقار - الخريطة التفاعلية ===== */}
+        <Section title="موقع العقار على الخريطة" icon={<MapPin className="w-5 h-5" />} color="cyan">
+          <div className="space-y-4">
+            {/* أزرار التحكم */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={goToMyLocation}
+                disabled={isLoadingLocation}
+                className="border-cyan-300 text-cyan-700 hover:bg-cyan-50"
+              >
+                {isLoadingLocation ? (
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                ) : (
+                  <Navigation className="w-4 h-4 ml-2" />
+                )}
+                موقعي الحالي
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={toggleMapLayer}
+                className="border-cyan-300 text-cyan-700 hover:bg-cyan-50"
+              >
+                {mapLayer === 'street' ? (
+                  <Satellite className="w-4 h-4 ml-2" />
+                ) : (
+                  <MapIcon className="w-4 h-4 ml-2" />
+                )}
+                {mapLayer === 'street' ? 'القمر الصناعي' : 'الخريطة'}
+              </Button>
+            </div>
+
+            {/* الخريطة */}
+            <div 
+              ref={mapContainer} 
+              className="h-[300px] rounded-lg border-2 border-cyan-200 overflow-hidden"
+              style={{ zIndex: 1 }}
+            />
+
+            {/* بيانات الموقع المستخرجة */}
+            {(formData.locationStreet || formData.locationCity) && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+                {formData.locationStreet && (
+                  <div>
+                    <Label className="text-cyan-700 text-xs">اسم الشارع</Label>
+                    <p className="font-semibold text-cyan-900">{formData.locationStreet}</p>
+                  </div>
+                )}
+                {formData.locationBuilding && (
+                  <div>
+                    <Label className="text-cyan-700 text-xs">رقم المبنى</Label>
+                    <p className="font-semibold text-cyan-900">{formData.locationBuilding}</p>
+                  </div>
+                )}
+                {formData.locationPostalCode && (
+                  <div>
+                    <Label className="text-cyan-700 text-xs">الرمز البريدي</Label>
+                    <p className="font-semibold text-cyan-900">{formData.locationPostalCode}</p>
+                  </div>
+                )}
+                {formData.locationCity && (
+                  <div>
+                    <Label className="text-cyan-700 text-xs">المدينة</Label>
+                    <p className="font-semibold text-cyan-900">{formData.locationCity}</p>
+                  </div>
+                )}
+                {formData.locationDistrict && (
+                  <div>
+                    <Label className="text-cyan-700 text-xs">الحي</Label>
+                    <p className="font-semibold text-cyan-900">{formData.locationDistrict}</p>
+                  </div>
+                )}
+                {formData.locationLat && formData.locationLng && (
+                  <div>
+                    <Label className="text-cyan-700 text-xs">الإحداثيات</Label>
+                    <p className="font-semibold text-cyan-900 text-xs">
+                      {parseFloat(formData.locationLat).toFixed(6)}, {parseFloat(formData.locationLng).toFixed(6)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* رابط خرائط جوجل */}
+            {formData.googleMapsUrl && (
+              <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+                <Label className="text-cyan-800 mb-2 block flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  رابط الموقع على خرائط جوجل
+                </Label>
+                <a 
+                  href={formData.googleMapsUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-600 hover:text-cyan-800 underline text-sm break-all"
+                >
+                  {formData.googleMapsUrl}
+                </a>
+              </div>
+            )}
+          </div>
+        </Section>
+
+        {/* ===== 6. السعر ومولد الأسعار الذكي ===== */}
+        <Section title="السعر ومولد الأسعار الذكي" icon={<Sparkles className="w-5 h-5" />} color="amber">
+          <div className="space-y-4">
+            {/* السعر المطلوب أولاً */}
+            <div>
               <Label className="text-amber-800">السعر المطلوب (ريال)</Label>
               <Input
                 type="number"
                 value={formData.price}
                 onChange={(e) => updateField('price', e.target.value)}
-                placeholder="السعر بالريال"
+                placeholder="أدخل السعر المطلوب"
                 className="border-amber-200 focus:border-amber-400"
               />
             </div>
 
+            {/* زر مولد الأسعار الذكي */}
+            <Button
+              type="button"
+              onClick={generateSmartPrices}
+              disabled={isGeneratingPrices || !formData.propertyType || !formData.locationCity || !formData.area}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+            >
+              {isGeneratingPrices ? (
+                <>
+                  <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                  جاري التحليل...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 ml-2" />
+                  مولد الأسعار الذكي
+                </>
+              )}
+            </Button>
+
+            {/* نتائج مولد الأسعار */}
+            {suggestedPrices && (
+              <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-amber-800 flex items-center gap-2 text-lg">
+                    <Zap className="w-5 h-5" />
+                    الأسعار المقترحة
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-amber-600">الحد الأدنى</p>
+                      <p className="font-bold text-amber-800">{suggestedPrices.min.toLocaleString()} ريال</p>
+                    </div>
+                    <div className="border-x border-amber-200">
+                      <p className="text-xs text-amber-600">متوسط السوق</p>
+                      <p className="font-bold text-amber-800 text-lg">{suggestedPrices.average.toLocaleString()} ريال</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-600">الحد الأعلى</p>
+                      <p className="font-bold text-amber-800">{suggestedPrices.max.toLocaleString()} ريال</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* تقييم السعر المطلوب */}
+            {priceEvaluation && formData.price && (
+              <Card className={`border-2 ${
+                priceEvaluation.status === 'low' ? 'border-green-300 bg-green-50' :
+                priceEvaluation.status === 'fair' ? 'border-blue-300 bg-blue-50' :
+                'border-red-300 bg-red-50'
+              }`}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-3">
+                    <Badge className={`${
+                      priceEvaluation.status === 'low' ? 'bg-green-500' :
+                      priceEvaluation.status === 'fair' ? 'bg-blue-500' :
+                      'bg-red-500'
+                    } text-white`}>
+                      {priceEvaluation.status === 'low' ? 'أقل من السوق' :
+                       priceEvaluation.status === 'fair' ? 'سعر عادل' :
+                       'أعلى من السوق'}
+                    </Badge>
+                    <span className="text-sm">{priceEvaluation.message}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* حقول الدفعات للإيجار */}
             {formData.purpose === 'للإيجار' && (
-              <div className="md:col-span-2 border-t pt-4 mt-2 space-y-4">
+              <div className="border-t pt-4 mt-2 space-y-4">
                 <Label className="text-amber-800 font-bold flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
                   خيارات الدفعات (اختياري)
@@ -904,7 +1306,7 @@ export default function PublicOfferForm() {
                         ...prev, 
                         paymentPrices: { ...prev.paymentPrices, monthly: e.target.value }
                       }))}
-                      placeholder="السعر الشهري"
+                      placeholder="الإيجار الشهري"
                       className="border-amber-200 focus:border-amber-400"
                     />
                   </div>
@@ -914,129 +1316,7 @@ export default function PublicOfferForm() {
           </div>
         </Section>
 
-        {/* ===== قسم تحديد موقع العقار ===== */}
-        <Section title="تحديد موقع العقار" icon={<MapPin className="w-5 h-5" />} color="cyan">
-          <div className="space-y-4">
-            {/* الخريطة */}
-            <div className="mb-4">
-              <Label className="text-cyan-800 mb-2 block">حدد موقع العقار على الخريطة</Label>
-              <LocationPickerMap
-                onLocationSelect={async (lat, lng) => {
-                  // تحديث الإحداثيات فوراً
-                  setFormData(prev => ({
-                    ...prev,
-                    locationLat: lat.toString(),
-                    locationLng: lng.toString(),
-                    googleMapsUrl: `https://www.google.com/maps?q=${lat},${lng}`
-                  }));
-                  
-                  // جلب العنوان من Nominatim (Reverse Geocoding)
-                  try {
-                    const response = await fetch(
-                      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar&addressdetails=1`
-                    );
-                    const data = await response.json();
-                    
-                    if (data && data.address) {
-                      const addr = data.address;
-                      setFormData(prev => ({
-                        ...prev,
-                        locationCity: addr.city || addr.town || addr.village || addr.state || '',
-                        locationDistrict: addr.suburb || addr.neighbourhood || addr.district || addr.county || '',
-                        locationStreet: addr.road || addr.street || '',
-                        locationPostalCode: addr.postcode || '',
-                        // رقم المبني والرقم الإضافي قد لا يتوفران دائماً
-                        locationBuilding: addr.house_number || '',
-                      }));
-                    }
-                  } catch (error) {
-                    console.error('Error fetching address:', error);
-                  }
-                }}
-                initialLat={formData.locationLat ? parseFloat(formData.locationLat) : 24.7136}
-                initialLng={formData.locationLng ? parseFloat(formData.locationLng) : 46.6753}
-              />
-            </div>
-
-            {/* الحقول التلقائية */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-cyan-800">المدينة</Label>
-                <Input
-                  value={formData.locationCity}
-                  onChange={(e) => updateField('locationCity', e.target.value)}
-                  placeholder="المدينة"
-                  className="border-cyan-200 focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <Label className="text-cyan-800">الحي</Label>
-                <Input
-                  value={formData.locationDistrict}
-                  onChange={(e) => updateField('locationDistrict', e.target.value)}
-                  placeholder="الحي"
-                  className="border-cyan-200 focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <Label className="text-cyan-800">اسم الشارع</Label>
-                <Input
-                  value={formData.locationStreet}
-                  onChange={(e) => updateField('locationStreet', e.target.value)}
-                  placeholder="اسم الشارع"
-                  className="border-cyan-200 focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <Label className="text-cyan-800">رقم المبنى</Label>
-                <Input
-                  value={formData.locationBuilding}
-                  onChange={(e) => updateField('locationBuilding', e.target.value)}
-                  placeholder="رقم المبنى"
-                  className="border-cyan-200 focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <Label className="text-cyan-800">الرقم الإضافي</Label>
-                <Input
-                  value={formData.locationAdditionalNumber}
-                  onChange={(e) => updateField('locationAdditionalNumber', e.target.value)}
-                  placeholder="الرقم الإضافي"
-                  className="border-cyan-200 focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <Label className="text-cyan-800">الرمز البريدي</Label>
-                <Input
-                  value={formData.locationPostalCode}
-                  onChange={(e) => updateField('locationPostalCode', e.target.value)}
-                  placeholder="الرمز البريدي"
-                  className="border-cyan-200 focus:border-cyan-400"
-                />
-              </div>
-            </div>
-
-            {/* رابط خرائط جوجل */}
-            {formData.googleMapsUrl && (
-              <div className="mt-4 p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
-                <Label className="text-cyan-800 mb-2 block flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  رابط الموقع على خرائط جوجل
-                </Label>
-                <a 
-                  href={formData.googleMapsUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-600 hover:text-cyan-800 underline text-sm break-all"
-                >
-                  {formData.googleMapsUrl}
-                </a>
-              </div>
-            )}
-          </div>
-        </Section>
-
-        {/* ===== 4. المواصفات التفصيلية ===== */}
+        {/* ===== 7. المواصفات التفصيلية ===== */}
         <Section title="المواصفات التفصيلية" icon={<Building className="w-5 h-5" />} color="purple">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -1056,16 +1336,6 @@ export default function PublicOfferForm() {
                 value={formData.floorNumber}
                 onChange={(e) => updateField('floorNumber', e.target.value)}
                 placeholder="للشقق"
-                className="border-purple-200 focus:border-purple-400"
-              />
-            </div>
-            <div>
-              <Label className="text-purple-800">غرف النوم</Label>
-              <Input
-                type="number"
-                value={formData.bedrooms}
-                onChange={(e) => updateField('bedrooms', e.target.value)}
-                placeholder="عدد الغرف"
                 className="border-purple-200 focus:border-purple-400"
               />
             </div>
@@ -1165,7 +1435,7 @@ export default function PublicOfferForm() {
           </div>
         </Section>
 
-        {/* ===== 5. المميزات الإضافية ===== */}
+        {/* ===== 8. المميزات الإضافية ===== */}
         <Section title="المميزات الإضافية" icon={<Star className="w-5 h-5" />} color="cyan">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
@@ -1251,7 +1521,7 @@ export default function PublicOfferForm() {
           </div>
         </Section>
 
-        {/* ===== 6. الضمانات والكفالات ===== */}
+        {/* ===== 9. الضمانات والكفالات ===== */}
         <Section title="الضمانات والكفالات" icon={<Shield className="w-5 h-5" />} color="rose">
           <div className="space-y-3">
             {warranties.map((warranty, index) => (
@@ -1300,7 +1570,7 @@ export default function PublicOfferForm() {
           </div>
         </Section>
 
-        {/* ===== 8. وصف إضافي ===== */}
+        {/* ===== 10. وصف إضافي ===== */}
         <Section title="وصف إضافي" icon={<FileText className="w-5 h-5" />} color="green">
           <Textarea
             value={formData.description}
