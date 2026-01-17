@@ -102,8 +102,8 @@ export function getAvatarFallback(name: string): string {
  * Generate vCard string from business card data
  */
 export function generateVCard(data: BusinessCardSourceOfTruth): string {
-  const publishedDomain = 'strict-page-playbook.lovable.app'; // سيتم استبداله بالدومين المخصص
-  const url = `https://${publishedDomain}/${data.slug}`;
+  const publishedDomain = 'wasataai.com';
+  const url = `https://${publishedDomain}/wasata/${data.slug}`;
   const displayOptions = data.displayOptions || defaultDisplayOptions;
   const phone = displayOptions.showWhatsapp && data.whatsapp ? data.whatsapp : data.phone;
   
