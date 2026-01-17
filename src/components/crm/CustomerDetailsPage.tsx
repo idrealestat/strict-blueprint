@@ -4395,7 +4395,13 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 };
 
                                 localStorage.setItem('wasata_republish_data', JSON.stringify(republishData));
-                                navigate('/app/platform?tab=platform&action=publish');
+
+                                // فتح "منصتي" ثم فتح نموذج نشر الإعلان داخلها
+                                navigate('/app/dashboard');
+                                window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'dashboard-main-252' } }));
+                                window.setTimeout(() => {
+                                  window.dispatchEvent(new Event('wasata:openPublishAd'));
+                                }, 250);
                               }}
                             >
                               <Share2 className="w-4 h-4 ml-1" />

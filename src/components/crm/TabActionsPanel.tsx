@@ -389,8 +389,12 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
         detail: tab.data 
       }));
       
-      // الانتقال تلقائياً لصفحة منصتي مع فتح نموذج النشر
-      navigate('/app/platform?action=publish');
+      // فتح "منصتي" ثم فتح نموذج نشر الإعلان داخلها
+      navigate('/app/dashboard');
+      window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'dashboard-main-252' } }));
+      window.setTimeout(() => {
+        window.dispatchEvent(new Event('wasata:openPublishAd'));
+      }, 250);
       
     } else if (tab.type === 'property_request') {
       // حفظ بيانات الطلب لنشره في قسم الطلبات
@@ -458,8 +462,16 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
         detail: requestData 
       }));
       
-      // الانتقال لصفحة منصتي
-      navigate('/app/platform?action=requests');
+      // فتح "منصتي" ثم الانتقال لتبويب الطلبات
+      navigate('/app/dashboard');
+      window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'dashboard-main-252' } }));
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'dashboard-main-252' } }));
+        window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'dashboard-main-252' } }));
+      }, 50);
+      window.setTimeout(() => {
+        // يعتمد على مستمع addRequestToRequests الموجود مسبقاً + التخزين wasata_republish_request
+      }, 250);
     }
   };
 
