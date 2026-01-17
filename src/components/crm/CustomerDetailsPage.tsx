@@ -89,6 +89,7 @@ import { NotificationSounds } from "@/utils/notificationSounds";
 import { markAsViewed, isNew } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
 import { useBusinessCardData } from "@/hooks/useBusinessCardData";
+import { generateRequestPDF } from "@/utils/generateRequestPDF";
 
 interface Customer {
   id: string;
@@ -331,6 +332,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // استخدام hooks تتبع الأحداث والإشعارات
   const { trackCustomerEvent, track } = useEventTracker();
   const { createNotification } = useNotifications();
+  
+  // ✅ جلب بيانات البطاقة الرقمية للمستخدم الحالي
+  const { data: businessCardData, loading: businessCardLoading } = useBusinessCardData();
   
   // جلب البيانات الخاصة بالعميل الحالي
   const customerTransactions = getTransactionsByCustomer(customer.id, customer.phone);
@@ -2056,6 +2060,68 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             >
                               <CheckCircle className="w-4 h-4 ml-1" />
                               {req.status === 'fulfilled' ? 'تم التوفير' : 'تم توفير الطلب'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
+                              onClick={async () => {
+                                // ✅ تحميل PDF للطلب باستخدام بيانات البطاقة الرقمية
+                                try {
+                                  const brokerData = {
+                                    name: businessCardData.name,
+                                    company: businessCardData.companyName,
+                                    phone: businessCardData.phone,
+                                    location: req.preferredCity || businessCardData.city,
+                                    licenseNumber: businessCardData.falLicense,
+                                    profileImage: businessCardData.profileImageUrl,
+                                    coverImage: businessCardData.coverImageUrl,
+                                    logoImage: businessCardData.logoUrl,
+                                  };
+                                  
+                                  const requestData = {
+                                    id: req.id,
+                                    ownerName: req.ownerName || customer.name,
+                                    ownerPhone: req.ownerPhone || customer.phone,
+                                    ownerIdNumber: req.ownerIdNumber,
+                                    ownerBirthDate: req.ownerBirthDate,
+                                    ownerCity: req.ownerCity,
+                                    ownerDistrict: req.ownerDistrict,
+                                    propertyType: req.propertyType,
+                                    purpose: req.purpose,
+                                    preferredCity: req.preferredCity,
+                                    preferredDistricts: req.preferredDistricts,
+                                    minArea: req.minArea,
+                                    maxArea: req.maxArea,
+                                    bedrooms: req.bedrooms,
+                                    bathrooms: req.bathrooms,
+                                    livingRooms: req.livingRooms,
+                                    floors: req.floors,
+                                    furnishing: req.furnishing,
+                                    minBudget: req.minBudget,
+                                    maxBudget: req.maxBudget,
+                                    paymentPrices: req.paymentPrices,
+                                    hasPool: req.hasPool,
+                                    hasGarden: req.hasGarden,
+                                    hasElevator: req.hasElevator,
+                                    hasParking: req.hasParking,
+                                    hasMaidRoom: req.hasMaidRoom,
+                                    hasDriverRoom: req.hasDriverRoom,
+                                    additionalRequirements: req.additionalRequirements,
+                                    urgency: req.urgency,
+                                    createdAt: req.createdAt,
+                                  };
+                                  
+                                  await generateRequestPDF(requestData, true, brokerData);
+                                  toast.success('تم تحميل ملف PDF');
+                                } catch (e) {
+                                  console.error('PDF error', e);
+                                  toast.error('تعذر إنشاء PDF');
+                                }
+                              }}
+                            >
+                              <Download className="w-4 h-4 ml-1" />
+                              PDF
                             </Button>
                             
                           </div>
@@ -4276,19 +4342,126 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       const date = request.submittedAt ? new Date(request.submittedAt).toLocaleDateString('ar-SA') : '';
 
                       return (
-                        <div key={request.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                        <div key={request.id} className="p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors border-blue-200">
                           <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
                               <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
                                 {city && <Badge variant="outline">{city}</Badge>}
-                                {budget && <span className="font-bold text-[#D4AF37]">الميزانية: {budget}</span>}
+                                {request.preferredDistricts && <Badge variant="outline" className="text-xs">{request.preferredDistricts}</Badge>}
+                                {budget && <span className="font-bold text-[#D4AF37]">الميزانية: {budget} ريال</span>}
                                 {date && <span>• {date}</span>}
                               </div>
+                              
+                              {/* معلومات العميل */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
+                                {request.ownerName && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">الاسم:</span> <strong>{request.ownerName}</strong></div>
+                                )}
+                                {request.ownerPhone && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">الجوال:</span> <strong dir="ltr">{request.ownerPhone}</strong></div>
+                                )}
+                                {request.ownerBirthDate && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">تاريخ الميلاد:</span> <strong>{request.ownerBirthDate}</strong></div>
+                                )}
+                                {request.ownerIdNumber && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">رقم الهوية:</span> <strong>{request.ownerIdNumber}</strong></div>
+                                )}
+                                {request.ownerCity && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">المدينة:</span> <strong>{request.ownerCity}</strong></div>
+                                )}
+                                {request.ownerDistrict && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">الحي:</span> <strong>{request.ownerDistrict}</strong></div>
+                                )}
+                              </div>
+                              
+                              {/* مواصفات */}
+                              {(request.bedrooms || request.bathrooms || request.minArea || request.maxArea) && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {request.bedrooms && <Badge variant="outline" className="text-xs">🛏️ {request.bedrooms} غرف</Badge>}
+                                  {request.bathrooms && <Badge variant="outline" className="text-xs">🚿 {request.bathrooms} حمام</Badge>}
+                                  {(request.minArea || request.maxArea) && <Badge variant="outline" className="text-xs">📐 {request.minArea || '-'} - {request.maxArea || '-'} م²</Badge>}
+                                  {request.furnishing && <Badge variant="outline" className="text-xs">🪑 {request.furnishing}</Badge>}
+                                </div>
+                              )}
                             </div>
                             <Badge className={request.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}>
                               {request.status === 'pending' ? 'جديد' : (request.status || 'معلق')}
                             </Badge>
+                          </div>
+                          
+                          {/* أزرار الإجراءات */}
+                          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                            <Button
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => window.open(`https://wa.me/${request.ownerPhone || customer.phone}`, '_blank')}
+                            >
+                              <MessageSquare className="w-4 h-4 ml-1" />
+                              واتساب
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
+                              onClick={async () => {
+                                // ✅ تحميل PDF للطلب
+                                try {
+                                  const brokerData = {
+                                    name: businessCardData.name,
+                                    company: businessCardData.companyName,
+                                    phone: businessCardData.phone,
+                                    location: request.preferredCity || businessCardData.city,
+                                    licenseNumber: businessCardData.falLicense,
+                                    profileImage: businessCardData.profileImageUrl,
+                                    coverImage: businessCardData.coverImageUrl,
+                                    logoImage: businessCardData.logoUrl,
+                                  };
+                                  
+                                  const requestData = {
+                                    id: request.id,
+                                    ownerName: request.ownerName || customer.name,
+                                    ownerPhone: request.ownerPhone || customer.phone,
+                                    ownerIdNumber: request.ownerIdNumber,
+                                    ownerBirthDate: request.ownerBirthDate,
+                                    ownerCity: request.ownerCity,
+                                    ownerDistrict: request.ownerDistrict,
+                                    propertyType: request.propertyType,
+                                    purpose: request.purpose,
+                                    preferredCity: request.preferredCity,
+                                    preferredDistricts: request.preferredDistricts,
+                                    minArea: request.minArea,
+                                    maxArea: request.maxArea,
+                                    bedrooms: request.bedrooms,
+                                    bathrooms: request.bathrooms,
+                                    livingRooms: request.livingRooms,
+                                    floors: request.floors,
+                                    furnishing: request.furnishing,
+                                    minBudget: request.minBudget,
+                                    maxBudget: request.maxBudget,
+                                    paymentPrices: request.paymentPrices,
+                                    hasPool: request.hasPool,
+                                    hasGarden: request.hasGarden,
+                                    hasElevator: request.hasElevator,
+                                    hasParking: request.hasParking,
+                                    hasMaidRoom: request.hasMaidRoom,
+                                    hasDriverRoom: request.hasDriverRoom,
+                                    additionalRequirements: request.additionalRequirements,
+                                    urgency: request.urgency,
+                                    createdAt: request.submittedAt,
+                                  };
+                                  
+                                  await generateRequestPDF(requestData, true, brokerData);
+                                  toast.success('تم تحميل ملف PDF');
+                                } catch (e) {
+                                  console.error('PDF error', e);
+                                  toast.error('تعذر إنشاء PDF');
+                                }
+                              }}
+                            >
+                              <Download className="w-4 h-4 ml-1" />
+                              PDF
+                            </Button>
                           </div>
                         </div>
                       );
@@ -4978,11 +5151,14 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   {selectedOfferForPreview.ownerIdNumber && (
                     <div><span className="text-gray-500">رقم الهوية:</span> <strong>{selectedOfferForPreview.ownerIdNumber}</strong></div>
                   )}
-                  {selectedOfferForPreview.ownerNationalAddress && (
-                    <div className="col-span-2"><span className="text-gray-500">العنوان الوطني:</span> <strong>{selectedOfferForPreview.ownerNationalAddress}</strong></div>
+                  {selectedOfferForPreview.ownerBirthDate && (
+                    <div><span className="text-gray-500">تاريخ الميلاد:</span> <strong>{selectedOfferForPreview.ownerBirthDate}</strong></div>
                   )}
                   {selectedOfferForPreview.ownerCity && (
                     <div><span className="text-gray-500">المدينة:</span> <strong>{selectedOfferForPreview.ownerCity}</strong></div>
+                  )}
+                  {selectedOfferForPreview.ownerDistrict && (
+                    <div><span className="text-gray-500">الحي:</span> <strong>{selectedOfferForPreview.ownerDistrict}</strong></div>
                   )}
                 </div>
               </div>
@@ -5269,23 +5445,17 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   const offer = selectedOfferForPdf;
                   if (!offer) return;
                   
-                  // جلب بيانات الوسيط
-                  let brokerData: any = undefined;
-                  try {
-                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
-                    if (businessCard) {
-                      brokerData = {
-                        name: businessCard.userName || businessCard.name,
-                        company: businessCard.companyName,
-                        phone: businessCard.primaryPhone || businessCard.phone,
-                        location: offer.city,
-                        licenseNumber: businessCard.falLicense,
-                        profileImage: businessCard.profileImage,
-                        coverImage: businessCard.coverImage,
-                        logoImage: businessCard.logoImage,
-                      };
-                    }
-                  } catch {}
+                  // ✅ جلب بيانات الوسيط من البطاقة الرقمية (hook)
+                  const brokerData = {
+                    name: businessCardData.name,
+                    company: businessCardData.companyName,
+                    phone: businessCardData.phone,
+                    location: offer.city || businessCardData.city,
+                    licenseNumber: businessCardData.falLicense,
+                    profileImage: businessCardData.profileImageUrl,
+                    coverImage: businessCardData.coverImageUrl,
+                    logoImage: businessCardData.logoUrl,
+                  };
                   
                   const slug = localStorage.getItem('public_platform_slug') || '';
                   const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';

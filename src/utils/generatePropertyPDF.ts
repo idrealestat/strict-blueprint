@@ -47,6 +47,10 @@ interface PropertyData {
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
+  ownerBirthDate?: string;
+  ownerCity?: string;
+  ownerDistrict?: string;
+  ownerIdNumber?: string;
   features?: string[];
   aiDescription?: string;
   brokerPhone?: string;
