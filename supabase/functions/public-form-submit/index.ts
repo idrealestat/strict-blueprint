@@ -112,6 +112,18 @@ serve(async (req) => {
       });
     }
 
+    // 2.1) Extract owner fields (for CRM "المعلومات العامة")
+    // GeneralInfoTab reads these keys from customer.metadata
+    const ownerIdNumber = sanitizeString((data as any).ownerIdNumber, 50);
+    const ownerBirthDate = sanitizeString((data as any).ownerBirthDate, 30);
+    const ownerNationalAddress = sanitizeString((data as any).ownerNationalAddress, 500);
+    const ownerCity = sanitizeString((data as any).ownerCity, 120) || sanitizeString((data as any).locationCity, 120);
+    const ownerDistrict = sanitizeString((data as any).district, 120) || sanitizeString((data as any).locationDistrict, 120);
+
+    const locationCity = sanitizeString((data as any).locationCity, 120) || ownerCity;
+    const locationDistrict = sanitizeString((data as any).locationDistrict, 120) || ownerDistrict;
+    const locationText = [locationCity, locationDistrict].filter(Boolean).join(' - ') || null;
+
     // 3) Find or create customer
     const { data: existingCustomer } = await supabase
       .from('crm_customers')
@@ -128,10 +140,18 @@ serve(async (req) => {
 
     // Determine metadata update
     const currentMetadata = (existingCustomer?.metadata as Record<string, unknown>) || {};
-    const nextMetadata: Record<string, unknown> = { ...currentMetadata };
+    const nextMetadata: Record<string, unknown> = {
+      ...currentMetadata,
+      // Keep these synced so "المعلومات العامة" لا تكون فارغة
+      ...(ownerIdNumber ? { idNumber: ownerIdNumber } : {}),
+      ...(ownerBirthDate ? { birthDate: ownerBirthDate } : {}),
+      ...(ownerNationalAddress ? { nationalAddress: ownerNationalAddress } : {}),
+      ...(ownerCity ? { city: ownerCity } : {}),
+      ...(ownerDistrict ? { district: ownerDistrict } : {}),
+    };
 
     // Create entity id if not supplied
-    const entityId = sanitizeString(data.id, 120) || `${formType}_${Date.now()}`;
+    const entityId = sanitizeString((data as any).id, 120) || `${formType}_${Date.now()}`;
 
     if (formType === 'offer') {
       const list = (nextMetadata.property_offers as unknown[]) || [];
@@ -163,12 +183,16 @@ serve(async (req) => {
 
     if (existingCustomer?.id) {
       customerId = existingCustomer.id as string;
+      const existingName = (existingCustomer as any).name as string | undefined;
+      const safeName = existingName && !['غير معروف', 'عميل'].includes(existingName) ? existingName : customerName;
+
       await supabase
         .from('crm_customers')
         .update({
-          name: existingCustomer.name && existingCustomer.name !== 'غير معروف' ? existingCustomer.name : customerName,
-          phone: existingCustomer.phone || customerPhone,
-          whatsapp: existingCustomer.whatsapp || customerPhone,
+          name: safeName,
+          phone: (existingCustomer as any).phone || customerPhone,
+          whatsapp: (existingCustomer as any).whatsapp || customerPhone,
+          location: (existingCustomer as any).location || locationText,
           last_contact: today,
           metadata: nextMetadata,
         })
@@ -193,6 +217,7 @@ serve(async (req) => {
                   ? 'نموذج عرض سعر'
                   : 'نموذج موعد',
           last_contact: today,
+          location: locationText,
           metadata: { ...nextMetadata, isNewCard: true },
         })
         .select()
