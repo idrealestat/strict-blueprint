@@ -53,6 +53,7 @@ import FinancialDocumentModal from './FinancialDocumentModal';
 import DocumentPreviewModal from './DocumentPreviewModal';
 import ReceivedQuoteResponseModal from './ReceivedQuoteResponseModal';
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
+import { clientTypes, interestLevels, ClientType, InterestLevel } from '@/types/offer';
 
 interface Customer {
   id: string;
@@ -103,24 +104,23 @@ interface GeneralInfoTabProps {
   setEditedCustomer: (customer: Customer) => void;
 }
 
-// أنواع العملاء - مطابق للصورة تماماً
-const CUSTOMER_TYPES = [
-  { id: 'seller', name: 'بائع', dotColor: '#3B82F6' }, // أزرق
-  { id: 'buyer', name: 'مشتري', dotColor: '#22C55E' }, // أخضر
-  { id: 'landlord', name: 'مؤجر', dotColor: '#F97316' }, // برتقالي
-  { id: 'renter', name: 'مستأجر', dotColor: '#FACC15' }, // أصفر
-  { id: 'finance', name: 'تمويل', dotColor: '#A855F7' }, // بنفسجي
-  { id: 'other', name: 'أخرى', dotColor: '#374151' }, // رمادي غامق
-];
+// تحويل clientTypes من offer.ts إلى تنسيق CUSTOMER_TYPES المتوافق
+const CUSTOMER_TYPES = Object.entries(clientTypes).map(([id, config]) => ({
+  id,
+  name: config.label,
+  dotColor: config.color,
+  bgColor: config.bgColor,
+  icon: config.icon,
+}));
 
-// درجات الاهتمام - مطابق للصورة تماماً
-const INTEREST_LEVELS = [
-  { id: 'passionate', name: 'شغوف', dotColor: '#EF4444' }, // أحمر
-  { id: 'interested', name: 'مهتم', dotColor: '#F97316' }, // برتقالي
-  { id: 'moderate', name: 'معتدل', dotColor: '#8B5CF6' }, // بنفسجي
-  { id: 'limited', name: 'محدود', dotColor: '#92400E' }, // بني
-  { id: 'not_interested', name: 'غير مهتم', dotColor: '#1F2937' }, // أسود
-];
+// تحويل interestLevels من offer.ts إلى تنسيق INTEREST_LEVELS المتوافق
+const INTEREST_LEVELS = Object.entries(interestLevels).map(([id, config]) => ({
+  id,
+  name: config.label,
+  dotColor: config.color,
+  bgColor: config.bgColor,
+  icon: config.icon,
+}));
 
 export default function GeneralInfoTab({ 
   customer, 
