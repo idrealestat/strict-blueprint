@@ -125,6 +125,10 @@ interface PropertyData {
   curtains: string;
   hasExtraKitchen: boolean;
   extraKitchenAppliances: string;
+  hasPool: boolean;
+  hasGarden: boolean;
+  hasElevator: boolean;
+  hasParking: boolean;
 
   // 8. المميزات المخصصة
   features: string[];
@@ -268,6 +272,10 @@ const getDefaultPropertyData = (userPhone?: string): PropertyData => ({
   curtains: '',
   hasExtraKitchen: false,
   extraKitchenAppliances: '',
+  hasPool: false,
+  hasGarden: false,
+  hasElevator: false,
+  hasParking: false,
   features: [],
   customFeatures: [],
   warranties: [],

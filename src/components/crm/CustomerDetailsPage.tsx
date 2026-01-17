@@ -4280,7 +4280,20 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               size="sm"
                               className="bg-[#01411C] hover:bg-[#065f41]"
                               onClick={() => {
+                                // جلب رقم جوال الوسيط من بطاقة أعمالي
+                                let brokerPhoneFromCard = '';
+                                try {
+                                  const businessCardData = localStorage.getItem('digital_card_data');
+                                  if (businessCardData) {
+                                    const parsedCard = JSON.parse(businessCardData);
+                                    brokerPhoneFromCard = parsedCard.primaryPhone || parsedCard.phone || '';
+                                  }
+                                } catch (e) {
+                                  console.warn('Failed to get broker phone from business card:', e);
+                                }
+
                                 const republishData = {
+                                  // معلومات المالك
                                   ownerName: offer.ownerName || customer.name,
                                   ownerPhone: offer.ownerPhone || customer.phone,
                                   ownerIdNumber: offer.ownerIdNumber || '',
@@ -4288,24 +4301,34 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   ownerCity: offer.ownerCity || '',
                                   ownerDistrict: offer.ownerDistrict || '',
                                   ownerBirthDate: offer.ownerBirthDate || '',
+                                  
+                                  // معلومات الصك
                                   deedNumber: offer.deedNumber || '',
                                   deedDate: offer.deedDate || '',
                                   deedCity: offer.deedCity || '',
+                                  
+                                  // معلومات العقار الأساسية
                                   propertyType: offer.propertyType || '',
                                   purpose: offer.purpose || '',
                                   area: offer.area || '',
                                   price: offer.price || '',
+                                  
+                                  // خيارات الدفعات
                                   paymentPrices: offer.paymentPrices || { onePayment: '', twoPayments: '', fourPayments: '', monthly: '' },
+                                  
+                                  // بيانات الموقع من الخريطة - نقل جميع البيانات بشكل صحيح
                                   locationDetails: {
-                                    city: offer.city || '',
-                                    district: offer.district || '',
-                                    street: offer.street || '',
-                                    buildingNumber: '',
-                                    postalCode: '',
-                                    additionalNumber: '',
-                                    latitude: 24.7136,
-                                    longitude: 46.6753,
+                                    city: offer.locationCity || offer.city || '',
+                                    district: offer.locationDistrict || offer.district || '',
+                                    street: offer.locationStreet || offer.street || '',
+                                    buildingNumber: offer.locationBuilding || '',
+                                    postalCode: offer.locationPostalCode || '',
+                                    additionalNumber: offer.locationAdditionalNumber || '',
+                                    latitude: offer.locationLat ? parseFloat(offer.locationLat) : 24.7136,
+                                    longitude: offer.locationLng ? parseFloat(offer.locationLng) : 46.6753,
                                   },
+                                  
+                                  // المواصفات التفصيلية
                                   floors: offer.floors || '',
                                   floorNumber: offer.floorNumber || '',
                                   bedrooms: offer.bedrooms || '',
@@ -4316,18 +4339,55 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   facade: offer.facade || '',
                                   furnishing: offer.furnishing || '',
                                   propertyAge: offer.propertyAge || '',
+                                  
+                                  // معلومات إضافية
                                   entrances: offer.entrances || '',
                                   warehouses: offer.warehouses || '',
                                   hasLaundryRoom: offer.hasLaundryRoom || false,
                                   balconies: offer.balconies || '',
                                   acUnits: offer.acUnits || '',
                                   hasExtraKitchen: offer.hasExtraKitchen || false,
+                                  
+                                  // المميزات الإضافية - تحويلها إلى مصفوفة features لتتوافق مع PropertyPublishForm
+                                  hasPool: offer.hasPool || false,
+                                  hasGarden: offer.hasGarden || false,
+                                  hasElevator: offer.hasElevator || false,
+                                  hasParking: offer.hasParking || false,
+                                  
+                                  // بناء مصفوفة features من القيم البوليانية
+                                  features: [
+                                    ...(offer.hasPool ? ['مسبح خاص'] : []),
+                                    ...(offer.hasGarden ? ['حديقة'] : []),
+                                    ...(offer.hasElevator ? ['مصعد'] : []),
+                                    ...(offer.hasParking ? ['موقف سيارات'] : []),
+                                  ],
+                                  
+                                  // المميزات المخصصة - تحويلها إلى مصفوفة إذا كانت نصاً
+                                  customFeatures: offer.customFeatures 
+                                    ? (typeof offer.customFeatures === 'string' 
+                                        ? offer.customFeatures.split(',').map((f: string) => f.trim()).filter((f: string) => f)
+                                        : offer.customFeatures)
+                                    : [],
+                                  
+                                  // الضمانات والكفالات
                                   warranties: offer.warranties || [],
+                                  
+                                  // الوسائط (صور وفيديو)
                                   media: offer.media || [],
+                                  
+                                  // رابط الجولة الافتراضية
                                   tour3DUrl: offer.tour3dUrl || offer.tour3DUrl || '',
+                                  
+                                  // الوصف
                                   aiDescription: offer.description || '',
+                                  
+                                  // رقم جوال الوسيط من بطاقة أعمالي
+                                  brokerPhone: brokerPhoneFromCard,
+                                  
+                                  // بيانات التتبع
                                   source: 'customer_metadata',
                                   originalOfferId: offer.id,
+                                  originalTabId: 'offers',
                                 };
 
                                 localStorage.setItem('wasata_republish_data', JSON.stringify(republishData));
