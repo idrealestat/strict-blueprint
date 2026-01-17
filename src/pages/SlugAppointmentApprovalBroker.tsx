@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, X, Phone, Calendar, Clock, User, MapPin, FileText, Loader2, AlertCircle, Home, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getFullUrl } from '@/utils/slugify';
 import PublicFormLayout, { BrokerInfo } from '@/pages/public-forms/PublicFormLayout';
 
 interface AppointmentData {
@@ -144,7 +145,7 @@ export default function SlugAppointmentApprovalBroker() {
       }
 
       // إرسال رسالة للعميل
-      const clientConfirmationLink = `${window.location.origin}/${slug}/appointmentapproval/customer/${appointment.id}`;
+      const clientConfirmationLink = getFullUrl(`/${slug}/appointmentapproval/customer/${appointment.id}`);
       
       // إرسال SMS للعميل
       if (appointment.customer_phone) {
@@ -193,8 +194,10 @@ export default function SlugAppointmentApprovalBroker() {
       }
 
       // إرسال رسالة اعتذار للعميل مع رابط صفحة الاعتذار
-      const rescheduleLink = `${window.location.origin}/${slug}/appointmentapproval/sorry?name=${encodeURIComponent(appointment.customer_name)}&phone=${encodeURIComponent(appointment.customer_phone || '')}`;
-      
+      const rescheduleLink = getFullUrl(
+        `/${slug}/appointmentapproval/sorry?name=${encodeURIComponent(appointment.customer_name)}&phone=${encodeURIComponent(appointment.customer_phone || '')}&appointmentId=${encodeURIComponent(appointment.id)}`
+      );
+
       if (appointment.customer_phone) {
         await supabase.functions.invoke('send-sms', {
           body: {
