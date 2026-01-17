@@ -2069,24 +2069,7 @@ export default function MyPlatformComplete({
                             <span className="hidden md:inline mr-1">رابط</span>
                           </Button>
 
-                          {/* مشاركة عامة */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              const safeSlug = (platformSlug || '').trim().toLowerCase();
-                              const shareUrl = getFullUrl(buildCityUrl(safeSlug, city.cityName), window.location.origin);
-                              if (navigator.share) {
-                                navigator.share({ title: `عروض ${city.cityName}`, url: shareUrl });
-                              } else {
-                                shareItemLink(city.cityName, `city-${city.cityName}`, city.cityName, undefined, 'city');
-                              }
-                            }}
-                            className={`h-8 px-2 md:px-3 ${isCityExpanded ? 'text-white hover:bg-white/20' : 'hover:bg-gray-100'}`}
-                          >
-                            <Share2 className="w-4 h-4" />
-                          </Button>
+                          {/* (تم حذف مشاركة المدينة العامة لأنها كانت تعتمد على مسار المدينة المحذوف) */}
 
                           {/* سهم للجوال */}
                           <div className="md:hidden" onClick={() => toggleCityExpand(city.cityName)}>

@@ -45,7 +45,6 @@ import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
 
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
-import SlugCityPage from "./pages/SlugCityPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
 import SlugOfferDetailsPage from "./pages/SlugOfferDetailsPage";
 import SlugCalendarPage from "./pages/SlugCalendarPage";
@@ -562,8 +561,7 @@ const App = () => {
                   <Route path="/:slug/appointmentapproval/customer/:appointmentId" element={<SlugAppointmentApprovalCustomer />} />
                   <Route path="/:slug/appointmentapproval/sorry" element={<SlugAppointmentApprovalSorry />} />
                   
-                  {/* Hierarchical City/District/Offer Routes */}
-                  <Route path="/:slug/:citySlug" element={<SlugCityPage />} />
+                  {/* Hierarchical District/Offer Routes */}
                   <Route path="/:slug/:citySlug/:districtSlug" element={<SlugDistrictPage />} />
                   <Route path="/:slug/:citySlug/:districtSlug/:offerId" element={<SlugOfferDetailsPage />} />
                   
