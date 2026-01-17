@@ -188,10 +188,9 @@ export default function NotificationsSidebar({
       const customerId = (meta as any).customerId as string | undefined;
 
       if (customerId) {
-        // افتح إدارة العملاء ثم افتح تفاصيل العميل
-        onNavigate('customer-management-72');
+        // ✅ افتح تفاصيل العميل مباشرة - الـ event listener في App.tsx يتولى التوجيه تلقائياً
         window.dispatchEvent(new CustomEvent('openCustomerDetails', {
-          detail: { customerId },
+          detail: { customerId, activeTab: 'offers' },
         }));
         onClose();
         return;
