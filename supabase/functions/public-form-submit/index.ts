@@ -119,6 +119,13 @@ serve(async (req) => {
     const ownerCity = sanitizeString((data as any).ownerCity, 120) || sanitizeString((data as any).locationCity, 120);
     const ownerDistrict = sanitizeString((data as any).ownerDistrict, 120) || sanitizeString((data as any).district, 120) || sanitizeString((data as any).locationDistrict, 120);
 
+    // حقول الموقع من الخريطة
+    const street = sanitizeString((data as any).street, 200);
+    const buildingNumber = sanitizeString((data as any).buildingNumber, 50);
+    const postalCode = sanitizeString((data as any).postalCode, 20);
+    const lat = typeof (data as any).lat === 'number' ? (data as any).lat : null;
+    const lng = typeof (data as any).lng === 'number' ? (data as any).lng : null;
+
     const locationCity = sanitizeString((data as any).locationCity, 120) || ownerCity;
     const locationDistrict = sanitizeString((data as any).locationDistrict, 120) || ownerDistrict;
     const locationText = [locationCity, locationDistrict].filter(Boolean).join(' - ') || null;
@@ -146,6 +153,12 @@ serve(async (req) => {
       ...(ownerBirthDate ? { birthDate: ownerBirthDate } : {}),
       ...(ownerCity ? { city: ownerCity } : {}),
       ...(ownerDistrict ? { district: ownerDistrict } : {}),
+      // حقول الموقع من الخريطة
+      ...(street ? { street: street } : {}),
+      ...(buildingNumber ? { buildingNumber: buildingNumber } : {}),
+      ...(postalCode ? { postalCode: postalCode } : {}),
+      ...(lat !== null ? { lat: lat } : {}),
+      ...(lng !== null ? { lng: lng } : {}),
     };
 
     // Create entity id if not supplied
