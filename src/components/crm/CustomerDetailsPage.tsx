@@ -4383,51 +4383,26 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               واتساب
                             </Button>
                             
-                            {/* زر PDF مع قائمة منبثقة */}
-                            <div className="relative group">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
-                              >
-                                <Download className="w-4 h-4 ml-1" />
-                                PDF
-                              </Button>
-                              <div className="absolute left-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-50 hidden group-hover:block min-w-[180px]">
-                                <button
-                                  className="w-full text-right px-4 py-2 hover:bg-green-50 text-sm text-[#01411C] border-b"
-                                  onClick={() => {
-                                    setSelectedOfferForPdf(offer);
-                                    setPdfOptions({
-                                      includeOwner: true,
-                                      includeDeed: true,
-                                      includeImages: true,
-                                      includeProperty: true,
-                                      includeDescription: true,
-                                    });
-                                    setShowPdfOptionsDialog(true);
-                                  }}
-                                >
-                                  ✅ مع معلومات المالك
-                                </button>
-                                <button
-                                  className="w-full text-right px-4 py-2 hover:bg-red-50 text-sm text-gray-700"
-                                  onClick={() => {
-                                    setSelectedOfferForPdf(offer);
-                                    setPdfOptions({
-                                      includeOwner: false,
-                                      includeDeed: true,
-                                      includeImages: true,
-                                      includeProperty: true,
-                                      includeDescription: true,
-                                    });
-                                    setShowPdfOptionsDialog(true);
-                                  }}
-                                >
-                                  ❌ بدون معلومات المالك
-                                </button>
-                              </div>
-                            </div>
+                            {/* زر PDF - يفتح نافذة اختيار المحتويات */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
+                              onClick={() => {
+                                setSelectedOfferForPdf(offer);
+                                setPdfOptions({
+                                  includeOwner: true,
+                                  includeDeed: true,
+                                  includeImages: true,
+                                  includeProperty: true,
+                                  includeDescription: true,
+                                });
+                                setShowPdfOptionsDialog(true);
+                              }}
+                            >
+                              <Download className="w-4 h-4 ml-1" />
+                              PDF
+                            </Button>
                           </div>
                         </div>
                       );
@@ -5873,7 +5848,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               اختر محتويات ملف PDF
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-4">
+            {/* معلومات المالك */}
             <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
@@ -5883,10 +5859,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               />
               <div>
                 <div className="font-medium">معلومات المالك</div>
-                <div className="text-sm text-gray-500">الاسم، الجوال، الهوية، العنوان</div>
+                <div className="text-sm text-gray-500">الاسم، الجوال، الهوية، العنوان، تاريخ الميلاد</div>
               </div>
             </label>
             
+            {/* معلومات الصك */}
             <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
@@ -5900,6 +5877,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               </div>
             </label>
             
+            {/* الصور */}
             <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
@@ -5909,10 +5887,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               />
               <div>
                 <div className="font-medium">الصور</div>
-                <div className="text-sm text-gray-500">صور العقار المرفقة</div>
+                <div className="text-sm text-gray-500">صور العقار المرفقة، رابط الجولة الافتراضية</div>
               </div>
             </label>
             
+            {/* معلومات العقار الكاملة */}
             <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
@@ -5922,10 +5901,11 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               />
               <div>
                 <div className="font-medium">معلومات العقار الكاملة</div>
-                <div className="text-sm text-gray-500">النوع، المساحة، السعر، المواصفات</div>
+                <div className="text-sm text-gray-500">المواصفات التفصيلية، المميزات الإضافية، الضمانات والكفالات</div>
               </div>
             </label>
             
+            {/* وصف العقار */}
             <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
               <input
                 type="checkbox"
@@ -5935,7 +5915,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               />
               <div>
                 <div className="font-medium">وصف العقار</div>
-                <div className="text-sm text-gray-500">الوصف التفصيلي للعقار</div>
+                <div className="text-sm text-gray-500">وصف إضافي</div>
               </div>
             </label>
           </div>
@@ -5948,12 +5928,12 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   const offer = selectedOfferForPdf;
                   if (!offer) return;
                   
-                  // ✅ جلب بيانات الوسيط من البطاقة الرقمية (hook)
+                  // جلب بيانات الوسيط من البطاقة الرقمية
                   const brokerData = {
                     name: businessCardData.name,
                     company: businessCardData.companyName,
                     phone: businessCardData.phone,
-                    location: offer.city || businessCardData.city,
+                    location: offer.city || offer.locationCity || businessCardData.city,
                     licenseNumber: businessCardData.falLicense,
                     profileImage: businessCardData.profileImageUrl,
                     coverImage: businessCardData.coverImageUrl,
@@ -5962,11 +5942,23 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   
                   const slug = localStorage.getItem('public_platform_slug') || '';
                   const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
-                  const offerUrl = slug && offer.city && offer.district
-                    ? `https://${publishedDomain}/${slug}/${offer.city}/${offer.district}/${offer.id}`
+                  const offerUrl = slug && (offer.city || offer.locationCity) && (offer.district || offer.locationDistrict)
+                    ? `https://${publishedDomain}/${slug}/${offer.city || offer.locationCity}/${offer.district || offer.locationDistrict}/${offer.id}`
                     : '';
                   
                   const title = `${offer.propertyType || 'عقار'} ${offer.purpose || ''}`.trim();
+                  
+                  // بناء قائمة المميزات
+                  const features: string[] = [];
+                  if (pdfOptions.includeProperty) {
+                    if (offer.hasPool) features.push('مسبح');
+                    if (offer.hasGarden) features.push('حديقة');
+                    if (offer.hasElevator) features.push('مصعد');
+                    if (offer.hasParking) features.push('موقف سيارات');
+                    if (offer.hasLaundryRoom) features.push('غرفة غسيل');
+                    if (offer.hasExtraKitchen) features.push('مطبخ إضافي');
+                    if (offer.customFeatures) features.push(offer.customFeatures);
+                  }
                   
                   const pdfData = {
                     id: offer.id,
@@ -5974,33 +5966,57 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                     // معلومات المالك (حسب الاختيار)
                     ownerName: pdfOptions.includeOwner ? (offer.ownerName || customer.name) : undefined,
                     ownerPhone: pdfOptions.includeOwner ? (offer.ownerPhone || customer.phone) : undefined,
+                    ownerIdNumber: pdfOptions.includeOwner ? offer.ownerIdNumber : undefined,
+                    ownerBirthDate: pdfOptions.includeOwner ? offer.ownerBirthDate : undefined,
+                    ownerCity: pdfOptions.includeOwner ? offer.ownerCity : undefined,
+                    ownerDistrict: pdfOptions.includeOwner ? offer.ownerDistrict : undefined,
                     // الموقع
                     locationDetails: {
-                      city: offer.city,
-                      district: offer.district,
+                      city: offer.city || offer.locationCity,
+                      district: offer.district || offer.locationDistrict,
+                      street: offer.street || offer.locationStreet,
                     },
+                    // معلومات الصك (حسب الاختيار)
+                    deedNumber: pdfOptions.includeDeed ? offer.deedNumber : undefined,
+                    deedDate: pdfOptions.includeDeed ? offer.deedDate : undefined,
+                    deedCity: pdfOptions.includeDeed ? offer.deedCity : undefined,
                     // معلومات العقار (حسب الاختيار)
                     propertyType: pdfOptions.includeProperty ? offer.propertyType : undefined,
                     purpose: pdfOptions.includeProperty ? offer.purpose : undefined,
                     price: pdfOptions.includeProperty ? offer.price : undefined,
                     area: pdfOptions.includeProperty ? offer.area : undefined,
+                    bedrooms: pdfOptions.includeProperty ? offer.bedrooms : undefined,
+                    bathrooms: pdfOptions.includeProperty ? offer.bathrooms : undefined,
+                    livingRooms: pdfOptions.includeProperty ? offer.livingRooms : undefined,
+                    councils: pdfOptions.includeProperty ? offer.councils : undefined,
+                    floors: pdfOptions.includeProperty ? offer.floors : undefined,
+                    floorNumber: pdfOptions.includeProperty ? offer.floorNumber : undefined,
+                    streetWidth: pdfOptions.includeProperty ? offer.streetWidth : undefined,
+                    facade: pdfOptions.includeProperty ? offer.facade : undefined,
+                    furnishing: pdfOptions.includeProperty ? offer.furnishing : undefined,
+                    propertyAge: pdfOptions.includeProperty ? offer.propertyAge : undefined,
+                    entrances: pdfOptions.includeProperty ? offer.entrances : undefined,
+                    warehouses: pdfOptions.includeProperty ? offer.warehouses : undefined,
+                    balconies: pdfOptions.includeProperty ? offer.balconies : undefined,
+                    acUnits: pdfOptions.includeProperty ? offer.acUnits : undefined,
+                    // المميزات
+                    features: features.length > 0 ? features : undefined,
+                    // الضمانات
+                    warranties: pdfOptions.includeProperty ? offer.warranties : undefined,
                     // الوصف (حسب الاختيار)
                     aiDescription: pdfOptions.includeDescription ? offer.description : undefined,
-                    // الصور (حسب الاختيار)
+                    // الصور ورابط الجولة (حسب الاختيار)
                     images: pdfOptions.includeImages 
                       ? (offer.media || []).filter((m: any) => m.type === 'image').map((m: any) => m.url)
                       : [],
                     image: pdfOptions.includeImages 
-                      ? (offer.media || []).find((m: any) => m.type === 'image')?.url
+                      ? (offer.media || []).find((m: any) => m.type === 'image')?.url || offer.mainImage
                       : undefined,
+                    tour3dUrl: pdfOptions.includeImages ? (offer.tour3dUrl || offer.tour3DUrl) : undefined,
                     offerUrl,
-                    // معلومات الصك (سيتم تمريرها كـ metadata)
-                    deedNumber: pdfOptions.includeDeed ? offer.deedNumber : undefined,
-                    deedDate: pdfOptions.includeDeed ? offer.deedDate : undefined,
-                    deedCity: pdfOptions.includeDeed ? offer.deedCity : undefined,
                   };
                   
-                  await generatePropertyPDF(pdfData as any, true, brokerData);
+                  await generatePropertyPDF(pdfData as any, pdfOptions.includeOwner, brokerData);
                   toast.success('تم تحميل ملف PDF');
                   setShowPdfOptionsDialog(false);
                 } catch (e) {
