@@ -778,10 +778,12 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     return [];
   });
   
-  // الحصول على حالة العروض غير المقروءة
+  // الحصول على حالة العروض والطلبات غير المقروءة
   const customerMetadata = (customer as any).metadata || {};
   const hasUnreadOffer = customerMetadata.hasUnreadOffer === true;
+  const hasUnreadRequest = customerMetadata.hasUnreadRequest === true;
   const offersCount = (customerMetadata.property_offers as any[] || []).length;
+  const requestsCount = (customerMetadata.property_requests as any[] || []).length;
   
   // Default tabs - مرتبة: المعلومات العامة، العروض، عرض منشور، طلب منشور، الطلبات، عروض الأسعار، عقار مؤجر، المهام
   const defaultTabs = [
@@ -789,7 +791,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     { id: 'offers', name: '🎯 العروض', removable: false, hasUnread: hasUnreadOffer, count: offersCount },
     { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
     { id: 'published_requests', name: '📋 طلب منشور', removable: false },
-    { id: 'requests', name: '📝 الطلبات', removable: false },
+    { id: 'requests', name: '📝 الطلبات', removable: false, hasUnread: hasUnreadRequest, count: requestsCount },
     { id: 'price_quotes', name: '💵 عروض الأسعار', removable: false },
     { id: 'rented', name: '🏠 عقار مؤجر', removable: false },
     { id: 'tasks', name: '✅ المهام', removable: false },
@@ -1175,9 +1177,9 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
                   const hasNewPublishedRequest = customerMeta?.hasNewPublishedRequest && tab.id === 'published_requests';
                   const hasNewPublishedAd = customerMeta?.hasNewPublishedAd && tab.id === 'published_ads';
-                  // ✅ الدائرة النابضة لتبويب العروض - من metadata العميل
+                  // ✅ الدائرة النابضة لتبويب العروض والطلبات - من metadata العميل
                   const hasNewOffer = customerMeta?.hasUnreadOffer && tab.id === 'offers';
-                  
+                  const hasNewRequest = customerMeta?.hasUnreadRequest && tab.id === 'requests';
                   return (
                     <div key={tab.id} className="relative group flex items-center">
                       <TabsTrigger 
@@ -1186,7 +1188,6 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                         onClick={() => {
                           // إزالة علامة غير مقروء عند فتح تبويب العروض
                           if (tab.id === 'offers' && customerMeta?.hasUnreadOffer) {
-                            // تحديث في قاعدة البيانات
                             supabase
                               .from('crm_customers')
                               .update({
@@ -1201,6 +1202,22 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 window.dispatchEvent(new CustomEvent('customerUpdated'));
                               });
                           }
+                          // إزالة علامة غير مقروء عند فتح تبويب الطلبات
+                          if (tab.id === 'requests' && customerMeta?.hasUnreadRequest) {
+                            supabase
+                              .from('crm_customers')
+                              .update({
+                                metadata: {
+                                  ...customerMeta,
+                                  hasUnreadRequest: false,
+                                }
+                              })
+                              .eq('id', customer.id)
+                              .then(() => {
+                                markAsViewed('request', customer.id);
+                                window.dispatchEvent(new CustomEvent('customerUpdated'));
+                              });
+                          }
                         }}
                       >
                         {tab.name}
@@ -1209,7 +1226,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                         )}
                         {/* نقطة نابضة للتبويبات الجديدة */}
                         <PulsingDot 
-                          show={hasNewPublishedRequest || hasNewPublishedAd || hasNewOffer} 
+                          show={hasNewPublishedRequest || hasNewPublishedAd || hasNewOffer || hasNewRequest} 
                           size="sm" 
                           position="top-left" 
                           className="m-0"
@@ -4171,39 +4188,68 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                       const title = `${offer.propertyType || 'عقار'} ${offer.purpose || ''}`.trim();
                       const price = offer.price ? `${offer.price} ريال` : '';
                       const date = offer.submittedAt ? new Date(offer.submittedAt).toLocaleDateString('ar-SA') : '';
+                      const isSoldOrRented = offer.status === 'sold' || offer.status === 'rented';
 
                       return (
                         <div 
                           key={offer.id} 
-                          className={`p-4 border rounded-lg hover:bg-gray-50 transition-colors relative ${
-                            offer.status === 'sold' || offer.status === 'rented' 
+                          className={`p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors relative ${
+                            isSoldOrRented 
                               ? 'border-red-300 bg-red-50' 
-                              : ''
+                              : 'border-blue-200'
                           }`}
                         >
                           {/* شريط تم البيع/التأجير */}
-                          {(offer.status === 'sold' || offer.status === 'rented') && (
-                            <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-center text-xs py-1 rounded-t-lg">
+                          {isSoldOrRented && (
+                            <div className="absolute top-0 left-0 right-0 bg-red-500 text-white text-center text-xs py-1 rounded-t-lg font-bold">
                               {offer.status === 'sold' ? '✓ تم البيع' : '✓ تم التأجير'}
                             </div>
                           )}
                           
-                          <div className={`flex items-start justify-between gap-3 ${
-                            offer.status === 'sold' || offer.status === 'rented' ? 'mt-4' : ''
-                          }`}>
-                            <div className="min-w-0">
+                          <div className={`flex items-start justify-between gap-3 ${isSoldOrRented ? 'mt-4' : ''}`}>
+                            <div className="min-w-0 flex-1">
                               <h4 className="font-bold text-[#01411C] truncate">{title}</h4>
                               <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-600">
                                 {price && <span className="font-bold text-[#D4AF37]">{price}</span>}
-                                {offer.city && <span>• {offer.city}</span>}
-                                {offer.district && <span>• {offer.district}</span>}
+                                {offer.city && <Badge variant="outline">{offer.city}</Badge>}
+                                {offer.district && <Badge variant="outline" className="text-xs">{offer.district}</Badge>}
                                 {date && <span>• {date}</span>}
                               </div>
+                              
+                              {/* معلومات المالك */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
+                                {offer.ownerName && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">الاسم:</span> <strong>{offer.ownerName}</strong></div>
+                                )}
+                                {offer.ownerPhone && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">الجوال:</span> <strong dir="ltr">{offer.ownerPhone}</strong></div>
+                                )}
+                                {offer.ownerBirthDate && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">تاريخ الميلاد:</span> <strong>{offer.ownerBirthDate}</strong></div>
+                                )}
+                                {offer.ownerIdNumber && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">رقم الهوية:</span> <strong>{offer.ownerIdNumber}</strong></div>
+                                )}
+                                {offer.ownerCity && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">المدينة:</span> <strong>{offer.ownerCity}</strong></div>
+                                )}
+                                {offer.ownerDistrict && (
+                                  <div className="p-2 bg-gray-50 rounded"><span className="text-gray-500">الحي:</span> <strong>{offer.ownerDistrict}</strong></div>
+                                )}
+                              </div>
+                              
+                              {/* مواصفات */}
+                              {(offer.bedrooms || offer.bathrooms || offer.area) && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {offer.bedrooms && <Badge variant="outline" className="text-xs">🛏️ {offer.bedrooms} غرف</Badge>}
+                                  {offer.bathrooms && <Badge variant="outline" className="text-xs">🚿 {offer.bathrooms} حمام</Badge>}
+                                  {offer.area && <Badge variant="outline" className="text-xs">📐 {offer.area} م²</Badge>}
+                                  {offer.furnishing && <Badge variant="outline" className="text-xs">🪑 {offer.furnishing}</Badge>}
+                                </div>
+                              )}
                             </div>
-
                             <Badge className={
-                              offer.status === 'sold' ? 'bg-red-500 text-white' :
-                              offer.status === 'rented' ? 'bg-red-500 text-white' :
+                              isSoldOrRented ? 'bg-red-500 text-white' :
                               offer.status === 'pending' ? 'bg-amber-100 text-amber-800' : 
                               'bg-green-100 text-green-800'
                             }>
@@ -4213,8 +4259,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             </Badge>
                           </div>
 
-                          {/* أزرار: معاينة، نشر إعلان، PDF */}
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          {/* أزرار الإجراءات */}
+                          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
                             {/* زر المعاينة */}
                             <Button
                               size="sm"
@@ -4228,17 +4274,20 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               <Eye className="w-4 h-4 ml-1" />
                               معاينة
                             </Button>
+                            
+                            {/* زر نشر إعلان */}
                             <Button
                               size="sm"
                               className="bg-[#01411C] hover:bg-[#065f41]"
                               onClick={() => {
-                                // تجهيز بيانات إعادة النشر لنموذج النشر (نفس فكرة TabActionsPanel)
                                 const republishData = {
                                   ownerName: offer.ownerName || customer.name,
                                   ownerPhone: offer.ownerPhone || customer.phone,
                                   ownerIdNumber: offer.ownerIdNumber || '',
                                   ownerNationalAddress: offer.ownerNationalAddress || '',
                                   ownerCity: offer.ownerCity || '',
+                                  ownerDistrict: offer.ownerDistrict || '',
+                                  ownerBirthDate: offer.ownerBirthDate || '',
                                   deedNumber: offer.deedNumber || '',
                                   deedDate: offer.deedDate || '',
                                   deedCity: offer.deedCity || '',
@@ -4285,30 +4334,100 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 window.location.href = '/app/platform?action=publish';
                               }}
                             >
-                              <Send className="w-4 h-4 ml-1" />
+                              <Share2 className="w-4 h-4 ml-1" />
                               نشر إعلان
                             </Button>
-
-                            {/* ✅ زر PDF - يفتح نافذة اختيار المحتويات */}
+                            
+                            {/* زر تم البيع/التأجير */}
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="border-[#D4AF37] text-[#01411C]"
-                              onClick={() => {
-                                setSelectedOfferForPdf(offer);
-                                setPdfOptions({
-                                  includeOwner: true,
-                                  includeDeed: true,
-                                  includeImages: true,
-                                  includeProperty: true,
-                                  includeDescription: true,
-                                });
-                                setShowPdfOptionsDialog(true);
+                              variant={isSoldOrRented ? "outline" : "destructive"}
+                              className={isSoldOrRented ? "border-green-500 text-green-600 hover:bg-green-50" : ""}
+                              onClick={async () => {
+                                try {
+                                  const newStatus = isSoldOrRented ? 'pending' : (offer.purpose === 'بيع' ? 'sold' : 'rented');
+                                  const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
+                                  const offers = customerMeta?.property_offers || [];
+                                  const updatedOffers = offers.map((o: any) =>
+                                    o.id === offer.id ? { ...o, status: newStatus } : o
+                                  );
+
+                                  await supabase
+                                    .from('crm_customers')
+                                    .update({
+                                      metadata: {
+                                        ...customerMeta,
+                                        property_offers: updatedOffers,
+                                      }
+                                    })
+                                    .eq('id', customer.id);
+
+                                  toast.success(isSoldOrRented ? 'تم إلغاء الحالة' : (offer.purpose === 'بيع' ? 'تم تحديد العرض كمباع' : 'تم تحديد العرض كمؤجر'));
+                                  window.dispatchEvent(new CustomEvent('customerUpdated'));
+                                } catch (e) {
+                                  toast.error('حدث خطأ في تحديث الحالة');
+                                }
                               }}
                             >
-                              <Download className="w-4 h-4 ml-1" />
-                              PDF
+                              <CheckCircle className="w-4 h-4 ml-1" />
+                              {isSoldOrRented ? 'إلغاء الحالة' : (offer.purpose === 'بيع' ? 'تم البيع' : 'تم التأجير')}
                             </Button>
+                            
+                            {/* زر واتساب */}
+                            <Button
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => window.open(`https://wa.me/${offer.ownerPhone || customer.phone}`, '_blank')}
+                            >
+                              <MessageSquare className="w-4 h-4 ml-1" />
+                              واتساب
+                            </Button>
+                            
+                            {/* زر PDF مع قائمة منبثقة */}
+                            <div className="relative group">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
+                              >
+                                <Download className="w-4 h-4 ml-1" />
+                                PDF
+                              </Button>
+                              <div className="absolute left-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-50 hidden group-hover:block min-w-[180px]">
+                                <button
+                                  className="w-full text-right px-4 py-2 hover:bg-green-50 text-sm text-[#01411C] border-b"
+                                  onClick={() => {
+                                    setSelectedOfferForPdf(offer);
+                                    setPdfOptions({
+                                      includeOwner: true,
+                                      includeDeed: true,
+                                      includeImages: true,
+                                      includeProperty: true,
+                                      includeDescription: true,
+                                    });
+                                    setShowPdfOptionsDialog(true);
+                                  }}
+                                >
+                                  ✅ مع معلومات المالك
+                                </button>
+                                <button
+                                  className="w-full text-right px-4 py-2 hover:bg-red-50 text-sm text-gray-700"
+                                  onClick={() => {
+                                    setSelectedOfferForPdf(offer);
+                                    setPdfOptions({
+                                      includeOwner: false,
+                                      includeDeed: true,
+                                      includeImages: true,
+                                      includeProperty: true,
+                                      includeDescription: true,
+                                    });
+                                    setShowPdfOptionsDialog(true);
+                                  }}
+                                >
+                                  ❌ بدون معلومات المالك
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
