@@ -70,6 +70,7 @@ interface FormData {
   ownerName: string;
   ownerPhone: string;
   ownerIdNumber: string;
+  ownerBirthDate: string;
   ownerNationalAddress: string;
   ownerCity: string;
   
@@ -249,6 +250,7 @@ export default function PublicOfferForm() {
       ownerName: '',
       ownerPhone: '',
       ownerIdNumber: '',
+      ownerBirthDate: '',
       ownerNationalAddress: '',
       ownerCity: '',
       deedNumber: '',
@@ -476,6 +478,7 @@ export default function PublicOfferForm() {
         ownerName: formData.ownerName,
         ownerPhone: formData.ownerPhone,
         ownerIdNumber: formData.ownerIdNumber,
+        ownerBirthDate: formData.ownerBirthDate,
         ownerNationalAddress: formData.ownerNationalAddress,
         ownerCity: formData.ownerCity,
         deedNumber: formData.deedNumber,
@@ -617,6 +620,15 @@ export default function PublicOfferForm() {
                 value={formData.ownerIdNumber}
                 onChange={(e) => updateField('ownerIdNumber', e.target.value)}
                 placeholder="رقم الهوية الوطنية"
+                className="border-green-200 focus:border-green-400"
+              />
+            </div>
+            <div>
+              <Label className="text-green-800">تاريخ الميلاد</Label>
+              <Input
+                type="date"
+                value={formData.ownerBirthDate}
+                onChange={(e) => updateField('ownerBirthDate', e.target.value)}
                 className="border-green-200 focus:border-green-400"
               />
             </div>
