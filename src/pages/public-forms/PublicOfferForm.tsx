@@ -473,205 +473,76 @@ export default function PublicOfferForm() {
         type: 'property_offer',
         brokerId: broker.id,
         brokerName: broker.name,
-        ...formData,
+        ownerName: formData.ownerName,
+        ownerPhone: formData.ownerPhone,
+        ownerIdNumber: formData.ownerIdNumber,
+        ownerNationalAddress: formData.ownerNationalAddress,
+        ownerCity: formData.ownerCity,
+        deedNumber: formData.deedNumber,
+        deedDate: formData.deedDate,
+        deedCity: formData.deedCity,
+        tour3dUrl: formData.tour3dUrl,
+        propertyType: formData.propertyType,
+        purpose: formData.purpose,
+        area: formData.area,
+        price: formData.price,
+        locationLat: formData.locationLat,
+        locationLng: formData.locationLng,
+        locationCity: formData.locationCity,
+        locationDistrict: formData.locationDistrict,
+        locationStreet: formData.locationStreet,
+        paymentPrices: formData.paymentPrices,
+        floors: formData.floors,
+        floorNumber: formData.floorNumber,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        livingRooms: formData.livingRooms,
+        councils: formData.councils,
+        streetWidth: formData.streetWidth,
+        facade: formData.facade,
+        furnishing: formData.furnishing,
+        propertyAge: formData.propertyAge,
+        entrances: formData.entrances,
+        warehouses: formData.warehouses,
+        hasLaundryRoom: formData.hasLaundryRoom,
+        balconies: formData.balconies,
+        acUnits: formData.acUnits,
+        hasExtraKitchen: formData.hasExtraKitchen,
+        hasPool: formData.hasPool,
+        hasGarden: formData.hasGarden,
+        hasElevator: formData.hasElevator,
+        hasParking: formData.hasParking,
+        customFeatures: formData.customFeatures,
+        description: formData.description,
         warranties,
         media,
         mainImage: media.find(m => m.isMain)?.url || null,
         submittedAt: new Date().toISOString(),
         status: 'pending',
-        isNew: true, // علامة للدائرة النابضة
-        isViewed: false,
-      };
-
-      // 1. الحصول على معرف الوسيط من business_cards باستخدام الـ slug
-      const { data: businessCard } = await supabase
-        .from('business_cards')
-        .select('user_id, data')
-        .eq('slug', brokerId)
-        .eq('published', true)
-        .single();
-
-      const brokerUserId = businessCard?.user_id;
-
-      if (brokerUserId) {
-        // 2. البحث عن العميل برقم الجوال في CRM
-        const { data: existingCustomer } = await supabase
-          .from('crm_customers')
-          .select('*')
-          .eq('user_id', brokerUserId)
-          .or(`phone.eq.${formData.ownerPhone},whatsapp.eq.${formData.ownerPhone}`)
-          .maybeSingle();
-
-        let customerId: string;
-        let isNewCustomer = false;
-
-        if (existingCustomer) {
-          // 3a. العميل موجود - تحديث بياناته وإضافة العرض
-          customerId = existingCustomer.id;
-          
-          // تحديث البيانات الأساسية إذا كانت فارغة
-          const updates: Record<string, any> = {
-            last_contact: new Date().toISOString().split('T')[0],
-          };
-          
-          // تحديث الاسم إذا كان فارغاً
-          if (!existingCustomer.name || existingCustomer.name === 'غير معروف') {
-            updates.name = formData.ownerName;
-          }
-          
-          // إضافة العرض للـ metadata
-          const currentMetadata = (existingCustomer.metadata as Record<string, any>) || {};
-          const existingOffers = currentMetadata.property_offers || [];
-          
-          updates.metadata = {
-            ...currentMetadata,
-            property_offers: [...existingOffers, submissionData],
-            hasUnreadOffer: true,
-            lastOfferAt: new Date().toISOString(),
-          };
-          
-          await supabase
-            .from('crm_customers')
-            .update(updates)
-            .eq('id', customerId);
-
-        } else {
-          // 3b. العميل غير موجود - إنشاء بطاقة جديدة
-          isNewCustomer = true;
-          
-          const { data: newCustomer, error: createError } = await supabase
-            .from('crm_customers')
-            .insert([{
-              user_id: brokerUserId,
-              name: formData.ownerName,
-              phone: formData.ownerPhone,
-              status: 'جديد',
-              priority: 'عالي',
-              property_type: 'owner',
-              source: 'نموذج عرض عقاري',
-              location: formData.locationCity || null,
-              notes: `عرض عقاري: ${formData.propertyType} ${formData.purpose}`,
-              last_contact: new Date().toISOString().split('T')[0],
-              metadata: {
-                idNumber: formData.ownerIdNumber,
-                nationalAddress: formData.ownerNationalAddress,
-                property_offers: [submissionData],
-                hasUnreadOffer: true,
-                isNewCard: true,
-                lastOfferAt: new Date().toISOString(),
-              } as Record<string, any>,
-            }])
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating customer:', createError);
-          } else if (newCustomer) {
-            customerId = newCustomer.id;
-          }
-        }
-
-        // 4. إنشاء إشعار في قاعدة البيانات مع Push Notification
-        await createNotification({
-          userId: brokerUserId,
-          title: '🏠 عرض عقاري جديد',
-          message: `استلمت عرض من ${formData.ownerName} - ${formData.propertyType} ${formData.purpose}`,
-          notificationType: 'offer',
-          category: 'incoming',
-          priority: 'high',
-          relatedEntityType: 'offer_form',
-          relatedEntityId: offerId,
-          actionUrl: '/app/crm',
-          metadata: {
-            ownerName: formData.ownerName,
-            ownerPhone: formData.ownerPhone,
-            propertyType: formData.propertyType,
-            purpose: formData.purpose,
-            city: formData.locationCity,
-            customerId: customerId!,
-            isNewCustomer,
-            isPulsing: true,
-          },
-          sendPush: true,
-          pushData: {
-            type: 'new_offer',
-            ownerName: formData.ownerName,
-            propertyType: formData.propertyType,
-          },
-        });
-
-        // 5. تتبع الدوائر النابضة
-        markAsNew('offer', offerId);
-        if (customerId!) {
-          markAsNew('customer', customerId!);
-        }
-        markAsNew('tab', 'property-offer');
-      }
-
-      // 6. حفظ نسخة محلية احتياطية
-      const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
-      existingSubmissions.push(submissionData);
-      localStorage.setItem('client_submissions', JSON.stringify(existingSubmissions));
-
-      // 7. تحديث localStorage للعملاء (للتوافق مع النظام الحالي)
-      const localCustomers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-      const existingLocalCustomer = localCustomers.find((c: any) => c.phone === formData.ownerPhone);
-      
-      const tabData = {
-        id: `tab_${Date.now()}`,
-        name: 'عرض عقاري',
-        type: 'property_offer',
-        data: submissionData,
         isNew: true,
         isViewed: false,
-        createdAt: new Date().toISOString(),
       };
 
-      if (existingLocalCustomer) {
-        existingLocalCustomer.tabs = existingLocalCustomer.tabs || [];
-        existingLocalCustomer.tabs.push(tabData);
-        existingLocalCustomer.hasUnreadPublishedAd = true;
-        existingLocalCustomer.hasUnreadOffer = true;
-        existingLocalCustomer.name = formData.ownerName;
-        existingLocalCustomer.idNumber = formData.ownerIdNumber;
-        existingLocalCustomer.nationalAddress = formData.ownerNationalAddress;
-      } else {
-        localCustomers.push({
-          id: `cust_${Date.now()}`,
-          name: formData.ownerName,
-          phone: formData.ownerPhone,
-          idNumber: formData.ownerIdNumber,
-          nationalAddress: formData.ownerNationalAddress,
-          type: 'owner',
-          source: 'public_form',
-          status: 'new',
-          hasUnreadPublishedAd: true,
-          hasUnreadOffer: true,
-          isNewCard: true,
-          createdAt: new Date().toISOString(),
-          tabs: [tabData],
-        });
+      // استخدام Edge Function لإرسال البيانات (تتجاوز RLS)
+      const { data: response, error: functionError } = await supabase.functions.invoke('public-form-submit', {
+        body: {
+          slug: brokerSlug,
+          formType: 'offer',
+          data: submissionData,
+        },
+      });
+
+      if (functionError) {
+        console.error('Edge function error:', functionError);
+        throw new Error(functionError.message || 'فشل في إرسال العرض');
       }
-      localStorage.setItem('crm_customers', JSON.stringify(localCustomers));
 
-      // 8. إرسال حدث لتحديث واجهة المستخدم
-      window.dispatchEvent(new CustomEvent('addNotification', {
-        detail: {
-          title: '🏠 عرض عقاري جديد',
-          message: `تم استلام عرض من ${formData.ownerName}`,
-          type: 'success',
-          category: 'customer',
-          isPulsing: true,
-        }
-      }));
+      if (!response?.success) {
+        console.error('Submission failed:', response?.error);
+        throw new Error(response?.error || 'فشل في إرسال العرض');
+      }
 
-      window.dispatchEvent(new CustomEvent('newOfferReceived', {
-        detail: {
-          offerId,
-          ownerName: formData.ownerName,
-          ownerPhone: formData.ownerPhone,
-        }
-      }));
+      console.log('[PublicOfferForm] Submission successful:', response);
 
       // مسح البيانات المحفوظة بعد الإرسال الناجح
       try {
