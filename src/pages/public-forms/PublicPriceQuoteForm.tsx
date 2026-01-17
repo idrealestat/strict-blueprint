@@ -92,6 +92,7 @@ interface FormData {
   purpose: string;
   propertyLocation: string;
   propertyTitle: string;
+  propertyLink: string; // رابط العقار إن وجد
   // عرض السعر
   offeredPrice: string;
   paymentMethod: string;
@@ -152,6 +153,7 @@ export default function PublicPriceQuoteForm() {
     purpose: 'شراء',
     propertyLocation: '',
     propertyTitle: '',
+    propertyLink: '',
     offeredPrice: '',
     paymentMethod: 'cash',
     message: '',
@@ -193,6 +195,7 @@ export default function PublicPriceQuoteForm() {
         purpose: formData.purpose,
         propertyLocation: formData.propertyLocation,
         propertyTitle: formData.propertyTitle || `${formData.propertyType || 'عقار'} - ${formData.propertyLocation || 'غير محدد'}`,
+        propertyLink: formData.propertyLink || '',
         // عرض السعر
         offeredPrice: parseFloat(formData.offeredPrice) || 0,
         paymentMethod: formData.paymentMethod,
@@ -392,6 +395,21 @@ export default function PublicPriceQuoteForm() {
                 placeholder="مثال: فيلا حي النرجس"
                 className="bg-white"
               />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="flex items-center gap-2">
+                🔗 رابط العقار (إن وجد)
+              </Label>
+              <Input
+                value={formData.propertyLink}
+                onChange={(e) => updateField('propertyLink', e.target.value)}
+                placeholder="https://example.com/property/123"
+                dir="ltr"
+                className="bg-white"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                إذا كان لديك رابط صفحة العقار، الصقه هنا
+              </p>
             </div>
           </div>
         </Section>
