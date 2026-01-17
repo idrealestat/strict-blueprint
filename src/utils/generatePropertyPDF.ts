@@ -38,12 +38,17 @@ interface PropertyData {
   bedrooms?: string;
   bathrooms?: string;
   livingRooms?: string;
+  councils?: string;
   floors?: string;
   floorNumber?: string;
   streetWidth?: string;
   propertyAge?: string;
   facade?: string;
   furnishing?: string;
+  entrances?: string;
+  warehouses?: string;
+  balconies?: string;
+  acUnits?: string;
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
@@ -51,6 +56,14 @@ interface PropertyData {
   ownerCity?: string;
   ownerDistrict?: string;
   ownerIdNumber?: string;
+  // معلومات الصك
+  deedNumber?: string;
+  deedDate?: string;
+  deedCity?: string;
+  // رابط الجولة الافتراضية
+  tour3dUrl?: string;
+  // الضمانات
+  warranties?: Array<{ type: string; duration: string }>;
   features?: string[];
   aiDescription?: string;
   brokerPhone?: string;
@@ -121,18 +134,42 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
   const safeBedrooms = sanitize(property.bedrooms);
   const safeBathrooms = sanitize(property.bathrooms);
   const safeLivingRooms = sanitize(property.livingRooms);
+  const safeCouncils = sanitize(property.councils);
   const safeFloors = sanitize(property.floors);
   const safeFloorNumber = sanitize(property.floorNumber);
   const safeStreetWidth = sanitize(property.streetWidth);
   const safePropertyAge = sanitize(property.propertyAge);
   const safeFacade = sanitize(property.facade);
   const safeFurnishing = sanitize(property.furnishing);
+  const safeEntrances = sanitize(property.entrances);
+  const safeWarehouses = sanitize(property.warehouses);
+  const safeBalconies = sanitize(property.balconies);
+  const safeAcUnits = sanitize(property.acUnits);
   const safeCity = sanitize(property.locationDetails?.city);
   const safeDistrict = sanitize(property.locationDetails?.district);
   const safeStreet = sanitize(property.locationDetails?.street);
   const safeAiDescription = sanitize(property.aiDescription);
   const safeBrokerPhone = sanitizePhone(property.brokerPhone);
   const safeFeatures = property.features?.map(f => sanitize(f)) || [];
+  
+  // معلومات المالك
+  const safeOwnerName = sanitize(property.ownerName);
+  const safeOwnerPhone = sanitizePhone(property.ownerPhone);
+  const safeOwnerIdNumber = sanitize(property.ownerIdNumber);
+  const safeOwnerBirthDate = sanitize(property.ownerBirthDate);
+  const safeOwnerCity = sanitize(property.ownerCity);
+  const safeOwnerDistrict = sanitize(property.ownerDistrict);
+  
+  // معلومات الصك
+  const safeDeedNumber = sanitize(property.deedNumber);
+  const safeDeedDate = sanitize(property.deedDate);
+  const safeDeedCity = sanitize(property.deedCity);
+  
+  // رابط الجولة
+  const safeTour3dUrl = property.tour3dUrl ? encodeURI(property.tour3dUrl) : '';
+  
+  // الضمانات
+  const safeWarranties = property.warranties || [];
 
   const purposeAr = property.purpose === 'rent' || property.category === 'للإيجار' ? 'للإيجار' : 'للبيع';
   const typeAr = safePropertyType;
@@ -239,8 +276,23 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
         `).join('')}
       </div>
       ` : ''}
+      
+      <!-- رابط الجولة الافتراضية -->
+      ${safeTour3dUrl ? `
+      <div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 8px; border: 1px solid #90caf9;">
+        <span style="color: #1565c0; font-size: 12px; font-weight: bold;">🎥 رابط الجولة الافتراضية:</span>
+        <a href="${safeTour3dUrl}" style="color: #1976d2; font-size: 11px; word-break: break-all; margin-right: 8px;">${safeTour3dUrl}</a>
+      </div>
+      ` : ''}
     </div>
-    ` : ''}
+    ` : (safeTour3dUrl ? `
+    <div style="padding: 15px;">
+      <div style="padding: 10px; background: #e3f2fd; border-radius: 8px; border: 1px solid #90caf9;">
+        <span style="color: #1565c0; font-size: 12px; font-weight: bold;">🎥 رابط الجولة الافتراضية:</span>
+        <a href="${safeTour3dUrl}" style="color: #1976d2; font-size: 11px; word-break: break-all; margin-right: 8px;">${safeTour3dUrl}</a>
+      </div>
+    </div>
+    ` : '')}
 
     <!-- المعلومات الرئيسية -->
     <div style="padding: 15px;">
@@ -318,6 +370,57 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
         </table>
       </div>
 
+      <!-- معلومات المالك (حسب الاختيار) -->
+      ${includeOwner && (safeOwnerName || safeOwnerPhone) ? `
+      <div class="no-break" style="margin-bottom: 15px;">
+        <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
+          👤 معلومات المالك
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          ${safeOwnerName ? `
+          <tr>
+            <td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">الاسم:</td>
+            <td style="padding: 6px; background: #fff;">${safeOwnerName}</td>
+            ${safeOwnerPhone ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">الجوال:</td><td style="padding: 6px; background: #fff;" dir="ltr">${safeOwnerPhone}</td>` : '<td></td><td></td>'}
+          </tr>
+          ` : ''}
+          ${safeOwnerIdNumber || safeOwnerBirthDate ? `
+          <tr>
+            ${safeOwnerIdNumber ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">رقم الهوية:</td><td style="padding: 6px; background: #fff;">${safeOwnerIdNumber}</td>` : '<td></td><td></td>'}
+            ${safeOwnerBirthDate ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">تاريخ الميلاد:</td><td style="padding: 6px; background: #fff;">${safeOwnerBirthDate}</td>` : '<td></td><td></td>'}
+          </tr>
+          ` : ''}
+          ${safeOwnerCity || safeOwnerDistrict ? `
+          <tr>
+            ${safeOwnerCity ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">المدينة:</td><td style="padding: 6px; background: #fff;">${safeOwnerCity}</td>` : '<td></td><td></td>'}
+            ${safeOwnerDistrict ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الحي:</td><td style="padding: 6px; background: #fff;">${safeOwnerDistrict}</td>` : '<td></td><td></td>'}
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+      ` : ''}
+
+      <!-- معلومات الصك -->
+      ${safeDeedNumber || safeDeedDate || safeDeedCity ? `
+      <div class="no-break" style="margin-bottom: 15px;">
+        <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
+          📜 معلومات الصك
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <tr>
+            ${safeDeedNumber ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">رقم الصك:</td><td style="padding: 6px; background: #fff;">${safeDeedNumber}</td>` : '<td></td><td></td>'}
+            ${safeDeedDate ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">تاريخ الصك:</td><td style="padding: 6px; background: #fff;">${safeDeedDate}</td>` : '<td></td><td></td>'}
+          </tr>
+          ${safeDeedCity ? `
+          <tr>
+            <td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">مدينة إصدار الصك:</td>
+            <td colspan="3" style="padding: 6px; background: #fff;">${safeDeedCity}</td>
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+      ` : ''}
+
       <!-- المميزات -->
       ${safeFeatures.length > 0 ? `
       <div class="no-break" style="margin-bottom: 15px;">
@@ -328,6 +431,22 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
           ${safeFeatures.map(f => `
             <span style="background: #f0f7f2; color: #01411C; padding: 5px 10px; border-radius: 15px; font-size: 11px; border: 1px solid #D4AF37;">
               ✓ ${f}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- الضمانات والكفالات -->
+      ${safeWarranties.length > 0 ? `
+      <div class="no-break" style="margin-bottom: 15px;">
+        <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
+          🛡️ الضمانات والكفالات
+        </h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          ${safeWarranties.map(w => `
+            <span style="background: #fff3e0; color: #e65100; padding: 5px 10px; border-radius: 15px; font-size: 11px; border: 1px solid #ffb74d;">
+              ${sanitize(w.type)} ${w.duration ? `(${sanitize(w.duration)})` : ''}
             </span>
           `).join('')}
         </div>
