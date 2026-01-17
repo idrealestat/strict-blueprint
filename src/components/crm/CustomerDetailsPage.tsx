@@ -782,12 +782,14 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     return [];
   });
   
-  // الحصول على حالة العروض والطلبات غير المقروءة
+  // الحصول على حالة العروض والطلبات وعروض الأسعار غير المقروءة
   const customerMetadata = (customer as any).metadata || {};
   const hasUnreadOffer = customerMetadata.hasUnreadOffer === true;
   const hasUnreadRequest = customerMetadata.hasUnreadRequest === true;
+  const hasUnreadQuote = customerMetadata.hasUnreadQuote === true;
   const offersCount = (customerMetadata.property_offers as any[] || []).length;
   const requestsCount = (customerMetadata.property_requests as any[] || []).length;
+  const quotesCount = (customerMetadata.price_quotes as any[] || []).length;
   
   // Default tabs - مرتبة: المعلومات العامة، العروض، عرض منشور، طلب منشور، الطلبات، عروض الأسعار، عقار مؤجر، المهام
   const defaultTabs = [
@@ -796,7 +798,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     { id: 'published_ads', name: '📢 عقارات منشورة', removable: false },
     { id: 'published_requests', name: '📋 طلب منشور', removable: false },
     { id: 'requests', name: '📝 الطلبات', removable: false, hasUnread: hasUnreadRequest, count: requestsCount },
-    { id: 'price_quotes', name: '💵 عروض الأسعار', removable: false },
+    { id: 'price_quotes', name: '💵 عروض الأسعار', removable: false, hasUnread: hasUnreadQuote, count: quotesCount },
     { id: 'rented', name: '🏠 عقار مؤجر', removable: false },
     { id: 'tasks', name: '✅ المهام', removable: false },
     { id: 'transactions', name: '💰 المعاملات', removable: true },
@@ -1181,9 +1183,10 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                   const customerMeta = (customer as any).metadata as Record<string, any> | undefined;
                   const hasNewPublishedRequest = customerMeta?.hasNewPublishedRequest && tab.id === 'published_requests';
                   const hasNewPublishedAd = customerMeta?.hasNewPublishedAd && tab.id === 'published_ads';
-                  // ✅ الدائرة النابضة لتبويب العروض والطلبات - من metadata العميل
+                  // ✅ الدائرة النابضة لتبويب العروض والطلبات وعروض الأسعار - من metadata العميل
                   const hasNewOffer = customerMeta?.hasUnreadOffer && tab.id === 'offers';
                   const hasNewRequest = customerMeta?.hasUnreadRequest && tab.id === 'requests';
+                  const hasNewQuote = customerMeta?.hasUnreadQuote && tab.id === 'price_quotes';
                   return (
                     <div key={tab.id} className="relative group flex items-center">
                       <TabsTrigger 
@@ -1222,6 +1225,21 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 window.dispatchEvent(new CustomEvent('customerUpdated'));
                               });
                           }
+                          // إزالة علامة غير مقروء عند فتح تبويب عروض الأسعار
+                          if (tab.id === 'price_quotes' && customerMeta?.hasUnreadQuote) {
+                            supabase
+                              .from('crm_customers')
+                              .update({
+                                metadata: {
+                                  ...customerMeta,
+                                  hasUnreadQuote: false,
+                                }
+                              })
+                              .eq('id', customer.id)
+                              .then(() => {
+                                window.dispatchEvent(new CustomEvent('customerUpdated'));
+                              });
+                          }
                         }}
                       >
                         {tab.name}
@@ -1230,7 +1248,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                         )}
                         {/* نقطة نابضة للتبويبات الجديدة */}
                         <PulsingDot 
-                          show={hasNewPublishedRequest || hasNewPublishedAd || hasNewOffer || hasNewRequest} 
+                          show={hasNewPublishedRequest || hasNewPublishedAd || hasNewOffer || hasNewRequest || hasNewQuote} 
                           size="sm" 
                           position="top-left" 
                           className="m-0"
