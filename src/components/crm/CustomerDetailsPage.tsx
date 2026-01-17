@@ -4512,68 +4512,135 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                               واتساب
                             </Button>
                             
-                            {/* زر PDF */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
-                              onClick={async () => {
-                                try {
-                                  const brokerData = {
-                                    name: businessCardData.name,
-                                    company: businessCardData.companyName,
-                                    phone: businessCardData.phone,
-                                    location: request.preferredCity || businessCardData.city,
-                                    licenseNumber: businessCardData.falLicense,
-                                    profileImage: businessCardData.profileImageUrl,
-                                    coverImage: businessCardData.coverImageUrl,
-                                    logoImage: businessCardData.logoUrl,
-                                  };
-                                  
-                                  const requestData = {
-                                    id: request.id,
-                                    ownerName: request.ownerName || customer.name,
-                                    ownerPhone: request.ownerPhone || customer.phone,
-                                    ownerIdNumber: request.ownerIdNumber,
-                                    ownerBirthDate: request.ownerBirthDate,
-                                    ownerCity: request.ownerCity,
-                                    ownerDistrict: request.ownerDistrict,
-                                    propertyType: request.propertyType,
-                                    purpose: request.purpose,
-                                    preferredCity: request.preferredCity,
-                                    preferredDistricts: request.preferredDistricts,
-                                    minArea: request.minArea,
-                                    maxArea: request.maxArea,
-                                    bedrooms: request.bedrooms,
-                                    bathrooms: request.bathrooms,
-                                    livingRooms: request.livingRooms,
-                                    floors: request.floors,
-                                    furnishing: request.furnishing,
-                                    minBudget: request.minBudget,
-                                    maxBudget: request.maxBudget,
-                                    paymentPrices: request.paymentPrices,
-                                    hasPool: request.hasPool,
-                                    hasGarden: request.hasGarden,
-                                    hasElevator: request.hasElevator,
-                                    hasParking: request.hasParking,
-                                    hasMaidRoom: request.hasMaidRoom,
-                                    hasDriverRoom: request.hasDriverRoom,
-                                    additionalRequirements: request.additionalRequirements,
-                                    urgency: request.urgency,
-                                    createdAt: request.submittedAt,
-                                  };
-                                  
-                                  await generateRequestPDF(requestData, true, brokerData);
-                                  toast.success('تم تحميل ملف PDF');
-                                } catch (e) {
-                                  console.error('PDF error', e);
-                                  toast.error('تعذر إنشاء PDF');
-                                }
-                              }}
-                            >
-                              <Download className="w-4 h-4 ml-1" />
-                              PDF
-                            </Button>
+                            {/* زر PDF مع قائمة منبثقة */}
+                            <div className="relative group">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-[#01411C] text-[#01411C] hover:bg-[#01411C]/10"
+                              >
+                                <Download className="w-4 h-4 ml-1" />
+                                PDF
+                              </Button>
+                              <div className="absolute left-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-50 hidden group-hover:block min-w-[180px]">
+                                <button
+                                  className="w-full text-right px-4 py-2 hover:bg-green-50 text-sm text-[#01411C] border-b"
+                                  onClick={async () => {
+                                    try {
+                                      const brokerData = {
+                                        name: businessCardData.name,
+                                        company: businessCardData.companyName,
+                                        phone: businessCardData.phone,
+                                        location: request.preferredCity || businessCardData.city,
+                                        licenseNumber: businessCardData.falLicense,
+                                        profileImage: businessCardData.profileImageUrl,
+                                        coverImage: businessCardData.coverImageUrl,
+                                        logoImage: businessCardData.logoUrl,
+                                      };
+                                      
+                                      const requestData = {
+                                        id: request.id,
+                                        ownerName: request.ownerName || customer.name,
+                                        ownerPhone: request.ownerPhone || customer.phone,
+                                        ownerIdNumber: request.ownerIdNumber,
+                                        ownerBirthDate: request.ownerBirthDate,
+                                        ownerCity: request.ownerCity,
+                                        ownerDistrict: request.ownerDistrict,
+                                        propertyType: request.propertyType,
+                                        purpose: request.purpose,
+                                        preferredCity: request.preferredCity,
+                                        preferredDistricts: request.preferredDistricts,
+                                        minArea: request.minArea,
+                                        maxArea: request.maxArea,
+                                        bedrooms: request.bedrooms,
+                                        bathrooms: request.bathrooms,
+                                        livingRooms: request.livingRooms,
+                                        floors: request.floors,
+                                        furnishing: request.furnishing,
+                                        minBudget: request.minBudget,
+                                        maxBudget: request.maxBudget,
+                                        paymentPrices: request.paymentPrices,
+                                        hasPool: request.hasPool,
+                                        hasGarden: request.hasGarden,
+                                        hasElevator: request.hasElevator,
+                                        hasParking: request.hasParking,
+                                        hasMaidRoom: request.hasMaidRoom,
+                                        hasDriverRoom: request.hasDriverRoom,
+                                        additionalRequirements: request.additionalRequirements,
+                                        urgency: request.urgency,
+                                        createdAt: request.submittedAt,
+                                      };
+                                      
+                                      await generateRequestPDF(requestData, true, brokerData);
+                                      toast.success('تم تحميل ملف PDF مع معلومات المالك');
+                                    } catch (e) {
+                                      console.error('PDF error', e);
+                                      toast.error('تعذر إنشاء PDF');
+                                    }
+                                  }}
+                                >
+                                  ✅ مع معلومات المالك
+                                </button>
+                                <button
+                                  className="w-full text-right px-4 py-2 hover:bg-red-50 text-sm text-gray-700"
+                                  onClick={async () => {
+                                    try {
+                                      const brokerData = {
+                                        name: businessCardData.name,
+                                        company: businessCardData.companyName,
+                                        phone: businessCardData.phone,
+                                        location: request.preferredCity || businessCardData.city,
+                                        licenseNumber: businessCardData.falLicense,
+                                        profileImage: businessCardData.profileImageUrl,
+                                        coverImage: businessCardData.coverImageUrl,
+                                        logoImage: businessCardData.logoUrl,
+                                      };
+                                      
+                                      const requestData = {
+                                        id: request.id,
+                                        ownerName: request.ownerName || customer.name,
+                                        ownerPhone: request.ownerPhone || customer.phone,
+                                        ownerIdNumber: request.ownerIdNumber,
+                                        ownerBirthDate: request.ownerBirthDate,
+                                        ownerCity: request.ownerCity,
+                                        ownerDistrict: request.ownerDistrict,
+                                        propertyType: request.propertyType,
+                                        purpose: request.purpose,
+                                        preferredCity: request.preferredCity,
+                                        preferredDistricts: request.preferredDistricts,
+                                        minArea: request.minArea,
+                                        maxArea: request.maxArea,
+                                        bedrooms: request.bedrooms,
+                                        bathrooms: request.bathrooms,
+                                        livingRooms: request.livingRooms,
+                                        floors: request.floors,
+                                        furnishing: request.furnishing,
+                                        minBudget: request.minBudget,
+                                        maxBudget: request.maxBudget,
+                                        paymentPrices: request.paymentPrices,
+                                        hasPool: request.hasPool,
+                                        hasGarden: request.hasGarden,
+                                        hasElevator: request.hasElevator,
+                                        hasParking: request.hasParking,
+                                        hasMaidRoom: request.hasMaidRoom,
+                                        hasDriverRoom: request.hasDriverRoom,
+                                        additionalRequirements: request.additionalRequirements,
+                                        urgency: request.urgency,
+                                        createdAt: request.submittedAt,
+                                      };
+                                      
+                                      await generateRequestPDF(requestData, false, brokerData);
+                                      toast.success('تم تحميل ملف PDF بدون معلومات المالك');
+                                    } catch (e) {
+                                      console.error('PDF error', e);
+                                      toast.error('تعذر إنشاء PDF');
+                                    }
+                                  }}
+                                >
+                                  ❌ بدون معلومات المالك
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
