@@ -590,7 +590,9 @@ const App = () => {
                   <Route path="/:slug/offer" element={<SlugOfferPage />} />
                   <Route path="/:slug/request" element={<SlugRequestPage />} />
                   <Route path="/:slug/quote" element={<SlugQuotePage />} />
+                  {/* مسارات تأكيد المواعيد */}
                   <Route path="/:slug/appointmentapproval/broker/:appointmentId" element={<SlugAppointmentApprovalBroker />} />
+                  <Route path="/:slug/appointmentapproval/approval/:appointmentId" element={<SlugAppointmentApprovalBroker />} />
                   <Route path="/:slug/appointmentapproval/customer/:appointmentId" element={<SlugAppointmentApprovalCustomer />} />
                   <Route path="/:slug/appointmentapproval/sorry" element={<SlugAppointmentApprovalSorry />} />
                   
