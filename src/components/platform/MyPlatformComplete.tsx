@@ -320,6 +320,26 @@ export default function MyPlatformComplete({
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  
+  // ✅ نافذة خيارات PDF للعروض
+  const [showOfferPdfOptionsDialog, setShowOfferPdfOptionsDialog] = useState(false);
+  const [selectedOfferForPdf, setSelectedOfferForPdf] = useState<{ offer: SingleOffer; cityName: string; districtName?: string } | null>(null);
+  const [offerPdfOptions, setOfferPdfOptions] = useState({
+    includeOwner: true,
+    includeDeed: true,
+    includeProperty: true,
+    includeDescription: true,
+    includeImages: true,
+  });
+  
+  // ✅ نافذة خيارات PDF للطلبات
+  const [showRequestPdfOptionsDialog, setShowRequestPdfOptionsDialog] = useState(false);
+  const [selectedRequestForPdf, setSelectedRequestForPdf] = useState<any | null>(null);
+  const [requestPdfOptions, setRequestPdfOptions] = useState({
+    includeOwner: true,
+    includeFeatures: true,
+    includeBudget: true,
+  });
 
   // ✅ جلب بيانات بطاقة العمل لتوحيد الهيدر
   const [businessCardData, setBusinessCardData] = useState<{
@@ -2388,7 +2408,11 @@ export default function MyPlatformComplete({
                                                 <MessageSquare className="w-3 h-3" />
                                               </Button>
                                               {/* PDF */}
-                                              <Button size="sm" className="h-7 px-2 text-xs bg-red-500 text-white flex-1 min-w-0" onClick={() => exportOfferToPDF(offer, city.cityName, district.districtName)}>
+                                              <Button size="sm" className="h-7 px-2 text-xs bg-red-500 text-white flex-1 min-w-0" onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                setSelectedOfferForPdf({ offer, cityName: city.cityName, districtName: district.districtName });
+                                                setShowOfferPdfOptionsDialog(true);
+                                              }}>
                                                 <FileDown className="w-3 h-3" />
                                               </Button>
                                               {/* رابط */}
@@ -2545,49 +2569,10 @@ export default function MyPlatformComplete({
                             <Button size="sm" className="bg-blue-500 text-white" onClick={(e) => { e.stopPropagation(); handleCall(req.ownerPhone); }}>
                               <Phone className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" className="bg-red-500 text-white" onClick={async (e) => { 
+                            <Button size="sm" className="bg-red-500 text-white" onClick={(e) => { 
                               e.stopPropagation(); 
-                              try {
-                                const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
-                                let brokerData: any = undefined;
-                                try {
-                                  const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
-                                  if (businessCard) {
-                                    brokerData = {
-                                      name: businessCard.userName || businessCard.name,
-                                      company: businessCard.companyName,
-                                      phone: businessCard.primaryPhone || businessCard.phone,
-                                      location: req.preferredCity,
-                                      licenseNumber: businessCard.falLicense,
-                                      profileImage: businessCard.profileImage,
-                                      coverImage: businessCard.coverImage,
-                                      logoImage: businessCard.logoImage,
-                                    };
-                                  }
-                                } catch {}
-                                await generateRequestPDF({
-                                  id: req.id,
-                                  purpose: req.purpose,
-                                  propertyType: req.propertyType,
-                                  preferredCity: req.preferredCity,
-                                  preferredDistricts: Array.isArray(req.preferredDistricts) ? req.preferredDistricts.join('، ') : req.preferredDistricts,
-                                  minBudget: req.minBudget,
-                                  maxBudget: req.maxBudget,
-                                  bedrooms: req.bedrooms,
-                                  bathrooms: req.bathrooms,
-                                  minArea: req.minArea,
-                                  maxArea: req.maxArea,
-                                  furnishing: req.furnishing,
-                                  additionalRequirements: req.additionalRequirements,
-                                  ownerName: req.ownerName,
-                                  ownerPhone: req.ownerPhone,
-                                  createdAt: req.createdAt,
-                                }, true, brokerData);
-                                toast.success('تم تحميل ملف PDF');
-                              } catch (e) {
-                                console.error('PDF error', e);
-                                toast.error('تعذر إنشاء PDF');
-                              }
+                              setSelectedRequestForPdf(req);
+                              setShowRequestPdfOptionsDialog(true);
                             }}>
                               <FileDown className="w-4 h-4" />
                             </Button>
@@ -2643,42 +2628,21 @@ export default function MyPlatformComplete({
                           <Button size="sm" className="bg-blue-500 text-white" onClick={() => handleCall(request.customerPhone)}>
                             <Phone className="w-4 h-4" />
                           </Button>
-                          <Button size="sm" className="bg-red-500 text-white" onClick={async () => { 
-                            try {
-                              const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
-                              let brokerData: any = undefined;
-                              try {
-                                const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
-                                if (businessCard) {
-                                  brokerData = {
-                                    name: businessCard.userName || businessCard.name,
-                                    company: businessCard.companyName,
-                                    phone: businessCard.primaryPhone || businessCard.phone,
-                                    location: request.city,
-                                    licenseNumber: businessCard.falLicense,
-                                    profileImage: businessCard.profileImage,
-                                    coverImage: businessCard.coverImage,
-                                    logoImage: businessCard.logoImage,
-                                  };
-                                }
-                              } catch {}
-                              await generateRequestPDF({
-                                id: request.id,
-                                purpose: request.purpose || 'شراء',
-                                propertyType: request.propertyType,
-                                preferredCity: request.city,
-                                preferredDistricts: request.district || '',
-                                minBudget: request.budget?.min?.toString(),
-                                maxBudget: request.budget?.max?.toString(),
-                                ownerName: request.customerName,
-                                ownerPhone: request.customerPhone,
-                                createdAt: typeof request.createdAt === 'string' ? request.createdAt : request.createdAt?.toISOString?.() || new Date().toISOString(),
-                              }, true, brokerData);
-                              toast.success('تم تحميل ملف PDF');
-                            } catch (e) {
-                              console.error('PDF error', e);
-                              toast.error('تعذر إنشاء PDF');
-                            }
+                          <Button size="sm" className="bg-red-500 text-white" onClick={() => { 
+                            // تحويل الطلب القديم لصيغة متوافقة مع النافذة
+                            setSelectedRequestForPdf({
+                              id: request.id,
+                              purpose: request.purpose || 'شراء',
+                              propertyType: request.propertyType,
+                              preferredCity: request.city,
+                              preferredDistricts: request.district || '',
+                              minBudget: request.budget?.min?.toString(),
+                              maxBudget: request.budget?.max?.toString(),
+                              ownerName: request.customerName,
+                              ownerPhone: request.customerPhone,
+                              createdAt: typeof request.createdAt === 'string' ? request.createdAt : request.createdAt?.toISOString?.() || new Date().toISOString(),
+                            });
+                            setShowRequestPdfOptionsDialog(true);
                           }}>
                             <FileDown className="w-4 h-4" />
                           </Button>
@@ -3300,6 +3264,292 @@ export default function MyPlatformComplete({
             >
               <Trash2 className="w-4 h-4 ml-2" />
               حذف نهائياً
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ نافذة خيارات PDF للعروض */}
+      <Dialog open={showOfferPdfOptionsDialog} onOpenChange={setShowOfferPdfOptionsDialog}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <FileDown className="w-5 h-5" />
+              خيارات تحميل PDF للعرض
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={offerPdfOptions.includeOwner}
+                  onChange={(e) => setOfferPdfOptions({ ...offerPdfOptions, includeOwner: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">معلومات المالك</span>
+                  <p className="text-xs text-gray-500">الاسم، الهاتف، رقم الهوية، تاريخ الميلاد</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={offerPdfOptions.includeDeed}
+                  onChange={(e) => setOfferPdfOptions({ ...offerPdfOptions, includeDeed: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">معلومات الصك</span>
+                  <p className="text-xs text-gray-500">رقم الصك، تاريخه، مدينة الإصدار</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={offerPdfOptions.includeProperty}
+                  onChange={(e) => setOfferPdfOptions({ ...offerPdfOptions, includeProperty: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">تفاصيل العقار</span>
+                  <p className="text-xs text-gray-500">النوع، المساحة، الغرف، السعر، المميزات</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={offerPdfOptions.includeDescription}
+                  onChange={(e) => setOfferPdfOptions({ ...offerPdfOptions, includeDescription: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">الوصف</span>
+                  <p className="text-xs text-gray-500">الوصف التفصيلي للعقار</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={offerPdfOptions.includeImages}
+                  onChange={(e) => setOfferPdfOptions({ ...offerPdfOptions, includeImages: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">الصور</span>
+                  <p className="text-xs text-gray-500">صور العقار ورابط الجولة الافتراضية</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowOfferPdfOptionsDialog(false);
+              setSelectedOfferForPdf(null);
+            }}>
+              إلغاء
+            </Button>
+            <Button 
+              className="bg-red-500 text-white hover:bg-red-600"
+              onClick={async () => {
+                if (!selectedOfferForPdf) return;
+                
+                const { offer, cityName, districtName } = selectedOfferForPdf;
+                toast.info('جاري إنشاء ملف PDF...');
+                
+                try {
+                  const category = offer.title?.includes('للإيجار') ? 'للإيجار' : 'للبيع';
+                  
+                  const brokerData = businessCardData ? {
+                    name: businessCardData.userName,
+                    company: businessCardData.companyName,
+                    phone: user?.phone || '',
+                    location: cityName,
+                    profileImage: businessCardData.profileImage,
+                    coverImage: businessCardData.coverImage,
+                    logoImage: businessCardData.logoImage,
+                  } : undefined;
+                  
+                  const offerUrl = currentSlug && cityName && districtName
+                    ? getFullUrl(`/${currentSlug}/${cityName}/${districtName}/${offer.id}`)
+                    : '';
+
+                  await generatePropertyPDF(
+                    {
+                      id: offer.id,
+                      slug: currentSlug,
+                      title: offer.title,
+                      category,
+                      propertyType: offerPdfOptions.includeProperty ? offer.propertyType : undefined,
+                      price: offerPdfOptions.includeProperty ? offer.price : undefined,
+                      area: offerPdfOptions.includeProperty ? offer.area?.toString() : undefined,
+                      bedrooms: offerPdfOptions.includeProperty ? offer.bedrooms?.toString() : undefined,
+                      bathrooms: offerPdfOptions.includeProperty ? offer.bathrooms?.toString() : undefined,
+                      ownerName: offerPdfOptions.includeOwner ? (offer.ownerName ?? offer.owner?.name) : undefined,
+                      ownerPhone: offerPdfOptions.includeOwner ? offer.owner?.phone : undefined,
+                      ownerIdNumber: offerPdfOptions.includeOwner ? offer.ownerIdNumber : undefined,
+                      ownerBirthDate: offerPdfOptions.includeOwner ? offer.ownerBirthDate : undefined,
+                      deedNumber: offerPdfOptions.includeDeed ? offer.deedNumber : undefined,
+                      deedDate: offerPdfOptions.includeDeed ? offer.deedDate : undefined,
+                      deedCity: offerPdfOptions.includeDeed ? offer.deedCity : undefined,
+                      brokerPhone: user?.phone || businessCardData?.userName,
+                      image: offerPdfOptions.includeImages ? offer.image : undefined,
+                      images: offerPdfOptions.includeImages && offer.images && offer.images.length > 0 ? offer.images : undefined,
+                      locationDetails: {
+                        city: cityName,
+                        district: districtName,
+                      },
+                      aiDescription: offerPdfOptions.includeDescription ? offer.description : undefined,
+                      tour3dUrl: offerPdfOptions.includeImages ? offer.tour3DUrl : undefined,
+                      offerUrl,
+                    },
+                    offerPdfOptions.includeOwner,
+                    brokerData
+                  );
+
+                  toast.success('تم تحميل PDF بنجاح');
+                  setShowOfferPdfOptionsDialog(false);
+                  setSelectedOfferForPdf(null);
+                } catch (error) {
+                  console.error('exportOfferToPDF error:', error);
+                  toast.error('تعذر إنشاء PDF');
+                }
+              }}
+            >
+              <FileDown className="w-4 h-4 ml-2" />
+              تحميل PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ نافذة خيارات PDF للطلبات */}
+      <Dialog open={showRequestPdfOptionsDialog} onOpenChange={setShowRequestPdfOptionsDialog}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#01411C]">
+              <FileDown className="w-5 h-5" />
+              خيارات تحميل PDF للطلب
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={requestPdfOptions.includeOwner}
+                  onChange={(e) => setRequestPdfOptions({ ...requestPdfOptions, includeOwner: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">معلومات العميل</span>
+                  <p className="text-xs text-gray-500">الاسم، الهاتف، البيانات الشخصية</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={requestPdfOptions.includeFeatures}
+                  onChange={(e) => setRequestPdfOptions({ ...requestPdfOptions, includeFeatures: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">المواصفات المطلوبة</span>
+                  <p className="text-xs text-gray-500">نوع العقار، الغرف، المساحة، الميزات</p>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={requestPdfOptions.includeBudget}
+                  onChange={(e) => setRequestPdfOptions({ ...requestPdfOptions, includeBudget: e.target.checked })}
+                  className="w-5 h-5 accent-[#01411C]"
+                />
+                <div>
+                  <span className="font-medium">الميزانية</span>
+                  <p className="text-xs text-gray-500">الحد الأدنى والأقصى للميزانية</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowRequestPdfOptionsDialog(false);
+              setSelectedRequestForPdf(null);
+            }}>
+              إلغاء
+            </Button>
+            <Button 
+              className="bg-red-500 text-white hover:bg-red-600"
+              onClick={async () => {
+                if (!selectedRequestForPdf) return;
+                
+                const req = selectedRequestForPdf;
+                toast.info('جاري إنشاء ملف PDF...');
+                
+                try {
+                  const { generateRequestPDF } = await import('@/utils/generateRequestPDF');
+                  let brokerData: any = undefined;
+                  try {
+                    const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
+                    if (businessCard) {
+                      brokerData = {
+                        name: businessCard.userName || businessCard.name,
+                        company: businessCard.companyName,
+                        phone: businessCard.primaryPhone || businessCard.phone,
+                        location: req.preferredCity,
+                        licenseNumber: businessCard.falLicense,
+                        profileImage: businessCard.profileImage,
+                        coverImage: businessCard.coverImage,
+                        logoImage: businessCard.logoImage,
+                      };
+                    }
+                  } catch {}
+                  
+                  await generateRequestPDF({
+                    id: req.id,
+                    purpose: req.purpose,
+                    propertyType: requestPdfOptions.includeFeatures ? req.propertyType : undefined,
+                    preferredCity: req.preferredCity,
+                    preferredDistricts: Array.isArray(req.preferredDistricts) ? req.preferredDistricts.join('، ') : req.preferredDistricts,
+                    minBudget: requestPdfOptions.includeBudget ? req.minBudget : undefined,
+                    maxBudget: requestPdfOptions.includeBudget ? req.maxBudget : undefined,
+                    bedrooms: requestPdfOptions.includeFeatures ? req.bedrooms : undefined,
+                    bathrooms: requestPdfOptions.includeFeatures ? req.bathrooms : undefined,
+                    minArea: requestPdfOptions.includeFeatures ? req.minArea : undefined,
+                    maxArea: requestPdfOptions.includeFeatures ? req.maxArea : undefined,
+                    furnishing: requestPdfOptions.includeFeatures ? req.furnishing : undefined,
+                    additionalRequirements: requestPdfOptions.includeFeatures ? req.additionalRequirements : undefined,
+                    ownerName: requestPdfOptions.includeOwner ? req.ownerName : undefined,
+                    ownerPhone: requestPdfOptions.includeOwner ? req.ownerPhone : undefined,
+                    ownerIdNumber: requestPdfOptions.includeOwner ? req.ownerIdNumber : undefined,
+                    ownerBirthDate: requestPdfOptions.includeOwner ? req.ownerBirthDate : undefined,
+                    ownerCity: requestPdfOptions.includeOwner ? req.ownerCity : undefined,
+                    ownerDistrict: requestPdfOptions.includeOwner ? req.ownerDistrict : undefined,
+                    createdAt: req.createdAt,
+                  }, requestPdfOptions.includeOwner, brokerData);
+                  
+                  toast.success('تم تحميل ملف PDF');
+                  setShowRequestPdfOptionsDialog(false);
+                  setSelectedRequestForPdf(null);
+                } catch (e) {
+                  console.error('PDF error', e);
+                  toast.error('تعذر إنشاء PDF');
+                }
+              }}
+            >
+              <FileDown className="w-4 h-4 ml-2" />
+              تحميل PDF
             </Button>
           </DialogFooter>
         </DialogContent>
