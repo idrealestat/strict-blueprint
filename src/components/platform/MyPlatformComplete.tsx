@@ -1786,47 +1786,54 @@ export default function MyPlatformComplete({
           />
         )}
         
-        <div className="container mx-auto px-4 py-4 relative z-10">
-          <div className="flex items-center justify-between">
-            <Button
-              onClick={onBack}
-              variant="outline"
-              className="border-2 bg-white/10 text-white hover:bg-white/20"
-              style={{ borderColor: digitalCardHeader?.secondaryColor || '#D4AF37' }}
-            >
-              <ArrowRight className="w-4 h-4 ml-2" />
-              العودة
-            </Button>
-            
-            <div className="flex items-center gap-3">
+        <div className="container mx-auto px-4 py-3 relative z-10">
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-3">
+            {/* اسم الصفحة في الأعلى */}
+            <div className="flex items-center justify-center gap-3">
               {/* الشعار أو صورة البروفايل من بطاقة العمل */}
               {(businessCardData?.logoImage || businessCardData?.profileImage || digitalCardHeader?.logo) && (
                 <img 
                   src={businessCardData?.logoImage || businessCardData?.profileImage || digitalCardHeader?.logo} 
                   alt="Logo" 
-                  className="w-12 h-12 rounded-full border-2 border-white/50 object-cover shadow-lg" 
+                  className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-lg" 
                 />
               )}
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <Home className="w-6 h-6" />
+                <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2 whitespace-nowrap">
+                  <Home className="w-5 h-5" />
                   {businessCardData?.companyName || 'منصتي'}
                 </h1>
                 <p className="text-xs text-white/80">{businessCardData?.userName || platformUrl}</p>
               </div>
             </div>
             
-            <Button
-              onClick={() => setShowPublishDialog(true)}
-              className="text-white"
-              style={{ 
-                backgroundColor: digitalCardHeader?.secondaryColor || '#D4AF37',
-                color: digitalCardHeader?.primaryColor || '#01411C',
-              }}
-            >
-              <Plus className="w-4 h-4 ml-2" />
-              نشر إعلان
-            </Button>
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={onBack}
+                variant="outline"
+                size="sm"
+                className="border-2 bg-white/10 text-white hover:bg-white/20"
+                style={{ borderColor: digitalCardHeader?.secondaryColor || '#D4AF37' }}
+              >
+                <ArrowRight className="w-4 h-4 ml-1" />
+                العودة
+              </Button>
+              
+              <Button
+                onClick={() => setShowPublishDialog(true)}
+                size="sm"
+                className="text-white"
+                style={{ 
+                  backgroundColor: digitalCardHeader?.secondaryColor || '#D4AF37',
+                  color: digitalCardHeader?.primaryColor || '#01411C',
+                }}
+              >
+                <Plus className="w-4 h-4 ml-1" />
+                نشر إعلان
+              </Button>
+            </div>
           </div>
         </div>
       </header>

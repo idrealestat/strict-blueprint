@@ -383,11 +383,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     window.addEventListener('businessCardUpdated', handleUpdate);
     window.addEventListener('businessCardSwapped', handleSwap);
     window.addEventListener('publishedAdSaved', handleUpdate);
+    window.addEventListener('adPublished', handleUpdate); // ✅ الاستماع لنشر الإعلان الجديد
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('businessCardUpdated', handleUpdate);
       window.removeEventListener('businessCardSwapped', handleSwap);
       window.removeEventListener('publishedAdSaved', handleUpdate);
+      window.removeEventListener('adPublished', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, [
