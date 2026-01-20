@@ -532,7 +532,13 @@ export function usePublishedAdsManager() {
         { type: 'ad_published', adId: adData.id }
       );
       
-      // Dispatch events للتحديث الفوري
+      // مزامنة تلقائية إلى قاعدة البيانات أولاً ثم إرسال الأحداث
+      const synced = await syncSingleListingToDatabase(adData);
+      if (synced) {
+        console.log('تمت مزامنة العرض إلى قاعدة البيانات تلقائياً');
+      }
+
+      // Dispatch events للتحديث الفوري بعد المزامنة
       window.dispatchEvent(new CustomEvent('adPublished', { 
         detail: { adId: adData.id, customerId, isNewCustomer } 
       }));
@@ -550,13 +556,6 @@ export function usePublishedAdsManager() {
           isNewCustomer,
         } 
       }));
-
-      // مزامنة تلقائية إلى قاعدة البيانات
-      syncSingleListingToDatabase(adData).then((synced) => {
-        if (synced) {
-          console.log('تمت مزامنة العرض إلى قاعدة البيانات تلقائياً');
-        }
-      });
       
       return {
         success: true,

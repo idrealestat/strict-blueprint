@@ -64,6 +64,7 @@ import PublishSuccessActions from "./PublishSuccessActions";
 import AIDescription from "./AIDescription";
 import PropertyMediaUpload, { MediaFile } from "./PropertyMediaUpload";
 import { supabase } from "@/integrations/supabase/client";
+import { useBusinessCardData } from "@/hooks/useBusinessCardData";
 
 // ===================== Types =====================
 
@@ -339,6 +340,9 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
+  // ✅ جلب بيانات بطاقة العمل لاستخدام رقم الواتساب
+  const { data: businessCardData, loading: businessCardLoading } = useBusinessCardData();
+
   // استعادة البيانات من sessionStorage أولاً (للتعامل مع فقدان البيانات عند فتح المعرض على الهواتف)
   const getInitialPropertyData = (): PropertyData => {
     try {
@@ -358,6 +362,19 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   };
 
   const [propertyData, setPropertyData] = useState<PropertyData>(getInitialPropertyData);
+
+  // ✅ جلب رقم الواتساب من بطاقة العمل تلقائياً
+  useEffect(() => {
+    if (!businessCardLoading && businessCardData && !propertyData.brokerPhone) {
+      const whatsappNumber = businessCardData.whatsapp || businessCardData.phone;
+      if (whatsappNumber) {
+        setPropertyData(prev => ({
+          ...prev,
+          brokerPhone: prev.brokerPhone || whatsappNumber,
+        }));
+      }
+    }
+  }, [businessCardData, businessCardLoading, propertyData.brokerPhone]);
 
   // Check for republish data first (higher priority), then saved draft
   useEffect(() => {
@@ -1074,8 +1091,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   };
 
   return (
-    <ScrollArea className="h-[80vh]">
-      <div className="space-y-6 p-1" dir="rtl">
+    <ScrollArea className="h-[85vh] md:h-[80vh]">
+      <div className="space-y-4 md:space-y-6 p-1 max-w-full overflow-x-hidden" dir="rtl">
         
         {/* Recovery Dialog */}
         {showRecoveryDialog && (
