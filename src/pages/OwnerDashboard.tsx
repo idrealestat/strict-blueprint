@@ -1377,29 +1377,36 @@ const OwnerDashboard: React.FC = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] to-[#065f41] border-b-2 border-[#D4AF37] shadow-lg">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate('/app/dashboard')}
-              className="text-white hover:bg-white/20"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            
-            <div className="flex items-center gap-3">
-              <Crown className="w-6 h-6 text-[#D4AF37]" />
-              <h1 className="text-xl font-bold text-white">لوحة تحكم المالك</h1>
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-2">
+            {/* اسم الصفحة في الأعلى */}
+            <div className="flex items-center justify-center gap-2">
+              <Crown className="w-5 h-5 text-[#D4AF37]" />
+              <h1 className="text-lg md:text-xl font-bold text-white whitespace-nowrap">لوحة تحكم المالك</h1>
             </div>
+            
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/app/dashboard')}
+                className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+              >
+                <ChevronLeft className="w-3 h-3 ml-1" />
+                العودة
+              </Button>
 
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={fetchData}
-              className="text-white hover:bg-white/20"
-            >
-              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={fetchData}
+                className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+              >
+                <RefreshCw className={`w-3 h-3 ml-1 ${isLoading ? 'animate-spin' : ''}`} />
+                تحديث
+              </Button>
+            </div>
           </div>
         </div>
       </header>
