@@ -336,29 +336,36 @@ export default function TasksManagement({ onBack, linkedCustomer }: TasksManagem
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-b-4 border-[#D4AF37] shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              onClick={onBack}
-              variant="outline"
-              className="border-2 border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
-            >
-              <ArrowRight className="w-4 h-4 ml-2" />
-              العودة
-            </Button>
-            
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <CheckCircle className="w-6 h-6" />
+        <div className="container mx-auto px-4 py-3">
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-2">
+            {/* اسم الصفحة في الأعلى */}
+            <h1 className="text-lg md:text-xl font-bold text-white flex items-center justify-center gap-2 whitespace-nowrap">
+              <CheckCircle className="w-5 h-5" />
               إدارة المهام
             </h1>
             
-            <Button
-              onClick={() => setShowAddTask(true)}
-              className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
-            >
-              <Plus className="w-4 h-4 ml-2" />
-              مهمة جديدة
-            </Button>
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={onBack}
+                variant="outline"
+                size="sm"
+                className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+              >
+                <ArrowRight className="w-3 h-3 ml-1" />
+                العودة
+              </Button>
+              
+              <Button
+                onClick={() => setShowAddTask(true)}
+                size="sm"
+                className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
+              >
+                <Plus className="w-3 h-3 ml-1" />
+                مهمة جديدة
+              </Button>
+            </div>
           </div>
           
           {/* Search */}

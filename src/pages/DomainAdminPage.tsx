@@ -484,29 +484,35 @@ const DomainAdminPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6" dir="rtl">
-      {/* العنوان */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">إدارة النطاقات</h1>
-            <p className="text-muted-foreground">مراجعة طلبات النطاقات وإدارة القائمة السوداء</p>
+    <div className="min-h-screen bg-background" dir="rtl">
+      {/* Header - محسّن للجوال */}
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] to-[#065f41] border-b-2 border-[#D4AF37] shadow-lg">
+        <div className="container mx-auto px-4 py-3">
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-2">
+            {/* اسم الصفحة في الأعلى */}
+            <div className="flex items-center justify-center gap-2">
+              <Shield className="w-5 h-5 text-[#D4AF37]" />
+              <h1 className="text-lg md:text-xl font-bold text-white whitespace-nowrap">إدارة النطاقات</h1>
+              {pendingCount > 0 && (
+                <Badge variant="destructive" className="animate-pulse text-xs">
+                  {pendingCount} جديد
+                </Badge>
+              )}
+            </div>
+            
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-center">
+              <Button onClick={fetchData} variant="outline" size="sm" className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20">
+                <RefreshCw className="w-3 h-3 ml-1" />
+                تحديث
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {pendingCount > 0 && (
-            <Badge variant="destructive" className="animate-pulse">
-              <Bell className="w-3 h-3 ml-1" />
-              {pendingCount} طلب جديد
-            </Badge>
-          )}
-          <Button onClick={fetchData} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 ml-2" />
-            تحديث
-          </Button>
-        </div>
-      </div>
+      </header>
+      
+      <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
 
       {/* تنبيه الأولوية */}
       <Alert className="border-amber-500 bg-amber-50">
@@ -1319,6 +1325,7 @@ const DomainAdminPage: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };

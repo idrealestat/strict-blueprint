@@ -993,23 +993,15 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-b-4 border-[#D4AF37] shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              onClick={onBack}
-              variant="outline"
-              className="border-2 border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
-            >
-              <ArrowRight className="w-4 h-4 ml-2" />
-              العودة
-            </Button>
-            
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-white">تفاصيل العميل</h1>
-              
+        <div className="container mx-auto px-4 py-3">
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-2">
+            {/* اسم الصفحة في الأعلى */}
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-lg md:text-xl font-bold text-white whitespace-nowrap">تفاصيل العميل</h1>
               {/* Auto-save indicator */}
               {isEditing && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {isSaving ? (
                     <span className="text-xs text-[#D4AF37] flex items-center gap-1 animate-pulse">
                       <div className="w-2 h-2 bg-[#D4AF37] rounded-full animate-ping"></div>
@@ -1030,42 +1022,57 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
               )}
             </div>
             
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={onBack}
+                variant="outline"
+                size="sm"
+                className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+              >
+                <ArrowRight className="w-3 h-3 ml-1" />
+                العودة
+              </Button>
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <>
+                    <Button
+                      onClick={() => {
+                        if (autoSaveTimeoutRef.current) {
+                          clearTimeout(autoSaveTimeoutRef.current);
+                        }
+                        setEditedCustomer(customer);
+                        setIsEditing(false);
+                        setHasUnsavedChanges(false);
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="border-[#D4AF37] text-white hover:bg-white/20"
+                    >
+                      <X className="w-3 h-3 ml-1" />
+                      إلغاء
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      size="sm"
+                      className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
+                      disabled={isSaving}
+                    >
+                      <Save className="w-3 h-3 ml-1" />
+                      حفظ
+                    </Button>
+                  </>
+                ) : (
                   <Button
-                    onClick={() => {
-                      if (autoSaveTimeoutRef.current) {
-                        clearTimeout(autoSaveTimeoutRef.current);
-                      }
-                      setEditedCustomer(customer);
-                      setIsEditing(false);
-                      setHasUnsavedChanges(false);
-                    }}
-                    variant="outline"
-                    className="border-[#D4AF37] text-white hover:bg-white/20"
+                    onClick={() => setActiveTab('settings')}
+                    size="sm"
+                    className="bg-[#01411C] text-white border border-[#D4AF37] hover:bg-[#026129]"
                   >
-                    <X className="w-4 h-4 ml-1" />
-                    إلغاء
+                    <Settings className="w-3 h-3 ml-1" />
+                    إعدادات
                   </Button>
-                  <Button
-                    onClick={handleSave}
-                    className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
-                    disabled={isSaving}
-                  >
-                    <Save className="w-4 h-4 ml-1" />
-                    حفظ
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => setActiveTab('settings')}
-                  className="bg-[#01411C] text-white border-2 border-[#D4AF37] hover:bg-[#026129] shadow-lg"
-                >
-                  <Settings className="w-4 h-4 ml-1" />
-                  إعدادات خاصة
-                </Button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

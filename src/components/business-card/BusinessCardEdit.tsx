@@ -908,21 +908,12 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] px-4 py-3">
-        {/* الصف الأول: العنوان وحالة النشر - بارز في الأعلى */}
-        <div className="flex items-center justify-between mb-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="text-white hover:bg-white/20 h-8 px-2"
-          >
-            <ArrowRight className="w-4 h-4 ml-1" />
-            <span className="hidden sm:inline">عودة</span>
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <h1 className="text-white text-base sm:text-lg font-bold">تعديل البطاقة</h1>
+      <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] px-4 py-3 border-b-2 border-[#D4AF37]">
+        {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+        <div className="flex flex-col gap-2">
+          {/* اسم الصفحة وحالة النشر في الأعلى */}
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-white text-lg font-bold whitespace-nowrap">تعديل البطاقة</h1>
             {/* مؤشر حالة النشر */}
             {isPublished !== null && (
               isPublished ? (
@@ -936,29 +927,42 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               ) : (
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-100 border border-yellow-400/30">
                   <AlertCircle className="w-3 h-3" />
-                  <span className="hidden sm:inline">غير منشورة</span>
+                  <span>غير منشورة</span>
                 </div>
               )
             )}
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => {
-              try {
-                await supabase.auth.signOut();
-              } catch (e) {
-                console.error('Logout error:', e);
-              } finally {
-                window.location.href = '/app/login';
-              }
-            }}
-            className="text-white hover:bg-white/20 h-8 px-2"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline mr-1">خروج</span>
-          </Button>
+          {/* الأزرار في سطر منفصل */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onBack}
+              className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20 h-8"
+            >
+              <ArrowRight className="w-3 h-3 ml-1" />
+              عودة
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await supabase.auth.signOut();
+                } catch (e) {
+                  console.error('Logout error:', e);
+                } finally {
+                  window.location.href = '/app/login';
+                }
+              }}
+              className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20 h-8"
+            >
+              <LogOut className="w-3 h-3 ml-1" />
+              خروج
+            </Button>
+          </div>
         </div>
         
         {/* رابط الصفحة العامة إذا كانت منشورة */}

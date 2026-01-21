@@ -187,40 +187,51 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <div className="bg-gradient-to-l from-[#01411C] to-[#065f41] text-white p-4 sticky top-0 z-50">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <Button 
-                variant="ghost" 
-                onClick={onBack} 
-                className="text-white hover:bg-white/10"
-              >
-                <ArrowRight className="h-4 w-4 ml-2" />
-                رجوع
-              </Button>
-            )}
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Palette className="h-6 w-6 text-[#D4AF37]" />
+      <div className="bg-gradient-to-l from-[#01411C] to-[#065f41] text-white p-3 sticky top-0 z-50 border-b-2 border-[#D4AF37]">
+        <div className="container mx-auto">
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-2">
+            {/* اسم الصفحة في الأعلى */}
+            <h1 className="text-lg md:text-xl font-bold flex items-center justify-center gap-2 whitespace-nowrap">
+              <Palette className="h-5 w-5 text-[#D4AF37]" />
               {cardId ? 'تحرير البطاقة' : 'إنشاء بطاقة جديدة'}
             </h1>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="bg-transparent border-white/30 text-white hover:bg-white/10"
-            >
-              <Eye className="h-4 w-4 ml-2" />
-              معاينة
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/90"
-            >
-              <Save className="h-4 w-4 ml-2" />
-              {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-            </Button>
+            
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between">
+              {onBack && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={onBack} 
+                  className="border border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
+                >
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                  رجوع
+                </Button>
+              )}
+              {!onBack && <div />}
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-transparent border-white/30 text-white hover:bg-white/10"
+                >
+                  <Eye className="h-3 w-3 ml-1" />
+                  معاينة
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  size="sm"
+                  className="bg-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/90"
+                >
+                  <Save className="h-3 w-3 ml-1" />
+                  {isSaving ? 'جاري...' : 'حفظ'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
