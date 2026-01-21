@@ -2748,9 +2748,14 @@ export default function MyPlatformComplete({
       {/* Publish Dialog - صفحة كاملة في الجوال */}
       <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
         <DialogContent 
-          className="w-full h-[100dvh] max-w-full md:max-w-4xl md:h-auto md:max-h-[95vh] overflow-hidden p-0 m-0 md:m-auto rounded-none md:rounded-lg fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col" 
+          className="w-full h-[100dvh] max-w-full md:max-w-4xl md:h-auto md:max-h-[95vh] overflow-hidden p-0 m-0 md:m-auto rounded-none md:rounded-lg fixed inset-0 translate-x-0 translate-y-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col" 
           dir="rtl"
         >
+          {/* مطلوب للوصولية (Radix): عنوان مخفي */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>نشر إعلان جديد</DialogTitle>
+          </DialogHeader>
+
           {/* Header مخصص للجوال */}
           <div className="shrink-0 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-3 md:p-4 md:bg-white md:text-[#01411C] md:border-b">
             <div className="flex items-center justify-between">
