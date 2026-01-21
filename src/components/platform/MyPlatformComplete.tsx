@@ -975,7 +975,7 @@ export default function MyPlatformComplete({
 
   // الاستماع لحدث نشر الإعلان وإضافته للهيكل الهرمي
   useEffect(() => {
-    const handleAdPublished = (event: Event) => {
+    const handleAdPublished = async (event: Event) => {
       const customEvent = event as CustomEvent;
       const { adId } = customEvent.detail;
       
@@ -995,6 +995,7 @@ export default function MyPlatformComplete({
         description: newAd.aiDescription || newAd.description || '',
         price: newAd.price ? `${newAd.price} ريال` : 'السعر عند التواصل',
         image: newAd.images?.[0] || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
+        images: newAd.images || [],
         status: 'published',
         views: 0,
         requests: 0,
@@ -1006,6 +1007,8 @@ export default function MyPlatformComplete({
         ownerName: newAd.ownerName,
         isHidden: false,
         liveViewers: 0,
+        city: city,
+        district: district,
       };
       
       setCityHierarchy(prev => {
@@ -1050,11 +1053,15 @@ export default function MyPlatformComplete({
       
       // توسيع المدينة لإظهار العرض الجديد
       setExpandedCities(prev => new Set([...prev, city]));
+      
+      // ✅ إعادة جلب العروض من قاعدة البيانات لتحديث تبويب المنصة أيضاً
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await fetchListings();
     };
     
     window.addEventListener('adPublished', handleAdPublished);
     return () => window.removeEventListener('adPublished', handleAdPublished);
-  }, []);
+  }, [fetchListings]);
 
   // الاستماع لأحداث المشاهدات لتحديث الإحصائيات
   useEffect(() => {

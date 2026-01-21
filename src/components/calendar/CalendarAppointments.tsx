@@ -322,7 +322,7 @@ export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppoint
               </Button>
             )}
             <div className="flex gap-2">
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/90">
                   <Plus className="h-4 w-4 ml-2" />
@@ -488,6 +488,7 @@ export function CalendarAppointments({ onBack, linkedCustomer }: CalendarAppoint
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </div>
       </div>

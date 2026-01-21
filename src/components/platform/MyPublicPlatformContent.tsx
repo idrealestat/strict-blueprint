@@ -380,16 +380,25 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       setIsSwapped(swapState === 'true');
     };
 
+    // ✅ حدث خاص لإعادة التحميل الفوري بعد النشر
+    const handleAdPublished = async () => {
+      // انتظار قليلاً ليتم حفظ البيانات في قاعدة البيانات
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (ownerFetchListings) {
+        await ownerFetchListings();
+      }
+    };
+
     window.addEventListener('businessCardUpdated', handleUpdate);
     window.addEventListener('businessCardSwapped', handleSwap);
     window.addEventListener('publishedAdSaved', handleUpdate);
-    window.addEventListener('adPublished', handleUpdate); // ✅ الاستماع لنشر الإعلان الجديد
+    window.addEventListener('adPublished', handleAdPublished); // ✅ الاستماع لنشر الإعلان الجديد
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('businessCardUpdated', handleUpdate);
       window.removeEventListener('businessCardSwapped', handleSwap);
       window.removeEventListener('publishedAdSaved', handleUpdate);
-      window.removeEventListener('adPublished', handleUpdate);
+      window.removeEventListener('adPublished', handleAdPublished);
       window.removeEventListener('storage', handleUpdate);
     };
   }, [
