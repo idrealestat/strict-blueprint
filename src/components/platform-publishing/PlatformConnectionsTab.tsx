@@ -1,10 +1,10 @@
 /**
  * PlatformConnectionsTab.tsx
- * تبويب ربط المنصات الخارجية مع دعم Wasalt API
+ * تبويب ربط المنصات الخارجية - حقول موحدة لجميع المنصات
  */
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,6 @@ import {
   Check,
   X,
   RefreshCw,
-  ExternalLink,
   Settings,
   Shield,
   Info,
@@ -27,20 +26,21 @@ import {
   TestTube,
   CheckCircle2,
   AlertCircle,
-  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalPlatform, AVAILABLE_PLATFORMS } from './types';
+import { ExternalPlatform } from './types';
 
-interface WasaltCredentials {
+// بيانات الاعتماد الموحدة لجميع المنصات
+interface PlatformCredentials {
   vendorId: string;
   token: string;
   environment: 'preprod' | 'production';
 }
 
-interface PlatformCredentials {
-  [key: string]: WasaltCredentials | { username: string; password: string; apiKey?: string };
+// مخزن بيانات جميع المنصات
+interface AllPlatformsCredentials {
+  [platformId: string]: PlatformCredentials;
 }
 
 interface PlatformConnectionsTabProps {
@@ -49,6 +49,50 @@ interface PlatformConnectionsTabProps {
   onPlatformDisconnect: (platformId: string) => Promise<boolean>;
 }
 
+// معلومات API لكل منصة
+const PLATFORM_API_INFO: Record<string, { preprodUrl: string; prodUrl: string; helpText: string }> = {
+  wasalt: {
+    preprodUrl: 'preprod-api.wasalt.com',
+    prodUrl: 'api.wasalt.com',
+    helpText: 'للحصول على البيانات، تواصل مع فريق وصلت أو سجّل في برنامج المطورين',
+  },
+  aqar: {
+    preprodUrl: 'sandbox.aqar.fm/api',
+    prodUrl: 'api.aqar.fm',
+    helpText: 'سجّل كوسيط معتمد على منصة عقار للحصول على بيانات API',
+  },
+  deal: {
+    preprodUrl: 'test-api.deal.sa',
+    prodUrl: 'api.deal.sa',
+    helpText: 'تواصل مع فريق ديل للحصول على صلاحيات API',
+  },
+  haraj: {
+    preprodUrl: 'test.haraj.com.sa/api',
+    prodUrl: 'api.haraj.com.sa',
+    helpText: 'سجّل حساب تاجر على حراج واطلب بيانات API',
+  },
+  sandak: {
+    preprodUrl: 'staging.sandak.sa/api',
+    prodUrl: 'api.sandak.sa',
+    helpText: 'تواصل مع دعم سندك للحصول على بيانات التكامل',
+  },
+  bayut: {
+    preprodUrl: 'sandbox.bayut.sa/api',
+    prodUrl: 'api.bayut.sa',
+    helpText: 'سجّل كوكيل عقاري على بيوت للحصول على صلاحيات API',
+  },
+  thaki: {
+    preprodUrl: 'test.thaki.sa/api',
+    prodUrl: 'api.thaki.sa',
+    helpText: 'تواصل مع فريق ذكي للحصول على بيانات API',
+  },
+  moktamel: {
+    preprodUrl: 'staging.moktamel.sa/api',
+    prodUrl: 'api.moktamel.sa',
+    helpText: 'سجّل على منصة مكتمل واطلب بيانات التكامل',
+  },
+};
+
 export default function PlatformConnectionsTab({
   platforms,
   onPlatformConnect,
@@ -56,121 +100,85 @@ export default function PlatformConnectionsTab({
 }: PlatformConnectionsTabProps) {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [showCredentialsForm, setShowCredentialsForm] = useState<string | null>(null);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionTestResult, setConnectionTestResult] = useState<'success' | 'error' | null>(null);
+  const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [connectionTestResults, setConnectionTestResults] = useState<Record<string, 'success' | 'error'>>({});
   
-  // بيانات Wasalt API
-  const [wasaltCredentials, setWasaltCredentials] = useState<WasaltCredentials>({
-    vendorId: '',
-    token: '',
-    environment: 'preprod',
-  });
-  
-  // بيانات المنصات الأخرى
-  const [genericCredentials, setGenericCredentials] = useState({ 
-    username: '', 
-    password: '', 
-    apiKey: '' 
-  });
+  // بيانات جميع المنصات
+  const [allCredentials, setAllCredentials] = useState<AllPlatformsCredentials>({});
 
   // تحميل البيانات المحفوظة
   useEffect(() => {
-    const savedWasaltCreds = localStorage.getItem('wasalt_credentials');
-    if (savedWasaltCreds) {
+    const saved = localStorage.getItem('platform_credentials');
+    if (saved) {
       try {
-        const parsed = JSON.parse(savedWasaltCreds);
-        setWasaltCredentials(parsed);
+        setAllCredentials(JSON.parse(saved));
       } catch (e) {
-        console.error('Error loading Wasalt credentials');
+        console.error('Error loading platform credentials');
       }
     }
   }, []);
 
-  // اختبار الاتصال مع Wasalt
-  const testWasaltConnection = async () => {
-    if (!wasaltCredentials.vendorId || !wasaltCredentials.token) {
+  // الحصول على بيانات منصة معينة
+  const getPlatformCredentials = (platformId: string): PlatformCredentials => {
+    return allCredentials[platformId] || { vendorId: '', token: '', environment: 'preprod' };
+  };
+
+  // تحديث بيانات منصة معينة
+  const updatePlatformCredentials = (platformId: string, field: keyof PlatformCredentials, value: string) => {
+    setAllCredentials(prev => ({
+      ...prev,
+      [platformId]: {
+        ...getPlatformCredentials(platformId),
+        [field]: value,
+      }
+    }));
+  };
+
+  // اختبار الاتصال
+  const testConnection = async (platformId: string) => {
+    const creds = getPlatformCredentials(platformId);
+    if (!creds.vendorId || !creds.token) {
       toast.error('الرجاء إدخال Vendor ID و Token');
       return;
     }
 
-    setTestingConnection(true);
-    setConnectionTestResult(null);
+    setTestingConnection(platformId);
+    setConnectionTestResults(prev => ({ ...prev, [platformId]: undefined as any }));
 
     try {
-      // محاكاة اختبار الاتصال - في التطبيق الحقيقي سيتم استخدام Edge Function
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // افتراض نجاح الاتصال للتجربة
-      setConnectionTestResult('success');
+      setConnectionTestResults(prev => ({ ...prev, [platformId]: 'success' }));
       toast.success('تم اختبار الاتصال بنجاح!');
     } catch (error) {
-      setConnectionTestResult('error');
+      setConnectionTestResults(prev => ({ ...prev, [platformId]: 'error' }));
       toast.error('فشل اختبار الاتصال');
     } finally {
-      setTestingConnection(false);
+      setTestingConnection(null);
     }
   };
 
-  const handleConnect = async (platform: ExternalPlatform) => {
-    // إذا كانت منصة وصلت
-    if (platform.id === 'wasalt') {
-      setShowCredentialsForm('wasalt');
-      return;
-    }
-    
-    if (platform.requiresAuth) {
-      setShowCredentialsForm(platform.id);
-      return;
-    }
-
-    setConnectingPlatform(platform.id);
-    try {
-      const success = await onPlatformConnect(platform.id);
-      if (success) {
-        toast.success(`تم الربط مع ${platform.nameAr} بنجاح`);
-      } else {
-        toast.error(`فشل الربط مع ${platform.nameAr}`);
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء الربط');
-    } finally {
-      setConnectingPlatform(null);
-    }
+  const handleConnect = (platform: ExternalPlatform) => {
+    setShowCredentialsForm(platform.id);
   };
 
-  const handleSubmitWasaltCredentials = async () => {
-    if (!wasaltCredentials.vendorId || !wasaltCredentials.token) {
+  const handleSubmitCredentials = async (platformId: string) => {
+    const creds = getPlatformCredentials(platformId);
+    if (!creds.vendorId || !creds.token) {
       toast.error('الرجاء إدخال جميع البيانات المطلوبة');
       return;
     }
 
-    setConnectingPlatform('wasalt');
-    try {
-      // حفظ البيانات
-      localStorage.setItem('wasalt_credentials', JSON.stringify(wasaltCredentials));
-      
-      const success = await onPlatformConnect('wasalt', wasaltCredentials);
-      if (success) {
-        toast.success('تم الربط مع وصلت بنجاح! يمكنك الآن نشر الإعلانات.');
-        setShowCredentialsForm(null);
-      } else {
-        toast.error('فشل الربط - تحقق من البيانات');
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء الربط');
-    } finally {
-      setConnectingPlatform(null);
-    }
-  };
-
-  const handleSubmitGenericCredentials = async (platformId: string) => {
     setConnectingPlatform(platformId);
     try {
-      const success = await onPlatformConnect(platformId, genericCredentials);
+      // حفظ البيانات
+      const updated = { ...allCredentials, [platformId]: creds };
+      localStorage.setItem('platform_credentials', JSON.stringify(updated));
+      
+      const success = await onPlatformConnect(platformId, creds);
       if (success) {
-        toast.success('تم الربط بنجاح');
+        const platformName = platforms.find(p => p.id === platformId)?.nameAr || platformId;
+        toast.success(`تم الربط مع ${platformName} بنجاح!`);
         setShowCredentialsForm(null);
-        setGenericCredentials({ username: '', password: '', apiKey: '' });
       } else {
         toast.error('فشل الربط - تحقق من البيانات');
       }
@@ -183,10 +191,15 @@ export default function PlatformConnectionsTab({
 
   const handleDisconnect = async (platform: ExternalPlatform) => {
     try {
-      if (platform.id === 'wasalt') {
-        localStorage.removeItem('wasalt_credentials');
-        setWasaltCredentials({ vendorId: '', token: '', environment: 'preprod' });
-      }
+      const updated = { ...allCredentials };
+      delete updated[platform.id];
+      localStorage.setItem('platform_credentials', JSON.stringify(updated));
+      setAllCredentials(updated);
+      setConnectionTestResults(prev => {
+        const newResults = { ...prev };
+        delete newResults[platform.id];
+        return newResults;
+      });
       
       const success = await onPlatformDisconnect(platform.id);
       if (success) {
@@ -195,11 +208,6 @@ export default function PlatformConnectionsTab({
     } catch (error) {
       toast.error('حدث خطأ');
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('تم النسخ');
   };
 
   const getStatusBadge = (status: ExternalPlatform['status']) => {
@@ -228,253 +236,203 @@ export default function PlatformConnectionsTab({
     }
   };
 
-  // نموذج إعدادات Wasalt
-  const renderWasaltForm = () => (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      className="overflow-hidden"
-    >
-      <Separator className="my-4" />
-      
-      {/* معلومات API */}
-      <Alert className="mb-4 bg-purple-50 border-purple-200">
-        <Info className="w-4 h-4 text-purple-600" />
-        <AlertTitle className="text-purple-800">معلومات API وصلت</AlertTitle>
-        <AlertDescription className="text-purple-700 text-sm mt-1">
-          للحصول على بيانات الربط (Vendor ID و Token)، تواصل مع فريق وصلت أو سجّل في برنامج المطورين على منصتهم.
-        </AlertDescription>
-      </Alert>
+  // نموذج الربط الموحد لجميع المنصات
+  const renderCredentialsForm = (platform: ExternalPlatform) => {
+    const creds = getPlatformCredentials(platform.id);
+    const apiInfo = PLATFORM_API_INFO[platform.id] || {
+      preprodUrl: 'test-api.platform.com',
+      prodUrl: 'api.platform.com',
+      helpText: 'تواصل مع فريق المنصة للحصول على بيانات API',
+    };
+    const testResult = connectionTestResults[platform.id];
 
-      <div className="space-y-4">
-        {/* اختيار البيئة */}
-        <div>
-          <Label className="text-sm font-medium mb-2 block">بيئة الاتصال</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={wasaltCredentials.environment === 'preprod' ? 'default' : 'outline'}
-              onClick={() => setWasaltCredentials(prev => ({ ...prev, environment: 'preprod' }))}
-              className={wasaltCredentials.environment === 'preprod' ? 'bg-amber-500 hover:bg-amber-600' : ''}
-            >
-              <TestTube className="w-4 h-4 ml-1" />
-              تجريبي (Pre-prod)
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={wasaltCredentials.environment === 'production' ? 'default' : 'outline'}
-              onClick={() => setWasaltCredentials(prev => ({ ...prev, environment: 'production' }))}
-              className={wasaltCredentials.environment === 'production' ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              <Globe className="w-4 h-4 ml-1" />
-              إنتاج (Production)
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {wasaltCredentials.environment === 'preprod' 
-              ? 'البيئة التجريبية للاختبار: preprod-api.wasalt.com'
-              : 'البيئة الإنتاجية: api.wasalt.com'
-            }
-          </p>
-        </div>
+    return (
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        className="overflow-hidden"
+      >
+        <Separator className="my-4" />
+        
+        {/* معلومات API */}
+        <Alert className="mb-4" style={{ 
+          backgroundColor: `${platform.color}10`, 
+          borderColor: `${platform.color}30` 
+        }}>
+          <Info className="w-4 h-4" style={{ color: platform.color }} />
+          <AlertTitle style={{ color: platform.color }}>معلومات API {platform.nameAr}</AlertTitle>
+          <AlertDescription className="text-sm mt-1" style={{ color: `${platform.color}CC` }}>
+            {apiInfo.helpText}
+          </AlertDescription>
+        </Alert>
 
-        {/* Vendor ID */}
-        <div>
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Key className="w-4 h-4" />
-            Vendor ID (معرف التاجر)
-            <span className="text-red-500">*</span>
-          </Label>
-          <div className="relative mt-1">
-            <Input
-              placeholder="مثال: 67afad38ee408f44f3c9c39e"
-              value={wasaltCredentials.vendorId}
-              onChange={(e) => setWasaltCredentials(prev => ({ ...prev, vendorId: e.target.value }))}
-              className="font-mono text-sm"
-              dir="ltr"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            المعرف الفريد لحسابك على منصة وصلت
-          </p>
-        </div>
-
-        {/* Token */}
-        <div>
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Token (رمز المصادقة)
-            <span className="text-red-500">*</span>
-          </Label>
-          <div className="relative mt-1">
-            <Input
-              type="password"
-              placeholder="مثال: 0e93eb53f2a976198acd6b19"
-              value={wasaltCredentials.token}
-              onChange={(e) => setWasaltCredentials(prev => ({ ...prev, token: e.target.value }))}
-              className="font-mono text-sm"
-              dir="ltr"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            رمز التوثيق الخاص بك من وصلت
-          </p>
-        </div>
-
-        {/* نتيجة اختبار الاتصال */}
-        {connectionTestResult && (
-          <Alert className={connectionTestResult === 'success' 
-            ? 'bg-green-50 border-green-200' 
-            : 'bg-red-50 border-red-200'
-          }>
-            {connectionTestResult === 'success' ? (
-              <>
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                <AlertTitle className="text-green-800">الاتصال ناجح!</AlertTitle>
-                <AlertDescription className="text-green-700 text-sm">
-                  تم التحقق من صحة البيانات. يمكنك الآن الربط والبدء في النشر.
-                </AlertDescription>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="w-4 h-4 text-red-600" />
-                <AlertTitle className="text-red-800">فشل الاتصال</AlertTitle>
-                <AlertDescription className="text-red-700 text-sm">
-                  تحقق من صحة Vendor ID و Token وحاول مرة أخرى.
-                </AlertDescription>
-              </>
-            )}
-          </Alert>
-        )}
-
-        {/* الأزرار */}
-        <div className="flex gap-2 justify-end pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setShowCredentialsForm(null);
-              setConnectionTestResult(null);
-            }}
-          >
-            إلغاء
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={testWasaltConnection}
-            disabled={testingConnection || !wasaltCredentials.vendorId || !wasaltCredentials.token}
-          >
-            {testingConnection ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
+        <div className="space-y-4">
+          {/* اختيار البيئة */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">بيئة الاتصال</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={creds.environment === 'preprod' ? 'default' : 'outline'}
+                onClick={() => updatePlatformCredentials(platform.id, 'environment', 'preprod')}
+                className={creds.environment === 'preprod' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+              >
                 <TestTube className="w-4 h-4 ml-1" />
-                اختبار الاتصال
-              </>
-            )}
-          </Button>
-          <Button
-            size="sm"
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-            onClick={handleSubmitWasaltCredentials}
-            disabled={connectingPlatform === 'wasalt' || !wasaltCredentials.vendorId || !wasaltCredentials.token}
-          >
-            {connectingPlatform === 'wasalt' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Link className="w-4 h-4 ml-1" />
-                تفعيل الربط
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* معلومات إضافية */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
-        <h4 className="text-sm font-medium mb-2">كيفية الحصول على بيانات API:</h4>
-        <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-          <li>تواصل مع فريق وصلت عبر البريد الإلكتروني أو الموقع الرسمي</li>
-          <li>اطلب الانضمام لبرنامج المطورين (Developer Program)</li>
-          <li>بعد الموافقة، ستحصل على Vendor ID و Token</li>
-          <li>استخدم البيئة التجريبية أولاً للاختبار</li>
-        </ol>
-      </div>
-    </motion.div>
-  );
-
-  // نموذج المنصات الأخرى
-  const renderGenericForm = (platformId: string) => (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      className="overflow-hidden"
-    >
-      <Separator className="my-4" />
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-sm">اسم المستخدم / البريد</Label>
-            <Input
-              placeholder="أدخل اسم المستخدم"
-              value={genericCredentials.username}
-              onChange={(e) => setGenericCredentials(prev => ({ ...prev, username: e.target.value }))}
-            />
+                تجريبي (Pre-prod)
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={creds.environment === 'production' ? 'default' : 'outline'}
+                onClick={() => updatePlatformCredentials(platform.id, 'environment', 'production')}
+                className={creds.environment === 'production' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                <Globe className="w-4 h-4 ml-1" />
+                إنتاج (Production)
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {creds.environment === 'preprod' 
+                ? `البيئة التجريبية: ${apiInfo.preprodUrl}`
+                : `البيئة الإنتاجية: ${apiInfo.prodUrl}`
+              }
+            </p>
           </div>
+
+          {/* Vendor ID */}
           <div>
-            <Label className="text-sm">كلمة المرور</Label>
-            <Input
-              type="password"
-              placeholder="أدخل كلمة المرور"
-              value={genericCredentials.password}
-              onChange={(e) => setGenericCredentials(prev => ({ ...prev, password: e.target.value }))}
-            />
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              Vendor ID (معرف التاجر)
+              <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative mt-1">
+              <Input
+                placeholder="مثال: 67afad38ee408f44f3c9c39e"
+                value={creds.vendorId}
+                onChange={(e) => updatePlatformCredentials(platform.id, 'vendorId', e.target.value)}
+                className="font-mono text-sm bg-white"
+                dir="ltr"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              المعرف الفريد لحسابك على منصة {platform.nameAr}
+            </p>
+          </div>
+
+          {/* Token */}
+          <div>
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Token (رمز المصادقة)
+              <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative mt-1">
+              <Input
+                type="password"
+                placeholder="مثال: 0e93eb53f2a976198acd6b19"
+                value={creds.token}
+                onChange={(e) => updatePlatformCredentials(platform.id, 'token', e.target.value)}
+                className="font-mono text-sm bg-white"
+                dir="ltr"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              رمز التوثيق الخاص بك من {platform.nameAr}
+            </p>
+          </div>
+
+          {/* نتيجة اختبار الاتصال */}
+          {testResult && (
+            <Alert className={testResult === 'success' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-red-50 border-red-200'
+            }>
+              {testResult === 'success' ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  <AlertTitle className="text-green-800">الاتصال ناجح!</AlertTitle>
+                  <AlertDescription className="text-green-700 text-sm">
+                    تم التحقق من صحة البيانات. يمكنك الآن الربط والبدء في النشر.
+                  </AlertDescription>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <AlertTitle className="text-red-800">فشل الاتصال</AlertTitle>
+                  <AlertDescription className="text-red-700 text-sm">
+                    تحقق من صحة Vendor ID و Token وحاول مرة أخرى.
+                  </AlertDescription>
+                </>
+              )}
+            </Alert>
+          )}
+
+          {/* الأزرار */}
+          <div className="flex gap-2 justify-end pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowCredentialsForm(null);
+                setConnectionTestResults(prev => {
+                  const newResults = { ...prev };
+                  delete newResults[platform.id];
+                  return newResults;
+                });
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => testConnection(platform.id)}
+              disabled={testingConnection === platform.id || !creds.vendorId || !creds.token}
+            >
+              {testingConnection === platform.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <TestTube className="w-4 h-4 ml-1" />
+                  اختبار الاتصال
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              style={{ backgroundColor: platform.color }}
+              className="text-white hover:opacity-90"
+              onClick={() => handleSubmitCredentials(platform.id)}
+              disabled={connectingPlatform === platform.id || !creds.vendorId || !creds.token}
+            >
+              {connectingPlatform === platform.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Link className="w-4 h-4 ml-1" />
+                  تفعيل الربط
+                </>
+              )}
+            </Button>
           </div>
         </div>
-        <div>
-          <Label className="text-sm">مفتاح API (اختياري)</Label>
-          <Input
-            placeholder="أدخل مفتاح API إن وجد"
-            value={genericCredentials.apiKey}
-            onChange={(e) => setGenericCredentials(prev => ({ ...prev, apiKey: e.target.value }))}
-          />
+
+        {/* معلومات إضافية */}
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
+          <h4 className="text-sm font-medium mb-2">كيفية الحصول على بيانات API:</h4>
+          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+            <li>تواصل مع فريق {platform.nameAr} عبر الموقع الرسمي</li>
+            <li>اطلب الانضمام لبرنامج المطورين أو الوسطاء</li>
+            <li>بعد الموافقة، ستحصل على Vendor ID و Token</li>
+            <li>استخدم البيئة التجريبية أولاً للاختبار</li>
+          </ol>
         </div>
-        <div className="flex gap-2 justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setShowCredentialsForm(null);
-              setGenericCredentials({ username: '', password: '', apiKey: '' });
-            }}
-          >
-            إلغاء
-          </Button>
-          <Button
-            size="sm"
-            className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90"
-            onClick={() => handleSubmitGenericCredentials(platformId)}
-            disabled={connectingPlatform === platformId}
-          >
-            {connectingPlatform === platformId ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Shield className="w-4 h-4 ml-1" />
-                تأكيد الربط
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   return (
     <ScrollArea className="h-full">
@@ -500,7 +458,7 @@ export default function PlatformConnectionsTab({
               <div>
                 <h3 className="font-semibold text-purple-900 mb-1">نشر آلي متعدد المنصات</h3>
                 <p className="text-sm text-purple-700">
-                  اربط حساباتك على المنصات العقارية لنشر إعلاناتك تلقائياً. منصة وصلت تتيح النشر على REGA مباشرة.
+                  اربط حساباتك على المنصات العقارية لنشر إعلاناتك تلقائياً من مكان واحد.
                 </p>
               </div>
             </div>
@@ -519,11 +477,13 @@ export default function PlatformConnectionsTab({
               <Card 
                 className={`border-2 transition-all duration-300 ${
                   platform.status === 'connected' 
-                    ? platform.id === 'wasalt' 
-                      ? 'border-purple-300 bg-purple-50/50' 
-                      : 'border-green-200 bg-green-50/50' 
+                    ? 'border-green-200 bg-green-50/50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
+                style={platform.status === 'connected' ? { 
+                  borderColor: `${platform.color}50`,
+                  backgroundColor: `${platform.color}08`
+                } : {}}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -580,10 +540,8 @@ export default function PlatformConnectionsTab({
                       ) : (
                         <Button
                           size="sm"
-                          className={platform.id === 'wasalt' 
-                            ? "bg-purple-600 hover:bg-purple-700 text-white"
-                            : "bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/90 text-white"
-                          }
+                          style={{ backgroundColor: platform.color }}
+                          className="text-white hover:opacity-90"
                           onClick={() => handleConnect(platform)}
                           disabled={connectingPlatform === platform.id}
                         >
@@ -592,7 +550,7 @@ export default function PlatformConnectionsTab({
                           ) : (
                             <>
                               <Link className="w-4 h-4 ml-1" />
-                              {platform.id === 'wasalt' ? 'إعداد API' : 'ربط'}
+                              إعداد API
                             </>
                           )}
                         </Button>
@@ -602,11 +560,7 @@ export default function PlatformConnectionsTab({
 
                   {/* Credentials Form */}
                   <AnimatePresence>
-                    {showCredentialsForm === platform.id && (
-                      platform.id === 'wasalt' 
-                        ? renderWasaltForm()
-                        : renderGenericForm(platform.id)
-                    )}
+                    {showCredentialsForm === platform.id && renderCredentialsForm(platform)}
                   </AnimatePresence>
                 </CardContent>
               </Card>
