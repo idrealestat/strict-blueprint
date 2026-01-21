@@ -365,6 +365,68 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
     return tags;
   }, [propertyData]);
 
+  // خريطة المدن السعودية للكشف الدقيق
+  const saudiCitiesMap: Record<string, string> = {
+    'الرياض': 'الرياض', 'riyadh': 'الرياض',
+    'جدة': 'جدة', 'jeddah': 'جدة', 'جده': 'جدة',
+    'مكة': 'مكة', 'makkah': 'مكة', 'mecca': 'مكة', 'مكة المكرمة': 'مكة',
+    'المدينة': 'المدينة', 'medina': 'المدينة', 'المدينة المنورة': 'المدينة',
+    'الدمام': 'الدمام', 'dammam': 'الدمام',
+    'الخبر': 'الخبر', 'khobar': 'الخبر', 'al khobar': 'الخبر', 'الخُبر': 'الخبر',
+    'الظهران': 'الظهران', 'dhahran': 'الظهران',
+    'الأحساء': 'الأحساء', 'الاحساء': 'الأحساء', 'ahsa': 'الأحساء',
+    'القطيف': 'القطيف', 'qatif': 'القطيف',
+    'الجبيل': 'الجبيل', 'jubail': 'الجبيل',
+    'تبوك': 'تبوك', 'tabuk': 'تبوك',
+    'أبها': 'أبها', 'abha': 'أبها',
+    'الطائف': 'الطائف', 'taif': 'الطائف',
+    'نجران': 'نجران', 'najran': 'نجران',
+    'القصيم': 'القصيم', 'qassim': 'القصيم', 'بريدة': 'القصيم',
+    'حائل': 'حائل', 'hail': 'حائل',
+    'جازان': 'جازان', 'jazan': 'جازان', 'jizan': 'جازان',
+    'ينبع': 'ينبع', 'yanbu': 'ينبع',
+    'خميس مشيط': 'خميس مشيط', 'khamis mushait': 'خميس مشيط',
+    'الباحة': 'الباحة', 'baha': 'الباحة',
+    'عرعر': 'عرعر', 'arar': 'عرعر',
+    'سكاكا': 'سكاكا', 'sakaka': 'سكاكا',
+  };
+
+  // كشف المدينة من الحي أو العنوان
+  const detectCityFromAddress = (addr: any): string => {
+    // أولاً: التحقق من المدينة المباشرة
+    const directCity = addr.city || addr.town || addr.village || '';
+    const normalizedDirect = directCity.toLowerCase().replace(/[\s-]/g, '');
+    if (saudiCitiesMap[normalizedDirect] || saudiCitiesMap[directCity]) {
+      return saudiCitiesMap[normalizedDirect] || saudiCitiesMap[directCity] || directCity;
+    }
+
+    // ثانياً: التحقق من الولاية/المنطقة
+    const state = addr.state || addr.region || '';
+    const normalizedState = state.toLowerCase().replace(/[\s-]/g, '');
+    if (saudiCitiesMap[normalizedState] || saudiCitiesMap[state]) {
+      return saudiCitiesMap[normalizedState] || saudiCitiesMap[state] || state;
+    }
+
+    // ثالثاً: البحث في الحي لتحديد المدينة (مثل الثقبة = الخبر)
+    const suburb = (addr.suburb || addr.neighbourhood || '').toLowerCase();
+    const easternProvinceCities = ['الخبر', 'الدمام', 'الظهران', 'القطيف', 'الجبيل', 'الأحساء'];
+    
+    // قائمة الأحياء المعروفة ومدنها
+    const districtCityMap: Record<string, string> = {
+      'الثقبة': 'الخبر', 'العزيزية': 'الخبر', 'الراكة': 'الخبر', 'الكورنيش': 'الخبر',
+      'الحمراء': 'الدمام', 'الفيصلية': 'الدمام', 'العنود': 'الدمام',
+      'الدوحة': 'الظهران', 'القشلة': 'الظهران',
+    };
+
+    for (const [district, city] of Object.entries(districtCityMap)) {
+      if (suburb.includes(district.toLowerCase())) {
+        return city;
+      }
+    }
+
+    return directCity || state || '';
+  };
+
   // جلب العنوان من الإحداثيات
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     setIsLoadingLocation(true);
@@ -373,21 +435,44 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
       const data = await response.json();
       if (data?.address) {
         const addr = data.address;
+        
+        // استخدام الكشف الذكي للمدينة
+        const detectedCity = detectCityFromAddress(addr);
+        
+        // استخراج اسم الشارع بشكل صحيح
+        const streetName = addr.road || addr.street || addr.pedestrian || addr.path || addr.footway || '';
+        
+        // استخراج رقم المبنى ورقم إضافي
+        const buildingNum = addr.house_number || '';
+        
+        // العنوان الوطني السعودي يتكون من: رقم المبنى + اسم الشارع + الحي + المدينة + الرمز البريدي
+        const district = addr.suburb || addr.neighbourhood || addr.quarter || addr.residential || '';
+        const postalCode = addr.postcode || '';
+        
         setPropertyData(prev => ({
           ...prev,
           locationDetails: {
             ...prev.locationDetails,
-            city: addr.city || addr.town || addr.village || addr.state || '',
-            district: addr.suburb || addr.neighbourhood || addr.quarter || '',
-            street: addr.road || addr.street || '',
-            postalCode: addr.postcode || '',
-            buildingNumber: addr.house_number || '',
-            additionalNumber: Math.floor(1000 + Math.random() * 9000).toString(),
-            latitude: lat, longitude: lng,
+            city: detectedCity,
+            district: district,
+            street: streetName,
+            postalCode: postalCode,
+            buildingNumber: buildingNum,
+            additionalNumber: '', // يُملأ يدوياً - ليس متوفراً في Nominatim
+            latitude: lat, 
+            longitude: lng,
           },
-          ownerNationalAddress: `${addr.road || ''}, ${addr.suburb || ''}, ${addr.city || addr.town || ''}, ${addr.postcode || ''}`.trim(),
+          ownerNationalAddress: [buildingNum, streetName, district, detectedCity, postalCode]
+            .filter(Boolean)
+            .join('، '),
         }));
-        toast.success('تم تحديد الموقع بنجاح');
+        
+        // رسالة توضيحية
+        if (!streetName) {
+          toast.info('تم تحديد الموقع - يرجى إدخال اسم الشارع يدوياً', { duration: 4000 });
+        } else {
+          toast.success('✅ تم تحديد الموقع والعنوان بنجاح');
+        }
       }
     } catch (error) {
       toast.error('فشل في جلب تفاصيل العنوان');
