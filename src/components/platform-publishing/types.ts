@@ -144,7 +144,7 @@ export interface PublishingAnalytics {
   }[];
 }
 
-// المنصات المتاحة
+// المنصات المتاحة - مرتبة حسب الأولوية
 export const AVAILABLE_PLATFORMS: ExternalPlatform[] = [
   {
     id: 'wasalt',
@@ -156,17 +156,6 @@ export const AVAILABLE_PLATFORMS: ExternalPlatform[] = [
     status: 'disconnected',
     requiresAuth: true,
     features: ['REGA Integration', 'Auto-sync', 'Analytics'],
-  },
-  {
-    id: 'haraj',
-    name: 'Haraj',
-    nameAr: 'حراج',
-    logo: '🔵',
-    color: '#3B82F6',
-    bgColor: 'rgba(59, 130, 246, 0.1)',
-    status: 'disconnected',
-    requiresAuth: true,
-    features: ['Manual posting', 'Photo upload'],
   },
   {
     id: 'aqar',
@@ -191,6 +180,17 @@ export const AVAILABLE_PLATFORMS: ExternalPlatform[] = [
     features: ['Quick posting', 'Analytics'],
   },
   {
+    id: 'haraj',
+    name: 'Haraj',
+    nameAr: 'حراج',
+    logo: '🔵',
+    color: '#3B82F6',
+    bgColor: 'rgba(59, 130, 246, 0.1)',
+    status: 'disconnected',
+    requiresAuth: true,
+    features: ['Manual posting', 'Photo upload'],
+  },
+  {
     id: 'sandak',
     name: 'Sandak',
     nameAr: 'سندك',
@@ -213,25 +213,25 @@ export const AVAILABLE_PLATFORMS: ExternalPlatform[] = [
     features: ['International reach', 'Premium listings'],
   },
   {
-    id: 'zameen',
-    name: 'Zameen',
-    nameAr: 'زمين',
-    logo: '🌍',
-    color: '#14B8A6',
-    bgColor: 'rgba(20, 184, 166, 0.1)',
-    status: 'disconnected',
-    requiresAuth: true,
-    features: ['Property portal', 'Wide reach'],
-  },
-  {
-    id: 'opensooq',
-    name: 'OpenSooq',
-    nameAr: 'السوق المفتوح',
-    logo: '🛒',
+    id: 'thaki',
+    name: 'Thaki',
+    nameAr: 'ذكي',
+    logo: '🧠',
     color: '#EC4899',
     bgColor: 'rgba(236, 72, 153, 0.1)',
     status: 'disconnected',
     requiresAuth: true,
-    features: ['Classifieds', 'Easy posting'],
+    features: ['AI-powered', 'Smart matching'],
+  },
+  {
+    id: 'moktamel',
+    name: 'Moktamel',
+    nameAr: 'مكتمل',
+    logo: '✅',
+    color: '#14B8A6',
+    bgColor: 'rgba(20, 184, 166, 0.1)',
+    status: 'disconnected',
+    requiresAuth: true,
+    features: ['Complete listing', 'Full service'],
   },
 ];
