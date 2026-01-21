@@ -133,11 +133,10 @@ export default function SimpleDashboard({
   }, {
     id: "publishing",
     title: "النشر على المنصات",
-    description: "قريباً - نظام متكامل للنشر على المنصات العقارية",
+    description: "انشر عقاراتك على منصتك الخاصة وعلى المنصات العقارية من مكان واحد",
     icon: Globe,
-    navigateTo: "", // فارغ - سيتم إضافة صفحة جديدة لاحقاً
-    flagKey: "publishing_enabled",
-    comingSoon: true
+    navigateTo: "platform-publishing",
+    flagKey: "publishing_enabled"
   }, {
     id: "customer-management",
     title: "إدارة العملاء",
