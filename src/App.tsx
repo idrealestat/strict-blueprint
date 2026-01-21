@@ -20,6 +20,7 @@ import { CalendarAppointments } from "./components/calendar";
 import { TasksManagement } from "./components/tasks";
 import { MapSystemDashboard } from "./components/map";
 import { AdPublishingSections } from "./components/advertising";
+import { PlatformPublishingSystem } from "./components/platform-publishing";
 import CustomersListPage from "./pages/CustomersListPage";
 import OffersRequestsPage from "./pages/OffersRequestsPage";
 import SmartOpportunitiesPage from "./pages/SmartOpportunitiesPage";
@@ -444,6 +445,8 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
     case "sales":
     case "advertising":
       return <><AdPublishingSections onBack={handleBack} /><AIFloatingButton /></>;
+    case "platform-publishing":
+      return <><PlatformPublishingSystem onClose={handleBack} /><AIFloatingButton /></>;
     case "calendar-system-complete":
       return <><CalendarAppointments onBack={handleBack} linkedCustomer={linkedCustomerForAppointment} /><AIFloatingButton /></>;
     case "analytics-dashboard":

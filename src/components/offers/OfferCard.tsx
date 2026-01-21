@@ -5,6 +5,13 @@ import { Building2, MapPin, Ruler, Bed, Bath, Calendar, TrendingUp } from "lucid
 import { motion } from "framer-motion";
 import LiveViewerIndicator from "@/components/ui/LiveViewerIndicator";
 import { useSingleOfferLiveViewers } from "@/hooks/useLiveViewers";
+import { AVAILABLE_PLATFORMS } from "@/components/platform-publishing/types";
+
+interface PublishedPlatform {
+  platformId: string;
+  platformName: string;
+  status: 'success' | 'pending' | 'failed';
+}
 
 interface Offer {
   id: string;
@@ -21,6 +28,8 @@ interface Offer {
   price: number;
   views_count?: number;
   commission_rate?: number;
+  source?: 'platform_publishing' | 'my_platform';
+  publishedPlatforms?: PublishedPlatform[];
 }
 
 interface OfferCardProps {
@@ -138,6 +147,39 @@ export function OfferCard({ offer, onClick, showLiveViewers = true }: OfferCardP
               {offer.price.toLocaleString("ar-SA")} <span className="text-sm text-gray-500">ريال</span>
             </div>
           </div>
+
+          {/* مستطيلات المنصات المنشور عليها */}
+          {offer.publishedPlatforms && offer.publishedPlatforms.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {offer.publishedPlatforms
+                .filter(p => p.status === 'success')
+                .map((platform) => {
+                  const platformInfo = AVAILABLE_PLATFORMS.find(p => p.id === platform.platformId);
+                  return (
+                    <div 
+                      key={platform.platformId}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                      style={{ 
+                        backgroundColor: `${platformInfo?.color || '#6B7280'}15`,
+                        color: platformInfo?.color || '#6B7280',
+                        border: `1px solid ${platformInfo?.color || '#6B7280'}30`
+                      }}
+                    >
+                      <span>{platformInfo?.logo || '🏠'}</span>
+                      <span>{platform.platformName}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+
+          {/* تمييز مصدر النشر */}
+          {offer.source === 'platform_publishing' && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-purple-600">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span>من النشر على المنصات</span>
+            </div>
+          )}
 
           {offer.commission_rate && (
             <div className="mt-2 text-sm text-[#065f41] flex items-center gap-1">
