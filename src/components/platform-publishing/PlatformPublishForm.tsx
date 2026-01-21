@@ -431,7 +431,11 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     setIsLoadingLocation(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`);
+      // ملاحظة: Nominatim قد لا يرجع رقم المبنى/اسم شارع دقيق دائماً (يعتمد على نقطة النقر وبيانات OSM)
+      // نرفع مستوى التكبير ونطلب تفاصيل إضافية لتحسين النتائج.
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=19&addressdetails=1&namedetails=1&extratags=1&accept-language=ar`
+      );
       const data = await response.json();
       if (data?.address) {
         const addr = data.address;
@@ -449,29 +453,41 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
         const district = addr.suburb || addr.neighbourhood || addr.quarter || addr.residential || '';
         const postalCode = addr.postcode || '';
         
-        setPropertyData(prev => ({
-          ...prev,
-          locationDetails: {
-            ...prev.locationDetails,
-            city: detectedCity,
-            district: district,
-            street: streetName,
-            postalCode: postalCode,
-            buildingNumber: buildingNum,
-            additionalNumber: '', // يُملأ يدوياً - ليس متوفراً في Nominatim
-            latitude: lat, 
-            longitude: lng,
-          },
-          ownerNationalAddress: [buildingNum, streetName, district, detectedCity, postalCode]
-            .filter(Boolean)
-            .join('، '),
-        }));
+        setPropertyData(prev => {
+          // لا تكتب فوق القيم التي أدخلها المستخدم يدوياً (خصوصاً الشارع ورقم المبنى)
+          const nextStreet = prev.locationDetails.street?.trim() ? prev.locationDetails.street : streetName;
+          const nextBuilding = prev.locationDetails.buildingNumber?.trim() ? prev.locationDetails.buildingNumber : buildingNum;
+          const nextAdditional = prev.locationDetails.additionalNumber?.trim()
+            ? prev.locationDetails.additionalNumber
+            : prev.locationDetails.additionalNumber; // يبقى كما هو (يدوي)
+          const nextPostal = prev.locationDetails.postalCode?.trim() ? prev.locationDetails.postalCode : postalCode;
+
+          return {
+            ...prev,
+            locationDetails: {
+              ...prev.locationDetails,
+              city: detectedCity,
+              district: district,
+              street: nextStreet,
+              postalCode: nextPostal,
+              buildingNumber: nextBuilding,
+              additionalNumber: nextAdditional,
+              latitude: lat,
+              longitude: lng,
+            },
+            ownerNationalAddress: [nextBuilding, nextStreet, district, detectedCity, nextPostal]
+              .filter(Boolean)
+              .join('، '),
+          };
+        });
         
-        // رسالة توضيحية
-        if (!streetName) {
+        // رسائل توضيحية (لتفادي الإحساس أن النظام أخطأ وهو فعلياً لم يستلم بيانات)
+        if (!buildingNum) {
+          toast.info('تم تحديد الموقع - رقم المبنى غير متوفر تلقائياً، اضغط على المبنى نفسه أو أدخله يدوياً', { duration: 4500 });
+        } else if (!streetName) {
           toast.info('تم تحديد الموقع - يرجى إدخال اسم الشارع يدوياً', { duration: 4000 });
         } else {
-          toast.success('✅ تم تحديد الموقع والعنوان بنجاح');
+          toast.success('✅ تم تحديث العنوان من الخريطة');
         }
       }
     } catch (error) {
