@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
@@ -56,6 +57,7 @@ interface ServiceItem {
   badgeClass?: string;
   flagKey?: keyof import("@/context/FeatureFlagsContext").FeatureFlags;
   iconBgClass?: string;
+  comingSoon?: boolean; // زر فارغ - قريباً
 }
 
 export default function SimpleDashboard({
@@ -131,10 +133,11 @@ export default function SimpleDashboard({
   }, {
     id: "publishing",
     title: "النشر على المنصات",
-    description: "انشر عقاراتك على منصتك الخاصه وعلى المنصات العقارية من مكان واحد",
+    description: "قريباً - نظام متكامل للنشر على المنصات العقارية",
     icon: Globe,
-    navigateTo: "advertising",
-    flagKey: "publishing_enabled"
+    navigateTo: "", // فارغ - سيتم إضافة صفحة جديدة لاحقاً
+    flagKey: "publishing_enabled",
+    comingSoon: true
   }, {
     id: "customer-management",
     title: "إدارة العملاء",
@@ -318,6 +321,11 @@ export default function SimpleDashboard({
               {visibleServices.map(service => {
               const IconComponent = service.icon;
               const handleServiceClick = () => {
+                // إذا كان الزر فارغ (قريباً) - عرض رسالة فقط
+                if (service.comingSoon || !service.navigateTo) {
+                  toast.info("قريباً - هذه الميزة قيد التطوير");
+                  return;
+                }
                 if (service.routePath) {
                   routerNavigate(service.routePath);
                 } else {
