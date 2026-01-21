@@ -34,32 +34,46 @@ const OffersRequestsPage = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        {/* Header - محسّن للجوال */}
+        <div className="flex flex-col gap-3">
+          {/* اسم الصفحة في الأعلى */}
+          <div className="flex items-center justify-center gap-2">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => navigate('/app/dashboard')}
+              className="absolute right-4"
             >
               <ArrowRight className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+            <div className="text-center">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white whitespace-nowrap">
                 العروض والطلبات
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                إدارة العروض والطلبات المقبولة من الفرص الذكية
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                إدارة العروض والطلبات المقبولة
               </p>
             </div>
           </div>
           
-          {unviewedCount > 0 && (
-            <Badge className="bg-emerald-500 text-white animate-pulse">
-              <Sparkles className="w-3 h-3 ml-1" />
-              {unviewedCount} جديد
-            </Badge>
-          )}
+          {/* الأزرار والبادجات في سطر منفصل */}
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/app/dashboard')}
+            >
+              <ArrowRight className="w-4 h-4 ml-1" />
+              <span className="hidden sm:inline">العودة</span>
+            </Button>
+            
+            {unviewedCount > 0 && (
+              <Badge className="bg-emerald-500 text-white animate-pulse">
+                <Sparkles className="w-3 h-3 ml-1" />
+                {unviewedCount} جديد
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}

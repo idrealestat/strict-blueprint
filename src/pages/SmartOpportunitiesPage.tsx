@@ -369,38 +369,41 @@ const SmartOpportunitiesPage = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* شريط التنقل المصغر */}
+      {/* شريط التنقل المصغر - محسّن للجوال */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] backdrop-blur-md border-b-2 border-[#D4AF37] shadow-lg">
-        <div className="container mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            {/* Right: Burger Menu */}
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => setRightMenuOpen(true)} 
-              className="border-2 border-[#D4AF37] hover:bg-white/20 bg-white/10 text-white h-9 w-9"
-            >
-              <Menu className="w-4 h-4" />
-            </Button>
+        <div className="container mx-auto px-4 py-3">
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-2">
+            {/* اسم الصفحة في الأعلى */}
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+              <span className="font-bold text-white text-lg">الفرص الذكية</span>
+            </div>
+            
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between">
+              {/* Right: Burger Menu */}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setRightMenuOpen(true)} 
+                className="border-2 border-[#D4AF37] hover:bg-white/20 bg-white/10 text-white h-9 w-9"
+              >
+                <Menu className="w-4 h-4" />
+              </Button>
 
-            {/* Center: Title + Home */}
-            <div className="flex items-center gap-2">
+              {/* Center: Home */}
               <Button 
                 variant="ghost" 
-                size="icon"
+                size="sm"
                 onClick={() => navigate('/app/dashboard')}
-                className="text-[#D4AF37] hover:bg-white/20"
+                className="text-[#D4AF37] hover:bg-white/20 gap-1"
               >
-                <Home className="w-5 h-5" />
+                <Home className="w-4 h-4" />
+                <span className="hidden sm:inline">الرئيسية</span>
               </Button>
-              <div className="inline-flex items-center gap-2 bg-white/10 text-white px-3 py-1 rounded-full border border-[#D4AF37]">
-                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-                <span className="font-bold text-sm">الفرص الذكية</span>
-              </div>
-            </div>
 
-            {/* Left: Bell only */}
-            <div className="flex items-center gap-2">
+              {/* Left: Bell */}
               <Button 
                 variant="outline" 
                 size="icon" 
