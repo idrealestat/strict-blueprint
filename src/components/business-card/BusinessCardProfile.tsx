@@ -436,35 +436,6 @@ END:VCARD`;
           </Button>
         </div>
 
-        {/* Current Card Link Display with Copy Button */}
-        {(() => {
-          const currentSlug = getSlug();
-          const cardUrl = `${PLATFORM_BASE_URL}/${currentSlug}/card`;
-          return (
-            <div className="relative z-10 mx-4 mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Link className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
-                  <span className="text-xs text-white/70">رابط بطاقتك:</span>
-                  <span className="text-sm font-medium text-white truncate" dir="ltr">
-                    {cardUrl}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(cardUrl);
-                    toast.success("تم نسخ الرابط!");
-                  }}
-                  className="text-white hover:bg-white/20 px-2 py-1 h-auto flex-shrink-0"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Profile Image - Bigger size with improved touch swap */}
         <div className="relative z-10 flex justify-center pt-6">
