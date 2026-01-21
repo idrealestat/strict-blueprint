@@ -1091,8 +1091,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   };
 
   return (
-    <ScrollArea className="h-full max-h-[calc(100vh-120px)] md:h-[80vh]">
-      <div className="space-y-4 md:space-y-6 p-2 md:p-4 max-w-full overflow-x-hidden" dir="rtl">
+    <div className="h-full w-full overflow-y-auto overflow-x-hidden">
+      <div className="space-y-4 md:space-y-6 p-3 md:p-4 pb-24 md:pb-6 max-w-full" dir="rtl">
         
         {/* Recovery Dialog */}
         {showRecoveryDialog && (
@@ -2593,6 +2593,6 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         </AlertDialog>
 
       </div>
-    </ScrollArea>
+    </div>
   );
 }

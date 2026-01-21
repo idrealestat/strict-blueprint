@@ -2748,11 +2748,11 @@ export default function MyPlatformComplete({
       {/* Publish Dialog - صفحة كاملة في الجوال */}
       <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
         <DialogContent 
-          className="w-full h-full max-w-full md:max-w-4xl md:h-auto md:max-h-[95vh] overflow-hidden p-0 m-0 md:m-auto rounded-none md:rounded-lg fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2" 
+          className="w-full h-[100dvh] max-w-full md:max-w-4xl md:h-auto md:max-h-[95vh] overflow-hidden p-0 m-0 md:m-auto rounded-none md:rounded-lg fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col" 
           dir="rtl"
         >
           {/* Header مخصص للجوال */}
-          <div className="sticky top-0 z-10 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-4 md:bg-white md:text-[#01411C] md:border-b">
+          <div className="shrink-0 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-3 md:p-4 md:bg-white md:text-[#01411C] md:border-b">
             <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
@@ -2770,8 +2770,8 @@ export default function MyPlatformComplete({
             </div>
           </div>
           
-          {/* المحتوى */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
+          {/* المحتوى - يأخذ كل المساحة المتبقية */}
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             <PropertyPublishForm
               onPublish={(data) => {
                 toast.success('تم نشر العقار بنجاح');
