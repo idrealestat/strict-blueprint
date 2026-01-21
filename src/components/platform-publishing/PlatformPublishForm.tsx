@@ -431,66 +431,84 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     setIsLoadingLocation(true);
     try {
-      // ملاحظة: Nominatim قد لا يرجع رقم المبنى/اسم شارع دقيق دائماً (يعتمد على نقطة النقر وبيانات OSM)
-      // نرفع مستوى التكبير ونطلب تفاصيل إضافية لتحسين النتائج.
+      // Nominatim (OSM) مجاني لكن بياناته ليست دقيقة 100% مثل Google Maps
+      // خصوصاً أرقام المباني وأسماء الشوارع الفرعية في السعودية
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=19&addressdetails=1&namedetails=1&extratags=1&accept-language=ar`
       );
       const data = await response.json();
+      
       if (data?.address) {
         const addr = data.address;
+        const displayName = data.display_name || '';
         
         // استخدام الكشف الذكي للمدينة
         const detectedCity = detectCityFromAddress(addr);
         
-        // استخراج اسم الشارع بشكل صحيح
-        const streetName = addr.road || addr.street || addr.pedestrian || addr.path || addr.footway || '';
+        // استخراج اسم الشارع - نبحث في عدة حقول
+        let streetName = addr.road || addr.street || addr.pedestrian || addr.path || addr.footway || '';
         
-        // استخراج رقم المبنى ورقم إضافي
+        // إذا لم نجد شارع، نحاول استخراجه من display_name
+        if (!streetName && displayName) {
+          const displayParts = displayName.split(',').map((p: string) => p.trim());
+          // عادة الشارع يكون في الجزء الثاني أو الثالث من display_name
+          for (const part of displayParts) {
+            if (part.includes('Street') || part.includes('شارع') || part.includes('طريق') || /^\d+/.test(part)) {
+              streetName = part;
+              break;
+            }
+          }
+        }
+        
+        // استخراج رقم المبنى
         const buildingNum = addr.house_number || '';
         
-        // العنوان الوطني السعودي يتكون من: رقم المبنى + اسم الشارع + الحي + المدينة + الرمز البريدي
+        // الحي والرمز البريدي
         const district = addr.suburb || addr.neighbourhood || addr.quarter || addr.residential || '';
         const postalCode = addr.postcode || '';
         
-        setPropertyData(prev => {
-          // لا تكتب فوق القيم التي أدخلها المستخدم يدوياً (خصوصاً الشارع ورقم المبنى)
-          const nextStreet = prev.locationDetails.street?.trim() ? prev.locationDetails.street : streetName;
-          const nextBuilding = prev.locationDetails.buildingNumber?.trim() ? prev.locationDetails.buildingNumber : buildingNum;
-          const nextAdditional = prev.locationDetails.additionalNumber?.trim()
-            ? prev.locationDetails.additionalNumber
-            : prev.locationDetails.additionalNumber; // يبقى كما هو (يدوي)
-          const nextPostal = prev.locationDetails.postalCode?.trim() ? prev.locationDetails.postalCode : postalCode;
-
-          return {
-            ...prev,
-            locationDetails: {
-              ...prev.locationDetails,
-              city: detectedCity,
-              district: district,
-              street: nextStreet,
-              postalCode: nextPostal,
-              buildingNumber: nextBuilding,
-              additionalNumber: nextAdditional,
-              latitude: lat,
-              longitude: lng,
-            },
-            ownerNationalAddress: [nextBuilding, nextStreet, district, detectedCity, nextPostal]
-              .filter(Boolean)
-              .join('، '),
-          };
-        });
+        // اسم المكان (مطعم، محل، إلخ) للمساعدة في التعرف
+        const placeName = data.name || addr.amenity || addr.shop || addr.building || '';
         
-        // رسائل توضيحية (لتفادي الإحساس أن النظام أخطأ وهو فعلياً لم يستلم بيانات)
-        if (!buildingNum) {
-          toast.info('تم تحديد الموقع - رقم المبنى غير متوفر تلقائياً، اضغط على المبنى نفسه أو أدخله يدوياً', { duration: 4500 });
-        } else if (!streetName) {
-          toast.info('تم تحديد الموقع - يرجى إدخال اسم الشارع يدوياً', { duration: 4000 });
+        setPropertyData(prev => ({
+          ...prev,
+          locationDetails: {
+            ...prev.locationDetails,
+            city: detectedCity,
+            district: district,
+            street: streetName,
+            postalCode: postalCode,
+            buildingNumber: buildingNum,
+            // الرقم الإضافي دائماً يدوي - لا يتوفر في OSM
+            additionalNumber: prev.locationDetails.additionalNumber || '',
+            latitude: lat,
+            longitude: lng,
+          },
+          ownerNationalAddress: [buildingNum, streetName, district, detectedCity, postalCode]
+            .filter(Boolean)
+            .join('، '),
+        }));
+        
+        // رسائل واضحة للمستخدم
+        const missingFields: string[] = [];
+        if (!streetName) missingFields.push('اسم الشارع');
+        if (!buildingNum) missingFields.push('رقم المبنى');
+        
+        if (missingFields.length > 0) {
+          const placeHint = placeName ? ` (بالقرب من: ${placeName})` : '';
+          toast.warning(
+            `⚠️ ${missingFields.join(' و ')} غير متوفر في قاعدة البيانات${placeHint} - أدخله يدوياً`,
+            { duration: 5000 }
+          );
         } else {
-          toast.success('✅ تم تحديث العنوان من الخريطة');
+          toast.success(`✅ تم تحديد العنوان: ${streetName}، ${district}`);
         }
+        
+        // طباعة للتصحيح (يمكن إزالتها لاحقاً)
+        console.log('📍 Nominatim Response:', { addr, displayName, streetName, buildingNum, placeName });
       }
     } catch (error) {
+      console.error('Geocoding error:', error);
       toast.error('فشل في جلب تفاصيل العنوان');
     } finally {
       setIsLoadingLocation(false);
