@@ -948,33 +948,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           </Button>
         </div>
 
-        {/* شريط الرابط مع زر النسخ - مطابق لبطاقة الأعمال */}
-        <div className="relative z-10 mx-4 mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <svg className="w-4 h-4 text-[#D4AF37] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-              <span className="text-xs text-white/70">الرابط:</span>
-              <span className="text-sm font-medium text-white truncate" dir="ltr">
-                {getPlatformUrl()}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(getPlatformUrl());
-                toast.success("تم نسخ الرابط!");
-              }}
-              className="text-white hover:bg-white/20 px-2 py-1 h-auto flex-shrink-0"
-            >
-              <Copy className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
 
         <div className="max-w-7xl mx-auto text-center relative z-10">
           {/* Profile Image - نفس الحجم والتنسيق في بطاقة الأعمال مع دعم التبديل */}
