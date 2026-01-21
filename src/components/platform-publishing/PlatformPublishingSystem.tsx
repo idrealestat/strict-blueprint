@@ -117,13 +117,13 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-3 mx-4 mt-4">
-          <TabsTrigger value="connections" className="gap-2">
-            <Link className="w-4 h-4" />
-            ربط المنصات
-          </TabsTrigger>
           <TabsTrigger value="publish" className="gap-2">
             <FileText className="w-4 h-4" />
             نشر إعلان
+          </TabsTrigger>
+          <TabsTrigger value="connections" className="gap-2">
+            <Link className="w-4 h-4" />
+            ربط المنصات
           </TabsTrigger>
           <TabsTrigger value="analytics" className="gap-2">
             <BarChart3 className="w-4 h-4" />
