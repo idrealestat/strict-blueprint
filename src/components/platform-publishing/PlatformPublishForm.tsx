@@ -17,6 +17,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Building,
   MapPin,
   Globe,
@@ -61,6 +71,7 @@ import { usePublishedAdsManager, PublishedAdData, findCustomerByPhone, checkDupl
 import { useBusinessCardData } from '@/hooks/useBusinessCardData';
 import PropertyMediaUpload, { MediaFile } from '@/components/platform/PropertyMediaUpload';
 import AIDescription from '@/components/platform/AIDescription';
+import PublishSuccessActions from '@/components/platform/PublishSuccessActions';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   ExternalPlatform, 
@@ -68,6 +79,10 @@ import {
   PlatformPublishResult,
   AVAILABLE_PLATFORMS 
 } from './types';
+
+// ===================== Storage Keys =====================
+const STORAGE_KEY = 'platform_publish_draft';
+const SESSION_STORAGE_KEY = 'platform_publish_session_draft';
 
 // ===================== Types =====================
 interface PropertyData {
@@ -233,6 +248,14 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('satellite');
   
+  // حالات الإشعارات والتنبيهات
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateMessage, setDuplicateMessage] = useState('');
+  const [publishedAd, setPublishedAd] = useState<PublishedAdData | null>(null);
+  const [showSuccessActions, setShowSuccessActions] = useState(false);
+  
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -241,6 +264,69 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
 
   const { data: businessCardData } = useBusinessCardData();
   const { publishAdWithCustomerLink } = usePublishedAdsManager();
+
+  // التحقق من المسودة المحفوظة عند التحميل
+  useEffect(() => {
+    // التحقق من sessionStorage أولاً (للتعافي من إغلاق معرض الصور)
+    const sessionDraft = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (sessionDraft) {
+      try {
+        const parsed = JSON.parse(sessionDraft);
+        setPropertyData(parsed);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        toast.success('✅ تم استرداد البيانات', { description: 'تم استعادة بياناتك تلقائياً' });
+        return;
+      } catch {}
+    }
+
+    // التحقق من localStorage
+    const savedDraft = localStorage.getItem(STORAGE_KEY);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        const hasData = parsed.ownerName || parsed.ownerPhone || parsed.propertyType || 
+                       parsed.locationDetails?.city || (parsed.media && parsed.media.length > 0);
+        if (hasData) {
+          setHasSavedDraft(true);
+          setShowRecoveryDialog(true);
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // حفظ تلقائي للمسودة
+  useEffect(() => {
+    const saveTimeout = setTimeout(() => {
+      const hasData = propertyData.ownerName || propertyData.ownerPhone || propertyData.propertyType;
+      if (hasData) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(propertyData));
+      }
+    }, 2000);
+    return () => clearTimeout(saveTimeout);
+  }, [propertyData]);
+
+  // استرداد المسودة
+  const handleRecoverDraft = () => {
+    const savedDraft = localStorage.getItem(STORAGE_KEY);
+    if (savedDraft) {
+      try {
+        setPropertyData(JSON.parse(savedDraft));
+        toast.success('✅ تم استرداد المسودة بنجاح');
+      } catch {
+        toast.error('فشل في استرداد المسودة');
+      }
+    }
+    setShowRecoveryDialog(false);
+  };
+
+  // تجاهل المسودة
+  const handleDiscardDraft = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setShowRecoveryDialog(false);
+    setHasSavedDraft(false);
+  };
 
   // تحميل رقم الواتساب من بطاقة العمل
   useEffect(() => {
@@ -411,6 +497,34 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
     }));
   };
 
+  // التحقق من التكرار قبل النشر
+  const checkForDuplicates = () => {
+    const duplicateResult = checkDuplicateAd({
+      ownerPhone: propertyData.ownerPhone,
+      ownerIdNumber: propertyData.ownerIdNumber,
+      deedNumber: propertyData.deedNumber,
+      propertyType: propertyData.propertyType,
+      city: propertyData.locationDetails.city,
+      district: propertyData.locationDetails.district,
+      area: propertyData.area,
+    });
+
+    if (duplicateResult.existsInOffers && duplicateResult.existsInCustomers) {
+      setDuplicateMessage(`⚠️ العرض مضاف سابقاً في العروض وإدارة العملاء (${duplicateResult.customerName})`);
+      setShowDuplicateWarning(true);
+      return true;
+    } else if (duplicateResult.existsInOffers) {
+      setDuplicateMessage('⚠️ العرض مضاف سابقاً في العروض');
+      setShowDuplicateWarning(true);
+      return true;
+    } else if (duplicateResult.existsInCustomers) {
+      setDuplicateMessage(`⚠️ العرض مضاف سابقاً في إدارة العملاء (${duplicateResult.customerName})`);
+      setShowDuplicateWarning(true);
+      return true;
+    }
+    return false;
+  };
+
   // النشر على المنصات
   const handlePublish = async () => {
     if (!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city) {
@@ -425,6 +539,18 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
     if (propertyData.selectedPlatforms.length === 0) {
       toast.error('يرجى اختيار منصة واحدة على الأقل للنشر'); return;
     }
+
+    // التحقق من التكرار
+    if (checkForDuplicates()) {
+      return; // سيتم عرض AlertDialog
+    }
+
+    await executePublish();
+  };
+
+  // تنفيذ النشر الفعلي
+  const executePublish = async () => {
+    setShowDuplicateWarning(false);
 
     setIsPublishing(true);
     setPublishProgress(0);
@@ -582,6 +708,13 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
         toast.warning(`تم النشر على ${successCount} من ${totalPlatforms} منصة`);
       }
 
+      // حفظ الإعلان لعرض أزرار النجاح
+      setPublishedAd(adData);
+      setShowSuccessActions(true);
+      
+      // حذف المسودة بعد النشر الناجح
+      localStorage.removeItem(STORAGE_KEY);
+
       onPublishComplete(platformOffer);
 
     } catch (error) {
@@ -591,14 +724,95 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
     }
   };
 
+  // إعادة النشر
+  const handleRepublish = () => {
+    setShowSuccessActions(false);
+    setPublishedAd(null);
+    setShowResults(false);
+    setPublishResults([]);
+    // احتفاظ ببيانات المالك فقط
+    setPropertyData(prev => ({
+      ...getDefaultPropertyData(),
+      ownerName: prev.ownerName,
+      ownerPhone: prev.ownerPhone,
+      ownerIdNumber: prev.ownerIdNumber,
+      ownerBirthDate: prev.ownerBirthDate,
+      ownerNationalAddress: prev.ownerNationalAddress,
+      ownerCity: prev.ownerCity,
+      ownerDistrict: prev.ownerDistrict,
+      brokerPhone: prev.brokerPhone,
+    }));
+    toast.info('يمكنك الآن إضافة عرض جديد بنفس بيانات المالك');
+  };
+
+  // الانتقال لبطاقة المالك
+  const handleNavigateToOwner = (customerId: string) => {
+    window.dispatchEvent(new CustomEvent('navigateToCustomer', { detail: { customerId } }));
+    onCancel();
+  };
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-4 p-4 pb-24" dir="rtl">
         
+        {/* نافذة استرداد المسودة */}
+        {showRecoveryDialog && (
+          <Card className="border-2 border-[hsl(var(--gold))] bg-gradient-to-br from-amber-50 to-yellow-50 shadow-lg">
+            <CardContent className="py-4">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-[hsl(var(--gold))]/20 flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-[hsl(var(--gold))]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-[#01411C]">لديك مسودة محفوظة</h3>
+                  <p className="text-sm text-gray-600 mt-1">هل تريد استرداد البيانات المحفوظة سابقاً؟</p>
+                </div>
+                <div className="flex gap-3 w-full">
+                  <Button onClick={handleRecoverDraft} className="flex-1 bg-[#01411C] text-white">
+                    <RefreshCw className="w-4 h-4 ml-2" />استرداد
+                  </Button>
+                  <Button onClick={handleDiscardDraft} variant="outline" className="flex-1 border-red-300 text-red-600">
+                    <Trash2 className="w-4 h-4 ml-2" />تجاهل
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* أزرار النجاح بعد النشر */}
+        {showSuccessActions && publishedAd && (
+          <Card className="border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg">
+            <CardContent className="py-6">
+              <div className="flex flex-col items-center gap-4 text-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
+                  <CheckCircle className="w-10 h-10 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-green-700">تم النشر بنجاح! 🎉</h3>
+                  <p className="text-sm text-gray-600 mt-1">تم نشر إعلانك على المنصات المحددة ومنصتي</p>
+                </div>
+              </div>
+              <PublishSuccessActions
+                publishedAd={publishedAd}
+                onRepublish={handleRepublish}
+                onNavigateToOwner={handleNavigateToOwner}
+                brokerInfo={{
+                  name: businessCardData?.name || '',
+                  phone: businessCardData?.phone || '',
+                  company: (businessCardData as any)?.company,
+                  licenseNumber: (businessCardData as any)?.falLicenseNumber || (businessCardData as any)?.license_number,
+                  city: businessCardData?.city,
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* العنوان */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-[hsl(var(--forest-green))]">نشر إعلان على المنصات</h2>
-          <Button variant="outline" size="sm" onClick={() => setPropertyData(getDefaultPropertyData())} className="text-red-600 border-red-300">
+          <Button variant="outline" size="sm" onClick={() => { setPropertyData(getDefaultPropertyData()); localStorage.removeItem(STORAGE_KEY); }} className="text-red-600 border-red-300">
             <Trash2 className="w-4 h-4 ml-2" />مسح
           </Button>
         </div>
@@ -1133,6 +1347,36 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
         </Card>
 
       </div>
+
+      {/* AlertDialog للتكرار */}
+      <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+        <AlertDialogContent className="max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-600 flex items-center gap-2">
+              <AlertCircle className="w-6 h-6" />
+              تحذير: عرض مكرر
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {duplicateMessage}
+              <br /><br />
+              <span className="text-sm text-gray-500">
+                هل تريد المتابعة والنشر على أي حال؟
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction 
+              onClick={() => executePublish()}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              نشر على أي حال
+            </AlertDialogAction>
+            <AlertDialogCancel className="border-gray-300">
+              إلغاء
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScrollArea>
   );
 }
