@@ -2745,16 +2745,33 @@ export default function MyPlatformComplete({
         </DialogContent>
       </Dialog>
 
-      {/* Publish Dialog */}
+      {/* Publish Dialog - صفحة كاملة في الجوال */}
       <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
-        <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden p-0" dir="rtl">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Plus className="w-6 h-6 text-[#01411C]" />
-              نشر إعلان جديد
-            </DialogTitle>
-          </DialogHeader>
-          <div className="p-6 pt-4">
+        <DialogContent 
+          className="w-full h-full max-w-full md:max-w-4xl md:h-auto md:max-h-[95vh] overflow-hidden p-0 m-0 md:m-auto rounded-none md:rounded-lg fixed inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2" 
+          dir="rtl"
+        >
+          {/* Header مخصص للجوال */}
+          <div className="sticky top-0 z-10 bg-gradient-to-r from-[#01411C] to-[#065f41] text-white p-4 md:bg-white md:text-[#01411C] md:border-b">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowPublishDialog(false)}
+                className="text-white md:text-gray-600 hover:bg-white/20 md:hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Plus className="w-5 h-5 text-[#D4AF37] md:text-[#01411C]" />
+                نشر إعلان جديد
+              </h2>
+              <div className="w-9" /> {/* spacer */}
+            </div>
+          </div>
+          
+          {/* المحتوى */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
             <PropertyPublishForm
               onPublish={(data) => {
                 toast.success('تم نشر العقار بنجاح');

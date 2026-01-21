@@ -238,50 +238,61 @@ export default function AdPublishingSections({ onBack }: AdPublishingSectionsPro
 
   // ===================== العرض =====================
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      {/* رأس الصفحة */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6">
+      {/* رأس الصفحة - محسّن للجوال */}
+      <div className="mb-4 md:mb-6">
+        {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+        <div className="flex flex-col gap-3 mb-4">
+          {/* اسم الصفحة في الأعلى */}
+          <div className="flex items-center justify-center gap-2">
+            <span className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white p-2 rounded-xl">
+              <Target className="w-5 h-5" />
+            </span>
+            <div className="text-center">
+              <h1 className="text-lg md:text-2xl font-bold text-gray-900 whitespace-nowrap">
+                نظام النشر الإعلاني
+              </h1>
+              <p className="text-xs md:text-sm text-gray-600">إدارة الحملات والإعلانات</p>
+            </div>
+          </div>
+          
+          {/* الأزرار في سطر منفصل */}
+          <div className="flex items-center justify-between gap-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={onBack}
               className="border-[#D4AF37] text-[#01411C] hover:bg-[#01411C] hover:text-white"
             >
-              <ArrowRight className="w-4 h-4 ml-2" />
-              رجوع
+              <ArrowRight className="w-4 h-4 ml-1" />
+              <span className="hidden sm:inline">رجوع</span>
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <span className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white p-2 rounded-xl">
-                  <Target className="w-5 h-5" />
-                </span>
-                نظام النشر الإعلاني
-              </h1>
-              <p className="text-gray-600">إدارة الحملات والإعلانات الرقمية</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSaveDraft}
-              className="border-gray-300"
-            >
-              حفظ كمسودة
-            </Button>
-            <Button
-              onClick={handlePublish}
-              className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-white"
-            >
-              <Send className="w-4 h-4 ml-2" />
-              نشر الإعلان
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                className="border-gray-300"
+              >
+                <span className="hidden sm:inline">حفظ كمسودة</span>
+                <span className="sm:hidden">حفظ</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={handlePublish}
+                className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-white"
+              >
+                <Send className="w-4 h-4 ml-1" />
+                <span className="hidden sm:inline">نشر الإعلان</span>
+                <span className="sm:hidden">نشر</span>
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* خطوات الإنشاء */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* خطوات الإنشاء - مخفية في الجوال الصغير */}
+        <div className="hidden sm:grid grid-cols-3 gap-4 mb-6">
           <div className={`rounded-xl p-4 text-center ${currentStep >= 1 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
             <div className="text-2xl font-bold mb-1">1</div>
             <div className="font-medium">المعلومات الأساسية</div>

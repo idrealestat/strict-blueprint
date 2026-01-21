@@ -78,54 +78,64 @@ export function ReportsAnalytics({ onBack }: ReportsAnalyticsProps) {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
-      <div className="bg-gradient-to-l from-[#01411C] to-[#065f41] text-white p-6">
+      {/* Header - محسّن للجوال */}
+      <div className="bg-gradient-to-l from-[#01411C] to-[#065f41] text-white p-4 md:p-6">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {onBack && (
-                <Button variant="ghost" onClick={onBack} className="text-white hover:bg-white/10">
-                  <RefreshCw className="h-4 w-4 ml-2" />
-                  رجوع
-                </Button>
-              )}
-              <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <BarChart3 className="h-8 w-8 text-[#D4AF37]" />
+          {/* الهيدر للجوال: اسم الصفحة في سطر واحد + الأزرار أسفله */}
+          <div className="flex flex-col gap-3">
+            {/* اسم الصفحة في الأعلى */}
+            <div className="flex items-center justify-center gap-2">
+              <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-[#D4AF37]" />
+              <div className="text-center">
+                <h1 className="text-xl md:text-3xl font-bold whitespace-nowrap">
                   التحليلات والتقارير
                 </h1>
-                <p className="text-white/80 mt-1">
+                <p className="text-white/80 text-xs md:text-sm">
                   رؤى ذكية وتحليلات شاملة
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleGenerateInsights}
-                disabled={isRefreshing}
-                className="bg-transparent border-white/30 text-white hover:bg-white/10"
-              >
-                {isRefreshing ? (
-                  <RefreshCw className="ml-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Lightbulb className="ml-2 h-4 w-4" />
-                )}
-                توليد رؤى جديدة
-              </Button>
-              <Button
-                onClick={() => setShowCreateDialog(true)}
-                className="bg-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/90"
-              >
-                <FileText className="ml-2 h-4 w-4" />
-                إنشاء تقرير
-              </Button>
+            
+            {/* الأزرار في سطر منفصل */}
+            <div className="flex items-center justify-between gap-2">
+              {onBack && (
+                <Button variant="ghost" size="sm" onClick={onBack} className="text-white hover:bg-white/10">
+                  <RefreshCw className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">رجوع</span>
+                </Button>
+              )}
+              {!onBack && <div />}
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateInsights}
+                  disabled={isRefreshing}
+                  className="bg-transparent border-white/30 text-white hover:bg-white/10"
+                >
+                  {isRefreshing ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Lightbulb className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline mr-1">رؤى</span>
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setShowCreateDialog(true)}
+                  className="bg-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/90"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline mr-1">تقرير</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
         {/* برومبت التحليلات الكامل */}
         <AnalyticsDashboard />
 

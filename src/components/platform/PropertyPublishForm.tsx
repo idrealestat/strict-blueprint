@@ -1091,8 +1091,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   };
 
   return (
-    <ScrollArea className="h-[85vh] md:h-[80vh]">
-      <div className="space-y-4 md:space-y-6 p-1 max-w-full overflow-x-hidden" dir="rtl">
+    <ScrollArea className="h-full max-h-[calc(100vh-120px)] md:h-[80vh]">
+      <div className="space-y-4 md:space-y-6 p-2 md:p-4 max-w-full overflow-x-hidden" dir="rtl">
         
         {/* Recovery Dialog */}
         {showRecoveryDialog && (
