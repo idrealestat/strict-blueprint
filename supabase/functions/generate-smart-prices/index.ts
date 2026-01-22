@@ -342,6 +342,12 @@ serve(async (req) => {
       marketAverage 
     });
 
+    // إضافة إفصاح إلزامي للتوافق مع المبدأ 1
+    const disclaimer = {
+      ar: "⚠️ السعر المقترح تقريبي ومبني على بيانات السوق المتاحة. القرار النهائي يعود للمستخدم.",
+      en: "⚠️ This is an estimated price based on available market data. The final decision is yours.",
+    };
+
     return new Response(JSON.stringify({ 
       prices,
       marketAverage,
@@ -349,6 +355,9 @@ serve(async (req) => {
       purpose: isRent ? "للإيجار" : "للشراء",
       priceUnit: isRent ? "ريال/سنوياً" : "ريال",
       priceEvaluation,
+      // إفصاح التوافق النظامي
+      isAiGenerated: true,
+      disclaimer,
       calculationDetails: {
         basePricePerMeter: Math.round(basePricePerMeter),
         area,
