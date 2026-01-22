@@ -282,7 +282,14 @@ ${propertyData.adLicense || propertyData.brokerPhone ? `6. **معلومات ال
 - لا تضع كل المعلومات في سطر واحد
 - اجعل التنسيق واضح ومقروء
 - لا تضف معلومات غير موجودة في البيانات
-${!hasWarranties ? '- لا تضف قسم الضمانات لأنه لا توجد ضمانات مسجلة' : ''}`;
+${!hasWarranties ? '- لا تضف قسم الضمانات لأنه لا توجد ضمانات مسجلة' : ''}
+
+⚠️ تعليمات التوافق النظامي (إلزامية):
+- لا تستخدم أبداً: "أفضل"، "أرخص"، "فرصة لن تتكرر"، "مضمون"، "استثمار مؤكد"
+- لا تذكر عوائد استثمارية غير موثقة
+- لا تبالغ في وصف الخصائص (لا "أسطوري"، "خيالي"، "لا يصدق")
+- كل ما تكتبه يجب أن يكون قابلاً للتحقق من البيانات المدخلة
+- هذا الوصف اقتراحي وسيخضع لمراجعة المستخدم قبل النشر`;
 
     console.log('Processing property description request for user:', userId);
 
@@ -322,7 +329,16 @@ ${!hasWarranties ? '- لا تضف قسم الضمانات لأنه لا توجد
     const data = await response.json();
     const description = data.choices?.[0]?.message?.content || "";
 
-    return new Response(JSON.stringify({ description }), {
+    // إضافة إفصاح التوافق النظامي
+    return new Response(JSON.stringify({ 
+      description,
+      isAiGenerated: true,
+      disclaimer: {
+        ar: "⚠️ هذا الوصف مُولَّد بالذكاء الاصطناعي. يُرجى مراجعته والتأكد من دقته قبل النشر.",
+        en: "⚠️ This description was AI-generated. Please review it for accuracy before publishing.",
+      },
+      modelUsed: "google/gemini-2.5-flash",
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

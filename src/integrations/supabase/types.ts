@@ -373,6 +373,60 @@ export type Database = {
         }
         Relationships: []
       }
+      content_audit_log: {
+        Row: {
+          action_type: string
+          ai_model_used: string | null
+          change_reason: string | null
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          field_changed: string | null
+          id: string
+          ip_address: string | null
+          is_ai_generated: boolean | null
+          new_value: string | null
+          old_value: string | null
+          performed_by: string
+          performed_by_role: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_type: string
+          ai_model_used?: string | null
+          change_reason?: string | null
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          field_changed?: string | null
+          id?: string
+          ip_address?: string | null
+          is_ai_generated?: boolean | null
+          new_value?: string | null
+          old_value?: string | null
+          performed_by: string
+          performed_by_role?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_type?: string
+          ai_model_used?: string | null
+          change_reason?: string | null
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          field_changed?: string | null
+          id?: string
+          ip_address?: string | null
+          is_ai_generated?: boolean | null
+          new_value?: string | null
+          old_value?: string | null
+          performed_by?: string
+          performed_by_role?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       crm_custom_tags: {
         Row: {
           color: string
@@ -1665,6 +1719,42 @@ export type Database = {
         }
         Relationships: []
       }
+      real_estate_roles: {
+        Row: {
+          created_at: string | null
+          fal_license_expiry: string | null
+          fal_license_number: string | null
+          id: string
+          is_active: boolean | null
+          role: string
+          updated_at: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fal_license_expiry?: string | null
+          fal_license_number?: string | null
+          id?: string
+          is_active?: boolean | null
+          role: string
+          updated_at?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fal_license_expiry?: string | null
+          fal_license_number?: string | null
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       received_documents: {
         Row: {
           city: string | null
@@ -2486,6 +2576,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_real_estate_role: { Args: { _user_id: string }; Returns: string }
       get_user_entitlement_status: {
         Args: { p_user_id: string }
         Returns: {
@@ -2497,6 +2588,10 @@ export type Database = {
         }[]
       }
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_real_estate_role: {
+        Args: { _role: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
