@@ -102,32 +102,35 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
   };
 
   return (
-    <div className="h-full flex flex-col bg-white" dir="rtl">
+    <div className="h-full flex flex-col bg-white overflow-hidden" dir="rtl">
       {/* Header */}
-      <div className="p-4 border-b flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onClose}>
+      <div className="p-3 border-b flex items-center gap-2 shrink-0">
+        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
           <ArrowRight className="w-5 h-5" />
         </Button>
-        <div>
-          <h1 className="text-xl font-bold text-[hsl(var(--foreground))]">النشر على المنصات</h1>
-          <p className="text-sm text-muted-foreground">انشر إعلاناتك على منصات متعددة</p>
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-[hsl(var(--foreground))] truncate">النشر على المنصات</h1>
+          <p className="text-xs text-muted-foreground truncate">انشر إعلاناتك على منصات متعددة</p>
         </div>
       </div>
 
       {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-3 mx-4 mt-4">
-          <TabsTrigger value="publish" className="gap-2">
-            <FileText className="w-4 h-4" />
-            نشر إعلان
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="grid grid-cols-3 mx-3 mt-3 shrink-0">
+          <TabsTrigger value="publish" className="gap-1 text-xs px-2">
+            <FileText className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">نشر إعلان</span>
+            <span className="sm:hidden">نشر</span>
           </TabsTrigger>
-          <TabsTrigger value="connections" className="gap-2">
-            <Link className="w-4 h-4" />
-            ربط المنصات
+          <TabsTrigger value="connections" className="gap-1 text-xs px-2">
+            <Link className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">ربط المنصات</span>
+            <span className="sm:hidden">ربط</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-2">
-            <BarChart3 className="w-4 h-4" />
-            التحليلات
+          <TabsTrigger value="analytics" className="gap-1 text-xs px-2">
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">التحليلات</span>
+            <span className="sm:hidden">إحصائيات</span>
           </TabsTrigger>
         </TabsList>
 

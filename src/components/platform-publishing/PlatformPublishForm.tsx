@@ -872,7 +872,7 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-4 p-4 pb-24" dir="rtl">
+      <div className="space-y-3 p-3 pb-20" dir="rtl">
         
         {/* نافذة استرداد المسودة */}
         {showRecoveryDialog && (
@@ -944,33 +944,33 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-[#01411C]">الاسم كاملاً *</Label>
-                <Input value={propertyData.ownerName} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerName: e.target.value }))} placeholder="اسم المالك" className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">الاسم كاملاً *</Label>
+                <Input value={propertyData.ownerName} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerName: e.target.value }))} placeholder="اسم المالك" className="border-[#D4AF37] text-sm" />
               </div>
               <div>
-                <Label className="text-[#01411C]">تاريخ الميلاد</Label>
-                <Input type="date" value={propertyData.ownerBirthDate} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerBirthDate: e.target.value }))} className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">تاريخ الميلاد</Label>
+                <Input type="date" value={propertyData.ownerBirthDate} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerBirthDate: e.target.value }))} className="border-[#D4AF37] text-sm" />
               </div>
               <div>
-                <Label className="text-[#01411C]">رقم الهوية *</Label>
-                <Input value={propertyData.ownerIdNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerIdNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))} placeholder="10 أرقام" className="border-[#D4AF37]" dir="ltr" />
+                <Label className="text-[#01411C] text-sm">رقم الهوية *</Label>
+                <Input value={propertyData.ownerIdNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerIdNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))} placeholder="10 أرقام" className="border-[#D4AF37] text-sm" dir="ltr" />
               </div>
               <div>
-                <Label className="text-[#01411C]">رقم الجوال *</Label>
-                <Input value={propertyData.ownerPhone} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerPhone: e.target.value }))} placeholder="05xxxxxxxx" className="border-[#D4AF37]" dir="ltr" />
+                <Label className="text-[#01411C] text-sm">رقم الجوال *</Label>
+                <Input value={propertyData.ownerPhone} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerPhone: e.target.value }))} placeholder="05xxxxxxxx" className="border-[#D4AF37] text-sm" dir="ltr" />
               </div>
               <div>
-                <Label className="text-[#01411C]">المدينة</Label>
+                <Label className="text-[#01411C] text-sm">المدينة</Label>
                 <Select value={propertyData.ownerCity} onValueChange={(v) => setPropertyData(prev => ({ ...prev, ownerCity: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">الحي</Label>
-                <Input value={propertyData.ownerDistrict} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerDistrict: e.target.value }))} placeholder="اسم الحي" className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">الحي</Label>
+                <Input value={propertyData.ownerDistrict} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerDistrict: e.target.value }))} placeholder="اسم الحي" className="border-[#D4AF37] text-sm" />
               </div>
             </div>
           </CardContent>
@@ -982,20 +982,20 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             <CardTitle className="text-[#01411C] flex items-center gap-2"><FileText className="w-5 h-5" />معلومات الصك</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label className="text-[#01411C]">رقم الصك</Label>
-                <Input value={propertyData.deedNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, deedNumber: e.target.value }))} className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">رقم الصك</Label>
+                <Input value={propertyData.deedNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, deedNumber: e.target.value }))} className="border-[#D4AF37] text-sm" />
               </div>
               <div>
-                <Label className="text-[#01411C]">تاريخ الصك</Label>
-                <Input type="date" value={propertyData.deedDate} onChange={(e) => setPropertyData(prev => ({ ...prev, deedDate: e.target.value }))} className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">تاريخ الصك</Label>
+                <Input type="date" value={propertyData.deedDate} onChange={(e) => setPropertyData(prev => ({ ...prev, deedDate: e.target.value }))} className="border-[#D4AF37] text-sm" />
               </div>
               <div>
-                <Label className="text-[#01411C]">مدينة الصك</Label>
+                <Label className="text-[#01411C] text-sm">مدينة الصك</Label>
                 <Select value={propertyData.deedCity} onValueChange={(v) => setPropertyData(prev => ({ ...prev, deedCity: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -1008,31 +1008,31 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             <CardTitle className="text-[#01411C] flex items-center gap-2"><Building className="w-5 h-5" />معلومات العقار</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-[#01411C]">نوع العقار *</Label>
+                <Label className="text-[#01411C] text-sm">نوع العقار *</Label>
                 <Select value={propertyData.propertyType} onValueChange={(v) => setPropertyData(prev => ({ ...prev, propertyType: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{propertyTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{propertyTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">الفئة</Label>
+                <Label className="text-[#01411C] text-sm">الفئة</Label>
                 <Select value={propertyData.category} onValueChange={(v) => setPropertyData(prev => ({ ...prev, category: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">الغرض *</Label>
+                <Label className="text-[#01411C] text-sm">الغرض *</Label>
                 <Select value={propertyData.purpose} onValueChange={(v) => setPropertyData(prev => ({ ...prev, purpose: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{purposes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{purposes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">المساحة (م²)</Label>
-                <Input type="number" value={propertyData.area} onChange={(e) => setPropertyData(prev => ({ ...prev, area: e.target.value }))} className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">المساحة (م²)</Label>
+                <Input type="number" value={propertyData.area} onChange={(e) => setPropertyData(prev => ({ ...prev, area: e.target.value }))} className="border-[#D4AF37] text-sm" />
               </div>
             </div>
           </CardContent>
@@ -1060,33 +1060,33 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-[#01411C]">المدينة *</Label>
+                <Label className="text-[#01411C] text-sm">المدينة *</Label>
                 <Select value={propertyData.locationDetails.city} onValueChange={(v) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, city: v } }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">الحي</Label>
-                <Input value={propertyData.locationDetails.district} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, district: e.target.value } }))} className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">الحي</Label>
+                <Input value={propertyData.locationDetails.district} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, district: e.target.value } }))} className="border-[#D4AF37] text-sm" />
               </div>
               <div>
-                <Label className="text-[#01411C]">الشارع</Label>
-                <Input value={propertyData.locationDetails.street} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, street: e.target.value } }))} className="border-[#D4AF37]" />
+                <Label className="text-[#01411C] text-sm">الشارع</Label>
+                <Input value={propertyData.locationDetails.street} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, street: e.target.value } }))} className="border-[#D4AF37] text-sm" />
               </div>
               <div>
-                <Label className="text-[#01411C]">الرمز البريدي</Label>
-                <Input value={propertyData.locationDetails.postalCode} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, postalCode: e.target.value } }))} className="border-[#D4AF37]" dir="ltr" />
+                <Label className="text-[#01411C] text-sm">الرمز البريدي</Label>
+                <Input value={propertyData.locationDetails.postalCode} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, postalCode: e.target.value } }))} className="border-[#D4AF37] text-sm" dir="ltr" />
               </div>
               <div>
-                <Label className="text-[#01411C]">رقم المبنى</Label>
-                <Input value={propertyData.locationDetails.buildingNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, buildingNumber: e.target.value } }))} className="border-[#D4AF37]" dir="ltr" />
+                <Label className="text-[#01411C] text-sm">رقم المبنى</Label>
+                <Input value={propertyData.locationDetails.buildingNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, buildingNumber: e.target.value } }))} className="border-[#D4AF37] text-sm" dir="ltr" />
               </div>
               <div>
-                <Label className="text-[#01411C]">الرقم الإضافي</Label>
-                <Input value={propertyData.locationDetails.additionalNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, additionalNumber: e.target.value } }))} className="border-[#D4AF37]" dir="ltr" />
+                <Label className="text-[#01411C] text-sm">الرقم الإضافي</Label>
+                <Input value={propertyData.locationDetails.additionalNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, locationDetails: { ...prev.locationDetails, additionalNumber: e.target.value } }))} className="border-[#D4AF37] text-sm" dir="ltr" />
               </div>
             </div>
             
@@ -1131,25 +1131,27 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             <CardTitle className="text-[#01411C] flex items-center gap-2"><Settings className="w-5 h-5" />المواصفات التفصيلية</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div><Label className="text-[#01411C]">غرف النوم</Label><Input type="number" value={propertyData.bedrooms} onChange={(e) => setPropertyData(prev => ({ ...prev, bedrooms: e.target.value }))} className="border-[#D4AF37]" /></div>
-              <div><Label className="text-[#01411C]">دورات المياه</Label><Input type="number" value={propertyData.bathrooms} onChange={(e) => setPropertyData(prev => ({ ...prev, bathrooms: e.target.value }))} className="border-[#D4AF37]" /></div>
-              <div><Label className="text-[#01411C]">الصالات</Label><Input type="number" value={propertyData.livingRooms} onChange={(e) => setPropertyData(prev => ({ ...prev, livingRooms: e.target.value }))} className="border-[#D4AF37]" /></div>
-              <div><Label className="text-[#01411C]">الأدوار</Label><Input type="number" value={propertyData.floors} onChange={(e) => setPropertyData(prev => ({ ...prev, floors: e.target.value }))} className="border-[#D4AF37]" /></div>
-              <div><Label className="text-[#01411C]">عمر العقار</Label><Input type="number" value={propertyData.propertyAge} onChange={(e) => setPropertyData(prev => ({ ...prev, propertyAge: e.target.value }))} className="border-[#D4AF37]" /></div>
-              <div><Label className="text-[#01411C]">عرض الشارع</Label><Input type="number" value={propertyData.streetWidth} onChange={(e) => setPropertyData(prev => ({ ...prev, streetWidth: e.target.value }))} className="border-[#D4AF37]" /></div>
+            <div className="grid grid-cols-3 gap-2">
+              <div><Label className="text-[#01411C] text-xs">غرف النوم</Label><Input type="number" value={propertyData.bedrooms} onChange={(e) => setPropertyData(prev => ({ ...prev, bedrooms: e.target.value }))} className="border-[#D4AF37] text-sm h-9" /></div>
+              <div><Label className="text-[#01411C] text-xs">دورات المياه</Label><Input type="number" value={propertyData.bathrooms} onChange={(e) => setPropertyData(prev => ({ ...prev, bathrooms: e.target.value }))} className="border-[#D4AF37] text-sm h-9" /></div>
+              <div><Label className="text-[#01411C] text-xs">الصالات</Label><Input type="number" value={propertyData.livingRooms} onChange={(e) => setPropertyData(prev => ({ ...prev, livingRooms: e.target.value }))} className="border-[#D4AF37] text-sm h-9" /></div>
+              <div><Label className="text-[#01411C] text-xs">الأدوار</Label><Input type="number" value={propertyData.floors} onChange={(e) => setPropertyData(prev => ({ ...prev, floors: e.target.value }))} className="border-[#D4AF37] text-sm h-9" /></div>
+              <div><Label className="text-[#01411C] text-xs">عمر العقار</Label><Input type="number" value={propertyData.propertyAge} onChange={(e) => setPropertyData(prev => ({ ...prev, propertyAge: e.target.value }))} className="border-[#D4AF37] text-sm h-9" /></div>
+              <div><Label className="text-[#01411C] text-xs">عرض الشارع</Label><Input type="number" value={propertyData.streetWidth} onChange={(e) => setPropertyData(prev => ({ ...prev, streetWidth: e.target.value }))} className="border-[#D4AF37] text-sm h-9" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-3">
               <div>
-                <Label className="text-[#01411C]">الواجهة</Label>
+                <Label className="text-[#01411C] text-xs">الواجهة</Label>
                 <Select value={propertyData.facade} onValueChange={(v) => setPropertyData(prev => ({ ...prev, facade: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{facadeOptions.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm h-9"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{facadeOptions.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">التأثيث</Label>
+                <Label className="text-[#01411C] text-xs">التأثيث</Label>
                 <Select value={propertyData.furnishing} onValueChange={(v) => setPropertyData(prev => ({ ...prev, furnishing: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent className="bg-white z-50">{furnishingOptions.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="border-[#D4AF37] text-sm h-9"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectContent className="bg-white z-50 max-h-60">{furnishingOptions.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -1168,18 +1170,18 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
                 <Label htmlFor="isRented" className="text-orange-700 font-medium">العقار مؤجر حالياً</Label>
               </div>
               {propertyData.isCurrentlyRented && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                   <div>
-                    <Label className="text-orange-700">مدة العقد (شهور)</Label>
-                    <Input type="number" value={propertyData.contractDuration} onChange={(e) => setPropertyData(prev => ({ ...prev, contractDuration: e.target.value }))} className="border-orange-300" />
+                    <Label className="text-orange-700 text-sm">مدة العقد (شهور)</Label>
+                    <Input type="number" value={propertyData.contractDuration} onChange={(e) => setPropertyData(prev => ({ ...prev, contractDuration: e.target.value }))} className="border-orange-300 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-orange-700">تاريخ بداية العقد</Label>
-                    <Input type="date" value={propertyData.contractStartDate} onChange={(e) => setPropertyData(prev => ({ ...prev, contractStartDate: e.target.value }))} className="border-orange-300" />
+                    <Label className="text-orange-700 text-sm">تاريخ بداية العقد</Label>
+                    <Input type="date" value={propertyData.contractStartDate} onChange={(e) => setPropertyData(prev => ({ ...prev, contractStartDate: e.target.value }))} className="border-orange-300 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-orange-700">تاريخ نهاية العقد</Label>
-                    <Input type="date" value={propertyData.contractEndDate} onChange={(e) => setPropertyData(prev => ({ ...prev, contractEndDate: e.target.value }))} className="border-orange-300" />
+                    <Label className="text-orange-700 text-sm">تاريخ نهاية العقد</Label>
+                    <Input type="date" value={propertyData.contractEndDate} onChange={(e) => setPropertyData(prev => ({ ...prev, contractEndDate: e.target.value }))} className="border-orange-300 text-sm" />
                   </div>
                 </div>
               )}
@@ -1201,8 +1203,8 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
               ))}
             </div>
             <div className="flex gap-2">
-              <Input value={newCustomFeature} onChange={(e) => setNewCustomFeature(e.target.value)} placeholder="أضف ميزة..." className="border-[#D4AF37]" onKeyPress={(e) => e.key === 'Enter' && addCustomFeature()} />
-              <Button onClick={addCustomFeature} variant="outline" className="border-[#01411C]">إضافة</Button>
+              <Input value={newCustomFeature} onChange={(e) => setNewCustomFeature(e.target.value)} placeholder="أضف ميزة..." className="border-[#D4AF37] text-sm flex-1" onKeyPress={(e) => e.key === 'Enter' && addCustomFeature()} />
+              <Button onClick={addCustomFeature} variant="outline" size="sm" className="border-[#01411C] shrink-0">إضافة</Button>
             </div>
           </CardContent>
         </Card>
@@ -1213,14 +1215,14 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             <CardTitle className="text-[#01411C] flex items-center gap-2"><Shield className="w-5 h-5" />الضمانات</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Select value={newWarrantyType} onValueChange={setNewWarrantyType}>
-                <SelectTrigger className="border-[#D4AF37]"><SelectValue placeholder="نوع الضمان" /></SelectTrigger>
-                <SelectContent className="bg-white z-50">{warrantyTypes.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}<SelectItem value="أخرى">أخرى</SelectItem></SelectContent>
+                <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="نوع الضمان" /></SelectTrigger>
+                <SelectContent className="bg-white z-50 max-h-60">{warrantyTypes.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}<SelectItem value="أخرى">أخرى</SelectItem></SelectContent>
               </Select>
-              {newWarrantyType === 'أخرى' && <Input value={customWarrantyType} onChange={(e) => setCustomWarrantyType(e.target.value)} placeholder="اكتب نوع الضمان" className="border-[#D4AF37]" />}
-              <Input value={newWarrantyDuration} onChange={(e) => setNewWarrantyDuration(e.target.value)} placeholder="المدة (سنة، سنتين...)" className="border-[#D4AF37]" />
-              <Button onClick={addWarranty} className="bg-[#01411C] text-white" disabled={!newWarrantyType || !newWarrantyDuration}><Plus className="w-4 h-4 ml-2" />إضافة</Button>
+              {newWarrantyType === 'أخرى' && <Input value={customWarrantyType} onChange={(e) => setCustomWarrantyType(e.target.value)} placeholder="اكتب نوع الضمان" className="border-[#D4AF37] text-sm" />}
+              <Input value={newWarrantyDuration} onChange={(e) => setNewWarrantyDuration(e.target.value)} placeholder="المدة (سنة، سنتين...)" className="border-[#D4AF37] text-sm" />
+              <Button onClick={addWarranty} className="bg-[#01411C] text-white text-sm" disabled={!newWarrantyType || !newWarrantyDuration}><Plus className="w-4 h-4 ml-1" />إضافة</Button>
             </div>
             {propertyData.warranties.length > 0 && (
               <div className="space-y-2">
@@ -1265,11 +1267,11 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
               </div>
             )}
             {propertyData.purpose === 'للإيجار' && (
-              <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <div><Label className="text-amber-700">دفعة واحدة</Label><Input type="number" value={propertyData.paymentPrices.onePayment} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, onePayment: e.target.value } }))} className="border-amber-300" /></div>
-                <div><Label className="text-amber-700">دفعتين</Label><Input type="number" value={propertyData.paymentPrices.twoPayments} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, twoPayments: e.target.value } }))} className="border-amber-300" /></div>
-                <div><Label className="text-amber-700">أربع دفعات</Label><Input type="number" value={propertyData.paymentPrices.fourPayments} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, fourPayments: e.target.value } }))} className="border-amber-300" /></div>
-                <div><Label className="text-amber-700">شهري</Label><Input type="number" value={propertyData.paymentPrices.monthly} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, monthly: e.target.value } }))} className="border-amber-300" /></div>
+              <div className="grid grid-cols-2 gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <div><Label className="text-amber-700 text-xs">دفعة واحدة</Label><Input type="number" value={propertyData.paymentPrices.onePayment} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, onePayment: e.target.value } }))} className="border-amber-300 text-sm h-9" /></div>
+                <div><Label className="text-amber-700 text-xs">دفعتين</Label><Input type="number" value={propertyData.paymentPrices.twoPayments} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, twoPayments: e.target.value } }))} className="border-amber-300 text-sm h-9" /></div>
+                <div><Label className="text-amber-700 text-xs">أربع دفعات</Label><Input type="number" value={propertyData.paymentPrices.fourPayments} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, fourPayments: e.target.value } }))} className="border-amber-300 text-sm h-9" /></div>
+                <div><Label className="text-amber-700 text-xs">شهري</Label><Input type="number" value={propertyData.paymentPrices.monthly} onChange={(e) => setPropertyData(prev => ({ ...prev, paymentPrices: { ...prev.paymentPrices, monthly: e.target.value } }))} className="border-amber-300 text-sm h-9" /></div>
               </div>
             )}
           </CardContent>
@@ -1287,8 +1289,8 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
               ))}
             </div>
             <div className="flex gap-2">
-              <Input value={newCustomHashtag} onChange={(e) => setNewCustomHashtag(e.target.value)} placeholder="أضف هاشتاق..." className="border-[#D4AF37]" onKeyPress={(e) => e.key === 'Enter' && addCustomHashtag()} />
-              <Button onClick={addCustomHashtag} variant="outline" className="border-indigo-500 text-indigo-600">إضافة</Button>
+              <Input value={newCustomHashtag} onChange={(e) => setNewCustomHashtag(e.target.value)} placeholder="أضف هاشتاق..." className="border-[#D4AF37] text-sm flex-1" onKeyPress={(e) => e.key === 'Enter' && addCustomHashtag()} />
+              <Button onClick={addCustomHashtag} variant="outline" size="sm" className="border-indigo-500 text-indigo-600 shrink-0">إضافة</Button>
             </div>
           </CardContent>
         </Card>
@@ -1299,41 +1301,41 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             <CardTitle className="text-[#01411C] flex items-center gap-2"><Wand2 className="w-5 h-5" />مولد الوصف <Badge className="bg-pink-500 text-white text-xs">AI</Badge></CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-[#01411C]">رقم الوسيط</Label><Input value={propertyData.brokerPhone} onChange={(e) => setPropertyData(prev => ({ ...prev, brokerPhone: e.target.value }))} className="border-[#D4AF37]" dir="ltr" /></div>
-              <div><Label className="text-[#01411C]">الترخيص الإعلاني *</Label><Input value={propertyData.adLicense} onChange={(e) => setPropertyData(prev => ({ ...prev, adLicense: e.target.value }))} className="border-[#D4AF37]" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-[#01411C] text-sm">رقم الوسيط</Label><Input value={propertyData.brokerPhone} onChange={(e) => setPropertyData(prev => ({ ...prev, brokerPhone: e.target.value }))} className="border-[#D4AF37] text-sm" dir="ltr" /></div>
+              <div><Label className="text-[#01411C] text-sm">الترخيص الإعلاني *</Label><Input value={propertyData.adLicense} onChange={(e) => setPropertyData(prev => ({ ...prev, adLicense: e.target.value }))} className="border-[#D4AF37] text-sm" /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label className="text-[#01411C]">تاريخ الترخيص</Label><Input type="date" value={propertyData.adLicenseDate} onChange={(e) => setPropertyData(prev => ({ ...prev, adLicenseDate: e.target.value }))} className="border-[#D4AF37]" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-[#01411C] text-sm">تاريخ الترخيص</Label><Input type="date" value={propertyData.adLicenseDate} onChange={(e) => setPropertyData(prev => ({ ...prev, adLicenseDate: e.target.value }))} className="border-[#D4AF37] text-sm" /></div>
               <div>
-                <Label className="text-[#01411C]">مدة الترخيص</Label>
+                <Label className="text-[#01411C] text-sm">مدة الترخيص</Label>
                 <Select value={propertyData.adLicenseDuration} onValueChange={(v) => setPropertyData(prev => ({ ...prev, adLicenseDuration: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-white z-50"><SelectItem value="30">30 يوم</SelectItem><SelectItem value="60">60 يوم</SelectItem><SelectItem value="90">90 يوم</SelectItem><SelectItem value="180">180 يوم</SelectItem><SelectItem value="365">سنة</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-[#01411C]">طول الوصف</Label>
+                <Label className="text-[#01411C] text-sm">طول الوصف</Label>
                 <Select value={propertyData.descriptionLength} onValueChange={(v) => setPropertyData(prev => ({ ...prev, descriptionLength: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-white z-50"><SelectItem value="قصير">قصير</SelectItem><SelectItem value="متوسط">متوسط</SelectItem><SelectItem value="طويل">طويل</SelectItem></SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C]">اللغة</Label>
+                <Label className="text-[#01411C] text-sm">اللغة</Label>
                 <Select value={propertyData.descriptionLanguage} onValueChange={(v) => setPropertyData(prev => ({ ...prev, descriptionLanguage: v }))}>
-                  <SelectTrigger className="border-[#D4AF37]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-white z-50"><SelectItem value="عربي">عربي</SelectItem><SelectItem value="انجليزي">انجليزي</SelectItem><SelectItem value="عربي انجليزي">عربي وانجليزي</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label className="text-[#01411C] mb-2 block">أسلوب الوصف</Label>
-              <div className="flex gap-2">
+              <Label className="text-[#01411C] text-sm mb-2 block">أسلوب الوصف</Label>
+              <div className="flex flex-wrap gap-2">
                 {['احترافي', 'تسويقي', 'فاخر'].map(s => (
-                  <Button key={s} variant={propertyData.descriptionStyle === s ? "default" : "outline"} className={propertyData.descriptionStyle === s ? "bg-[#01411C] text-white" : "border-[#D4AF37]"} onClick={() => setPropertyData(prev => ({ ...prev, descriptionStyle: s }))}>{s}</Button>
+                  <Button key={s} size="sm" variant={propertyData.descriptionStyle === s ? "default" : "outline"} className={propertyData.descriptionStyle === s ? "bg-[#01411C] text-white" : "border-[#D4AF37]"} onClick={() => setPropertyData(prev => ({ ...prev, descriptionStyle: s }))}>{s}</Button>
                 ))}
               </div>
             </div>
@@ -1357,12 +1359,12 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
             />
 
             <div>
-              <Label className="text-[#01411C]">عنوان الإعلان</Label>
-              <Input value={propertyData.aiTitle} onChange={(e) => setPropertyData(prev => ({ ...prev, aiTitle: e.target.value }))} placeholder="اضغط توليد للعنوان الذكي" className="border-[#D4AF37] bg-green-50 font-medium" />
+              <Label className="text-[#01411C] text-sm">عنوان الإعلان</Label>
+              <Input value={propertyData.aiTitle} onChange={(e) => setPropertyData(prev => ({ ...prev, aiTitle: e.target.value }))} placeholder="اضغط توليد للعنوان الذكي" className="border-[#D4AF37] bg-green-50 font-medium text-sm" />
             </div>
             <div>
-              <Label className="text-[#01411C]">الوصف</Label>
-              <Textarea value={propertyData.aiDescription} onChange={(e) => setPropertyData(prev => ({ ...prev, aiDescription: e.target.value }))} placeholder="اضغط توليد للوصف الذكي" className="border-[#D4AF37] min-h-[120px] bg-green-50" />
+              <Label className="text-[#01411C] text-sm">الوصف</Label>
+              <Textarea value={propertyData.aiDescription} onChange={(e) => setPropertyData(prev => ({ ...prev, aiDescription: e.target.value }))} placeholder="اضغط توليد للوصف الذكي" className="border-[#D4AF37] min-h-[100px] bg-green-50 text-sm" />
             </div>
           </CardContent>
         </Card>
@@ -1374,7 +1376,7 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
             <p className="text-sm text-gray-600">اختر المنصات التي تريد نشر الإعلان عليها (بالإضافة لمنصتي الخاصة)</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {connectedPlatforms.map(platform => (
                 <motion.div
                   key={platform.id}
@@ -1405,20 +1407,20 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
 
         {/* ===================== زر النشر ===================== */}
         <Card className="border-2 border-[#01411C] bg-gradient-to-r from-[#01411C]/5 to-[#D4AF37]/5">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             {/* ملخص */}
-            <div className="mb-4 p-4 bg-white rounded-lg border">
-              <h4 className="font-bold text-[#01411C] mb-2">ملخص الإعلان:</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+            <div className="mb-3 p-3 bg-white rounded-lg border">
+              <h4 className="font-bold text-[#01411C] mb-2 text-sm">ملخص الإعلان:</h4>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
                 <div><span className="text-gray-500">النوع:</span> <span className="font-medium">{propertyData.propertyType || '-'}</span></div>
                 <div><span className="text-gray-500">الغرض:</span> <span className="font-medium">{propertyData.purpose || '-'}</span></div>
                 <div><span className="text-gray-500">المدينة:</span> <span className="font-medium">{propertyData.locationDetails.city || '-'}</span></div>
                 <div><span className="text-gray-500">المساحة:</span> <span className="font-medium">{propertyData.area ? `${propertyData.area} م²` : '-'}</span></div>
                 <div><span className="text-gray-500">المالك:</span> <span className="font-medium">{propertyData.ownerName || '-'}</span></div>
-                <div><span className="text-gray-500">السعر:</span> <span className="font-medium text-emerald-600">{propertyData.price ? `${parseInt(propertyData.price).toLocaleString()} ريال` : '-'}</span></div>
-                <div><span className="text-gray-500">المنصات:</span> <span className="font-medium text-purple-600">{propertyData.selectedPlatforms.length} + منصتي</span></div>
+                <div><span className="text-gray-500">السعر:</span> <span className="font-medium text-emerald-600">{propertyData.price ? `${parseInt(propertyData.price).toLocaleString()} ر` : '-'}</span></div>
+                <div className="col-span-2"><span className="text-gray-500">المنصات:</span> <span className="font-medium text-purple-600">{propertyData.selectedPlatforms.length} + منصتي</span></div>
               </div>
-              {smartPath && <div className="mt-2 pt-2 border-t"><span className="text-gray-500">المسار:</span> <span className="font-medium text-purple-600">{smartPath}</span></div>}
+              {smartPath && <div className="mt-2 pt-2 border-t text-xs"><span className="text-gray-500">المسار:</span> <span className="font-medium text-purple-600">{smartPath}</span></div>}
             </div>
 
             {/* شريط التقدم */}
@@ -1445,14 +1447,14 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
               </div>
             )}
 
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={onCancel} className="flex-1 border-gray-300">إلغاء</Button>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onCancel} className="flex-1 border-gray-300 text-sm">إلغاء</Button>
               <Button
                 onClick={handlePublish}
                 disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || propertyData.selectedPlatforms.length === 0}
-                className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37] font-bold text-lg py-6"
+                className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37] font-bold text-sm py-5"
               >
-                {isPublishing ? <><Loader2 className="w-5 h-5 ml-2 animate-spin" />جاري النشر...</> : <><Send className="w-5 h-5 ml-2" />نشر الإعلان</>}
+                {isPublishing ? <><Loader2 className="w-4 h-4 ml-1 animate-spin" />جاري النشر...</> : <><Send className="w-4 h-4 ml-1" />نشر الإعلان</>}
               </Button>
             </div>
 
