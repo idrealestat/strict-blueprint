@@ -148,6 +148,7 @@ interface BusinessCardData {
   userTitle: string;
   falLicense: string;
   falExpiry: string;
+  falLicenseDuration: number; // مدة الرخصة بالسنوات (1-5 للمكاتب والشركات)
   commercialRegistration: string;
   commercialExpiryDate: string;
   primaryPhone: string;
@@ -240,6 +241,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     userTitle: "",
     falLicense: "",
     falExpiry: "",
+    falLicenseDuration: 1,
     commercialRegistration: "",
     commercialExpiryDate: "",
     primaryPhone: user.phone,
@@ -423,6 +425,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               email: authUser.email || localData.email || prev.email,
               falLicense: profile.fal_license_number || localData.falLicense || "",
               falExpiry: profile.fal_license_expiry || localData.falExpiry || "",
+              falLicenseDuration: profile.fal_license_duration_years || localData.falLicenseDuration || 1,
               commercialRegistration: profile.commercial_reg_number || localData.commercialRegistration || "",
               commercialExpiryDate: profile.commercial_reg_expiry || localData.commercialExpiryDate || "",
               nationalId: profile.national_id || localData.nationalId || "",
@@ -670,6 +673,14 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           }
           return;
         }
+      }
+
+      // تحديث حقل مدة الرخصة في profiles
+      if (formData.accountType === 'office' || formData.accountType === 'company') {
+        await supabase
+          .from('profiles')
+          .update({ fal_license_duration_years: formData.falLicenseDuration })
+          .eq('user_id', authUser.id);
       }
 
       // تحديث حالة الـ onboarding في الـ context والـ database معاً
@@ -1717,6 +1728,33 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     />
                   </div>
                 </div>
+                
+                {/* مدة الرخصة - للمكاتب والشركات فقط */}
+                {(formData.accountType === 'office' || formData.accountType === 'company') && (
+                  <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <Label className="flex items-center gap-2 text-amber-700">
+                      <Clock className="w-4 h-4" />
+                      مدة رخصة فال (بالسنوات)
+                    </Label>
+                    <p className="text-xs text-amber-600 mb-2">
+                      للمكاتب والشركات يمكن تحديد مدة الرخصة من سنة إلى 5 سنوات
+                    </p>
+                    <div className="flex gap-2 mt-2">
+                      {[1, 2, 3, 4, 5].map((year) => (
+                        <Button
+                          key={year}
+                          type="button"
+                          variant={formData.falLicenseDuration === year ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, falLicenseDuration: year }))}
+                          className={formData.falLicenseDuration === year ? 'bg-amber-600 hover:bg-amber-700' : 'border-amber-300'}
+                        >
+                          {year} {year === 1 ? 'سنة' : 'سنوات'}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {/* حقول السجل التجاري - تظهر فقط للمكاتب والشركات */}
                 {(formData.accountType === 'office' || formData.accountType === 'company') && (

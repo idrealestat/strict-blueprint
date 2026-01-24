@@ -1654,6 +1654,7 @@ export type Database = {
           company_name: string | null
           created_at: string
           email_verified: boolean | null
+          fal_license_duration_years: number | null
           fal_license_expiry: string | null
           fal_license_number: string | null
           full_name: string | null
@@ -1678,6 +1679,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email_verified?: boolean | null
+          fal_license_duration_years?: number | null
           fal_license_expiry?: string | null
           fal_license_number?: string | null
           full_name?: string | null
@@ -1702,6 +1704,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email_verified?: boolean | null
+          fal_license_duration_years?: number | null
           fal_license_expiry?: string | null
           fal_license_number?: string | null
           full_name?: string | null

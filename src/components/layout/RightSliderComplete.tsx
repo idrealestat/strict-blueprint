@@ -46,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureFlags, FeatureFlags } from "@/context/FeatureFlagsContext";
 import { useAuthContext } from "@/context/AuthContext";
 import OfficialCardMiniPreview from "@/components/business-card/OfficialCardMiniPreview";
+import FalLicenseDisplay from "@/components/business-card/FalLicenseDisplay";
 import { useFinancialDocuments } from "@/hooks/useFinancialDocuments";
 import FinancialDocumentsPanel from "./FinancialDocumentsPanel";
 
@@ -691,6 +692,9 @@ export default function RightSliderComplete({
                     }}
                   />
                 )}
+
+                {/* عرض معلومات رخصة فال */}
+                <FalLicenseDisplay variant="compact" className="mt-3" />
               </div>
 
               {/* المحتوى الرئيسي */}
