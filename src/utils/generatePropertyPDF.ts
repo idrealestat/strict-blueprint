@@ -370,56 +370,8 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
         </table>
       </div>
 
-      <!-- معلومات المالك (حسب الاختيار) -->
-      ${includeOwner && (safeOwnerName || safeOwnerPhone) ? `
-      <div class="no-break" style="margin-bottom: 15px;">
-        <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
-          👤 معلومات المالك
-        </h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-          ${safeOwnerName ? `
-          <tr>
-            <td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">الاسم:</td>
-            <td style="padding: 6px; background: #fff;">${safeOwnerName}</td>
-            ${safeOwnerPhone ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">الجوال:</td><td style="padding: 6px; background: #fff;" dir="ltr">${safeOwnerPhone}</td>` : '<td></td><td></td>'}
-          </tr>
-          ` : ''}
-          ${safeOwnerIdNumber || safeOwnerBirthDate ? `
-          <tr>
-            ${safeOwnerIdNumber ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">رقم الهوية:</td><td style="padding: 6px; background: #fff;">${safeOwnerIdNumber}</td>` : '<td></td><td></td>'}
-            ${safeOwnerBirthDate ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">تاريخ الميلاد:</td><td style="padding: 6px; background: #fff;">${safeOwnerBirthDate}</td>` : '<td></td><td></td>'}
-          </tr>
-          ` : ''}
-          ${safeOwnerCity || safeOwnerDistrict ? `
-          <tr>
-            ${safeOwnerCity ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">المدينة:</td><td style="padding: 6px; background: #fff;">${safeOwnerCity}</td>` : '<td></td><td></td>'}
-            ${safeOwnerDistrict ? `<td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الحي:</td><td style="padding: 6px; background: #fff;">${safeOwnerDistrict}</td>` : '<td></td><td></td>'}
-          </tr>
-          ` : ''}
-        </table>
-      </div>
-      ` : ''}
-
-      <!-- معلومات الصك -->
-      ${safeDeedNumber || safeDeedDate || safeDeedCity ? `
-      <div class="no-break" style="margin-bottom: 15px;">
-        <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
-          📜 معلومات الصك
-        </h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-          <tr>
-            ${safeDeedNumber ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">رقم الصك:</td><td style="padding: 6px; background: #fff;">${safeDeedNumber}</td>` : '<td></td><td></td>'}
-            ${safeDeedDate ? `<td style="padding: 6px; background: #f8f9fa; width: 25%; font-weight: bold; color: #01411C;">تاريخ الصك:</td><td style="padding: 6px; background: #fff;">${safeDeedDate}</td>` : '<td></td><td></td>'}
-          </tr>
-          ${safeDeedCity ? `
-          <tr>
-            <td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">مدينة إصدار الصك:</td>
-            <td colspan="3" style="padding: 6px; background: #fff;">${safeDeedCity}</td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
-      ` : ''}
+      <!-- معلومات المالك - تم إخفاؤها: لا يتم عرض معلومات المالك في PDF العام -->
+      <!-- معلومات الصك - تم إخفاؤها: لا يتم عرض معلومات الصك في PDF العام -->
 
       <!-- المميزات -->
       ${safeFeatures.length > 0 ? `
@@ -465,21 +417,42 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
       </div>
       ` : ''}
 
-      <!-- معلومات التواصل (الوسيط فقط) -->
-      ${safeBrokerPhone ? `
+      <!-- معلومات التواصل (الوسيط صاحب العرض) -->
+      ${(safeBrokerName || safeBrokerPhone) ? `
       <div class="no-break" style="margin-bottom: 15px;">
         <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">
-          📞 معلومات التواصل
+          📞 معلومات التواصل - الوسيط صاحب العرض
         </h3>
         <div style="background: linear-gradient(135deg, #f0f7f2 0%, #e8f5e9 100%); padding: 15px; border-radius: 10px; border: 1px solid #D4AF37;">
           <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            ${safeBrokerName ? `
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">🏢 الوسيط العقاري:</td>
+              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">👤 الوسيط العقاري:</td>
+              <td style="padding: 8px 0; color: #333; font-weight: bold;">${safeBrokerName}</td>
+            </tr>
+            ` : ''}
+            ${safeBrokerCompany ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">🏢 الشركة:</td>
+              <td style="padding: 8px 0; color: #333;">${safeBrokerCompany}</td>
+            </tr>
+            ` : ''}
+            ${safeBrokerPhone ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">📞 رقم التواصل:</td>
               <td style="padding: 8px 0; color: #333; direction: ltr; text-align: right;">${safeBrokerPhone}</td>
             </tr>
+            ` : ''}
+            ${safeBrokerLicense ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #01411C;">🏆 رخصة فال:</td>
+              <td style="padding: 8px 0; color: #333;">${safeBrokerLicense}</td>
+            </tr>
+            ` : ''}
           </table>
           
           <!-- أزرار التواصل -->
+          ${safeBrokerPhone ? `
           <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
             <div style="background: #25D366; color: white; padding: 10px 20px; border-radius: 25px; font-size: 12px; font-weight: bold; text-align: center;">
               💬 واتساب: ${safeBrokerPhone}
@@ -488,6 +461,7 @@ const createPDFContent = (property: PropertyData, includeOwner: boolean, broker?
               📞 اتصال: ${safeBrokerPhone}
             </div>
           </div>
+          ` : ''}
           
           <!-- رابط العرض -->
           ${offerUrl ? `
