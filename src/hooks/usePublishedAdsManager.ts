@@ -533,9 +533,12 @@ export function usePublishedAdsManager() {
       );
       
       // مزامنة تلقائية إلى قاعدة البيانات أولاً ثم إرسال الأحداث
+      console.log('🔄 بدء مزامنة العرض إلى قاعدة البيانات:', adData.id);
       const synced = await syncSingleListingToDatabase(adData);
       if (synced) {
-        console.log('تمت مزامنة العرض إلى قاعدة البيانات تلقائياً');
+        console.log('✅ تمت مزامنة العرض إلى قاعدة البيانات تلقائياً:', adData.id);
+      } else {
+        console.error('❌ فشلت مزامنة العرض إلى قاعدة البيانات:', adData.id);
       }
 
       // Dispatch events للتحديث الفوري بعد المزامنة

@@ -419,10 +419,34 @@ export default function MyPlatformComplete({
   }, [loadBusinessCardData]);
 
   // slug المستخدم للمنصة العامة + مزامنة تلقائية لقاعدة البيانات
-  const currentSlug = useMemo(
-    () => localStorage.getItem('public_platform_slug') || 'default',
-    []
+  const [currentSlug, setCurrentSlug] = useState(() => 
+    localStorage.getItem('public_platform_slug') || 'default'
   );
+  
+  // ✅ جلب الـ slug من قاعدة البيانات إذا لم يكن موجوداً في localStorage
+  useEffect(() => {
+    const fetchSlugFromDB = async () => {
+      if (currentSlug === 'default' && user?.id) {
+        try {
+          const { data: cardData } = await supabase
+            .from('business_cards')
+            .select('slug')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (cardData?.slug) {
+            localStorage.setItem('public_platform_slug', cardData.slug);
+            setCurrentSlug(cardData.slug);
+            console.log('✅ Slug fetched from DB:', cardData.slug);
+          }
+        } catch (e) {
+          console.error('Error fetching slug from DB:', e);
+        }
+      }
+    };
+    fetchSlugFromDB();
+  }, [user?.id, currentSlug]);
+  
   const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, listings: dbListings } = usePlatformListings(currentSlug);
   
   // Hook إشعارات المشاهدات
