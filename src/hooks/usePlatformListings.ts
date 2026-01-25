@@ -447,6 +447,13 @@ export function usePlatformListings(slug?: string) {
     const silent = Boolean(options?.silent);
 
     try {
+      // ✅ الحصول على user_id - مطلوب لسياسات RLS
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('No authenticated user found, skipping sync');
+        return;
+      }
+
       // قراءة البيانات من localStorage
       const localData = localStorage.getItem('wasata_platform_complete');
       const publishedAds = localStorage.getItem('published_ads_list');
@@ -568,6 +575,7 @@ export function usePlatformListings(slug?: string) {
         const description = firstNonEmpty(ad.aiDescription, ad.description);
 
         const base: any = {
+          user_id: user.id, // ✅ مطلوب لسياسات RLS
           slug: currentSlug,
           title,
           description: description ? String(description) : null,
@@ -948,6 +956,13 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       return false;
     }
 
+    // ✅ الحصول على user_id - مطلوب لسياسات RLS
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('No authenticated user found, skipping database sync');
+      return false;
+    }
+
     const smartPath = firstNonEmpty(ad.smartPath, ad.platformPath, ad.smart_path);
     const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
 
@@ -991,6 +1006,7 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
     const description = firstNonEmpty(ad.aiDescription, ad.description);
 
     const listingData = {
+      user_id: user.id, // ✅ مطلوب لسياسات RLS
       slug,
       title,
       description: description ? String(description) : null,
