@@ -976,6 +976,23 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     setPendingPublish(false);
     setIsPublishing(true);
     
+    // ✅ التأكد من حفظ الـ slug قبل النشر للمزامنة التلقائية
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: cardData } = await supabase
+          .from('business_cards')
+          .select('slug')
+          .eq('user_id', authUser.id)
+          .single();
+        if (cardData?.slug) {
+          localStorage.setItem('public_platform_slug', cardData.slug);
+          console.log('✅ Slug saved for sync:', cardData.slug);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch slug before publish:', e);
+    }
     try {
       const adData: PublishedAdData = {
         id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

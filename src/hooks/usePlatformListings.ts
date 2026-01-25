@@ -948,20 +948,34 @@ export function usePublicPlatformListings(slug?: string, userId?: string) {
 // دالة مساعدة لمزامنة عرض واحد إلى قاعدة البيانات (تلقائياً عند النشر)
 export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
   try {
-    // الحصول على الـ slug من localStorage
-    const slug = localStorage.getItem('public_platform_slug') || 'default';
-
-    if (!slug) {
-      console.warn('No platform slug found, skipping database sync');
-      return false;
-    }
-
     // ✅ الحصول على user_id - مطلوب لسياسات RLS
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.warn('No authenticated user found, skipping database sync');
       return false;
     }
+
+    // ✅ الحصول على الـ slug من قاعدة البيانات مباشرة (أكثر موثوقية من localStorage)
+    let slug = localStorage.getItem('public_platform_slug');
+    if (!slug || slug === 'default') {
+      const { data: cardData } = await supabase
+        .from('business_cards')
+        .select('slug')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (cardData?.slug) {
+        slug = cardData.slug;
+        localStorage.setItem('public_platform_slug', slug);
+      }
+    }
+
+    if (!slug || slug === 'default') {
+      console.warn('No platform slug found, skipping database sync');
+      return false;
+    }
+
+    console.log('🔄 Syncing listing to database with slug:', slug, 'user_id:', user.id);
 
     const smartPath = firstNonEmpty(ad.smartPath, ad.platformPath, ad.smart_path);
     const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
