@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { slugToArabic, arabicToSlug } from '@/utils/slugify';
 import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
 import { usePagePresence } from '@/hooks/usePagePresence';
+import { useRegisterPublicViewer } from '@/hooks/useLiveViewersRealtime';
+import { trackEvent } from '@/hooks/useEventTracker';
 import OfferDetailsPage from '@/components/platform/OfferDetailsPage';
 import { getDisplayName } from '@/components/business-card/DisplayNameSettings';
 
@@ -84,6 +86,11 @@ const SlugOfferDetailsPage: React.FC = () => {
 
   const { liveCount } = usePagePresence('offer', offerId);
 
+  // ✅ تسجيل حضور الزائر في الوقت الفعلي - هذا يجعل العين حمراء في لوحة التحكم
+  const city = citySlug ? slugToArabic(citySlug) : '';
+  const district = districtSlug ? slugToArabic(districtSlug) : '';
+  useRegisterPublicViewer(slug, offerId, city, district);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!slug || !offerId) {
@@ -149,6 +156,42 @@ const SlugOfferDetailsPage: React.FC = () => {
           .update({ views: (foundListing.views || 0) + 1 })
           .eq('id', foundListing.id);
 
+        // ✅ تسجيل الحدث في قاعدة البيانات
+        trackEvent({
+          eventName: 'offer_view',
+          actorType: 'visitor',
+          channel: 'public_web',
+          entityType: 'offer',
+          entityId: foundListing.id,
+          metadata: {
+            offerTitle: foundListing.title,
+            city: foundListing.city,
+            district: foundListing.district,
+            price: foundListing.price,
+            brokerSlug: slug,
+          },
+        });
+
+        // ✅ إرسال حدث للوحة التحكم لتفعيل المشاهدات المباشرة
+        window.dispatchEvent(new CustomEvent('offerViewedWithDetails', {
+          detail: {
+            offerId: foundListing.id,
+            offerTitle: foundListing.title,
+            viewerInfo: {
+              device: /Mobile|Android|iPhone/.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+              browser: navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                       navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                       navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown',
+              os: navigator.userAgent.includes('Windows') ? 'Windows' : 
+                  navigator.userAgent.includes('Mac') ? 'macOS' : 
+                  navigator.userAgent.includes('Android') ? 'Android' : 
+                  navigator.userAgent.includes('iPhone') ? 'iOS' : 'Unknown',
+              timestamp: new Date().toISOString(),
+              city: foundListing.city,
+            },
+          }
+        }));
+
         setListing(foundListing as Listing);
       } catch (err) {
         console.error('Error fetching offer data:', err);
@@ -159,7 +202,7 @@ const SlugOfferDetailsPage: React.FC = () => {
     };
 
     fetchData();
-  }, [slug, offerId]);
+  }, [slug, offerId, citySlug, districtSlug]);
 
   if (loading) {
     return (
