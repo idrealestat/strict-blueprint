@@ -872,7 +872,8 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-3 p-3 pb-20" dir="rtl">
+      {/* ✅ تجاوب الجوال: تصغير الحجم وضبط الـ padding */}
+      <div className="space-y-2 sm:space-y-3 p-2 sm:p-3 pb-24 max-w-full overflow-x-hidden" dir="rtl">
         
         {/* نافذة استرداد المسودة */}
         {showRecoveryDialog && (
@@ -928,73 +929,73 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
           </Card>
         )}
 
-        {/* العنوان */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[hsl(var(--forest-green))]">نشر إعلان على المنصات</h2>
-          <Button variant="outline" size="sm" onClick={() => { setPropertyData(getDefaultPropertyData()); localStorage.removeItem(STORAGE_KEY); }} className="text-red-600 border-red-300">
-            <Trash2 className="w-4 h-4 ml-2" />مسح
+        {/* العنوان - متجاوب مع الجوال */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <h2 className="text-lg sm:text-xl font-bold text-[hsl(var(--forest-green))]">نشر إعلان على المنصات</h2>
+          <Button variant="outline" size="sm" onClick={() => { setPropertyData(getDefaultPropertyData()); localStorage.removeItem(STORAGE_KEY); }} className="text-red-600 border-red-300 text-xs sm:text-sm">
+            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />مسح
           </Button>
         </div>
 
-        {/* ===================== 1. معلومات المالك ===================== */}
-        <Card className="border-2 border-[#D4AF37]">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
-            <CardTitle className="text-[#01411C] flex items-center gap-2">
-              <User className="w-5 h-5" />معلومات المالك
+        {/* ===================== 1. معلومات المالك - متجاوب مع الجوال ===================== */}
+        <Card className="border border-[#D4AF37] sm:border-2">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 py-2 sm:py-4 px-3 sm:px-6">
+            <CardTitle className="text-[#01411C] flex items-center gap-2 text-sm sm:text-base">
+              <User className="w-4 h-4 sm:w-5 sm:h-5" />معلومات المالك
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <CardContent className="space-y-3 pt-3 px-2 sm:px-6 sm:space-y-4 sm:pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <div>
-                <Label className="text-[#01411C] text-sm">الاسم كاملاً *</Label>
-                <Input value={propertyData.ownerName} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerName: e.target.value }))} placeholder="اسم المالك" className="border-[#D4AF37] text-sm" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">الاسم كاملاً *</Label>
+                <Input value={propertyData.ownerName} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerName: e.target.value }))} placeholder="اسم المالك" className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" />
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">تاريخ الميلاد</Label>
-                <Input type="date" value={propertyData.ownerBirthDate} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerBirthDate: e.target.value }))} className="border-[#D4AF37] text-sm" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">تاريخ الميلاد</Label>
+                <Input type="date" value={propertyData.ownerBirthDate} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerBirthDate: e.target.value }))} className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" />
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">رقم الهوية *</Label>
-                <Input value={propertyData.ownerIdNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerIdNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))} placeholder="10 أرقام" className="border-[#D4AF37] text-sm" dir="ltr" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">رقم الهوية *</Label>
+                <Input value={propertyData.ownerIdNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerIdNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }))} placeholder="10 أرقام" className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" dir="ltr" />
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">رقم الجوال *</Label>
-                <Input value={propertyData.ownerPhone} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerPhone: e.target.value }))} placeholder="05xxxxxxxx" className="border-[#D4AF37] text-sm" dir="ltr" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">رقم الجوال *</Label>
+                <Input value={propertyData.ownerPhone} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerPhone: e.target.value }))} placeholder="05xxxxxxxx" className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" dir="ltr" />
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">المدينة</Label>
+                <Label className="text-[#01411C] text-xs sm:text-sm">المدينة</Label>
                 <Select value={propertyData.ownerCity} onValueChange={(v) => setPropertyData(prev => ({ ...prev, ownerCity: v }))}>
-                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10"><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
                   <SelectContent className="bg-white z-50 max-h-60">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">الحي</Label>
-                <Input value={propertyData.ownerDistrict} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerDistrict: e.target.value }))} placeholder="اسم الحي" className="border-[#D4AF37] text-sm" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">الحي</Label>
+                <Input value={propertyData.ownerDistrict} onChange={(e) => setPropertyData(prev => ({ ...prev, ownerDistrict: e.target.value }))} placeholder="اسم الحي" className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* ===================== 2. معلومات الصك ===================== */}
-        <Card className="border-2 border-[#D4AF37]">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50">
-            <CardTitle className="text-[#01411C] flex items-center gap-2"><FileText className="w-5 h-5" />معلومات الصك</CardTitle>
+        {/* ===================== 2. معلومات الصك - متجاوب مع الجوال ===================== */}
+        <Card className="border border-[#D4AF37] sm:border-2">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 py-2 sm:py-4 px-3 sm:px-6">
+            <CardTitle className="text-[#01411C] flex items-center gap-2 text-sm sm:text-base"><FileText className="w-4 h-4 sm:w-5 sm:h-5" />معلومات الصك</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <CardContent className="space-y-3 pt-3 px-2 sm:px-6 sm:space-y-4 sm:pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
               <div>
-                <Label className="text-[#01411C] text-sm">رقم الصك</Label>
-                <Input value={propertyData.deedNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, deedNumber: e.target.value }))} className="border-[#D4AF37] text-sm" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">رقم الصك</Label>
+                <Input value={propertyData.deedNumber} onChange={(e) => setPropertyData(prev => ({ ...prev, deedNumber: e.target.value }))} className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" />
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">تاريخ الصك</Label>
-                <Input type="date" value={propertyData.deedDate} onChange={(e) => setPropertyData(prev => ({ ...prev, deedDate: e.target.value }))} className="border-[#D4AF37] text-sm" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">تاريخ الصك</Label>
+                <Input type="date" value={propertyData.deedDate} onChange={(e) => setPropertyData(prev => ({ ...prev, deedDate: e.target.value }))} className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" />
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">مدينة الصك</Label>
+                <Label className="text-[#01411C] text-xs sm:text-sm">مدينة الصك</Label>
                 <Select value={propertyData.deedCity} onValueChange={(v) => setPropertyData(prev => ({ ...prev, deedCity: v }))}>
-                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10"><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent className="bg-white z-50 max-h-60">{cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -1002,37 +1003,37 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
           </CardContent>
         </Card>
 
-        {/* ===================== 3. معلومات العقار ===================== */}
-        <Card className="border-2 border-[#D4AF37]">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardTitle className="text-[#01411C] flex items-center gap-2"><Building className="w-5 h-5" />معلومات العقار</CardTitle>
+        {/* ===================== 3. معلومات العقار - متجاوب مع الجوال ===================== */}
+        <Card className="border border-[#D4AF37] sm:border-2">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-2 sm:py-4 px-3 sm:px-6">
+            <CardTitle className="text-[#01411C] flex items-center gap-2 text-sm sm:text-base"><Building className="w-4 h-4 sm:w-5 sm:h-5" />معلومات العقار</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-3">
+          <CardContent className="space-y-3 pt-3 px-2 sm:px-6 sm:space-y-4 sm:pt-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div>
-                <Label className="text-[#01411C] text-sm">نوع العقار *</Label>
+                <Label className="text-[#01411C] text-xs sm:text-sm">نوع العقار *</Label>
                 <Select value={propertyData.propertyType} onValueChange={(v) => setPropertyData(prev => ({ ...prev, propertyType: v }))}>
-                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10"><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent className="bg-white z-50 max-h-60">{propertyTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">الفئة</Label>
+                <Label className="text-[#01411C] text-xs sm:text-sm">الفئة</Label>
                 <Select value={propertyData.category} onValueChange={(v) => setPropertyData(prev => ({ ...prev, category: v }))}>
-                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10"><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent className="bg-white z-50 max-h-60">{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">الغرض *</Label>
+                <Label className="text-[#01411C] text-xs sm:text-sm">الغرض *</Label>
                 <Select value={propertyData.purpose} onValueChange={(v) => setPropertyData(prev => ({ ...prev, purpose: v }))}>
-                  <SelectTrigger className="border-[#D4AF37] text-sm"><SelectValue placeholder="اختر" /></SelectTrigger>
+                  <SelectTrigger className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10"><SelectValue placeholder="اختر" /></SelectTrigger>
                   <SelectContent className="bg-white z-50 max-h-60">{purposes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#01411C] text-sm">المساحة (م²)</Label>
-                <Input type="number" value={propertyData.area} onChange={(e) => setPropertyData(prev => ({ ...prev, area: e.target.value }))} className="border-[#D4AF37] text-sm" />
+                <Label className="text-[#01411C] text-xs sm:text-sm">المساحة (م²)</Label>
+                <Input type="number" value={propertyData.area} onChange={(e) => setPropertyData(prev => ({ ...prev, area: e.target.value }))} className="border-[#D4AF37] text-xs sm:text-sm h-9 sm:h-10" />
               </div>
             </div>
           </CardContent>
