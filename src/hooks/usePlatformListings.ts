@@ -331,28 +331,41 @@ export function usePlatformListings(slug?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // جلب العروض
+  // جلب العروض - يدعم الجلب بـ slug أو user_id
   const fetchListings = useCallback(async () => {
-    if (!slug) {
-      setListings([]);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
+      // الحصول على user_id للمستخدم الحالي
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // بناء الاستعلام
+      let query = supabase
         .from('platform_listings')
         .select('*')
-        .eq('slug', slug)
-        .is('deleted_at', null) // استبعاد العروض المحذوفة (soft delete)
+        .is('deleted_at', null);
+      
+      // إذا كان هناك slug، نجلب بناءً عليه
+      // وإلا نجلب بناءً على user_id
+      if (slug && slug !== 'default') {
+        query = query.eq('slug', slug);
+      } else if (user?.id) {
+        query = query.eq('user_id', user.id);
+      } else {
+        // لا يوجد slug ولا user - نعيد قائمة فارغة
+        setListings([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: fetchError } = await query
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
+      console.log('[usePlatformListings] Fetched listings:', data?.length, 'slug:', slug, 'user:', user?.id);
       setListings((data || []).map(mapDbToListing));
     } catch (err: any) {
       console.error('Error fetching listings:', err);
@@ -361,6 +374,11 @@ export function usePlatformListings(slug?: string) {
       setLoading(false);
     }
   }, [slug]);
+
+  // ✅ استدعاء تلقائي لجلب البيانات عند التحميل
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   // إضافة عرض جديد
   const addListing = async (listing: Omit<PlatformListing, 'id' | 'createdAt' | 'updatedAt'>) => {
