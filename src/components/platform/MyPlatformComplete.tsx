@@ -447,7 +447,12 @@ export default function MyPlatformComplete({
     fetchSlugFromDB();
   }, [user?.id, currentSlug]);
   
-  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, listings: dbListings } = usePlatformListings(currentSlug);
+  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, listings: dbListings, loading: dbLoading } = usePlatformListings(currentSlug);
+  
+  // ✅ تتبع حالة جلب البيانات
+  useEffect(() => {
+    console.log('[MyPlatformComplete] dbListings updated:', dbListings?.length, 'loading:', dbLoading, 'slug:', currentSlug);
+  }, [dbListings, dbLoading, currentSlug]);
   
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
