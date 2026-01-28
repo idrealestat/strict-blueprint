@@ -73,6 +73,9 @@ import PropertyPublishForm from "./PropertyPublishForm";
 import MyPublicPlatformContent from "./MyPublicPlatformContent";
 import CreateRequestForm from "./CreateRequestForm";
 import OfferEditPage from "./OfferEditPage";
+import DeletedOffersPage, { addToDeletedOffers, restoreFromDeletedOffers } from "./DeletedOffersPage";
+import OfferActionsMenu from "@/components/offers/OfferActionsMenu";
+import { useLiveViewersRealtime } from "@/hooks/useLiveViewersRealtime";
 import { 
   CollapsibleStatsSection, 
   CollapsiblePerformanceComparison
@@ -320,6 +323,7 @@ export default function MyPlatformComplete({
   const [activeCity, setActiveCity] = useState<string>('الكل');
   const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showDeletedOffersPage, setShowDeletedOffersPage] = useState(false);
   
   // ✅ نافذة خيارات PDF للعروض
   const [showOfferPdfOptionsDialog, setShowOfferPdfOptionsDialog] = useState(false);
@@ -447,7 +451,7 @@ export default function MyPlatformComplete({
     fetchSlugFromDB();
   }, [user?.id, currentSlug]);
   
-  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, listings: dbListings, loading: dbLoading } = usePlatformListings(currentSlug);
+  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, deleteListing, listings: dbListings, loading: dbLoading } = usePlatformListings(currentSlug);
   
   // ✅ تتبع حالة جلب البيانات
   useEffect(() => {
@@ -472,8 +476,17 @@ export default function MyPlatformComplete({
     return ids;
   }, []);
 
-  // ✅ Hook المشاهدين المباشرين - يستمع للأحداث في الوقت الفعلي
-  const { getLiveViewers } = useLiveViewers(allOfferIds);
+  // ✅ Hook المشاهدين المباشرين - يستمع للأحداث في الوقت الفعلي (legacy)
+  const { getLiveViewers: getLiveViewersLocal } = useLiveViewers(allOfferIds);
+
+  // ✅ Hook المشاهدين المباشرين عبر Supabase Presence (الأساسي)
+  const { getOfferViewers, getDistrictViewers, getCityViewers, getTotalViewers, liveViewers: realtimeLiveViewers } = useLiveViewersRealtime(currentSlug);
+
+  // دالة موحدة للحصول على عدد المشاهدين (تدمج المحلي مع Realtime)
+  const getLiveViewers = useCallback((offerId: string): number => {
+    return getOfferViewers(offerId) + getLiveViewersLocal(offerId);
+  }, [getOfferViewers, getLiveViewersLocal]);
+
   
   // Hierarchical State (مدينة ← حي ← عروض)
   const [cityHierarchy, setCityHierarchy] = useState<CityLevel[]>(() => {
@@ -1238,6 +1251,68 @@ export default function MyPlatformComplete({
         return c;
       }));
       toast.error('فشل في تحديث حالة العرض');
+    }
+  };
+
+  // ✅ حذف عرض (Soft Delete) - ينقل للمحذوفات
+  const handleDeleteOffer = async (offer: SingleOffer, cityName: string, districtName?: string) => {
+    try {
+      // إضافة للمحذوفات المحلية
+      addToDeletedOffers({
+        id: offer.id,
+        title: offer.title,
+        city: cityName,
+        district: districtName || '',
+        price: offer.price,
+        image: offer.image,
+        propertyType: offer.propertyType,
+      });
+
+      // حذف من قاعدة البيانات (soft delete)
+      await deleteListing(offer.id, false);
+
+      // حذف من الحالة المحلية
+      setCityHierarchy(prev => prev.map(c => {
+        if (c.cityName === cityName) {
+          return {
+            ...c,
+            districts: c.districts.map(d => ({
+              ...d,
+              offers: d.offers.filter(o => o.id !== offer.id)
+            })),
+            directOffers: c.directOffers.filter(o => o.id !== offer.id)
+          };
+        }
+        return c;
+      }));
+
+      toast.success('تم نقل العرض إلى المحذوفات');
+    } catch (error) {
+      console.error('Error deleting offer:', error);
+      toast.error('فشل في حذف العرض');
+    }
+  };
+
+  // ✅ استعادة عرض من المحذوفات
+  const handleRestoreOffer = async (offerId: string) => {
+    try {
+      const restoredOffer = restoreFromDeletedOffers(offerId);
+      if (restoredOffer) {
+        // إعادة إضافته لقاعدة البيانات (إزالة deleted_at)
+        const { error } = await supabase
+          .from('platform_listings')
+          .update({ deleted_at: null })
+          .eq('id', offerId);
+
+        if (error) throw error;
+
+        // إعادة جلب البيانات
+        await fetchListings();
+        toast.success('تم استعادة العرض بنجاح');
+      }
+    } catch (error) {
+      console.error('Error restoring offer:', error);
+      toast.error('فشل في استعادة العرض');
     }
   };
 
@@ -2014,6 +2089,15 @@ export default function MyPlatformComplete({
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  {/* ✅ زر المحذوفات */}
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowDeletedOffersPage(true)}
+                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                  >
+                    <Trash2 className="w-4 h-4 ml-2" />
+                    المحذوفات
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -2089,14 +2173,11 @@ export default function MyPlatformComplete({
 
                       {/* الصف الثاني: الأزرار (منفصلة في الأسفل) */}
                       <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/20">
-                        {/* علامة المشاهدة الحمراء */}
-                        {city.liveViewers > 0 && (
-                          <Badge className="bg-red-500 text-white text-xs animate-pulse flex items-center gap-1">
-                            <Eye className="w-3 h-3 text-red-200" />
-                            <span>{city.liveViewers} يشاهدون</span>
-                          </Badge>
-                        )}
-                        {city.liveViewers === 0 && <div />}
+                        {/* مؤشر المشاهدات المباشرة للمدينة */}
+                        <LiveViewerIndicator 
+                          liveViewers={getCityViewers(city.cityName) + allCityOffers.reduce((sum, o) => sum + getLiveViewers(o.id), 0)}
+                          size="sm"
+                        />
 
                         {/* أزرار الإجراءات */}
                         <div className="flex items-center gap-1 md:gap-2 flex-wrap">
@@ -2132,7 +2213,28 @@ export default function MyPlatformComplete({
                             <span className="hidden md:inline mr-1">رابط</span>
                           </Button>
 
-                          {/* (تم حذف مشاركة المدينة العامة لأنها كانت تعتمد على مسار المدينة المحذوف) */}
+                          {/* ✅ قائمة الثلاث نقاط للمدينة */}
+                          <OfferActionsMenu
+                            type="city"
+                            id={city.cityName}
+                            title={city.cityName}
+                            isHidden={city.isHidden}
+                            onEdit={() => {
+                              toast.info('ميزة تعديل المدينة قيد التطوير');
+                            }}
+                            onDelete={() => {
+                              // حذف جميع العروض في المدينة
+                              city.districts.forEach(d => {
+                                d.offers.forEach(o => handleDeleteOffer(o, city.cityName, d.districtName));
+                              });
+                              city.directOffers.forEach(o => handleDeleteOffer(o, city.cityName, ''));
+                              toast.success(`تم حذف جميع عروض ${city.cityName}`);
+                            }}
+                            onToggleVisibility={() => toggleCityVisibility(city.cityName)}
+                            onShare={() => shareItemWhatsApp(city.cityName, `city-${city.cityName}`, city.cityName, undefined, 'city')}
+                            onCopyLink={() => shareItemLink(city.cityName, `city-${city.cityName}`, city.cityName, undefined, 'city')}
+                            className={isCityExpanded ? 'text-white hover:bg-white/20' : ''}
+                          />
 
                           {/* سهم للجوال */}
                           <div className="md:hidden" onClick={() => toggleCityExpand(city.cityName)}>
@@ -2310,6 +2412,25 @@ export default function MyPlatformComplete({
                                         <span className="hidden md:inline mr-1">نقل</span>
                                       </Button>
 
+                                      {/* ✅ قائمة الثلاث نقاط للحي */}
+                                      <OfferActionsMenu
+                                        type="district"
+                                        id={districtKey}
+                                        title={district.districtName}
+                                        isHidden={district.isHidden}
+                                        onEdit={() => {
+                                          toast.info('ميزة تعديل الحي قيد التطوير');
+                                        }}
+                                        onDelete={() => {
+                                          // حذف جميع العروض في الحي
+                                          district.offers.forEach(o => handleDeleteOffer(o, city.cityName, district.districtName));
+                                          toast.success(`تم حذف جميع عروض ${district.districtName}`);
+                                        }}
+                                        onToggleVisibility={() => toggleDistrictVisibility(city.cityName, district.districtName)}
+                                        onShare={() => shareItemWhatsApp(district.districtName, `district-${districtKey}`, city.cityName, district.districtName, 'district')}
+                                        onCopyLink={() => shareItemLink(district.districtName, `district-${districtKey}`, city.cityName, district.districtName, 'district')}
+                                      />
+
                                       {/* سهم للجوال */}
                                       <div className="md:hidden" onClick={() => toggleDistrictExpand(districtKey)}>
                                         {isDistrictExpanded ? <ChevronUp className="w-4 h-4 text-emerald-700" /> : <ChevronDown className="w-4 h-4 text-emerald-700" />}
@@ -2462,10 +2583,43 @@ export default function MyPlatformComplete({
                                               <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => shareItemLink(offer.title, offer.id, city.cityName, district.districtName, 'offer')}>
                                                 <Link className="w-3 h-3" />
                                               </Button>
-                                              {/* نقل */}
-                                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs flex-1 min-w-0" onClick={() => openMoveDialog('offer', offer, city.cityName, district.districtName)}>
-                                                <Move className="w-3 h-3" />
-                                              </Button>
+                                              {/* ✅ قائمة الثلاث نقاط للعرض */}
+                                              <OfferActionsMenu
+                                                type="offer"
+                                                id={offer.id}
+                                                title={offer.title}
+                                                isHidden={offer.isHidden}
+                                                onEdit={() => {
+                                                  // فتح صفحة التعديل
+                                                  const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+                                                  const fullAd = publishedAds.find((ad: any) => ad.id === offer.id);
+                                                  const images = (fullAd?.images?.length ? fullAd.images : [offer.image]).filter(Boolean);
+                                                  const videos = (fullAd?.videos || []).filter(Boolean);
+                                                  setSelectedOfferForEdit({
+                                                    id: offer.id,
+                                                    title: fullAd?.title || offer.title,
+                                                    price: parseInt((fullAd?.price || offer.price || '').toString().replace(/[^\d]/g, '')) || 0,
+                                                    propertyType: fullAd?.propertyType || offer.propertyType || 'شقة',
+                                                    area: offer.area,
+                                                    bedrooms: offer.bedrooms,
+                                                    bathrooms: offer.bathrooms,
+                                                    image: images[0] || offer.image,
+                                                    imageCount: images.length || 1,
+                                                    city: fullAd?.locationDetails?.city || city.cityName,
+                                                    district: fullAd?.locationDetails?.district || district.districtName,
+                                                    description: fullAd?.aiDescription || '',
+                                                    ownerName: fullAd?.ownerName || offer.ownerName || '',
+                                                    ownerPhone: fullAd?.ownerPhone || offer.owner?.phone || '',
+                                                    images,
+                                                    videos,
+                                                  });
+                                                  setShowEditPage(true);
+                                                }}
+                                                onDelete={() => handleDeleteOffer(offer, city.cityName, district.districtName)}
+                                                onToggleVisibility={() => toggleOfferVisibility(city.cityName, district.districtName, offer.id)}
+                                                onShare={() => shareItemWhatsApp(offer.title, offer.id, city.cityName, district.districtName, 'offer')}
+                                                onCopyLink={() => shareItemLink(offer.title, offer.id, city.cityName, district.districtName, 'offer')}
+                                              />
                                             </div>
                                           </CardContent>
                                         </Card>
@@ -3619,6 +3773,16 @@ export default function MyPlatformComplete({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ✅ صفحة المحذوفات */}
+      {showDeletedOffersPage && (
+        <div className="fixed inset-0 z-50 bg-white">
+          <DeletedOffersPage
+            onBack={() => setShowDeletedOffersPage(false)}
+            onRestore={handleRestoreOffer}
+          />
+        </div>
+      )}
     </div>
   );
 }
