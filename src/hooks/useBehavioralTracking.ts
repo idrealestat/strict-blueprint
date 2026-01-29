@@ -77,21 +77,57 @@ export function useBehavioralTracking(config: Partial<TrackingConfig> = {}) {
 
   // Initialize user and session
   useEffect(() => {
-    const initSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        userIdRef.current = user.id;
-        
-        // Create or update session record
-        await supabase.from('behavioral_sessions').upsert({
-          session_id: sessionIdRef.current,
-          user_id: user.id,
-          pages_visited: [location.pathname],
-        }, { onConflict: 'session_id' });
+    let unsub: (() => void) | null = null;
+
+    const ensureSessionRow = async (userId: string) => {
+      userIdRef.current = userId;
+
+      // Create or update session record
+      const { error } = await supabase
+        .from('behavioral_sessions')
+        .upsert(
+          {
+            session_id: sessionIdRef.current,
+            user_id: userId,
+            pages_visited: [location.pathname],
+          },
+          { onConflict: 'session_id' }
+        );
+
+      if (error) {
+        console.error('[BehavioralTracking] Failed to init session row:', error);
       }
     };
-    
-    initSession();
+
+    const init = async () => {
+      // Prefer session (more reliable during INITIAL_SESSION timing)
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) {
+        console.error('[BehavioralTracking] Failed to get session:', sessionErr);
+      }
+
+      const sessionUser = sessionData.session?.user;
+      if (sessionUser) {
+        await ensureSessionRow(sessionUser.id);
+        return;
+      }
+
+      // Fallback: subscribe until auth is ready
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        const user = session?.user;
+        if (!user) return;
+        void ensureSessionRow(user.id);
+      });
+      unsub = () => data.subscription.unsubscribe();
+    };
+
+    void init();
+
+    return () => {
+      if (unsub) unsub();
+    };
+    // Intentionally empty deps: we only need to initialize once per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Record a behavioral signal
