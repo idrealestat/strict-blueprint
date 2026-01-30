@@ -102,7 +102,11 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
   };
 
   return (
-    <div className="h-full flex flex-col bg-white overflow-hidden" dir="rtl">
+    // شاشة كاملة على الجوال + منع أي تجاوز أفقي/عمودي خارج الحاوية
+    <div
+      className="fixed inset-0 z-50 w-full h-[100dvh] flex flex-col bg-[hsl(var(--background))] overflow-hidden"
+      dir="rtl"
+    >
       {/* Header */}
       <div className="p-3 border-b flex items-center gap-2 shrink-0">
         <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
@@ -115,8 +119,13 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
       </div>
 
       {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid grid-cols-3 mx-3 mt-3 shrink-0">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as any)}
+        className="flex-1 min-h-0 flex flex-col overflow-hidden"
+      >
+        {/* TabsList في shadcn افتراضياً inline-flex، لذلك نجبره ليصبح Grid بعرض كامل على الجوال */}
+        <TabsList className="!grid w-full grid-cols-3 mx-3 mt-3 shrink-0 max-w-full overflow-x-hidden">
           <TabsTrigger value="publish" className="gap-1 text-xs px-2">
             <FileText className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">نشر إعلان</span>
@@ -134,8 +143,8 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
           </TabsTrigger>
         </TabsList>
 
-        <div className="flex-1 overflow-hidden">
-          <TabsContent value="connections" className="h-full m-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="connections" className="h-full m-0 overflow-hidden">
             <PlatformConnectionsTab 
               platforms={platforms}
               onPlatformConnect={handlePlatformConnect}
@@ -143,7 +152,7 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
             />
           </TabsContent>
 
-          <TabsContent value="publish" className="h-full m-0">
+          <TabsContent value="publish" className="h-full m-0 overflow-hidden">
             <PlatformPublishForm 
               connectedPlatforms={platforms}
               onPublishComplete={handlePublishComplete}
@@ -151,7 +160,7 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
             />
           </TabsContent>
 
-          <TabsContent value="analytics" className="h-full m-0">
+          <TabsContent value="analytics" className="h-full m-0 overflow-hidden">
             <PublishingAnalyticsTab analytics={analytics} />
           </TabsContent>
         </div>

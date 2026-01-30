@@ -499,38 +499,67 @@ export default function PublicOfferForm() {
 
     setIsGeneratingPrices(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-smart-prices', {
-        body: {
-          propertyType: formData.propertyType,
-          purpose: formData.purpose || 'للبيع',
-          area: parseInt(formData.area) || 0,
-          city: formData.locationCity,
-          district: formData.locationDistrict,
-          bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : undefined,
-          furnishing: formData.furnishing,
-          requestedPrice: formData.price ? parseInt(formData.price) : undefined,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        setSuggestedPrices({
-          min: data.minPrice,
-          max: data.maxPrice,
-          average: data.averagePrice,
-        });
-        setMarketAverage(data.averagePrice);
-
-        if (data.evaluation) {
-          setPriceEvaluation({
-            status: data.evaluation.status,
-            message: data.evaluation.message,
-          });
+      // الدالة في backend تتطلب body يحتوي propertyData (حرفياً)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-smart-prices`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            propertyData: {
+              propertyType: formData.propertyType,
+              category: 'سكني',
+              purpose: formData.purpose || 'للبيع',
+              area: String(formData.area),
+              city: formData.locationCity,
+              district: formData.locationDistrict || '',
+              bedrooms: formData.bedrooms || '',
+              propertyAge: '0',
+              furnishing: formData.furnishing || 'غير مؤثث',
+              userPrice: formData.price || undefined,
+            },
+          }),
         }
+      );
 
-        toast.success('تم توليد الأسعار المقترحة بنجاح');
+      if (!response.ok) throw new Error('Smart prices request failed');
+      const data = await response.json();
+
+      const pricesArr: number[] = Array.isArray(data?.prices)
+        ? data.prices.map((p: any) => Number(p?.price)).filter((n: any) => Number.isFinite(n))
+        : [];
+
+      const avg = Number(data?.marketAverage);
+      const average = Number.isFinite(avg)
+        ? avg
+        : pricesArr.length
+          ? Math.round(pricesArr.reduce((a, b) => a + b, 0) / pricesArr.length)
+          : 0;
+
+      const min = pricesArr.length ? Math.min(...pricesArr) : average;
+      const max = pricesArr.length ? Math.max(...pricesArr) : average;
+
+      setSuggestedPrices({ min, max, average });
+      setMarketAverage(average);
+
+      if (data?.priceEvaluation?.status && data?.priceEvaluation?.message) {
+        const mappedStatus: 'low' | 'fair' | 'high' =
+          data.priceEvaluation.status === 'أقل من السوق'
+            ? 'low'
+            : data.priceEvaluation.status === 'مناسب'
+              ? 'fair'
+              : 'high';
+
+        setPriceEvaluation({
+          status: mappedStatus,
+          message: String(data.priceEvaluation.message),
+        });
       }
+
+      toast.success('تم توليد الأسعار المقترحة بنجاح');
     } catch (error) {
       console.error('Error generating prices:', error);
       toast.error('حدث خطأ أثناء توليد الأسعار');
