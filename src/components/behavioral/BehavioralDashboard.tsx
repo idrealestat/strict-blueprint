@@ -20,8 +20,9 @@ import {
   Brain, Activity, TrendingUp, AlertTriangle, CheckCircle2,
   XCircle, Clock, Users, MessageCircle, Lightbulb, Target,
   BarChart3, PieChart, ArrowUpRight, ArrowDownRight, RefreshCw,
-  Eye, Zap, Shield, Award, PlayCircle,
+  Eye, Zap, Shield, Award, PlayCircle, FileDown, Loader2,
 } from 'lucide-react';
+import { generateBehavioralPDF } from '@/utils/generateBehavioralPDF';
 import { format, subDays, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -99,11 +100,13 @@ export function BehavioralDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   
   // Data states
   const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
   const [signals, setSignals] = useState<BehavioralSignal[]>([]);
   const [insights, setInsights] = useState<SmartInsight[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
   const [investorMetrics, setInvestorMetrics] = useState<any>(null);
   const [conversationAnalytics, setConversationAnalytics] = useState<any>(null);
 
@@ -126,6 +129,8 @@ export function BehavioralDashboard() {
         .gte('created_at', startDate.toISOString());
 
       if (sessions) {
+        setSessions(sessions); // حفظ الجلسات للـ PDF
+        
         const totalSessions = sessions.length;
         const stuckSessions = sessions.filter(s => s.was_stuck).length;
         const rescuedSessions = sessions.filter(s => s.was_rescued).length;
@@ -400,6 +405,41 @@ export function BehavioralDashboard() {
           <p className="text-gray-600 text-sm">تحليلات متقدمة لفهم سلوك المستخدمين وتحسين التجربة</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* زر تصدير PDF */}
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              if (!overviewStats) {
+                toast.error('لا توجد بيانات للتصدير');
+                return;
+              }
+              setIsExportingPDF(true);
+              try {
+                await generateBehavioralPDF({
+                  overviewStats,
+                  sessions,
+                  signals,
+                  timeRange: timeRange === '7d' ? 'Last 7 Days' : timeRange === '30d' ? 'Last 30 Days' : 'Last 90 Days',
+                  generatedAt: new Date(),
+                });
+                toast.success('تم تصدير التقرير بنجاح! 📊');
+              } catch (error) {
+                console.error('Error exporting PDF:', error);
+                toast.error('حدث خطأ أثناء التصدير');
+              } finally {
+                setIsExportingPDF(false);
+              }
+            }}
+            disabled={isLoading || isExportingPDF || !overviewStats}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {isExportingPDF ? (
+              <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4 ml-2" />
+            )}
+            تصدير PDF
+          </Button>
           <Button 
             variant="outline"
             onClick={() => {

@@ -749,12 +749,40 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   const [isLiked, setIsLiked] = useState(false);
   const [copied, setCopied] = useState(false);
   const [historicalViews, setHistoricalViews] = useState(0);
+  const [brokerUserId, setBrokerUserId] = useState<string | null>(userId || null);
   
   // Event tracker for CTA tracking
   const { track } = useEventTracker();
   
   // المشاهدين المباشرين باستخدام Supabase Presence
   const liveViewerCount = useSingleOfferPresence(listing.id);
+  
+  // جلب userId للوسيط من platformSlug إذا لم يكن متوفراً
+  useEffect(() => {
+    const fetchBrokerUserId = async () => {
+      if (brokerUserId) return;
+      
+      const slug = platformSlug || window.location.pathname.split('/')[1];
+      if (!slug || ['app', 'auth', 'admin'].includes(slug)) return;
+      
+      try {
+        const { data } = await supabase
+          .from('business_cards')
+          .select('user_id')
+          .eq('slug', slug)
+          .eq('published', true)
+          .single();
+        
+        if (data?.user_id) {
+          setBrokerUserId(data.user_id);
+        }
+      } catch (e) {
+        console.error('Error fetching broker userId:', e);
+      }
+    };
+    
+    fetchBrokerUserId();
+  }, [platformSlug, brokerUserId]);
   
   // جلب المشاهدات الإجمالية من قاعدة البيانات
   useEffect(() => {
@@ -832,8 +860,8 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
     });
     
     // Trigger notification for broker (only for public_web)
-    if (trackingChannel === 'public_web' && userId) {
-      triggerOfferInteractionNotification(userId, {
+    if (trackingChannel === 'public_web' && brokerUserId) {
+      triggerOfferInteractionNotification(brokerUserId, {
         interactionType: 'call',
         offerTitle: listing.title,
       });
@@ -872,8 +900,8 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
     });
     
     // Trigger notification for broker (only for public_web)
-    if (trackingChannel === 'public_web' && userId) {
-      triggerOfferInteractionNotification(userId, {
+    if (trackingChannel === 'public_web' && brokerUserId) {
+      triggerOfferInteractionNotification(brokerUserId, {
         interactionType: 'whatsapp',
         offerTitle: listing.title,
       });
@@ -903,8 +931,8 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
     });
     
     // Trigger notification for broker (only for public_web)
-    if (trackingChannel === 'public_web' && userId) {
-      triggerOfferInteractionNotification(userId, {
+    if (trackingChannel === 'public_web' && brokerUserId) {
+      triggerOfferInteractionNotification(brokerUserId, {
         interactionType: 'share',
         offerTitle: listing.title,
       });
