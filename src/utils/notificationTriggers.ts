@@ -246,15 +246,23 @@ export async function triggerOfferInteractionNotification(
 
   const info = typeText[interactionData.interactionType] || { title: 'تفاعل', emoji: '📌' };
 
+  // الاتصال والواتساب وعرض السعر يحصلون على أولوية عالية + push
+  const isHighPriority = ['call', 'whatsapp', 'quote_request'].includes(interactionData.interactionType);
+
   await createNotification({
     userId,
     title: `${info.emoji} ${info.title}`,
     message: `${interactionData.offerTitle}${interactionData.viewerInfo ? ` - ${interactionData.viewerInfo}` : ''}`,
     notificationType: 'offer',
     category: interactionData.interactionType,
-    priority: interactionData.interactionType === 'call' ? 'high' : 'normal',
+    priority: isHighPriority ? 'high' : 'normal',
     relatedEntityType: 'offer',
     metadata: interactionData,
+    sendPush: isHighPriority, // إرسال Push للتفاعلات المهمة
+    pushData: {
+      type: `offer_${interactionData.interactionType}`,
+      offerTitle: interactionData.offerTitle,
+    },
   });
 }
 
