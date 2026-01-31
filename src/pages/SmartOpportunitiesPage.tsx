@@ -1,7 +1,17 @@
 /**
+ * ⚠️ ملف محمي - لا تعدل بدون إذن المستخدم ⚠️
  * SmartOpportunitiesPage.tsx
  * صفحة الفرص الذكية مع بطاقات قابلة للسحب وفلاتر متقدمة
- * البيانات حقيقية من قاعدة البيانات
+ * 
+ * الروابط المحمية المرتبطة بهذه الصفحة:
+ * - /app/smart-opportunities - صفحة الفرص الذكية
+ * - /app/offers-requests - صفحة العروض والطلبات المقبولة
+ * 
+ * آلية العمل:
+ * 1. تظهر الفرص كبطاقات قابلة للسحب
+ * 2. السحب لليمين = قبول → تنتقل إلى صفحة العروض والطلبات
+ * 3. السحب لليسار = رفض → تسجل في جدول الرفض
+ * 4. الرفض مرتين = اختفاء نهائي
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -10,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import RightSliderComplete from '@/components/layout/RightSliderComplete';
 import NotificationsSidebar from '@/components/NotificationsSidebar';
-import { Sparkles, ArrowRight, RefreshCw, Loader2, Home, Menu, Bell } from 'lucide-react';
+import { Sparkles, ArrowRight, RefreshCw, Loader2, Home, Menu, Bell, TestTube } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSmartOpportunities } from '@/hooks/useSmartOpportunities';
 import { useSmartOpportunityNotifications } from '@/hooks/useSmartOpportunityNotifications';
@@ -20,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import SwipeableOpportunityCard, { SmartOpportunity } from '@/components/smart-opportunities/SwipeableOpportunityCard';
 import OpportunityFilters, { OpportunityFiltersState, defaultFilters } from '@/components/smart-opportunities/OpportunityFilters';
+import { mockSmartOpportunities } from '@/data/mockSmartOpportunities';
 
 const SmartOpportunitiesPage = () => {
   const navigate = useNavigate();
@@ -34,6 +45,7 @@ const SmartOpportunitiesPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filters, setFilters] = useState<OpportunityFiltersState>(defaultFilters);
+  const [useMockData, setUseMockData] = useState(false); // لتفعيل البيانات الوهمية
   
   // حالة السلايدرز والإشعارات
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
@@ -447,6 +459,29 @@ const SmartOpportunitiesPage = () => {
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               تحديث
             </Button>
+            
+            {/* زر تحميل البيانات الوهمية للتجربة */}
+            <Button 
+              variant={useMockData ? "default" : "outline"} 
+              size="sm"
+              onClick={() => {
+                setUseMockData(!useMockData);
+                if (!useMockData) {
+                  setAllOpportunities(mockSmartOpportunities);
+                  setCurrentIndex(0);
+                  toast({
+                    title: '🧪 وضع التجربة',
+                    description: 'تم تحميل 5 فرص وهمية للتجربة - اسحب البطاقات لليمين للقبول أو اليسار للرفض',
+                  });
+                } else {
+                  fetchSmartOpportunities();
+                }
+              }}
+              className="gap-2"
+            >
+              <TestTube className="w-4 h-4" />
+              {useMockData ? 'إيقاف التجربة' : 'تجربة'}
+            </Button>
           </div>
         </div>
 
@@ -545,6 +580,24 @@ const SmartOpportunitiesPage = () => {
                     <RefreshCw className="w-4 h-4" />
                     تحديث
                   </Button>
+                  {/* زر تحميل البيانات الوهمية للتجربة */}
+                  {allOpportunities.length === 0 && !useMockData && (
+                    <Button 
+                      onClick={() => {
+                        setUseMockData(true);
+                        setAllOpportunities(mockSmartOpportunities);
+                        setCurrentIndex(0);
+                        toast({
+                          title: '🧪 وضع التجربة',
+                          description: 'تم تحميل 5 فرص وهمية للتجربة',
+                        });
+                      }}
+                      className="bg-amber-500 hover:bg-amber-600 gap-2"
+                    >
+                      <TestTube className="w-4 h-4" />
+                      تجربة النظام
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => navigate('/app/offers-requests')}
                     className="bg-emerald-500 hover:bg-emerald-600 gap-2"
