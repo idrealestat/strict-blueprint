@@ -1255,7 +1255,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     }, 700);
   }, []);
 
-  // Touch move handler
+  // Touch move handler with RTL-aware auto-scroll
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
@@ -1278,6 +1278,40 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       const target = findColumnAtPoint(touch.clientX, touch.clientY);
       if (target) {
         setDropIndicator(target);
+      }
+      
+      // RTL-aware auto-scroll when dragging near edges
+      // في RTL: السحب لليمين = scroll لليمين (عرض أعمدة اليسار)
+      // في RTL: السحب لليسار = scroll لليسار (عرض أعمدة اليمين)
+      const container = kanbanContainerRef.current;
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        const edgeThreshold = 60; // منطقة الحافة للتمرير التلقائي
+        const scrollSpeed = 8;
+        
+        // Clear existing auto-scroll
+        if (autoScrollIntervalRef.current) {
+          clearInterval(autoScrollIntervalRef.current);
+          autoScrollIntervalRef.current = null;
+        }
+        
+        // RTL: السحب للحافة اليمنى = تمرير لليمين (scrollLeft يزيد)
+        // RTL: السحب للحافة اليسرى = تمرير لليسار (scrollLeft ينقص)
+        if (touch.clientX > containerRect.right - edgeThreshold) {
+          // الحافة اليمنى - تمرير لليمين لعرض المزيد من الأعمدة
+          autoScrollIntervalRef.current = setInterval(() => {
+            if (kanbanContainerRef.current) {
+              kanbanContainerRef.current.scrollLeft += scrollSpeed;
+            }
+          }, 16);
+        } else if (touch.clientX < containerRect.left + edgeThreshold) {
+          // الحافة اليسرى - تمرير لليسار لعرض المزيد من الأعمدة
+          autoScrollIntervalRef.current = setInterval(() => {
+            if (kanbanContainerRef.current) {
+              kanbanContainerRef.current.scrollLeft -= scrollSpeed;
+            }
+          }, 16);
+        }
       }
     }
   }, [touchStartPos, touchDragCustomer, findColumnAtPoint]);
