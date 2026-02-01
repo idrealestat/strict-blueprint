@@ -267,33 +267,35 @@ export default function PlatformConnectionsTab({
           </AlertDescription>
         </Alert>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* اختيار البيئة */}
           <div>
-            <Label className="text-sm font-medium mb-2 block">بيئة الاتصال</Label>
-            <div className="flex gap-2">
+            <Label className="text-xs sm:text-sm font-medium mb-2 block">بيئة الاتصال</Label>
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"
                 variant={creds.environment === 'preprod' ? 'default' : 'outline'}
                 onClick={() => updatePlatformCredentials(platform.id, 'environment', 'preprod')}
-                className={creds.environment === 'preprod' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                className={`text-xs sm:text-sm ${creds.environment === 'preprod' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
               >
-                <TestTube className="w-4 h-4 ml-1" />
-                تجريبي (Pre-prod)
+                <TestTube className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                <span className="hidden sm:inline">تجريبي (Pre-prod)</span>
+                <span className="sm:hidden">تجريبي</span>
               </Button>
               <Button
                 type="button"
                 size="sm"
                 variant={creds.environment === 'production' ? 'default' : 'outline'}
                 onClick={() => updatePlatformCredentials(platform.id, 'environment', 'production')}
-                className={creds.environment === 'production' ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={`text-xs sm:text-sm ${creds.environment === 'production' ? 'bg-green-600 hover:bg-green-700' : ''}`}
               >
-                <Globe className="w-4 h-4 ml-1" />
-                إنتاج (Production)
+                <Globe className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                <span className="hidden sm:inline">إنتاج (Production)</span>
+                <span className="sm:hidden">إنتاج</span>
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 break-all">
               {creds.environment === 'preprod' 
                 ? `البيئة التجريبية: ${apiInfo.preprodUrl}`
                 : `البيئة الإنتاجية: ${apiInfo.prodUrl}`
@@ -371,10 +373,11 @@ export default function PlatformConnectionsTab({
           )}
 
           {/* الأزرار */}
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button
               variant="outline"
               size="sm"
+              className="text-xs sm:text-sm"
               onClick={() => {
                 setShowCredentialsForm(null);
                 setConnectionTestResults(prev => {
@@ -389,31 +392,34 @@ export default function PlatformConnectionsTab({
             <Button
               variant="outline"
               size="sm"
+              className="text-xs sm:text-sm"
               onClick={() => testConnection(platform.id)}
               disabled={testingConnection === platform.id || !creds.vendorId || !creds.token}
             >
               {testingConnection === platform.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
               ) : (
                 <>
-                  <TestTube className="w-4 h-4 ml-1" />
-                  اختبار الاتصال
+                  <TestTube className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                  <span className="hidden sm:inline">اختبار الاتصال</span>
+                  <span className="sm:hidden">اختبار</span>
                 </>
               )}
             </Button>
             <Button
               size="sm"
               style={{ backgroundColor: platform.color }}
-              className="text-white hover:opacity-90"
+              className="text-white hover:opacity-90 text-xs sm:text-sm"
               onClick={() => handleSubmitCredentials(platform.id)}
               disabled={connectingPlatform === platform.id || !creds.vendorId || !creds.token}
             >
               {connectingPlatform === platform.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
               ) : (
                 <>
-                  <Link className="w-4 h-4 ml-1" />
-                  تفعيل الربط
+                  <Link className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
+                  <span className="hidden sm:inline">تفعيل الربط</span>
+                  <span className="sm:hidden">تفعيل</span>
                 </>
               )}
             </Button>
@@ -435,8 +441,8 @@ export default function PlatformConnectionsTab({
   };
 
   return (
-    <ScrollArea className="h-full">
-      <div className="p-4 space-y-4" dir="rtl">
+    <ScrollArea className="h-full w-full">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 w-full max-w-full overflow-x-hidden box-border" dir="rtl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -485,30 +491,30 @@ export default function PlatformConnectionsTab({
                   backgroundColor: `${platform.color}08`
                 } : {}}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     {/* Platform Info */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                       <div 
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0"
                         style={{ backgroundColor: platform.bgColor }}
                       >
                         {platform.logo}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-[hsl(var(--foreground))]">{platform.nameAr}</h3>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                          <h3 className="font-bold text-sm sm:text-base text-[hsl(var(--foreground))] truncate">{platform.nameAr}</h3>
                           {getStatusBadge(platform.status)}
                           {platform.id === 'wasalt' && (
-                            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">
+                            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] hidden sm:inline-flex">
                               REGA API
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{platform.name}</p>
-                        <div className="flex gap-1 mt-1">
+                        <p className="text-xs text-muted-foreground truncate">{platform.name}</p>
+                        <div className="flex gap-1 mt-1 flex-wrap">
                           {platform.features.slice(0, 2).map((feature, i) => (
-                            <Badge key={i} variant="outline" className="text-[10px] px-1 py-0">
+                            <Badge key={i} variant="outline" className="text-[9px] sm:text-[10px] px-1 py-0">
                               {feature}
                             </Badge>
                           ))}
@@ -517,7 +523,7 @@ export default function PlatformConnectionsTab({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-end shrink-0">
                       {platform.status === 'connected' ? (
                         <>
                           <Button

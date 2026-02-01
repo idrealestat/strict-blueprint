@@ -125,7 +125,7 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
         className="flex-1 min-h-0 flex flex-col overflow-hidden"
       >
         {/* TabsList في shadcn افتراضياً inline-flex، لذلك نجبره ليصبح Grid بعرض كامل على الجوال */}
-        <TabsList className="!grid w-full grid-cols-3 mx-3 mt-3 shrink-0 max-w-full overflow-x-hidden">
+        <TabsList className="!grid w-full grid-cols-3 mt-3 mx-2 sm:mx-3 shrink-0 max-w-[calc(100%-16px)] sm:max-w-[calc(100%-24px)] overflow-x-hidden">
           <TabsTrigger value="publish" className="gap-1 text-xs px-2">
             <FileText className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">نشر إعلان</span>

@@ -871,9 +871,9 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
   };
 
   return (
-    <ScrollArea className="h-full">
-      {/* ✅ تجاوب الجوال: تصغير الحجم وضبط الـ padding */}
-      <div className="space-y-2 sm:space-y-3 p-2 sm:p-3 pb-24 max-w-full overflow-x-hidden" dir="rtl">
+    <ScrollArea className="h-full w-full">
+      {/* ✅ تجاوب الجوال: تصغير الحجم وضبط الـ padding - منع التجاوز الأفقي */}
+      <div className="space-y-2 sm:space-y-3 p-2 sm:p-3 pb-24 w-full max-w-full overflow-x-hidden box-border" dir="rtl">
         
         {/* نافذة استرداد المسودة */}
         {showRecoveryDialog && (
