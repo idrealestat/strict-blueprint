@@ -139,7 +139,7 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
     }
   };
 
-  // Handle PDF download - Fixed for RTL content and back side transform
+  // Handle PDF download - Fixed for RTL content and back side transform (Mobile-compatible)
   const handleDownloadPDF = async () => {
     if (!frontRef.current || !backRef.current) return;
     
@@ -152,13 +152,19 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
         format: [90, 55] // Business card size
       });
 
-      // Configuration for html2canvas
+      // Configuration for html2canvas - Enhanced for mobile compatibility
       const canvasOptions = {
         scale: 3,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         foreignObjectRendering: false,
+        // Force LTR rendering direction to prevent mirroring on mobile
+        onclone: (clonedDoc: Document, element: HTMLElement) => {
+          // Ensure no transforms are applied that could cause mirroring
+          element.style.transform = 'none';
+          element.style.webkitTransform = 'none';
+        }
       };
 
       // Front page - capture as-is
@@ -166,24 +172,52 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
       const frontImgData = frontCanvas.toDataURL('image/png');
       pdf.addImage(frontImgData, 'PNG', 0, 0, 90, 55);
 
-      // Back page - temporarily remove the rotateY transform for capture
+      // Back page - Create a clone to avoid transform issues on mobile
       const backElement = backRef.current;
-      const originalTransform = backElement.style.transform;
-      backElement.style.transform = 'none';
       
-      // Small delay to let the DOM update
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Store original styles
+      const originalTransform = backElement.style.transform;
+      const originalWebkitTransform = backElement.style.webkitTransform;
+      
+      // Remove ALL transforms - critical for mobile Safari/Chrome
+      backElement.style.transform = 'none';
+      backElement.style.webkitTransform = 'none';
+      
+      // Force reflow to ensure styles are applied
+      backElement.offsetHeight;
+      
+      // Longer delay for mobile browsers to process the style change
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       pdf.addPage([90, 55], 'landscape');
       const backCanvas = await html2canvas(backElement, {
         ...canvasOptions,
         backgroundColor: null, // Keep gradient background
+        onclone: (clonedDoc: Document, element: HTMLElement) => {
+          // Double-ensure no transforms in the cloned element
+          element.style.transform = 'none';
+          element.style.webkitTransform = 'none';
+          // Ensure RTL direction is preserved for text
+          element.style.direction = 'rtl';
+          // Find all child elements and remove any transforms
+          const allChildren = element.querySelectorAll('*');
+          allChildren.forEach((child: Element) => {
+            if (child instanceof HTMLElement) {
+              const computedStyle = window.getComputedStyle(child);
+              if (computedStyle.transform !== 'none') {
+                child.style.transform = 'none';
+                child.style.webkitTransform = 'none';
+              }
+            }
+          });
+        }
       });
       const backImgData = backCanvas.toDataURL('image/png');
       pdf.addImage(backImgData, 'PNG', 0, 0, 90, 55);
       
       // Restore the original transform
       backElement.style.transform = originalTransform;
+      backElement.style.webkitTransform = originalWebkitTransform;
 
       pdf.save(`${data.name}_business_card.pdf`);
       
@@ -197,6 +231,7 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
       // Restore transform in case of error
       if (backRef.current) {
         backRef.current.style.transform = 'rotateY(180deg)';
+        backRef.current.style.webkitTransform = 'rotateY(180deg)';
       }
     }
   };
