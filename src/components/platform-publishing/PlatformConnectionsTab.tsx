@@ -442,7 +442,10 @@ export default function PlatformConnectionsTab({
 
   return (
     <ScrollArea className="h-full w-full">
-      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 w-full max-w-full overflow-x-hidden box-border" dir="rtl">
+      <div
+        className="p-3 sm:p-4 space-y-3 sm:space-y-4 w-full max-w-full overflow-x-hidden box-border min-w-0 [&_*]:max-w-full [&_*]:min-w-0"
+        dir="rtl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
