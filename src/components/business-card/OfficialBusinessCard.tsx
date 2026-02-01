@@ -85,36 +85,61 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
   // Get display options with defaults
   const displayOptions = data.displayOptions || defaultDisplayOptions;
 
-  // Handle image download
+  // Handle image download - Fixed for back side transform
   const handleDownloadImage = async () => {
     if (!frontRef.current || !backRef.current) return;
     
     try {
       toast.loading('جاري تحضير الصور...');
       
+      const canvasOptions = {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: false,
+      };
+      
       // Capture front
-      const frontCanvas = await html2canvas(frontRef.current, { scale: 2, useCORS: true });
+      const frontCanvas = await html2canvas(frontRef.current, canvasOptions);
       const frontLink = document.createElement('a');
       frontLink.download = `${data.name}_front.png`;
       frontLink.href = frontCanvas.toDataURL('image/png');
       frontLink.click();
 
-      // Capture back
-      const backCanvas = await html2canvas(backRef.current, { scale: 2, useCORS: true });
+      // Capture back - temporarily remove transform
+      const backElement = backRef.current;
+      const originalTransform = backElement.style.transform;
+      backElement.style.transform = 'none';
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      const backCanvas = await html2canvas(backElement, {
+        ...canvasOptions,
+        backgroundColor: null,
+      });
       const backLink = document.createElement('a');
       backLink.download = `${data.name}_back.png`;
       backLink.href = backCanvas.toDataURL('image/png');
       backLink.click();
+      
+      // Restore transform
+      backElement.style.transform = originalTransform;
 
       toast.dismiss();
       toast.success('تم تحميل الصور بنجاح!');
     } catch (error) {
+      console.error('Image download error:', error);
       toast.dismiss();
       toast.error('حدث خطأ أثناء التحميل');
+      
+      // Restore transform in case of error
+      if (backRef.current) {
+        backRef.current.style.transform = 'rotateY(180deg)';
+      }
     }
   };
 
-  // Handle PDF download
+  // Handle PDF download - Fixed for RTL content and back side transform
   const handleDownloadPDF = async () => {
     if (!frontRef.current || !backRef.current) return;
     
@@ -127,24 +152,52 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
         format: [90, 55] // Business card size
       });
 
-      // Front page
-      const frontCanvas = await html2canvas(frontRef.current, { scale: 3, useCORS: true });
+      // Configuration for html2canvas
+      const canvasOptions = {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        foreignObjectRendering: false,
+      };
+
+      // Front page - capture as-is
+      const frontCanvas = await html2canvas(frontRef.current, canvasOptions);
       const frontImgData = frontCanvas.toDataURL('image/png');
       pdf.addImage(frontImgData, 'PNG', 0, 0, 90, 55);
 
-      // Back page
+      // Back page - temporarily remove the rotateY transform for capture
+      const backElement = backRef.current;
+      const originalTransform = backElement.style.transform;
+      backElement.style.transform = 'none';
+      
+      // Small delay to let the DOM update
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       pdf.addPage([90, 55], 'landscape');
-      const backCanvas = await html2canvas(backRef.current, { scale: 3, useCORS: true });
+      const backCanvas = await html2canvas(backElement, {
+        ...canvasOptions,
+        backgroundColor: null, // Keep gradient background
+      });
       const backImgData = backCanvas.toDataURL('image/png');
       pdf.addImage(backImgData, 'PNG', 0, 0, 90, 55);
+      
+      // Restore the original transform
+      backElement.style.transform = originalTransform;
 
       pdf.save(`${data.name}_business_card.pdf`);
       
       toast.dismiss();
       toast.success('تم تحميل PDF بنجاح!');
     } catch (error) {
+      console.error('PDF generation error:', error);
       toast.dismiss();
       toast.error('حدث خطأ أثناء التحميل');
+      
+      // Restore transform in case of error
+      if (backRef.current) {
+        backRef.current.style.transform = 'rotateY(180deg)';
+      }
     }
   };
 
@@ -250,10 +303,10 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
         )}
       </div>
 
-      {/* Flip Card Container - Bigger Size */}
+      {/* Flip Card Container - Responsive Size */}
       <div 
-        className="relative mx-auto cursor-pointer perspective-1000"
-        style={{ width: '400px', height: '240px' }}
+        className="relative mx-auto cursor-pointer perspective-1000 w-full max-w-[400px]"
+        style={{ aspectRatio: '400/240' }}
         onClick={() => setIsFlipped(!isFlipped)}
       >
         <div 
