@@ -17,11 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Send, Loader2, CheckCircle, Search, User, Phone, MapPin, DollarSign,
   CreditCard, Building, Home, Calendar, Ruler, BedDouble, Bath, Sparkles, Zap,
-  Navigation, Satellite, Map as MapIcon
+  Navigation, Satellite, Map as MapIcon, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -178,6 +180,7 @@ export default function PublicRequestForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerSlug || '1'));
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
 
   // تحميل بيانات الوسيط من قاعدة البيانات
   useEffect(() => {
@@ -1352,10 +1355,115 @@ export default function PublicRequestForm() {
             checked={formData.agreeToTerms}
             onCheckedChange={(checked) => updateField('agreeToTerms', checked === true)}
           />
-          <Label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
-            أوافق على الشروط والأحكام وسياسة الخصوصية
+          <Label 
+            htmlFor="terms" 
+            className="text-sm text-gray-600 cursor-pointer flex items-center gap-2"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowTermsDialog(true);
+            }}
+          >
+            <FileText className="w-4 h-4 text-primary" />
+            <span className="underline text-primary hover:text-primary/80">
+              أوافق على الشروط والأحكام وسياسة الخصوصية
+            </span>
           </Label>
         </div>
+
+        {/* صفحة منبثقة للشروط والأحكام */}
+        <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh]" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-center text-primary">
+                شروط استخدام رابط إرسال طلب عقاري
+              </DialogTitle>
+              <DialogDescription className="text-center text-muted-foreground">
+                يرجى قراءة هذه الشروط بعناية قبل إرسال أي طلب عقاري. باستخدامك للرابط، فإنك توافق على الالتزام بهذه الشروط بالكامل.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <ScrollArea className="h-[60vh] pr-4">
+              <div className="space-y-6 text-right">
+                {/* البند 1 */}
+                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                  <h3 className="font-bold text-red-800 mb-2">1. المسؤولية عن المعلومات</h3>
+                  <ul className="space-y-2 text-sm text-red-700">
+                    <li>• المستخدم مسؤول بالكامل عن صحة ودقة أي معلومات أو مستندات يرسلها عبر الرابط.</li>
+                    <li>• أي بيانات خاطئة أو مضللة يتحمل المستخدم المسؤولية القانونية عنها أمام الجهات المختصة.</li>
+                    <li>• لا يتحمل الوسيط العقاري أو التطبيق أي مسؤولية عن أي ضرر أو تبعات قانونية نتيجة معلومات غير دقيقة أو ناقصة.</li>
+                  </ul>
+                </div>
+
+                {/* البند 2 */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="font-bold text-blue-800 mb-2">2. الالتزام بالأنظمة والقوانين السعودية</h3>
+                  <ul className="space-y-2 text-sm text-blue-700">
+                    <li>يلتزم المستخدم بكافة الأنظمة واللوائح السعودية المتعلقة بالعقار والوساطة العقارية، بما في ذلك:</li>
+                    <li>• نظام الموثق العقاري.</li>
+                    <li>• الهيئة العامة للعقار.</li>
+                    <li>• اشتراطات الشراء أو التأجير والتسجيل العقاري.</li>
+                    <li>• أي قوانين تتعلق بالضرائب العقارية أو رسوم التسجيل.</li>
+                    <li className="font-semibold mt-2">تقديم الطلب عبر الرابط لا يعني توقيع عقد شراء أو إيجار نهائي. أي اتفاق رسمي يتم بمستند منفصل.</li>
+                  </ul>
+                </div>
+
+                {/* البند 3 */}
+                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <h3 className="font-bold text-amber-800 mb-2">3. الالتزام بإبرام العقد التفصيلي</h3>
+                  <ul className="space-y-2 text-sm text-amber-700">
+                    <li>• في حال قيام الوسيط بإيجاد عقار مطابق لمواصفات الطلب، وموافقة العميل عليه، فإن العميل يلتزم بإبرام عقد البيع أو الإيجار النهائي مع المالك ودفع العمولة للوسيط وفق ما سيتم الاتفاق عليه في عقد الوساطة المكتوب لاحقًا.</li>
+                    <li>• هذه الشروط هي اتفاقية استخدام أولية فقط، ولا تلغي أو تحل محل عقد الوساطة التفصيلي.</li>
+                    <li className="font-semibold">في حال وجود أي تعارض بين هذه الشروط والعقد المكتوب، فإن العقد المكتوب هو المرجع القانوني الأعلى.</li>
+                  </ul>
+                </div>
+
+                {/* البند 4 */}
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h3 className="font-bold text-green-800 mb-2">4. حماية البيانات والسرية</h3>
+                  <ul className="space-y-2 text-sm text-green-700">
+                    <li>• يتم التعامل مع المعلومات بسرية تامة وفق سياسة الخصوصية للتطبيق/الوسيط العقاري.</li>
+                    <li>• لا يجوز لأي طرف ثالث الوصول إلى المعلومات إلا بموافقة المستخدم أو وفق القانون.</li>
+                  </ul>
+                </div>
+
+                {/* البند 5 */}
+                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <h3 className="font-bold text-orange-800 mb-2">5. التحذيرات والتنبيهات</h3>
+                  <ul className="space-y-2 text-sm text-orange-700">
+                    <li>• أي محاولة لإرسال معلومات مخالفة للنظام السعودي أو بيانات مضللة قد تعرض المستخدم للمساءلة القانونية.</li>
+                    <li>• التطبيق/الوسيط يحق له رفض أي طلب غير مكتمل أو مخالف للشروط.</li>
+                  </ul>
+                </div>
+
+                {/* البند 6 */}
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <h3 className="font-bold text-purple-800 mb-2">6. الموافقة الإلكترونية</h3>
+                  <p className="text-sm text-purple-700 mb-2">من خلال الضغط على "أوافق"، يقر المستخدم ويصرح بما يلي:</p>
+                  <ul className="space-y-2 text-sm text-purple-700">
+                    <li>• أنه قرأ وفهم جميع الشروط أعلاه.</li>
+                    <li>• أنه ملتزم بالقوانين والأنظمة السعودية المتعلقة بالعقار.</li>
+                    <li>• أنه يتحمل المسؤولية القانونية عن صحة المعلومات المرسلة.</li>
+                    <li>• أنه يوافق على أن هذه الشروط تمثل اتفاقية استخدام أولية وأن العقد التفصيلي للوساطة سيحدد جميع الجوانب المالية والقانونية لاحقًا، بما في ذلك التزامه بإبرام عقد البيع/الإيجار النهائي إذا تم إيجاد العقار المناسب.</li>
+                  </ul>
+                </div>
+              </div>
+            </ScrollArea>
+
+            <div className="flex justify-center pt-4 border-t">
+              <Button
+                onClick={() => {
+                  updateField('agreeToTerms', true);
+                  setShowTermsDialog(false);
+                  toast.success('تم قبول الشروط والأحكام');
+                }}
+                className="bg-primary hover:bg-primary/90 text-white px-8"
+              >
+                <CheckCircle className="w-4 h-4 ml-2" />
+                أوافق على الشروط
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* زر الإرسال */}
         <Button
