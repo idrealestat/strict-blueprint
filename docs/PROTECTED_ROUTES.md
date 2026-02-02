@@ -2,21 +2,109 @@
 
 هذا المستند يوثق الروابط والملفات المحمية التي يجب عدم تعديلها بدون موافقة صريحة من المستخدم.
 
-## الروابط المحمية
+---
 
-### 1. روابط نشر العقار
-```
-صفحة نشر العقار ← تبويب العروض (منصتي) ← تبويب المنصة ← صفحة المشاركة العامة
-```
-- الملفات: `PropertyPublishForm.tsx`, `MyPlatformComplete.tsx`, `SlugPlatformPage.tsx`
+## 🔒 القسم الأول: تبويب العروض (محمي بشكل صارم)
 
-### 2. الربط مع إدارة العملاء
-```
-صفحة نشر الإعلان ← إنشاء بطاقة عميل ← التبويبات الخاصة بالتفاصيل
-```
-- الملفات: `PropertyPublishForm.tsx`, `EnhancedBrokerCRM.tsx`, `CustomerDetailsPage.tsx`
+### الوظائف المحمية
+| الوظيفة | الوصف | الملف |
+|---------|-------|-------|
+| `toggleOfferVisibility()` | إخفاء/إظهار العرض | `MyPlatformComplete.tsx` |
+| `handleDeleteOffer()` | حذف العرض (Soft Delete) | `MyPlatformComplete.tsx` |
+| `cityHierarchy` | الهيكل الهرمي (مدينة ← حي ← عرض) | `MyPlatformComplete.tsx` |
+| `dbListings` | العروض من قاعدة البيانات | `usePlatformListings.ts` |
 
-### 3. أزرار بطاقة الأعمال الرقمية
+### الملفات المحمية
+- `src/components/platform/MyPlatformComplete.tsx` - تبويب العروض الكامل
+- `src/hooks/usePlatformListings.ts` - جلب/تحديث العروض من DB
+- `src/components/offers/OfferActionsMenu.tsx` - قائمة إجراءات العرض
+
+---
+
+## 🔒 القسم الثاني: تبويب المنصة (محمي بشكل صارم)
+
+### الوظائف المحمية
+| الوظيفة | الوصف |
+|---------|-------|
+| عرض العروض الظاهرة فقط | فلتر `status=published && isHidden=false` |
+| التزامن مع تبويب العروض | استخدام `ownerListingsFromParent` من المكون الأب |
+| بناء الهيكل الهرمي | `buildHierarchy()` لعرض المدن والأحياء |
+
+### الملفات المحمية
+- `src/components/platform/MyPublicPlatformContent.tsx` - معاينة المنصة للمالك
+- `src/components/platform/MyPlatformComplete.tsx` - تمرير `dbListings` كـ `ownerListingsFromParent`
+
+---
+
+## 🔒 القسم الثالث: منصة النشر العامة (محمي بشكل صارم)
+
+### الروابط المحمية
+| الرابط | الغرض | الملف |
+|--------|-------|-------|
+| `wasataai.com/:slug` | الصفحة الرئيسية للمنصة العامة | `SlugPlatformPage.tsx` |
+| `wasataai.com/:slug/:city/:district/:offerId` | صفحة تفاصيل العرض | `SlugOfferDetailsPage.tsx` |
+
+### سياسات RLS المحمية (قاعدة البيانات)
+```sql
+-- الزوار يرون فقط العروض المنشورة والظاهرة
+Policy: "Public can view published listings"
+USING: (status = 'published' AND is_hidden = false)
+
+-- المالك يرى جميع عروضه
+Policy: "Users can view their own listings"
+USING: (auth.uid() = user_id)
+```
+
+### سلوك الرجوع المحمي
+- زر الرجوع/الإغلاق من صفحة العرض يعود دائماً إلى `/{slug}`
+- لا يعود لمستوى المدينة أو الحي
+
+### الملفات المحمية
+- `src/pages/SlugPlatformPage.tsx` - الصفحة الرئيسية العامة
+- `src/pages/SlugOfferDetailsPage.tsx` - تفاصيل العرض + سلوك الرجوع
+
+---
+
+## 🔒 القسم الرابع: نظام المشاهدات المباشرة (محمي بشكل صارم)
+
+### المستويات المحمية
+| المستوى | الدالة | الوظيفة |
+|---------|--------|---------|
+| المدينة | `getCityViewers(cityName)` | إجمالي المشاهدين في المدينة |
+| الحي | `getDistrictViewers(city, district)` | إجمالي المشاهدين في الحي |
+| العرض | `getOfferViewers(offerId)` | المشاهدين على العرض المحدد |
+
+### قواعد التطبيع المحمية
+- `normalizeKeyPart()` - توحيد المسافات وإزالة التشكيل
+- `normalizeDistrictName()` - إزالة "حي " للتطابق
+- الزائر يُسجل بـ `city` و `district` من سجل العرض في DB
+
+### الملفات المحمية
+- `src/hooks/useLiveViewersRealtime.ts` - منطق Presence + تطبيع المفاتيح
+- `src/components/ui/LiveViewerIndicator.tsx` - مؤشر العين الحمراء/الخضراء
+
+---
+
+## 🔒 القسم الخامس: التزامن بين التبويبات (محمي)
+
+### آلية العمل المحمية
+```mermaid
+graph LR
+    A[تبويب العروض] -->|dbListings| B[تبويب المنصة]
+    A -->|updateListing + fetchListings| C[قاعدة البيانات]
+    C -->|RLS Filter| D[منصة النشر العامة]
+```
+
+### القواعد المحمية
+1. عند إخفاء عرض من تبويب العروض → يتم تحديث `is_hidden=true` في DB
+2. تبويب المنصة يعرض فقط العروض الظاهرة (`isHidden=false`)
+3. منصة النشر العامة تطبق سياسة RLS تلقائياً
+
+---
+
+## الروابط المحمية الأخرى
+
+### أزرار بطاقة الأعمال الرقمية
 | الزر | الصفحة العامة | الملف |
 |------|--------------|-------|
 | إرسال عرض | `/:slug/offer` | `SlugOfferPage.tsx` |
@@ -24,118 +112,52 @@
 | إنشاء موعد | `/:slug/calendar` | `SlugCalendarPage.tsx` |
 | عرض سعر | `/:slug/quote` | `SlugQuotePage.tsx` |
 
-### 4. روابط المواعيد
+### روابط المواعيد
 | الرابط | الغرض | الملف |
 |--------|-------|-------|
 | `/:slug/appointmentapproval/broker/:appointmentId` | تأكيد حضور الوسيط | `SlugAppointmentApprovalBroker.tsx` |
-| `/:slug/appointmentapproval/approval/:appointmentId` | نفس السابق (بديل) | `SlugAppointmentApprovalBroker.tsx` |
 | `/:slug/appointmentapproval/customer/:appointmentId` | تأكيد حضور العميل | `SlugAppointmentApprovalCustomer.tsx` |
-| `/:slug/appointmentapproval/sorry` | صفحة الاعتذار وإعادة الجدولة | `SlugAppointmentApprovalSorry.tsx` |
+| `/:slug/appointmentapproval/sorry` | صفحة الاعتذار | `SlugAppointmentApprovalSorry.tsx` |
 
-### 5. الفرص الذكية
+### الفرص الذكية
 | الرابط | الغرض |
 |--------|-------|
 | `/app/smart-opportunities` | صفحة الفرص الذكية |
 | `/app/offers-requests` | صفحة العروض والطلبات المقبولة |
 
-### 6. ⭐ روابط المنصة العامة الهرمية (محمية بشكل صارم)
-| الرابط | الغرض | الملف |
-|--------|-------|-------|
-| `wasataai.com/:slug` | الصفحة الرئيسية للمنصة العامة | `SlugPlatformPage.tsx` |
-| `wasataai.com/:slug/:city/:district/:offerId` | صفحة تفاصيل العرض العامة | `SlugOfferDetailsPage.tsx` |
+---
 
-**⚠️ سلوك الرجوع المحمي:**
-- زر الرجوع/الإغلاق من صفحة العرض يعود دائماً إلى `/{slug}` (الصفحة الرئيسية)
-- لا يعود لمستوى المدينة أو الحي
+## ⛔ قواعد الحماية الصارمة
 
-### 7. ⭐ نظام المشاهدات المباشرة (Real-time Presence)
-| المستوى | المكون | الوظيفة |
-|---------|--------|---------|
-| المدينة | `getCityViewers(cityName)` | إجمالي المشاهدين في جميع عروض المدينة |
-| الحي | `getDistrictViewers(city, district)` | إجمالي المشاهدين في جميع عروض الحي |
-| العرض | `getOfferViewers(offerId)` | المشاهدين على العرض المحدد |
+### 1. 🚫 لا تعديل بدون إذن صريح
+أي تغيير على الملفات أو الوظائف المذكورة أعلاه يتطلب:
+- **إبلاغ المستخدم بالعربية** بسبب التعديل المطلوب
+- **انتظار الموافقة أو الرفض** قبل أي تنفيذ
 
-**الملفات المحمية:**
-- `src/hooks/useLiveViewersRealtime.ts` - منطق Presence الأساسي
-- `src/components/ui/LiveViewerIndicator.tsx` - مكون العين الحمراء/الخضراء
-- `src/pages/SlugOfferDetailsPage.tsx` - تسجيل الزائر + استخدام presenceCity/presenceDistrict من DB
-
-**⚠️ قواعد التطبيع المحمية:**
-- `normalizeKeyPart()` - توحيد المسافات وإزالة التشكيل
-- `normalizeDistrictName()` - إزالة "حي " للتطابق
-- الزائر يُسجل بـ `city` و `district` من سجل العرض في DB (وليس من URL)
-
-## آلية عمل الفرص الذكية
-
-```mermaid
-graph TD
-    A[فرصة ذكية] --> B{سحب البطاقة}
-    B -->|يمين - قبول| C[حفظ في smart_opportunity_acceptances]
-    B -->|يسار - رفض| D[تسجيل في smart_opportunity_rejections]
-    C --> E[تظهر في /app/offers-requests]
-    D --> F{عدد الرفض}
-    F -->|مرة واحدة| G[تظهر مرة أخرى]
-    F -->|مرتين| H[تختفي نهائياً]
+### 2. 📝 صيغة طلب الإذن
+```
+⚠️ أحتاج لتعديل [اسم الملف/الوظيفة]
+السبب: [شرح واضح بالعربية]
+التأثير: [ما الذي سيتغير]
+هل توافق على هذا التعديل؟
 ```
 
-## آلية عمل المشاهدات المباشرة
+### 3. 🔗 الحفاظ على الروابط
+أي تغيير في مسار الرابط يكسر الروابط المشاركة سابقاً
 
-```mermaid
-graph TD
-    A[زائر يفتح /:slug/:city/:district/:offerId] --> B[SlugOfferDetailsPage]
-    B --> C[جلب العرض من platform_listings]
-    C --> D[استخراج city/district من السجل]
-    D --> E[useRegisterPublicViewer - تسجيل Presence]
-    E --> F[قناة Supabase: live-viewers-slug]
-    F --> G[لوحة تحكم الوسيط: useLiveViewersRealtime]
-    G --> H[تجميع العدادات: offers/districts/cities]
-    H --> I[LiveViewerIndicator - عين حمراء/خضراء]
-```
+### 4. ✅ الاختبار بعد التعديل
+التأكد من عمل جميع الوظائف بعد أي تغيير مُوافق عليه
 
-## الملفات المحمية
+### 5. 👁️ حماية نظام المشاهدات
+لا تعديل على منطق Presence أو التطبيع بدون إذن
 
-### ملفات الروابط
-- `src/App.tsx` - تعريف جميع الـ Routes
-- `src/utils/slugify.ts` - بناء الروابط
+### 6. ↩️ حماية سلوك الرجوع
+الرجوع من العرض يعود لـ `/{slug}` فقط - لا تغيير
 
-### ⭐ ملفات المشاهدات المباشرة (محمية بشكل صارم)
-- `src/hooks/useLiveViewersRealtime.ts` - منطق Presence + تطبيع المفاتيح
-- `src/components/ui/LiveViewerIndicator.tsx` - مؤشر العين
-- `src/pages/SlugOfferDetailsPage.tsx` - تسجيل الزائر
-
-### ⭐ ملفات المنصة العامة (محمية بشكل صارم)
-- `src/pages/SlugPlatformPage.tsx` - الصفحة الرئيسية
-- `src/pages/SlugOfferDetailsPage.tsx` - تفاصيل العرض + سلوك الرجوع
-
-### ملفات الفرص الذكية
-- `src/pages/SmartOpportunitiesPage.tsx`
-- `src/pages/OffersRequestsPage.tsx`
-- `src/hooks/useSmartOpportunities.ts`
-- `src/components/smart-opportunities/SwipeableOpportunityCard.tsx`
-- `src/components/smart-opportunities/AcceptedOpportunityCard.tsx`
-- `src/data/mockSmartOpportunities.ts`
-
-### ملفات المواعيد
-- `src/pages/SlugAppointmentApprovalBroker.tsx`
-- `src/pages/SlugAppointmentApprovalCustomer.tsx`
-- `src/pages/SlugAppointmentApprovalSorry.tsx`
-
-### ملفات البطاقة الرقمية
-- `src/pages/SlugOfferPage.tsx`
-- `src/pages/SlugRequestPage.tsx`
-- `src/pages/SlugQuotePage.tsx`
-- `src/pages/SlugCalendarPage.tsx`
-
-## قواعد الحماية
-
-1. **🚫 لا تعديل بدون إذن** - أي تغيير يتطلب موافقة صريحة بالعربية أولاً
-2. **📝 التوثيق قبل التعديل** - يجب توضيح سبب التعديل بالعربي والانتظار للموافقة
-3. **🔗 الحفاظ على الروابط** - أي تغيير في مسار الرابط يكسر الروابط المشاركة سابقاً
-4. **✅ اختبار بعد التعديل** - التأكد من عمل جميع الروابط بعد أي تغيير
-5. **👁️ حماية نظام المشاهدات** - لا تعديل على منطق Presence أو التطبيع بدون إذن
-6. **↩️ حماية سلوك الرجوع** - الرجوع من العرض يعود لـ `/{slug}` فقط
+### 7. 🔄 حماية التزامن
+لا تعديل على آلية تمرير `dbListings` بين التبويبات
 
 ---
 
 **آخر تحديث:** 2026-02-02
-**سبب التحديث:** حماية روابط المنصة العامة الهرمية ونظام المشاهدات المباشرة وسلوك الرجوع
+**سبب التحديث:** حماية شاملة لتبويب المنصة وتبويب العروض ومنصة النشر العامة والتزامن بينها
