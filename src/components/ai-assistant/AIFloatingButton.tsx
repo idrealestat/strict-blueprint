@@ -3,6 +3,8 @@ import { Button } from "../ui/button";
 import { MessageCircle, Sparkles, GripVertical, Maximize2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AIChatPanel } from "./AIChatPanel";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
+import { Capacitor } from "@capacitor/core";
 
 // حساب الحجم الافتراضي بناءً على حجم الشاشة
 const getDefaultSize = () => {
@@ -33,14 +35,37 @@ const getDefaultSize = () => {
 };
 
 export function AIFloatingButton() {
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const [isOpen, setIsOpen] = useState(false);
   const [panelSize, setPanelSize] = useState(getDefaultSize);
   const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [showWelcomeBubble, setShowWelcomeBubble] = useState(true);
+  const [isUserEnabled, setIsUserEnabled] = useState(true);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // تحديد النظام الأساسي
+  const platform = Capacitor.isNativePlatform() 
+    ? Capacitor.getPlatform() as 'android' | 'ios' 
+    : 'web';
+
+  // 🔴 التحقق من إعداد المستخدم
+  useEffect(() => {
+    const checkUserSetting = () => {
+      const userEnabled = localStorage.getItem('floating_bubble_user_enabled');
+      // إذا لم يتم تعيين قيمة، نعتبرها مفعلة افتراضياً
+      setIsUserEnabled(userEnabled !== 'false');
+    };
+
+    checkUserSetting();
+
+    // الاستماع لتغييرات إعدادات المستخدم
+    const handleUserChange = () => checkUserSetting();
+    window.addEventListener('floatingBubbleUserChanged', handleUserChange);
+    return () => window.removeEventListener('floatingBubbleUserChanged', handleUserChange);
+  }, []);
 
   // إخفاء الرسالة الترحيبية بعد 10 ثواني
   useEffect(() => {
@@ -141,6 +166,34 @@ export function AIFloatingButton() {
     document.addEventListener('touchmove', handleMove, { passive: false });
     document.addEventListener('touchend', handleEnd);
   };
+
+  // 🔴 التحقق من ظهور الزر العائم
+  // - يجب أن تكون الخاصية مفعلة من المالك (floating_bubble_enabled)
+  // - يجب أن يكون المستخدم قد فعّلها (أو لم يعطلها)
+  // - على Android: يظهر كـ floating bubble
+  // - على iOS/Web: يظهر كزر دائري داخل التطبيق
+  const shouldShowBubble = () => {
+    // إذا الخاصية معطلة من المالك → لا يظهر نهائياً
+    if (!flags.floating_bubble_enabled) {
+      return false;
+    }
+    
+    // إذا المستخدم عطّلها من إعداداته
+    if (!isUserEnabled) {
+      return false;
+    }
+
+    return true;
+  };
+
+  // 🔴 إذا الخاصية معطلة → لا يظهر شيء
+  if (flagsLoading) {
+    return null;
+  }
+
+  if (!shouldShowBubble()) {
+    return null;
+  }
 
   return (
     <>

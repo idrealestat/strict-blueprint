@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import FloatingBubbleUserSettings from '@/components/settings/FloatingBubbleUserSettings';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -154,6 +155,9 @@ export function SettingsTabContent({
           {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
         </Button>
       </div>
+
+      {/* 🔴 إعدادات المساعد الذكي العائم - يظهر فقط إذا فعّلها المالك */}
+      <FloatingBubbleUserSettings />
 
       {/* إحصائيات الرسائل الشهرية */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">

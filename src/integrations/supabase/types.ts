@@ -255,6 +255,7 @@ export type Database = {
           account_type: string
           business_card_add_colleague_enabled: boolean | null
           created_at: string
+          floating_bubble_enabled: boolean | null
           id: string
           left_slider_enabled: boolean | null
           notes: string | null
@@ -274,6 +275,7 @@ export type Database = {
           account_type: string
           business_card_add_colleague_enabled?: boolean | null
           created_at?: string
+          floating_bubble_enabled?: boolean | null
           id?: string
           left_slider_enabled?: boolean | null
           notes?: string | null
@@ -293,6 +295,7 @@ export type Database = {
           account_type?: string
           business_card_add_colleague_enabled?: boolean | null
           created_at?: string
+          floating_bubble_enabled?: boolean | null
           id?: string
           left_slider_enabled?: boolean | null
           notes?: string | null
@@ -1000,6 +1003,7 @@ export type Database = {
         Row: {
           business_card_add_colleague_enabled: boolean | null
           created_at: string
+          floating_bubble_enabled: boolean | null
           id: string
           left_slider_enabled: boolean | null
           offers_requests_enabled: boolean | null
@@ -1018,6 +1022,7 @@ export type Database = {
         Insert: {
           business_card_add_colleague_enabled?: boolean | null
           created_at?: string
+          floating_bubble_enabled?: boolean | null
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
@@ -1036,6 +1041,7 @@ export type Database = {
         Update: {
           business_card_add_colleague_enabled?: boolean | null
           created_at?: string
+          floating_bubble_enabled?: boolean | null
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
@@ -1084,6 +1090,7 @@ export type Database = {
         Row: {
           business_card_add_colleague_enabled: boolean | null
           created_at: string
+          floating_bubble_enabled: boolean | null
           id: string
           left_slider_enabled: boolean | null
           offers_requests_enabled: boolean | null
@@ -1101,6 +1108,7 @@ export type Database = {
         Insert: {
           business_card_add_colleague_enabled?: boolean | null
           created_at?: string
+          floating_bubble_enabled?: boolean | null
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null
@@ -1118,6 +1126,7 @@ export type Database = {
         Update: {
           business_card_add_colleague_enabled?: boolean | null
           created_at?: string
+          floating_bubble_enabled?: boolean | null
           id?: string
           left_slider_enabled?: boolean | null
           offers_requests_enabled?: boolean | null

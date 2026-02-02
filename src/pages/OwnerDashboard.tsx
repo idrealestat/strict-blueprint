@@ -26,6 +26,7 @@ import {
   Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall, LayoutGrid, Edit, Link2
 } from "lucide-react";
 import { BehavioralDashboard } from "@/components/behavioral";
+import FloatingBubbleOwnerControl from "@/components/settings/FloatingBubbleOwnerControl";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -1678,6 +1679,14 @@ const OwnerDashboard: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* 🔴 تحكم المالك في المساعد الذكي العائم */}
+            {globalDefaults && (
+              <FloatingBubbleOwnerControl 
+                globalDefaults={globalDefaults} 
+                onUpdate={fetchData} 
+              />
+            )}
 
             {/* إعدادات المساعد الذكي */}
             <SmartAssistantSettingsCard />
