@@ -38,6 +38,33 @@
 | `/app/smart-opportunities` | صفحة الفرص الذكية |
 | `/app/offers-requests` | صفحة العروض والطلبات المقبولة |
 
+### 6. ⭐ روابط المنصة العامة الهرمية (محمية بشكل صارم)
+| الرابط | الغرض | الملف |
+|--------|-------|-------|
+| `wasataai.com/:slug` | الصفحة الرئيسية للمنصة العامة | `SlugPlatformPage.tsx` |
+| `wasataai.com/:slug/:city/:district/:offerId` | صفحة تفاصيل العرض العامة | `SlugOfferDetailsPage.tsx` |
+
+**⚠️ سلوك الرجوع المحمي:**
+- زر الرجوع/الإغلاق من صفحة العرض يعود دائماً إلى `/{slug}` (الصفحة الرئيسية)
+- لا يعود لمستوى المدينة أو الحي
+
+### 7. ⭐ نظام المشاهدات المباشرة (Real-time Presence)
+| المستوى | المكون | الوظيفة |
+|---------|--------|---------|
+| المدينة | `getCityViewers(cityName)` | إجمالي المشاهدين في جميع عروض المدينة |
+| الحي | `getDistrictViewers(city, district)` | إجمالي المشاهدين في جميع عروض الحي |
+| العرض | `getOfferViewers(offerId)` | المشاهدين على العرض المحدد |
+
+**الملفات المحمية:**
+- `src/hooks/useLiveViewersRealtime.ts` - منطق Presence الأساسي
+- `src/components/ui/LiveViewerIndicator.tsx` - مكون العين الحمراء/الخضراء
+- `src/pages/SlugOfferDetailsPage.tsx` - تسجيل الزائر + استخدام presenceCity/presenceDistrict من DB
+
+**⚠️ قواعد التطبيع المحمية:**
+- `normalizeKeyPart()` - توحيد المسافات وإزالة التشكيل
+- `normalizeDistrictName()` - إزالة "حي " للتطابق
+- الزائر يُسجل بـ `city` و `district` من سجل العرض في DB (وليس من URL)
+
 ## آلية عمل الفرص الذكية
 
 ```mermaid
@@ -51,11 +78,34 @@ graph TD
     F -->|مرتين| H[تختفي نهائياً]
 ```
 
+## آلية عمل المشاهدات المباشرة
+
+```mermaid
+graph TD
+    A[زائر يفتح /:slug/:city/:district/:offerId] --> B[SlugOfferDetailsPage]
+    B --> C[جلب العرض من platform_listings]
+    C --> D[استخراج city/district من السجل]
+    D --> E[useRegisterPublicViewer - تسجيل Presence]
+    E --> F[قناة Supabase: live-viewers-slug]
+    F --> G[لوحة تحكم الوسيط: useLiveViewersRealtime]
+    G --> H[تجميع العدادات: offers/districts/cities]
+    H --> I[LiveViewerIndicator - عين حمراء/خضراء]
+```
+
 ## الملفات المحمية
 
 ### ملفات الروابط
 - `src/App.tsx` - تعريف جميع الـ Routes
 - `src/utils/slugify.ts` - بناء الروابط
+
+### ⭐ ملفات المشاهدات المباشرة (محمية بشكل صارم)
+- `src/hooks/useLiveViewersRealtime.ts` - منطق Presence + تطبيع المفاتيح
+- `src/components/ui/LiveViewerIndicator.tsx` - مؤشر العين
+- `src/pages/SlugOfferDetailsPage.tsx` - تسجيل الزائر
+
+### ⭐ ملفات المنصة العامة (محمية بشكل صارم)
+- `src/pages/SlugPlatformPage.tsx` - الصفحة الرئيسية
+- `src/pages/SlugOfferDetailsPage.tsx` - تفاصيل العرض + سلوك الرجوع
 
 ### ملفات الفرص الذكية
 - `src/pages/SmartOpportunitiesPage.tsx`
@@ -78,7 +128,14 @@ graph TD
 
 ## قواعد الحماية
 
-1. **لا تعديل بدون إذن** - أي تغيير يتطلب موافقة صريحة
-2. **التوثيق قبل التعديل** - يجب توضيح سبب التعديل بالعربي
-3. **الحفاظ على الروابط** - أي تغيير في مسار الرابط يكسر الروابط المشاركة سابقاً
-4. **اختبار بعد التعديل** - التأكد من عمل جميع الروابط بعد أي تغيير
+1. **🚫 لا تعديل بدون إذن** - أي تغيير يتطلب موافقة صريحة بالعربية أولاً
+2. **📝 التوثيق قبل التعديل** - يجب توضيح سبب التعديل بالعربي والانتظار للموافقة
+3. **🔗 الحفاظ على الروابط** - أي تغيير في مسار الرابط يكسر الروابط المشاركة سابقاً
+4. **✅ اختبار بعد التعديل** - التأكد من عمل جميع الروابط بعد أي تغيير
+5. **👁️ حماية نظام المشاهدات** - لا تعديل على منطق Presence أو التطبيع بدون إذن
+6. **↩️ حماية سلوك الرجوع** - الرجوع من العرض يعود لـ `/{slug}` فقط
+
+---
+
+**آخر تحديث:** 2026-02-02
+**سبب التحديث:** حماية روابط المنصة العامة الهرمية ونظام المشاهدات المباشرة وسلوك الرجوع
