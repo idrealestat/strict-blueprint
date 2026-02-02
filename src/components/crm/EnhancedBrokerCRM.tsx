@@ -78,6 +78,8 @@ import {
   Link,
   Settings,
   CheckSquare,
+  ArrowRightLeft,
+  UserCheck,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -85,6 +87,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -101,6 +107,7 @@ import CustomerDetailsPage from "./CustomerDetailsPage";
 import ContactsPanel from "./ContactsPanel";
 import TasksPanel from "./TasksPanel";
 import AssignCustomerPopover from "@/components/team/AssignCustomerPopover";
+import AssignColleagueSubMenu from "./AssignColleagueSubMenu";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useCallLogsPermission } from "@/hooks/useCallLogsPermission";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
@@ -2469,7 +2476,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                               <MoreVertical className="w-4 h-4 text-gray-500" />
                                             </Button>
                                           </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end" className="w-40 bg-white z-50">
+                                          <DropdownMenuContent align="end" className="w-48 bg-white z-50">
                                             <DropdownMenuItem
                                               onClick={(e) => {
                                                 e.stopPropagation();
@@ -2493,6 +2500,81 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                               <Edit className="w-4 h-4" />
                                               <span>تعديل</span>
                                             </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            
+                                            {/* الانتقال إلى - قائمة فرعية بالأعمدة */}
+                                            <DropdownMenuSub>
+                                              <DropdownMenuSubTrigger className="flex items-center gap-2">
+                                                <ArrowRightLeft className="w-4 h-4" />
+                                                <span>الانتقال إلى</span>
+                                              </DropdownMenuSubTrigger>
+                                              <DropdownMenuPortal>
+                                                <DropdownMenuSubContent className="bg-white min-w-[140px]">
+                                                  {columns.filter(col => col.id !== customer.columnId).map((col) => (
+                                                    <DropdownMenuItem
+                                                      key={col.id}
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        // نقل العميل إلى العمود المحدد
+                                                        const statusMap: Record<string, string> = {
+                                                          'leads': 'new',
+                                                          'contacted': 'active',
+                                                          'viewing': 'viewing',
+                                                          'negotiation': 'negotiation',
+                                                          'closed': 'closed',
+                                                          'lost': 'lost'
+                                                        };
+                                                        const currentMeta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+                                                          ? (customer.metadata as Record<string, any>)
+                                                          : {};
+                                                        const nextMeta = { ...currentMeta, columnId: col.id };
+                                                        
+                                                        setCustomers(prev => prev.map(c =>
+                                                          c.id === customer.id
+                                                            ? { ...c, columnId: col.id, status: statusMap[col.id] || col.id, metadata: nextMeta }
+                                                            : c
+                                                        ));
+                                                        
+                                                        await dbUpdateCustomer(customer.id, {
+                                                          status: statusMap[col.id] || col.id,
+                                                          metadata: nextMeta
+                                                        }, { isStatusChange: true });
+                                                        
+                                                        toast.success(`تم نقل "${customer.name}" إلى "${col.title}"`);
+                                                      }}
+                                                      className="flex items-center gap-2"
+                                                    >
+                                                      <span>{col.title}</span>
+                                                    </DropdownMenuItem>
+                                                  ))}
+                                                </DropdownMenuSubContent>
+                                              </DropdownMenuPortal>
+                                            </DropdownMenuSub>
+                                            
+                                            {/* معين لـ: - قائمة فرعية بالزملاء */}
+                                            {featureFlags.business_card_add_colleague_enabled && (
+                                              <AssignColleagueSubMenu
+                                                customerId={customer.id}
+                                                customerName={customer.name}
+                                                onSuccess={(assigned) => {
+                                                  const currentMeta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+                                                    ? (customer.metadata as Record<string, any>)
+                                                    : {};
+                                                  const nextMeta = {
+                                                    ...currentMeta,
+                                                    assignedColleagueUserId: assigned.userId,
+                                                    assignedColleagueName: assigned.name,
+                                                  };
+                                                  setCustomers(prev => prev.map(c =>
+                                                    c.id === customer.id
+                                                      ? { ...c, metadata: nextMeta }
+                                                      : c
+                                                  ));
+                                                  void dbUpdateCustomer(customer.id, { metadata: nextMeta });
+                                                }}
+                                              />
+                                            )}
+                                            
                                             <DropdownMenuSeparator />
                                             {/* البلاغات */}
                                             <DropdownMenuItem
