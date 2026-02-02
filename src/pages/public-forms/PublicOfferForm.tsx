@@ -18,8 +18,16 @@ import {
   Send, Loader2, CheckCircle, Upload, Home, MapPin, User, Phone, 
   FileText, Building, X, Image as ImageIcon, Video, Star, Shield,
   CreditCard, Calendar, Plus, Trash2, Ruler, DoorOpen, Car, Droplets,
-  Sparkles, Zap, Navigation, Satellite, Map as MapIcon
+  Sparkles, Zap, Navigation, Satellite, Map as MapIcon, AlertTriangle, Percent, ScrollText
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
@@ -149,6 +157,10 @@ interface FormData {
   // الوصف
   description: string;
   
+  // النزاعات والنسبة
+  propertyDisputes: string;
+  agreedCommissionRate: string;
+  
   // موافقة
   agreeToTerms: boolean;
 }
@@ -222,6 +234,7 @@ export default function PublicOfferForm() {
   const [suggestedPrices, setSuggestedPrices] = useState<{min: number; max: number; average: number} | null>(null);
   const [priceEvaluation, setPriceEvaluation] = useState<{status: 'low' | 'fair' | 'high'; message: string} | null>(null);
   const [marketAverage, setMarketAverage] = useState<number | null>(null);
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
   
   // تحميل بيانات الوسيط مع الصور من قاعدة البيانات
   useEffect(() => {
@@ -325,6 +338,8 @@ export default function PublicOfferForm() {
       hasParking: false,
       customFeatures: '',
       description: '',
+      propertyDisputes: '',
+      agreedCommissionRate: '',
       agreeToTerms: false,
     };
   };
@@ -756,6 +771,8 @@ export default function PublicOfferForm() {
         hasParking: formData.hasParking,
         customFeatures: formData.customFeatures,
         description: formData.description,
+        propertyDisputes: formData.propertyDisputes,
+        agreedCommissionRate: formData.agreedCommissionRate,
         warranties,
         media,
         mainImage: media.find(m => m.isMain)?.url || null,
@@ -1610,17 +1627,167 @@ export default function PublicOfferForm() {
           />
         </Section>
 
+        {/* ===== 11. النزاعات والنسبة المتفق عليها ===== */}
+        <Section title="النزاعات والنسبة المتفق عليها" icon={<AlertTriangle className="w-5 h-5" />} color="rose">
+          <div className="space-y-4">
+            <div>
+              <Label className="text-rose-800 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                النزاعات على العقار أو المنفعة
+              </Label>
+              <Textarea
+                value={formData.propertyDisputes}
+                onChange={(e) => updateField('propertyDisputes', e.target.value)}
+                placeholder="هل يوجد أي نزاعات قائمة على العقار أو المنفعة؟ يرجى التوضيح بالتفصيل (مثال: نزاع ملكية، دعاوى قضائية، حقوق ارتفاق، رهن عقاري...)"
+                rows={3}
+                className="border-rose-200 focus:border-rose-400 mt-1"
+              />
+              <p className="text-xs text-rose-600 mt-1">
+                ⚠️ يجب الإفصاح عن أي نزاعات قائمة أو محتملة على العقار للحفاظ على الشفافية
+              </p>
+            </div>
+            
+            <div>
+              <Label className="text-rose-800 flex items-center gap-2">
+                <Percent className="w-4 h-4" />
+                النسبة المتفق عليها للوسيط (%)
+              </Label>
+              <Input
+                type="number"
+                step="0.25"
+                min="0"
+                max="10"
+                value={formData.agreedCommissionRate}
+                onChange={(e) => updateField('agreedCommissionRate', e.target.value)}
+                placeholder="مثال: 2.5"
+                className="border-rose-200 focus:border-rose-400 mt-1"
+              />
+              <p className="text-xs text-rose-600 mt-1">
+                نسبة العمولة المتفق عليها مع الوسيط العقاري (عادة من 2% إلى 2.5% من قيمة الصفقة)
+              </p>
+            </div>
+          </div>
+        </Section>
+
         {/* الموافقة */}
-        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+        <div className="flex items-start gap-2 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
           <Checkbox
             id="terms"
             checked={formData.agreeToTerms}
             onCheckedChange={(checked) => updateField('agreeToTerms', checked === true)}
+            className="mt-1"
           />
-          <Label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
-            أوافق على الشروط والأحكام وسياسة الخصوصية
-          </Label>
+          <div className="flex-1">
+            <Label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
+              أوافق على{' '}
+              <button
+                type="button"
+                onClick={() => setShowTermsDialog(true)}
+                className="text-[#01411C] hover:text-[#065f41] underline font-medium"
+              >
+                الشروط والأحكام
+              </button>
+              {' '}وسياسة الخصوصية
+            </Label>
+          </div>
         </div>
+
+        {/* نافذة الشروط والأحكام */}
+        <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-[#01411C] flex items-center gap-2">
+                <ScrollText className="w-6 h-6" />
+                شروط استخدام رابط إرسال عرض عقار
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                يرجى قراءة هذه الشروط بعناية قبل إرسال أي عرض عقاري عبر الرابط
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="font-bold text-amber-800">⚠️ تنبيه مهم:</p>
+                <p>باستخدامك للرابط، فإنك توافق على الالتزام بهذه الشروط بالكامل.</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#01411C] mb-2">1. المسؤولية عن المعلومات</h4>
+                <ul className="list-disc list-inside space-y-1 mr-2">
+                  <li>المستخدم مسؤول بشكل كامل عن صحة ودقة أي معلومات أو مستندات يرسلها عبر الرابط.</li>
+                  <li>أي بيانات خاطئة أو مضللة يتحمل المستخدم المسؤولية القانونية عنها أمام الجهات المختصة.</li>
+                  <li>لا يتحمل الوسيط العقاري أو التطبيق أي مسؤولية عن أي ضرر أو تبعات قانونية نتيجة معلومات غير دقيقة أو ناقصة.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#01411C] mb-2">2. الالتزام بالأنظمة والقوانين السعودية</h4>
+                <p className="mb-2">يلتزم المستخدم بكافة الأنظمة واللوائح السعودية ذات العلاقة بالعقار والوساطة العقارية، بما في ذلك:</p>
+                <ul className="list-disc list-inside space-y-1 mr-2">
+                  <li>نظام الموثق العقاري.</li>
+                  <li>الهيئة العامة للعقار.</li>
+                  <li>اشتراطات البيع والشراء والتسجيل العقاري.</li>
+                  <li>أي قوانين تتعلق بالضرائب العقارية أو رسوم التسجيل.</li>
+                </ul>
+                <p className="mt-2 text-amber-700">يقر المستخدم أن تقديم العرض لا يعتبر تسجيلاً قانونياً للعقار، وأن أي إجراء رسمي يجب تنفيذه عبر الجهات المختصة.</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#01411C] mb-2">3. العلاقة مع الوسيط العقاري</h4>
+                <ul className="list-disc list-inside space-y-1 mr-2">
+                  <li>باستخدام الرابط، يوافق المستخدم صراحة على أن يكون الوسيط العقاري مسؤولاً عن إدارة وإتمام عمليات العرض وفق الأنظمة المعمول بها.</li>
+                  <li>يقر المستخدم أنه يدخل في عقد قانوني افتراضي مع الوسيط العقاري لإدارة العرض، وأن أي تعامل لاحق يتم وفقاً للاتفاق النظامي بين الطرفين.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#01411C] mb-2">4. حماية البيانات والسرية</h4>
+                <ul className="list-disc list-inside space-y-1 mr-2">
+                  <li>يوافق المستخدم على استخدام البيانات المقدمة وفق سياسة الخصوصية للتطبيق/الوسيط العقاري.</li>
+                  <li>يتم التعامل مع المعلومات بسرية كاملة، ولا يحق لأي طرف ثالث الوصول إليها دون موافقة المستخدم أو بمقتضى القانون.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-[#01411C] mb-2">5. التحذيرات والتنبيهات</h4>
+                <ul className="list-disc list-inside space-y-1 mr-2">
+                  <li>أي محاولة إرسال معلومات مخالفة للنظام السعودي أو إشاعات أو بيانات مضللة قد تعرض المستخدم للمساءلة القانونية.</li>
+                  <li>التطبيق/الوسيط يحق له رفض أي عرض غير مكتمل أو مخالف للشروط.</li>
+                </ul>
+              </div>
+
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-bold text-green-800 mb-2">6. الموافقة الإلكترونية</h4>
+                <p className="mb-2">من خلال الضغط على "أوافق"، يقر المستخدم ويصرح بما يلي:</p>
+                <ul className="list-disc list-inside space-y-1 mr-2 text-green-700">
+                  <li>أنه قرأ وفهم جميع الشروط أعلاه.</li>
+                  <li>أنه ملتزم بالقوانين والأنظمة السعودية المتعلقة بالعقار.</li>
+                  <li>أنه يتحمل المسؤولية القانونية عن صحة المعلومات المرسلة.</li>
+                  <li>أنه يوافق على إبرام عقد قانوني مع الوسيط العقاري لإدارة العرض وفق النظام السعودي.</li>
+                </ul>
+              </div>
+            </div>
+
+            <DialogFooter className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowTermsDialog(false)}
+                className="border-gray-300"
+              >
+                إغلاق
+              </Button>
+              <Button
+                onClick={() => {
+                  updateField('agreeToTerms', true);
+                  setShowTermsDialog(false);
+                }}
+                className="bg-[#01411C] hover:bg-[#065f41] text-white"
+              >
+                أوافق على الشروط
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* زر الإرسال */}
         <Button
