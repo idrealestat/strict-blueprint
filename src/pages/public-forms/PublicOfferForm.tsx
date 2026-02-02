@@ -233,12 +233,19 @@ export default function PublicOfferForm() {
       
       setIsLoadingBroker(true);
       try {
-        const { data: businessCard } = await supabase
+        console.log('[PublicOfferForm] Fetching broker data for slug:', brokerSlug);
+        const { data: businessCard, error } = await supabase
           .from('business_cards')
           .select('data, user_id')
           .eq('slug', brokerSlug)
           .eq('published', true)
-          .single();
+          .maybeSingle();
+        
+        if (error) {
+          console.error('[PublicOfferForm] Database error:', error);
+        }
+        
+        console.log('[PublicOfferForm] Result:', { businessCard, error });
 
         if (businessCard?.data) {
           const cardData = businessCard.data as Record<string, any>;

@@ -144,12 +144,20 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
       
       setIsLoadingBroker(true);
       try {
-        const { data } = await supabase
+        const slugValue = slug || brokerId;
+        console.log('[PublicAppointmentForm] Fetching broker data for slug:', slugValue);
+        const { data, error } = await supabase
           .from('business_cards')
           .select('user_id, id, data')
-          .eq('slug', slug || brokerId)
+          .eq('slug', slugValue)
           .eq('published', true)
-          .single();
+          .maybeSingle();
+        
+        if (error) {
+          console.error('[PublicAppointmentForm] Database error:', error);
+        }
+        
+        console.log('[PublicAppointmentForm] Result:', { data, error });
         
         if (data) {
           setBrokerUserId(data.user_id);

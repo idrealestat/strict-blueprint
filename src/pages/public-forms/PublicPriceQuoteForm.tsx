@@ -107,12 +107,19 @@ export default function PublicPriceQuoteForm() {
       
       setIsLoadingBroker(true);
       try {
-        const { data } = await supabase
+        console.log('[PublicPriceQuoteForm] Fetching broker data for slug:', identifier);
+        const { data, error } = await supabase
           .from('business_cards')
           .select('user_id, data')
           .eq('slug', identifier)
           .eq('published', true)
-          .single();
+          .maybeSingle();
+        
+        if (error) {
+          console.error('[PublicPriceQuoteForm] Database error:', error);
+        }
+        
+        console.log('[PublicPriceQuoteForm] Result:', { data, error });
         
         if (data) {
           setBrokerUserId(data.user_id);
