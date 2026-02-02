@@ -91,6 +91,7 @@ export function useSharedCustomers(organizationUserId?: string) {
     organizationUserId: string;
     notes?: string;
     assignmentType?: 'shared' | 'transferred' | 'temporary';
+    senderName?: string;
   }): Promise<boolean> => {
     if (!user) return false;
 
@@ -129,6 +130,14 @@ export function useSharedCustomers(organizationUserId?: string) {
 
       if (error) throw error;
 
+      // بناء رسالة الإشعار مع اسم المسؤول والملاحظة
+      const senderName = params.senderName || 'المسؤول';
+      let notificationMessage = `قام ${senderName} بتعيين العميل "${customer?.name || 'عميل'}" لك`;
+      
+      if (params.notes) {
+        notificationMessage += `\n📝 ملاحظة: ${params.notes}`;
+      }
+
       // إرسال إشعار للزميل
       await supabase.from('team_notifications').insert({
         organization_user_id: params.organizationUserId,
@@ -136,9 +145,14 @@ export function useSharedCustomers(organizationUserId?: string) {
         sender_user_id: user.id,
         notification_type: 'customer_assigned',
         title: 'تم تعيين عميل جديد لك',
-        message: `قام المسؤول بتعيين العميل "${customer?.name || 'عميل'}" لك`,
+        message: notificationMessage,
         related_entity_type: 'customer',
         related_entity_id: params.customerId,
+        metadata: {
+          sender_name: senderName,
+          customer_name: customer?.name,
+          notes: params.notes || null,
+        },
       });
 
       // تسجيل النشاط
@@ -152,6 +166,8 @@ export function useSharedCustomers(organizationUserId?: string) {
         details: {
           assigned_to: params.assignToUserId,
           assignment_type: params.assignmentType || 'shared',
+          notes: params.notes || null,
+          sender_name: senderName,
         },
       });
 
