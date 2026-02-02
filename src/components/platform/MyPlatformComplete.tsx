@@ -1234,6 +1234,8 @@ export default function MyPlatformComplete({
     // ✅ حفظ التغيير مباشرة في قاعدة البيانات
     try {
       await updateListing(offerId, { isHidden: newHidden });
+      // ✅ إعادة جلب العروض لضمان تحديث dbListings المُمرر لتبويب المنصة
+      await fetchListings();
       toast.success(newHidden ? 'تم إخفاء العرض من المنصة العامة' : 'تم إظهار العرض على المنصة العامة');
     } catch (error) {
       console.error('Error updating visibility in database:', error);

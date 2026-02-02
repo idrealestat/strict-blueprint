@@ -268,15 +268,21 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       return;
     }
 
-  // (2) تبويب المنصة للمالك: المصدر هو قاعدة البيانات (نفس مصدر تبويب العروض)
-    // ✅ يعرض فقط العروض الظاهرة (غير المخفية) كما يراها الزوار
-    // ✅ إصلاح: نتحقق من وجود ownerDbListings ونبني الهرمية فوراً
-    console.log('[MyPublicPlatformContent] Owner mode - ownerDbListings:', ownerDbListings?.length, 'slug:', currentSlug);
+    // (2) تبويب المنصة للمالك: المصدر هو العروض القادمة من المكون الأب
+    // ✅ إصلاح: نستخدم ownerListingsFromParent أولاً (إذا توفر) لضمان التزامن مع تبويب العروض
+    const hasParentListings = ownerListingsFromParent && ownerListingsFromParent.length > 0;
+    const listingsSource = hasParentListings ? ownerListingsFromParent : ownerDbListings;
     
-    if (ownerDbListings && ownerDbListings.length > 0) {
-      // فلترة العروض المخفية والمسودات - تبويب المنصة يعرض ما يراه الزوار فقط
-      const visibleListings = ownerDbListings.filter(listing => 
-        listing.status === 'published' && !listing.isHidden
+    console.log('[MyPublicPlatformContent] Owner mode - source:', 
+      hasParentListings ? 'ownerListingsFromParent' : 'ownerDbListings',
+      'parentCount:', ownerListingsFromParent?.length || 0,
+      'dbCount:', ownerDbListings?.length || 0,
+      'using:', listingsSource?.length || 0);
+    
+    if (listingsSource && listingsSource.length > 0) {
+      // ✅ فلترة العروض المخفية والمسودات - تبويب المنصة يعرض ما يراه الزوار فقط
+      const visibleListings = listingsSource.filter((listing: any) => 
+        listing.status === 'published' && !listing.isHidden && !listing.is_hidden
       );
       
       console.log('[MyPublicPlatformContent] Visible listings for platform tab:', visibleListings.length);
@@ -289,10 +295,11 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         setHierarchyData([]);
         setAllListings([]);
       }
-    } else {
-      // ✅ إصلاح: لا نمسح البيانات إذا كان الجلب لا يزال جارياً
-      // نترك البيانات الحالية حتى يكتمل الجلب
-      console.log('[MyPublicPlatformContent] No ownerDbListings yet, keeping current state');
+    } else if (!ownerDbLoading) {
+      // ✅ إصلاح: نمسح البيانات فقط إذا اكتمل الجلب ولا توجد عروض
+      console.log('[MyPublicPlatformContent] No listings found, clearing state');
+      setHierarchyData([]);
+      setAllListings([]);
     }
 
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
@@ -420,7 +427,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     publicDbError,
     publicDbListings,
     ownerDbListings,
+    ownerListingsFromParent,
     ownerFetchListings,
+    ownerDbLoading,
     currentUser,
     STORAGE_KEY,
     SWAP_KEY,
