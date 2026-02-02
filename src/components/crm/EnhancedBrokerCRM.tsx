@@ -1351,21 +1351,23 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         const containerRect = container.getBoundingClientRect();
         
         // Check for VERTICAL scroll first (within column)
+        // المنطق: عند السحب للأسفل (قرب الحافة السفلية) → scroll DOWN لإظهار المزيد من الأسفل
+        // عند السحب للأعلى (قرب الحافة العلوية) → scroll UP لإظهار المزيد من الأعلى
         if (columnElement) {
           const columnRect = columnElement.getBoundingClientRect();
           
           if (touch.clientY > columnRect.bottom - verticalEdgeThreshold) {
-            // Near bottom - scroll down
+            // قريب من الحافة السفلية - المستخدم يسحب للأسفل - نريد scroll DOWN لإظهار المزيد
             autoScrollIntervalRef.current = setInterval(() => {
               columnElement.scrollTop += verticalScrollSpeed;
             }, 16);
-            return; // Don't do horizontal scroll if doing vertical
+            return;
           } else if (touch.clientY < columnRect.top + verticalEdgeThreshold) {
-            // Near top - scroll up
+            // قريب من الحافة العلوية - المستخدم يسحب للأعلى - نريد scroll UP لإظهار المزيد
             autoScrollIntervalRef.current = setInterval(() => {
               columnElement.scrollTop -= verticalScrollSpeed;
             }, 16);
-            return; // Don't do horizontal scroll if doing vertical
+            return;
           }
         }
         
@@ -1901,43 +1903,44 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
 
           {/* Kanban View */}
           <TabsContent value="kanban" className="mt-0 relative">
-            {/* Mobile Drag Hint Overlay */}
+            {/* Mobile Drag Hint Overlay - مع زر إغلاق واضح واختفاء تلقائي */}
             <AnimatePresence>
               {showDragHint && (
                 <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="absolute top-0 left-0 right-0 z-40 mx-4"
+                  className="absolute top-2 left-2 right-2 z-40"
                 >
-                  <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-white rounded-xl p-4 shadow-2xl border-2 border-[#D4AF37]">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-12 h-12 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
-                        <GripVertical className="w-6 h-6 text-[#D4AF37] animate-pulse" />
+                  <div className="bg-gradient-to-r from-[#01411C] to-[#065f41] text-white rounded-xl p-3 shadow-2xl border-2 border-[#D4AF37] relative">
+                    {/* زر الإغلاق - أكبر وأوضح */}
+                    <button
+                      onClick={dismissDragHint}
+                      className="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg border-2 border-white transition-colors z-10"
+                    >
+                      <X className="w-5 h-5 text-white" />
+                    </button>
+                    
+                    <div className="flex items-center gap-3 pr-2">
+                      <div className="flex-shrink-0 w-10 h-10 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
+                        <GripVertical className="w-5 h-5 text-[#D4AF37] animate-pulse" />
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-sm mb-1">💡 نقل بطاقات العملاء</h4>
-                        <p className="text-xs text-white/90 leading-relaxed">
-                          اضغط مطولاً على أي بطاقة عميل لمدة ثانية واحدة، ثم اسحبها إلى العمود المطلوب
+                        <p className="text-[11px] text-white/90 leading-relaxed">
+                          اضغط مطولاً على البطاقة ثم اسحبها للعمود المطلوب
                         </p>
-                        <div className="flex items-center gap-2 mt-2 text-[10px] text-[#D4AF37]">
-                          <span>👆</span>
-                          <span>ضغط مطول</span>
-                          <span>→</span>
-                          <span>👋</span>
-                          <span>سحب</span>
-                          <span>→</span>
-                          <span>✅</span>
-                          <span>إفلات</span>
-                        </div>
                       </div>
-                      <button
-                        onClick={dismissDragHint}
-                        className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
                     </div>
+                    
+                    {/* شريط تقدم للاختفاء التلقائي */}
+                    <motion.div
+                      initial={{ width: '100%' }}
+                      animate={{ width: '0%' }}
+                      transition={{ duration: 8, ease: 'linear' }}
+                      onAnimationComplete={dismissDragHint}
+                      className="absolute bottom-0 left-0 h-1 bg-[#D4AF37] rounded-b-xl"
+                    />
                   </div>
                 </motion.div>
               )}
