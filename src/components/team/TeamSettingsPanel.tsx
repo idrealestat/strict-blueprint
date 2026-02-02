@@ -33,23 +33,35 @@ import {
 import { useTeamManagement, type TeamSettings } from '@/hooks/useTeamManagement';
 import { toast } from 'sonner';
 
+// الإعدادات الافتراضية إذا لم تكن موجودة
+const DEFAULT_SETTINGS: Partial<TeamSettings> = {
+  share_customers_enabled: false,
+  customer_visibility: 'private',
+  smart_opportunities_rotation: true,
+  opportunity_timeout_hours: 24,
+  require_approval_for_publishing: false,
+  notify_admin_on_customer_add: true,
+  notify_admin_on_opportunity_action: true,
+  notify_admin_on_property_publish: true,
+};
+
 export default function TeamSettingsPanel() {
   const { settings, isLoading, updateTeamSettings } = useTeamManagement();
-  const [localSettings, setLocalSettings] = useState<Partial<TeamSettings> | null>(null);
+  const [localSettings, setLocalSettings] = useState<Partial<TeamSettings>>(DEFAULT_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     if (settings) {
       setLocalSettings({
-        share_customers_enabled: settings.share_customers_enabled,
-        customer_visibility: settings.customer_visibility,
-        smart_opportunities_rotation: settings.smart_opportunities_rotation,
-        opportunity_timeout_hours: settings.opportunity_timeout_hours,
-        require_approval_for_publishing: settings.require_approval_for_publishing,
-        notify_admin_on_customer_add: settings.notify_admin_on_customer_add,
-        notify_admin_on_opportunity_action: settings.notify_admin_on_opportunity_action,
-        notify_admin_on_property_publish: settings.notify_admin_on_property_publish,
+        share_customers_enabled: settings.share_customers_enabled ?? false,
+        customer_visibility: settings.customer_visibility ?? 'private',
+        smart_opportunities_rotation: settings.smart_opportunities_rotation ?? true,
+        opportunity_timeout_hours: settings.opportunity_timeout_hours ?? 24,
+        require_approval_for_publishing: settings.require_approval_for_publishing ?? false,
+        notify_admin_on_customer_add: settings.notify_admin_on_customer_add ?? true,
+        notify_admin_on_opportunity_action: settings.notify_admin_on_opportunity_action ?? true,
+        notify_admin_on_property_publish: settings.notify_admin_on_property_publish ?? true,
       });
     }
   }, [settings]);
@@ -58,7 +70,7 @@ export default function TeamSettingsPanel() {
     key: K,
     value: TeamSettings[K]
   ) => {
-    setLocalSettings(prev => prev ? { ...prev, [key]: value } : null);
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
 
@@ -76,7 +88,7 @@ export default function TeamSettingsPanel() {
     }
   };
 
-  if (isLoading || !localSettings) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
