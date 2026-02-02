@@ -51,6 +51,7 @@ const SlugPlatformPage: React.FC = () => {
       }
 
       try {
+        console.log('[SlugPlatformPage] Fetching business card for slug:', slug);
         const { data, error } = await supabase
           .from('business_cards')
           .select('*')
@@ -58,9 +59,13 @@ const SlugPlatformPage: React.FC = () => {
           .eq('published', true)
           .maybeSingle();
 
+        console.log('[SlugPlatformPage] Result:', { data, error });
+
         // مهم: صفحة المنصة العامة يجب أن تعمل حتى بدون بطاقة أعمال منشورة.
         // لذلك لا نعامل غياب البطاقة كـ 404.
-        if (error) console.warn('[SlugPlatformPage] business_cards lookup failed:', error);
+        if (error) {
+          console.warn('[SlugPlatformPage] business_cards lookup failed:', error);
+        }
         setBusinessCard((data as BusinessCardData) ?? null);
       } catch (err) {
         // نفس المبدأ: لا نمنع عرض المنصة بسبب فشل جلب البطاقة.
