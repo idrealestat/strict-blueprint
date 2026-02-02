@@ -398,8 +398,9 @@ const UserTitleSelector: React.FC<UserTitleSelectorProps> = ({
     }
   };
 
-  // الدومين الأساسي للمنصة (من متغيرات البيئة)
-  const baseDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+  // الدومين الأساسي للمنصة (ثابت للمشاركة والعرض داخل التطبيق)
+  // ملاحظة: لا نعرض دومين المعاينة هنا حتى لا يختلط على المستخدم.
+  const baseDomain = 'wasataai.com';
 
   return (
     <div className="space-y-2">
