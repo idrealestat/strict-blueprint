@@ -33,6 +33,8 @@ export interface FeatureFlags {
   official_business_card_enabled: boolean;
   // CRM Features
   crm_calls_section_enabled: boolean;
+  // Floating Bubble (Owner Controlled)
+  floating_bubble_enabled: boolean;
 }
 
 // Feature flag keys for iteration
@@ -50,6 +52,7 @@ export const FEATURE_FLAG_KEYS: (keyof FeatureFlags)[] = [
   'business_card_add_colleague_enabled',
   'official_business_card_enabled',
   'crm_calls_section_enabled',
+  'floating_bubble_enabled',
 ];
 
 // Human-readable labels for each feature
@@ -67,6 +70,7 @@ export const FEATURE_FLAG_LABELS: Record<keyof FeatureFlags, string> = {
   business_card_add_colleague_enabled: 'إضافة زميل',
   official_business_card_enabled: 'البطاقة الرسمية للطباعة',
   crm_calls_section_enabled: 'قسم الاتصالات',
+  floating_bubble_enabled: 'المساعد الذكي العائم',
 };
 
 // Feature categories for UI grouping
@@ -76,6 +80,7 @@ export const FEATURE_CATEGORIES = {
   right_slider: ['right_slider_mediation_course_enabled', 'right_slider_team_management_enabled', 'right_slider_workspace_enabled', 'right_slider_owner_panel_enabled'] as (keyof FeatureFlags)[],
   business_card: ['business_card_add_colleague_enabled', 'official_business_card_enabled'] as (keyof FeatureFlags)[],
   crm: ['crm_calls_section_enabled'] as (keyof FeatureFlags)[],
+  assistant: ['floating_bubble_enabled'] as (keyof FeatureFlags)[],
 };
 
 interface FeatureFlagsContextValue {
@@ -105,6 +110,7 @@ const systemFallbackDefaults: FeatureFlags = {
   business_card_add_colleague_enabled: true,
   official_business_card_enabled: true,
   crm_calls_section_enabled: true,
+  floating_bubble_enabled: true,
 };
 
 const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({
