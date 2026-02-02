@@ -2028,6 +2028,7 @@ export default function MyPlatformComplete({
               }))}
               mode={comparisonMode}
               onModeChange={(m) => setComparisonMode(m)}
+              getOfferViewers={getOfferViewers}
             />
 
             {/* Search & Filters */}

@@ -43,6 +43,7 @@ interface OfferPerformance {
   favorites: number;
   conversionRate: number;
   avgTimeOnPage: number; // seconds
+  liveViewers?: number; // ✅ المشاهدين المباشرين الآن
   history?: { date: string; views: number; interactions: number }[];
 }
 
@@ -56,6 +57,7 @@ const COLORS = ['#01411C', '#D4AF37', '#3B82F6', '#8B5CF6', '#EF4444', '#10B981'
 
 const chartConfig = {
   views: { label: 'المشاهدات', color: '#01411C' },
+  liveViewers: { label: 'مباشر الآن', color: '#EF4444' }, // ✅ عمود المباشر
   calls: { label: 'المكالمات', color: '#3B82F6' },
   whatsapp: { label: 'واتساب', color: '#10B981' },
   shares: { label: 'المشاركات', color: '#F59E0B' },
@@ -118,6 +120,7 @@ const OffersPerformanceComparison: React.FC<OffersPerformanceComparisonProps> = 
     name: o.title.length > 20 ? o.title.substring(0, 20) + '...' : o.title,
     fullTitle: o.title,
     views: o.views,
+    liveViewers: o.liveViewers || 0, // ✅ المباشر الآن
     calls: o.calls,
     whatsapp: o.whatsapp,
     shares: o.shares,
@@ -294,6 +297,7 @@ const OffersPerformanceComparison: React.FC<OffersPerformanceComparisonProps> = 
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
                       <Bar dataKey="views" name="المشاهدات" fill="#01411C" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="liveViewers" name="مباشر الآن" fill="#EF4444" radius={[0, 4, 4, 0]} />
                       <Bar dataKey="calls" name="المكالمات" fill="#3B82F6" radius={[0, 4, 4, 0]} />
                       <Bar dataKey="whatsapp" name="واتساب" fill="#10B981" radius={[0, 4, 4, 0]} />
                     </BarChart>
@@ -354,6 +358,17 @@ const OffersPerformanceComparison: React.FC<OffersPerformanceComparisonProps> = 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{offer.title}</p>
                       <p className="text-xs text-gray-500">{offer.city}</p>
+                    </div>
+                    {/* ✅ عمود المشاهدين المباشرين */}
+                    <div className="text-center">
+                      {(offer.liveViewers || 0) > 0 ? (
+                        <div className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded-lg text-xs animate-pulse">
+                          <Eye className="w-3 h-3" />
+                          <span>{offer.liveViewers}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-300">-</span>
+                      )}
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-bold text-[#01411C]">{offer.views.toLocaleString('ar-SA')}</p>

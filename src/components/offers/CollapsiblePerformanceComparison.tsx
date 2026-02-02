@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronDown, BarChart2, TrendingUp } from "lucide-react";
+import { ChevronDown, BarChart2, TrendingUp, Eye } from "lucide-react";
 import { OffersPerformanceComparison } from "@/components/analytics";
 
 interface OfferPerformance {
@@ -15,24 +15,38 @@ interface OfferPerformance {
   favorites: number;
   conversionRate: number;
   avgTimeOnPage: number;
+  liveViewers?: number; // ✅ المشاهدين المباشرين الآن
 }
 
 interface CollapsiblePerformanceComparisonProps {
   offers: OfferPerformance[];
   mode?: 'top5' | 'manual' | 'all';
   onModeChange?: (mode: 'top5' | 'manual' | 'all') => void;
+  getOfferViewers?: (offerId: string) => number; // ✅ دالة جلب المشاهدين المباشرين
 }
 
 const CollapsiblePerformanceComparison = ({
   offers,
   mode = 'top5',
-  onModeChange
+  onModeChange,
+  getOfferViewers
 }: CollapsiblePerformanceComparisonProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // ✅ حساب إجمالي المشاهدين المباشرين الآن
+  const totalLiveViewers = getOfferViewers 
+    ? offers.reduce((sum, o) => sum + (getOfferViewers(o.id) || 0), 0)
+    : 0;
 
   const topOffer = offers.length > 0 
     ? offers.reduce((max, o) => o.views > max.views ? o : max, offers[0])
     : null;
+
+  // ✅ إضافة المشاهدين المباشرين لكل عرض
+  const offersWithLive = offers.map(o => ({
+    ...o,
+    liveViewers: getOfferViewers ? getOfferViewers(o.id) : 0,
+  }));
 
   return (
     <div className="space-y-0" dir="rtl">
@@ -69,6 +83,13 @@ const CollapsiblePerformanceComparison = ({
                       <span>{topOffer.views} مشاهدة</span>
                     </div>
                   )}
+                  {/* ✅ شارة المشاهدين المباشرين الآن */}
+                  {totalLiveViewers > 0 && (
+                    <div className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-lg text-xs animate-pulse">
+                      <Eye className="w-3 h-3" />
+                      <span>{totalLiveViewers} مباشر</span>
+                    </div>
+                  )}
                 </div>
                 <motion.div
                   animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -94,7 +115,7 @@ const CollapsiblePerformanceComparison = ({
           >
             <div className="pt-4">
               <OffersPerformanceComparison
-                offers={offers}
+                offers={offersWithLive}
                 mode={mode}
                 onModeChange={onModeChange}
               />
