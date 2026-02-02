@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -441,9 +440,9 @@ export default function PlatformConnectionsTab({
   };
 
   return (
-    <ScrollArea className="h-full w-full">
+    <div className="h-full w-full overflow-y-auto overflow-x-clip">
       <div
-        className="p-3 sm:p-4 space-y-3 sm:space-y-4 w-full max-w-full overflow-x-hidden box-border min-w-0 [&_*]:max-w-full [&_*]:min-w-0"
+        className="p-3 sm:p-4 space-y-3 sm:space-y-4 w-full max-w-full overflow-x-clip box-border min-w-0 [&_*]:max-w-full [&_*]:min-w-0"
         dir="rtl"
       >
         {/* Header */}
@@ -587,6 +586,6 @@ export default function PlatformConnectionsTab({
           </CardContent>
         </Card>
       </div>
-    </ScrollArea>
+    </div>
   );
 }
