@@ -164,6 +164,39 @@ const SlugOfferDetailsPage: React.FC = () => {
           .update({ views: (foundListing.views || 0) + 1 })
           .eq('id', foundListing.id);
 
+        // ✅ تسجيل المشاهدة في offer_views_log لصاحب العرض
+        // هذا يجعل الإحصائيات تظهر في لوحة تحكم الوسيط
+        const viewerDevice = /Mobile|Android|iPhone/.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
+        const viewerBrowser = navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                              navigator.userAgent.includes('Firefox') ? 'Firefox' : 
+                              navigator.userAgent.includes('Safari') ? 'Safari' : 'Unknown';
+        const viewerOS = navigator.userAgent.includes('Windows') ? 'Windows' : 
+                         navigator.userAgent.includes('Mac') ? 'macOS' : 
+                         navigator.userAgent.includes('Android') ? 'Android' : 
+                         navigator.userAgent.includes('iPhone') ? 'iOS' : 'Unknown';
+
+        // تسجيل في جدول offer_views_log باستخدام user_id صاحب العرض
+        if (businessCard?.user_id) {
+          await supabase
+            .from('offer_views_log')
+            .insert({
+              user_id: businessCard.user_id,
+              offer_id: foundListing.id,
+              offer_title: foundListing.title,
+              city: foundListing.city,
+              device: viewerDevice,
+              browser: viewerBrowser,
+              os: viewerOS,
+              referrer: document.referrer || null,
+              session_id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              metadata: {
+                district: foundListing.district,
+                price: foundListing.price,
+                brokerSlug: slug,
+              },
+            });
+        }
+
         // ✅ تسجيل الحدث في قاعدة البيانات
         trackEvent({
           eventName: 'offer_view',
