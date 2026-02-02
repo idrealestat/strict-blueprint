@@ -296,7 +296,15 @@ END:VCARD`;
     toast.success("تم تحميل البطاقة!");
   };
 
-  const PLATFORM_BASE_URL = `https://${import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com'}`;
+  // استخدام origin الحالي للتطوير، و wasataai.com للإنتاج
+  const isLocalOrPreview = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname.includes('lovableproject.com') ||
+    window.location.hostname.includes('lovable.app')
+  );
+  const PLATFORM_BASE_URL = isLocalOrPreview 
+    ? window.location.origin 
+    : `https://${import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com'}`;
 
   // slug يجب أن يأتي من قاعدة البيانات (business_cards.slug). نستخدم localStorage فقط كـ fallback.
   const [dbSlug, setDbSlug] = useState<string>('');
