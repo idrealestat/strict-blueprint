@@ -2266,10 +2266,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                             const interestColors = INTEREST_LEVEL_COLORS[customer.interestLevel || 'moderate'];
                             
                             return (
-                              <div key={customer.id}>
-                                {/* خط أخضر مؤشر للإفلات قبل البطاقة */}
+                              <div key={customer.id} className="relative">
+                                {/* خط أخضر مؤشر للإفلات قبل البطاقة - absolute لا يدفع البطاقات */}
                                 {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex && (
-                                  <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
+                                  <div className="absolute -top-1 left-0 right-0 h-1.5 bg-green-500 rounded-full animate-pulse z-50 shadow-lg shadow-green-500/50" />
                                 )}
                                 
                                 <div
@@ -2839,9 +2839,9 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 />
                                 </div>
                               
-                              {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة */}
+                              {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة - absolute لا يدفع البطاقات */}
                               {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex + 1 && customerIndex === columnCustomers.length - 1 && (
-                                <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
+                                <div className="absolute -bottom-1 left-0 right-0 h-1.5 bg-green-500 rounded-full animate-pulse z-50 shadow-lg shadow-green-500/50" />
                               )}
                             </div>
                           );
