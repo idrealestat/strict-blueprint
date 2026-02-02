@@ -101,15 +101,16 @@ const SlugDistrictPage: React.FC = () => {
       }
 
       try {
-        // جلب بيانات الوسيط
-        const { data: businessCard } = await supabase
+        // جلب بيانات الوسيط - نستخدم maybeSingle لتجنب الخطأ عند عدم وجود البيانات
+        const { data: businessCard, error: cardError } = await supabase
           .from('business_cards')
           .select('user_id, data')
           .eq('slug', slug)
           .eq('published', true)
-          .single();
+          .maybeSingle();
 
-        if (!businessCard) {
+        if (cardError || !businessCard) {
+          console.log('[SlugDistrictPage] Business card not found or error:', cardError);
           setNotFound(true);
           setLoading(false);
           return;
