@@ -17,20 +17,7 @@ import { toast } from 'sonner';
 import PublicFormLayout, { BrokerInfo } from './PublicFormLayout';
 import { supabase } from '@/integrations/supabase/client';
 
-const getMockBroker = (brokerId: string): BrokerInfo => ({
-  id: brokerId,
-  name: 'أحمد محمد',
-  company: 'شركة الوساطة العقارية',
-  phone: '0512345678',
-  email: 'ahmed@example.com',
-  location: 'الرياض',
-  licenseNumber: 'FAL-12345678',
-  rating: 4.8,
-  verified: true,
-  profileImage: '',
-  coverImage: '',
-  logoImage: '',
-});
+// ⚠️ محمي: لا يُسمح بإعادة البيانات الوهمية - يجب استخدام البيانات الحقيقية فقط من قاعدة البيانات
 
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "محل تجاري", "مكتب"];
 const purposeTypes = ["شراء", "إيجار"];
@@ -106,13 +93,20 @@ export default function PublicPriceQuoteForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [brokerUserId, setBrokerUserId] = useState<string | null>(null);
-  const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
+  const [broker, setBroker] = useState<BrokerInfo | null>(null);
+  const [isLoadingBroker, setIsLoadingBroker] = useState(true);
   
   // جلب بيانات الوسيط من business_card إذا كان slug موجود
   useEffect(() => {
     const fetchBrokerData = async () => {
       const identifier = slug || brokerId;
-      if (identifier) {
+      if (!identifier) {
+        setIsLoadingBroker(false);
+        return;
+      }
+      
+      setIsLoadingBroker(true);
+      try {
         const { data } = await supabase
           .from('business_cards')
           .select('user_id, data')
@@ -123,7 +117,7 @@ export default function PublicPriceQuoteForm() {
         if (data) {
           setBrokerUserId(data.user_id);
           const cardData = data.data as Record<string, any>;
-          setFetchedBroker({
+          setBroker({
             id: identifier,
             name: cardData?.name || cardData?.userName || 'وسيط عقاري',
             company: cardData?.company || cardData?.companyName || '',
@@ -138,12 +132,14 @@ export default function PublicPriceQuoteForm() {
             logoImage: cardData?.logoImage || '',
           });
         }
+      } catch (error) {
+        console.error('Error loading broker data:', error);
+      } finally {
+        setIsLoadingBroker(false);
       }
     };
     fetchBrokerData();
   }, [brokerId, slug]);
-  
-  const broker = fetchedBroker || getMockBroker(brokerId || slug || '1');
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
@@ -272,6 +268,18 @@ export default function PublicPriceQuoteForm() {
       setIsSubmitting(false);
     }
   };
+
+  // ⚠️ محمي: عرض شاشة تحميل حتى جلب بيانات الوسيط الحقيقية
+  if (isLoadingBroker || !broker) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] flex items-center justify-center" dir="rtl">
+        <div className="text-center text-white">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-[#D4AF37]" />
+          <p className="text-lg">جاري تحميل بيانات الوسيط...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (

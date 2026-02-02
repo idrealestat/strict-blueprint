@@ -28,6 +28,11 @@ interface PublicFormLayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * ⚠️ محمي: هذا الملف محمي من استخدام البيانات الوهمية
+ * يجب أن يُستخدم فقط مع بيانات الوسيط الحقيقية من قاعدة البيانات
+ * أي تعديل يتطلب موافقة المستخدم الصريحة
+ */
 export default function PublicFormLayout({ broker, title, children }: PublicFormLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C]" dir="rtl">

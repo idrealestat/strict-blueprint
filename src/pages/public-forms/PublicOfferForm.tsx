@@ -44,21 +44,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Mock broker data
-const getMockBroker = (brokerId: string): BrokerInfo => ({
-  id: brokerId,
-  name: 'أحمد محمد',
-  company: 'شركة الوساطة العقارية',
-  phone: '0512345678',
-  email: 'ahmed@example.com',
-  location: 'الرياض',
-  licenseNumber: 'FAL-12345678',
-  rating: 4.8,
-  verified: true,
-  profileImage: '',
-  coverImage: '',
-  logoImage: '',
-});
+// ⚠️ محمي: لا يُسمح بإعادة البيانات الوهمية - يجب استخدام البيانات الحقيقية فقط من قاعدة البيانات
 
 const propertyTypes = ["شقة", "فيلا", "عمارة", "أرض", "دور", "دوبلكس", "استوديو", "محل تجاري", "مكتب", "مستودع", "استراحة"];
 const purposes = ["للبيع", "للإيجار"];
@@ -218,7 +204,8 @@ export default function PublicOfferForm() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [warranties, setWarranties] = useState<Warranty[]>([]);
-  const [broker, setBroker] = useState<BrokerInfo>(getMockBroker(brokerSlug || '1'));
+  const [broker, setBroker] = useState<BrokerInfo | null>(null);
+  const [isLoadingBroker, setIsLoadingBroker] = useState(true);
   
   // Map states
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -239,8 +226,12 @@ export default function PublicOfferForm() {
   // تحميل بيانات الوسيط مع الصور من قاعدة البيانات
   useEffect(() => {
     const loadBrokerData = async () => {
-      if (!brokerSlug) return;
+      if (!brokerSlug) {
+        setIsLoadingBroker(false);
+        return;
+      }
       
+      setIsLoadingBroker(true);
       try {
         const { data: businessCard } = await supabase
           .from('business_cards')
@@ -268,6 +259,8 @@ export default function PublicOfferForm() {
         }
       } catch (error) {
         console.error('Error loading broker data:', error);
+      } finally {
+        setIsLoadingBroker(false);
       }
     };
     
@@ -828,6 +821,18 @@ export default function PublicOfferForm() {
       setIsSubmitting(false);
     }
   };
+
+  // ⚠️ محمي: عرض شاشة تحميل حتى جلب بيانات الوسيط الحقيقية
+  if (isLoadingBroker || !broker) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] flex items-center justify-center" dir="rtl">
+        <div className="text-center text-white">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-[#D4AF37]" />
+          <p className="text-lg">جاري تحميل بيانات الوسيط...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
