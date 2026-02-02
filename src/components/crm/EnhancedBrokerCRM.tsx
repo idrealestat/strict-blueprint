@@ -63,6 +63,7 @@ import {
   List,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Download,
   FileSpreadsheet,
   Check,
@@ -111,6 +112,8 @@ import AssignColleagueSubMenu from "./AssignColleagueSubMenu";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useCallLogsPermission } from "@/hooks/useCallLogsPermission";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
+import { useTeamManagement } from "@/hooks/useTeamManagement";
+import { useSharedCustomers } from "@/hooks/useSharedCustomers";
 import { clientTypes, interestLevels, reportCategories, ClientType, InterestLevel } from "@/types/offer";
 import { getFullUrl } from "@/utils/slugify";
 import CallLogsLinkingBanner from "./CallLogsLinkingBanner";
@@ -461,6 +464,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     deleteCustomer: dbDeleteCustomer,
     logActivity: logCustomerActivity
   } = useCRMCustomers();
+
+  // Team Management for colleague assignment
+  const { members: teamMembers } = useTeamManagement();
+  const { assignCustomerToMember } = useSharedCustomers(user?.id);
 
   // Map CRM customers to local Customer type
   const mapCRMToCustomer = useCallback((c: CRMCustomer): Customer => {
@@ -2930,6 +2937,94 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                                   <Check className="w-3 h-3 text-yellow-600" />
                                                   إنشاء مهمة
                                                 </button>
+                                                
+                                                <div className="border-t border-gray-100 my-1" />
+                                                
+                                                <div className="relative group/move">
+                                                  <button className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded">
+                                                    <div className="flex items-center gap-2">
+                                                      <ArrowRightLeft className="w-3 h-3 text-gray-600" />
+                                                      الانتقال إلى
+                                                    </div>
+                                                    <ChevronLeft className="w-3 h-3 text-gray-400" />
+                                                  </button>
+                                                  <div className="absolute left-full top-0 ml-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden group-hover/move:block">
+                                                    <div className="p-1 space-y-1">
+                                                      {columns.filter(col => col.id !== customer.metadata?.columnId).map(col => {
+                                                        const colColors = COLUMN_COLORS[col.id] || { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-700' };
+                                                        return (
+                                                          <button
+                                                            key={col.id}
+                                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded text-right"
+                                                            onClick={async () => {
+                                                              const columnStatusMap: Record<string, string> = {
+                                                                'leads': 'new',
+                                                                'contacted': 'contacted',
+                                                                'viewing': 'viewing',
+                                                                'negotiation': 'negotiation',
+                                                                'closed': 'closed',
+                                                                'lost': 'lost'
+                                                              };
+                                                              await dbUpdateCustomer(customer.id, {
+                                                                status: columnStatusMap[col.id] || col.id,
+                                                                metadata: { ...customer.metadata, columnId: col.id }
+                                                              });
+                                                              setShowActionsMenu(null);
+                                                              toast.success(`تم نقل العميل إلى ${col.title}`);
+                                                            }}
+                                                          >
+                                                            <div className={`w-2 h-2 rounded-full ${colColors.bg} ${colColors.border} border`} />
+                                                            {col.title}
+                                                          </button>
+                                                        );
+                                                      })}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                
+                                                {/* معين لـ - قائمة فرعية */}
+                                                <div className="relative group/assign">
+                                                  <button className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded">
+                                                    <div className="flex items-center gap-2">
+                                                      <UserCheck className="w-3 h-3 text-gray-600" />
+                                                      معين لـ
+                                                    </div>
+                                                    <ChevronLeft className="w-3 h-3 text-gray-400" />
+                                                  </button>
+                                                  <div className="absolute left-full top-0 ml-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden group-hover/assign:block">
+                                                    <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
+                                                      {teamMembers.filter(m => m.status === 'active' && m.member_user_id).length > 0 ? (
+                                                        teamMembers.filter(m => m.status === 'active' && m.member_user_id).map(member => (
+                                                          <button
+                                                            key={member.id}
+                                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded text-right"
+                                                            onClick={async () => {
+                                                              if (!member.member_user_id || !user?.id) return;
+                                                              await assignCustomerToMember({
+                                                                customerId: customer.id,
+                                                                assignToUserId: member.member_user_id,
+                                                                organizationUserId: user.id,
+                                                                notes: 'تعيين من قائمة الإجراءات',
+                                                              });
+                                                              await dbUpdateCustomer(customer.id, {
+                                                                metadata: { ...customer.metadata, assignedColleagueName: member.member_name }
+                                                              });
+                                                              setShowActionsMenu(null);
+                                                            }}
+                                                          >
+                                                            <UserCheck className="w-3 h-3 text-green-600" />
+                                                            {member.member_name}
+                                                          </button>
+                                                        ))
+                                                      ) : (
+                                                        <div className="px-3 py-2 text-xs text-gray-500 text-center">
+                                                          لا يوجد زملاء
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                
                                                 <div className="border-t border-gray-100 my-1" />
                                                 <button
                                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 rounded text-red-600"
