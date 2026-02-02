@@ -1166,8 +1166,67 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               </div>
             )}
 
+            {/* أزرار الإجراءات - من بطاقة الأعمال الرقمية */}
+            <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+              {/* إرسال طلب */}
+              <Button 
+                size="sm" 
+                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
+                onClick={() => {
+                  const url = `https://wasataai.com/${currentSlug}/request`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('تم نسخ رابط إرسال طلب');
+                  window.open(url, '_blank');
+                }}
+              >
+                📝 إرسال طلب
+              </Button>
+              
+              {/* إرسال عرض */}
+              <Button 
+                size="sm" 
+                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
+                onClick={() => {
+                  const url = `https://wasataai.com/${currentSlug}/offer`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('تم نسخ رابط إرسال عرض');
+                  window.open(url, '_blank');
+                }}
+              >
+                🏠 إرسال عرض
+              </Button>
+              
+              {/* عرض سعر */}
+              <Button 
+                size="sm" 
+                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
+                onClick={() => {
+                  const url = `https://wasataai.com/${currentSlug}/quote`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('تم نسخ رابط عرض السعر');
+                  window.open(url, '_blank');
+                }}
+              >
+                💰 عرض سعر
+              </Button>
+              
+              {/* إنشاء موعد */}
+              <Button 
+                size="sm" 
+                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
+                onClick={() => {
+                  const url = `https://wasataai.com/${currentSlug}/appointment`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('تم نسخ رابط إنشاء موعد');
+                  window.open(url, '_blank');
+                }}
+              >
+                📅 إنشاء موعد
+              </Button>
+            </div>
+
             {/* أزرار التواصل */}
-            <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+            <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
               <Button 
                 size="sm" 
                 className="bg-green-500 hover:bg-green-600 text-white"
@@ -1227,6 +1286,33 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               >
                 <Download className="w-4 h-4 ml-2" />
                 حفظ جهة الاتصال
+              </Button>
+              
+              {/* مشاركة البطاقة */}
+              <Button 
+                size="sm" 
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                onClick={async () => {
+                  const cardUrl = `https://wasataai.com/${currentSlug}/card`;
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: `بطاقة أعمال - ${effectiveBusinessCardData?.userName || 'وسيط عقاري'}`,
+                        text: 'تفضل بزيارة بطاقتي الرقمية',
+                        url: cardUrl,
+                      });
+                    } catch {
+                      navigator.clipboard.writeText(cardUrl);
+                      toast.success('تم نسخ رابط البطاقة!');
+                    }
+                  } else {
+                    navigator.clipboard.writeText(cardUrl);
+                    toast.success('تم نسخ رابط البطاقة!');
+                  }
+                }}
+              >
+                <Share2 className="w-4 h-4 ml-2" />
+                مشاركة البطاقة
               </Button>
             </div>
           </div>
