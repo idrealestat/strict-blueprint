@@ -2375,6 +2375,66 @@ export type Database = {
         }
         Relationships: []
       }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_user_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          invitation_token: string
+          invited_by: string
+          invited_email: string | null
+          invited_fal_license: string | null
+          invited_name: string | null
+          invited_role: string
+          invited_whatsapp: string | null
+          notes: string | null
+          organization_user_id: string
+          permissions: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by: string
+          invited_email?: string | null
+          invited_fal_license?: string | null
+          invited_name?: string | null
+          invited_role?: string
+          invited_whatsapp?: string | null
+          notes?: string | null
+          organization_user_id: string
+          permissions?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_by?: string
+          invited_email?: string | null
+          invited_fal_license?: string | null
+          invited_name?: string | null
+          invited_role?: string
+          invited_whatsapp?: string | null
+          notes?: string | null
+          organization_user_id?: string
+          permissions?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_notifications: {
         Row: {
           created_at: string | null

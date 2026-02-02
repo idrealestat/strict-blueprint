@@ -86,10 +86,17 @@ export default function AuthPage() {
   const { isAuthenticated, loading, user } = useAuth();
   const navigate = useNavigate();
 
-  // توجيه المستخدم المسجل مباشرة
+  // توجيه المستخدم المسجل مباشرة أو للدعوة المعلقة
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      navigate('/app/dashboard');
+      // التحقق من وجود دعوة معلقة
+      const pendingInvitation = localStorage.getItem('pendingInvitation');
+      if (pendingInvitation) {
+        localStorage.removeItem('pendingInvitation');
+        navigate(`/join/${pendingInvitation}`);
+      } else {
+        navigate('/app/dashboard');
+      }
     }
   }, [isAuthenticated, loading, navigate, user]);
 

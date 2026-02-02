@@ -56,6 +56,7 @@ import SlugQuotePage from "./pages/SlugQuotePage";
 import SlugAppointmentApprovalBroker from "./pages/SlugAppointmentApprovalBroker";
 import SlugAppointmentApprovalCustomer from "./pages/SlugAppointmentApprovalCustomer";
 import ChoosePlanPage from "./pages/ChoosePlanPage";
+import JoinTeamPage from "./pages/JoinTeamPage";
 import { AuthProvider } from "./context/AuthContext";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import { EntitlementsProvider } from "./context/EntitlementsContext";
@@ -584,6 +585,9 @@ const App = () => {
                   {/* تجاوز مؤقت للاختبار - يجب إعادة الحماية لاحقاً */}
                   <Route path="/app/offers-requests" element={<OffersRequestsPage />} />
                   <Route path="/app/smart-opportunities" element={<SmartOpportunitiesPage />} />
+                  
+                  {/* صفحة الانضمام للفريق */}
+                  <Route path="/join/:token" element={<JoinTeamPage />} />
                   
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
