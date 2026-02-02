@@ -626,28 +626,6 @@ export default function NotificationsSidebar({
               )}
             </div>
 
-            {/* Collapsible Settings & Smart Alerts */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
-              {/* إعدادات الإشعارات */}
-              <CollapsibleNotificationSettings
-                notificationsEnabled={notificationsEnabled}
-                soundEnabled={notificationSoundEnabled}
-                onSettingsChange={(enabled, sound) => {
-                  setNotificationsEnabled(enabled);
-                  setNotificationSoundEnabled(sound);
-                }}
-              />
-
-              {/* التنبيهات الذكية */}
-              {offers.length > 0 && (
-                <SmartAlertsPanel
-                  offers={offers}
-                  onAlertClick={(offerId) => {
-                    onClose();
-                  }}
-                />
-              )}
-            </div>
 
             {/* Footer */}
             <div className="p-4 border-t border-gray-200 bg-gray-50">
