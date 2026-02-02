@@ -2856,190 +2856,172 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       {/* ✅ الشريط السفلي الثلاثي: الإجراءات - التفاصيل - المشاركة */}
                                       <div className="px-2 py-2 border-t border-gray-100 grid grid-cols-3 gap-1">
                                         {/* 1. زر الإجراءات مع قائمة منبثقة */}
-                                        <div className="relative">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="w-full text-[10px] h-7 px-1 border-blue-300 text-blue-700 hover:bg-blue-50"
-                                            onClick={(e) => handleActionsClick(e, customer.id)}
-                                          >
-                                            <Settings className="w-3 h-3 ml-1" />
-                                            الإجراءات
-                                          </Button>
-                                          
-                                          {/* قائمة الإجراءات المنبثقة */}
-                                          {showActionsMenu === customer.id && (
-                                            <div 
-                                              className="absolute bottom-full mb-1 right-0 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-                                              onClick={(e) => e.stopPropagation()}
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full text-[10px] h-7 px-1 border-blue-300 text-blue-700 hover:bg-blue-50"
                                             >
-                                              <div className="p-1 space-y-1">
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 rounded"
-                                                  onClick={() => {
-                                                    logCustomerActivity(customer.id, 'call', { description: 'اتصال صادر' });
-                                                    window.location.href = `tel:${customer.phone}`;
-                                                    setShowActionsMenu(null);
-                                                  }}
-                                                >
-                                                  <Phone className="w-3 h-3 text-blue-600" />
-                                                  اتصال
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded"
-                                                  onClick={() => {
-                                                    logCustomerActivity(customer.id, 'whatsapp', { description: 'محادثة واتساب' });
-                                                    window.open(`https://wa.me/${customer.phone}`, '_blank');
-                                                    setShowActionsMenu(null);
-                                                  }}
-                                                >
-                                                  <MessageSquare className="w-3 h-3 text-green-600" />
-                                                  واتساب
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-purple-50 rounded"
-                                                  onClick={() => {
-                                                    if (customer.email) {
-                                                      logCustomerActivity(customer.id, 'email', { description: 'بريد إلكتروني' });
-                                                      window.location.href = `mailto:${customer.email}`;
-                                                    } else {
-                                                      toast.error('لا يوجد بريد إلكتروني');
-                                                    }
-                                                    setShowActionsMenu(null);
-                                                  }}
-                                                >
-                                                  <Mail className="w-3 h-3 text-purple-600" />
-                                                  بريد إلكتروني
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-orange-50 rounded"
-                                                  onClick={() => {
-                                                    logCustomerActivity(customer.id, 'appointment_added', { title: 'موعد جديد' });
-                                                    window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
-                                                      detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
-                                                    }));
-                                                    setShowActionsMenu(null);
-                                                  }}
-                                                >
-                                                  <Calendar className="w-3 h-3 text-orange-600" />
-                                                  جدولة موعد
-                                                </button>
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-yellow-50 rounded"
-                                                  onClick={() => {
-                                                    logCustomerActivity(customer.id, 'task_added', { title: 'مهمة جديدة' });
-                                                    window.dispatchEvent(new CustomEvent('createTaskFromCRM', {
-                                                      detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
-                                                    }));
-                                                    setShowActionsMenu(null);
-                                                  }}
-                                                >
-                                                  <Check className="w-3 h-3 text-yellow-600" />
-                                                  إنشاء مهمة
-                                                </button>
-                                                
-                                                <div className="border-t border-gray-100 my-1" />
-                                                
-                                                <div className="relative group/move">
-                                                  <button className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded">
-                                                    <div className="flex items-center gap-2">
-                                                      <ArrowRightLeft className="w-3 h-3 text-gray-600" />
-                                                      الانتقال إلى
+                                              <Settings className="w-3 h-3 ml-1" />
+                                              الإجراءات
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent 
+                                            align="end" 
+                                            side="top" 
+                                            className="w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999]"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <DropdownMenuItem
+                                              className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                              onClick={() => {
+                                                logCustomerActivity(customer.id, 'call', { description: 'اتصال صادر' });
+                                                window.location.href = `tel:${customer.phone}`;
+                                              }}
+                                            >
+                                              <Phone className="w-3 h-3 text-blue-600" />
+                                              اتصال
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                              onClick={() => {
+                                                logCustomerActivity(customer.id, 'whatsapp', { description: 'محادثة واتساب' });
+                                                window.open(`https://wa.me/${customer.phone}`, '_blank');
+                                              }}
+                                            >
+                                              <MessageSquare className="w-3 h-3 text-green-600" />
+                                              واتساب
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                              onClick={() => {
+                                                if (customer.email) {
+                                                  logCustomerActivity(customer.id, 'email', { description: 'بريد إلكتروني' });
+                                                  window.location.href = `mailto:${customer.email}`;
+                                                } else {
+                                                  toast.error('لا يوجد بريد إلكتروني');
+                                                }
+                                              }}
+                                            >
+                                              <Mail className="w-3 h-3 text-purple-600" />
+                                              بريد إلكتروني
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                              onClick={() => {
+                                                logCustomerActivity(customer.id, 'appointment_added', { title: 'موعد جديد' });
+                                                window.dispatchEvent(new CustomEvent('createAppointmentFromCRM', {
+                                                  detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
+                                                }));
+                                              }}
+                                            >
+                                              <Calendar className="w-3 h-3 text-orange-600" />
+                                              جدولة موعد
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                              onClick={() => {
+                                                logCustomerActivity(customer.id, 'task_added', { title: 'مهمة جديدة' });
+                                                window.dispatchEvent(new CustomEvent('createTaskFromCRM', {
+                                                  detail: { customerId: customer.id, customerName: customer.name, customerPhone: customer.phone }
+                                                }));
+                                              }}
+                                            >
+                                              <Check className="w-3 h-3 text-yellow-600" />
+                                              إنشاء مهمة
+                                            </DropdownMenuItem>
+                                            
+                                            <DropdownMenuSeparator />
+                                            
+                                            {/* الانتقال إلى - قائمة فرعية */}
+                                            <DropdownMenuSub>
+                                              <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer">
+                                                <ArrowRightLeft className="w-3 h-3 text-gray-600" />
+                                                الانتقال إلى
+                                              </DropdownMenuSubTrigger>
+                                              <DropdownMenuPortal>
+                                                <DropdownMenuSubContent className="w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999]">
+                                                  {columns.filter(col => col.id !== customer.metadata?.columnId).map(col => {
+                                                    const colColors = COLUMN_COLORS[col.id] || { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-700' };
+                                                    return (
+                                                      <DropdownMenuItem
+                                                        key={col.id}
+                                                        className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                                        onClick={async () => {
+                                                          const columnStatusMap: Record<string, string> = {
+                                                            'leads': 'new',
+                                                            'contacted': 'contacted',
+                                                            'viewing': 'viewing',
+                                                            'negotiation': 'negotiation',
+                                                            'closed': 'closed',
+                                                            'lost': 'lost'
+                                                          };
+                                                          await dbUpdateCustomer(customer.id, {
+                                                            status: columnStatusMap[col.id] || col.id,
+                                                            metadata: { ...customer.metadata, columnId: col.id }
+                                                          });
+                                                          toast.success(`تم نقل العميل إلى ${col.title}`);
+                                                        }}
+                                                      >
+                                                        <div className={`w-2 h-2 rounded-full ${colColors.bg} ${colColors.border} border`} />
+                                                        {col.title}
+                                                      </DropdownMenuItem>
+                                                    );
+                                                  })}
+                                                </DropdownMenuSubContent>
+                                              </DropdownMenuPortal>
+                                            </DropdownMenuSub>
+                                            
+                                            {/* معين لـ - قائمة فرعية */}
+                                            <DropdownMenuSub>
+                                              <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer">
+                                                <UserCheck className="w-3 h-3 text-gray-600" />
+                                                معين لـ
+                                              </DropdownMenuSubTrigger>
+                                              <DropdownMenuPortal>
+                                                <DropdownMenuSubContent className="w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto">
+                                                  {teamMembers.filter(m => m.status === 'active' && m.member_user_id).length > 0 ? (
+                                                    teamMembers.filter(m => m.status === 'active' && m.member_user_id).map(member => (
+                                                      <DropdownMenuItem
+                                                        key={member.id}
+                                                        className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer"
+                                                        onClick={async () => {
+                                                          if (!member.member_user_id || !user?.id) return;
+                                                          await assignCustomerToMember({
+                                                            customerId: customer.id,
+                                                            assignToUserId: member.member_user_id,
+                                                            organizationUserId: user.id,
+                                                            notes: 'تعيين من قائمة الإجراءات',
+                                                          });
+                                                          await dbUpdateCustomer(customer.id, {
+                                                            metadata: { ...customer.metadata, assignedColleagueName: member.member_name }
+                                                          });
+                                                        }}
+                                                      >
+                                                        <UserCheck className="w-3 h-3 text-green-600" />
+                                                        {member.member_name}
+                                                      </DropdownMenuItem>
+                                                    ))
+                                                  ) : (
+                                                    <div className="px-3 py-2 text-xs text-gray-500 text-center">
+                                                      لا يوجد زملاء
                                                     </div>
-                                                    <ChevronLeft className="w-3 h-3 text-gray-400" />
-                                                  </button>
-                                                  <div className="absolute left-full top-0 ml-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden group-hover/move:block">
-                                                    <div className="p-1 space-y-1">
-                                                      {columns.filter(col => col.id !== customer.metadata?.columnId).map(col => {
-                                                        const colColors = COLUMN_COLORS[col.id] || { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-700' };
-                                                        return (
-                                                          <button
-                                                            key={col.id}
-                                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded text-right"
-                                                            onClick={async () => {
-                                                              const columnStatusMap: Record<string, string> = {
-                                                                'leads': 'new',
-                                                                'contacted': 'contacted',
-                                                                'viewing': 'viewing',
-                                                                'negotiation': 'negotiation',
-                                                                'closed': 'closed',
-                                                                'lost': 'lost'
-                                                              };
-                                                              await dbUpdateCustomer(customer.id, {
-                                                                status: columnStatusMap[col.id] || col.id,
-                                                                metadata: { ...customer.metadata, columnId: col.id }
-                                                              });
-                                                              setShowActionsMenu(null);
-                                                              toast.success(`تم نقل العميل إلى ${col.title}`);
-                                                            }}
-                                                          >
-                                                            <div className={`w-2 h-2 rounded-full ${colColors.bg} ${colColors.border} border`} />
-                                                            {col.title}
-                                                          </button>
-                                                        );
-                                                      })}
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                                
-                                                {/* معين لـ - قائمة فرعية */}
-                                                <div className="relative group/assign">
-                                                  <button className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded">
-                                                    <div className="flex items-center gap-2">
-                                                      <UserCheck className="w-3 h-3 text-gray-600" />
-                                                      معين لـ
-                                                    </div>
-                                                    <ChevronLeft className="w-3 h-3 text-gray-400" />
-                                                  </button>
-                                                  <div className="absolute left-full top-0 ml-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden group-hover/assign:block">
-                                                    <div className="p-1 space-y-1 max-h-48 overflow-y-auto">
-                                                      {teamMembers.filter(m => m.status === 'active' && m.member_user_id).length > 0 ? (
-                                                        teamMembers.filter(m => m.status === 'active' && m.member_user_id).map(member => (
-                                                          <button
-                                                            key={member.id}
-                                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 rounded text-right"
-                                                            onClick={async () => {
-                                                              if (!member.member_user_id || !user?.id) return;
-                                                              await assignCustomerToMember({
-                                                                customerId: customer.id,
-                                                                assignToUserId: member.member_user_id,
-                                                                organizationUserId: user.id,
-                                                                notes: 'تعيين من قائمة الإجراءات',
-                                                              });
-                                                              await dbUpdateCustomer(customer.id, {
-                                                                metadata: { ...customer.metadata, assignedColleagueName: member.member_name }
-                                                              });
-                                                              setShowActionsMenu(null);
-                                                            }}
-                                                          >
-                                                            <UserCheck className="w-3 h-3 text-green-600" />
-                                                            {member.member_name}
-                                                          </button>
-                                                        ))
-                                                      ) : (
-                                                        <div className="px-3 py-2 text-xs text-gray-500 text-center">
-                                                          لا يوجد زملاء
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                                
-                                                <div className="border-t border-gray-100 my-1" />
-                                                <button
-                                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 rounded text-red-600"
-                                                  onClick={() => {
-                                                    handleDeleteCustomer(customer);
-                                                    setShowActionsMenu(null);
-                                                  }}
-                                                >
-                                                  <Trash2 className="w-3 h-3" />
-                                                  حذف العميل
-                                                </button>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
+                                                  )}
+                                                </DropdownMenuSubContent>
+                                              </DropdownMenuPortal>
+                                            </DropdownMenuSub>
+                                            
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                              className="flex items-center gap-2 px-3 py-2 text-xs cursor-pointer text-red-600 focus:text-red-600"
+                                              onClick={() => handleDeleteCustomer(customer)}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                              حذف العميل
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                         
                                         {/* 2. زر التفاصيل - يفتح الصفحة الكاملة */}
                                         <Button
