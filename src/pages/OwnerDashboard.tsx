@@ -23,7 +23,7 @@ import {
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
   ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2,
-  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall, LayoutGrid, Edit
+  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall, LayoutGrid, Edit, Link2
 } from "lucide-react";
 import { BehavioralDashboard } from "@/components/behavioral";
 import {
@@ -236,6 +236,12 @@ const CustomerManagementSettingsCard: React.FC = () => {
     return localStorage.getItem('recent_calls_visible') !== 'false';
   });
   
+  // 🔴 إعدادات ربط الاتصالات
+  const [isCallLogsLinkingEnabled, setIsCallLogsLinkingEnabled] = useState(() => {
+    return localStorage.getItem('call_logs_linking_enabled') === 'true';
+  });
+  const [isEnablingLinking, setIsEnablingLinking] = useState(false);
+  
   // الأعمدة المخصصة
   const [customColumns, setCustomColumns] = useState<CustomColumn[]>(() => {
     const saved = localStorage.getItem('crm_custom_columns');
@@ -246,12 +252,39 @@ const CustomerManagementSettingsCard: React.FC = () => {
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [editingColumn, setEditingColumn] = useState<CustomColumn | null>(null);
   const [editColumnTitle, setEditColumnTitle] = useState('');
+  
+  // الاستماع لتغييرات ربط الاتصالات
+  useEffect(() => {
+    const handleLinkingChanged = () => {
+      setIsCallLogsLinkingEnabled(localStorage.getItem('call_logs_linking_enabled') === 'true');
+    };
+    window.addEventListener('callLogsLinkingChanged', handleLinkingChanged);
+    return () => window.removeEventListener('callLogsLinkingChanged', handleLinkingChanged);
+  }, []);
 
   const handleRecentCallsToggle = (checked: boolean) => {
     setRecentCallsVisible(checked);
     localStorage.setItem('recent_calls_visible', checked.toString());
     window.dispatchEvent(new CustomEvent('crmSettingsChanged'));
     toast.success(checked ? 'تم تفعيل عرض الاتصالات الأخيرة' : 'تم إخفاء الاتصالات الأخيرة');
+  };
+  
+  // 🔴 تفعيل/إيقاف ربط الاتصالات
+  const handleCallLogsLinkingToggle = async (checked: boolean) => {
+    if (checked) {
+      setIsEnablingLinking(true);
+      // في الويب نفعّل مباشرة، في الموبايل سيتم طلب الصلاحيات
+      localStorage.setItem('call_logs_linking_enabled', 'true');
+      setIsCallLogsLinkingEnabled(true);
+      window.dispatchEvent(new CustomEvent('callLogsLinkingChanged'));
+      toast.success('تم تفعيل ربط الاتصالات');
+      setIsEnablingLinking(false);
+    } else {
+      localStorage.setItem('call_logs_linking_enabled', 'false');
+      setIsCallLogsLinkingEnabled(false);
+      window.dispatchEvent(new CustomEvent('callLogsLinkingChanged'));
+      toast.success('تم إيقاف ربط الاتصالات');
+    }
   };
   
   // إضافة عمود جديد
@@ -315,6 +348,31 @@ const CustomerManagementSettingsCard: React.FC = () => {
         <CardDescription>التحكم في إعدادات نظام إدارة العملاء (CRM)</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* 🔴 إعدادات ربط الاتصالات - متوافق مع سياسات المتاجر */}
+        <div className="p-4 border-2 border-violet-200 rounded-lg bg-gradient-to-r from-violet-50 to-white space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-violet-600" />
+                ربط الاتصالات الأخيرة
+              </p>
+              <p className="text-sm text-gray-500">ربط سجل المكالمات بعملائك تلقائياً</p>
+            </div>
+            <Switch
+              checked={isCallLogsLinkingEnabled}
+              onCheckedChange={handleCallLogsLinkingToggle}
+              disabled={isEnablingLinking}
+            />
+          </div>
+          
+          {isCallLogsLinkingEnabled && (
+            <div className="text-xs text-violet-600 bg-violet-100 p-2 rounded-md flex items-center gap-2">
+              <Shield className="h-3 w-3" />
+              <span>المعالجة محلية فقط • لا إرسال للسيرفر • لا تخزين دائم</span>
+            </div>
+          )}
+        </div>
+        
         {/* إظهار/إخفاء الاتصالات الأخيرة */}
         <div className="flex items-center justify-between p-4 border rounded-lg">
           <div>
