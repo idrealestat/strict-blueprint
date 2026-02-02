@@ -152,7 +152,7 @@ const SlugPlatformPage: React.FC = () => {
         currentUser={cardData.userName ? { name: cardData.userName } : undefined}
         userId={businessCard?.user_id || 'public'}
         platformSlug={slug}
-        businessCardOverride={businessCard ? (cardData as any) : null}
+        businessCardOverride={businessCard ? { ...cardData, slug: businessCard.slug, user_id: businessCard.user_id } as any : null}
       />
     </>
   );
