@@ -421,36 +421,46 @@ export default function MyPlatformComplete({
     };
   }, [loadBusinessCardData]);
 
-  // slug المستخدم للمنصة العامة + مزامنة تلقائية لقاعدة البيانات
-  const [currentSlug, setCurrentSlug] = useState(() => 
-    localStorage.getItem('public_platform_slug') || 'default'
-  );
-  
-  // ✅ جلب الـ slug من قاعدة البيانات إذا لم يكن موجوداً في localStorage
+  // slug المستخدم للمنصة العامة + مزامنة تلقائية مع قاعدة البيانات
+  // ملاحظة: لا نستخدم fallback مثل 'default' لأن ذلك يكسر قناة المشاهدين المباشرين.
+  const [currentSlug, setCurrentSlug] = useState<string>(() => {
+    return localStorage.getItem('public_platform_slug') || '';
+  });
+
+  // ✅ اجلب الـ slug من قاعدة البيانات دائماً (مصدر الحقيقة)
   useEffect(() => {
     const fetchSlugFromDB = async () => {
-      if (currentSlug === 'default' && user?.id) {
-        try {
-          const { data: cardData } = await supabase
-            .from('business_cards')
-            .select('slug')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (cardData?.slug) {
-            localStorage.setItem('public_platform_slug', cardData.slug);
-            setCurrentSlug(cardData.slug);
-            console.log('✅ Slug fetched from DB:', cardData.slug);
-          }
-        } catch (e) {
-          console.error('Error fetching slug from DB:', e);
+      if (!user?.id) return;
+
+      try {
+        const { data: cardData, error } = await supabase
+          .from('business_cards')
+          .select('slug')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching slug from DB:', error);
+          return;
         }
+
+        const dbSlug = (cardData?.slug || '').trim();
+        if (!dbSlug) return;
+
+        if (dbSlug !== currentSlug) {
+          localStorage.setItem('public_platform_slug', dbSlug);
+          setCurrentSlug(dbSlug);
+          console.log('✅ Slug synced from DB:', dbSlug);
+        }
+      } catch (e) {
+        console.error('Error fetching slug from DB:', e);
       }
     };
+
     fetchSlugFromDB();
   }, [user?.id, currentSlug]);
   
-  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, deleteListing, listings: dbListings, loading: dbLoading } = usePlatformListings(currentSlug);
+  const { syncFromLocalStorage, cleanupDuplicates, updateListing, fetchListings, deleteListing, listings: dbListings, loading: dbLoading } = usePlatformListings(currentSlug || undefined);
   
   // ✅ تتبع حالة جلب البيانات
   useEffect(() => {
@@ -461,7 +471,7 @@ export default function MyPlatformComplete({
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
 
   // ✅ Hook المشاهدين المباشرين عبر Supabase Presence (الأساسي)
-  const { getOfferViewers, getDistrictViewers, getCityViewers, getTotalViewers, liveViewers: realtimeLiveViewers } = useLiveViewersRealtime(currentSlug);
+  const { getOfferViewers, getDistrictViewers, getCityViewers, getTotalViewers, liveViewers: realtimeLiveViewers } = useLiveViewersRealtime(currentSlug || undefined);
 
   // دالة موحدة للحصول على عدد المشاهدين (المصدر الوحيد: Presence)
   const getLiveViewers = useCallback((offerId: string): number => {
