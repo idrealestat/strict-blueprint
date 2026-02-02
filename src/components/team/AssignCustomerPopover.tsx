@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 interface AssignCustomerPopoverProps {
   customerId: string;
   customerName: string;
-  onSuccess?: () => void;
+  onSuccess?: (assigned: { userId: string; name: string }) => void;
   children: React.ReactNode;
 }
 
@@ -81,7 +81,10 @@ export default function AssignCustomerPopover({
 
       if (success) {
         toast.success(`تم تعيين "${customerName}" لـ ${member.member_name}`);
-        onSuccess?.();
+        onSuccess?.({
+          userId: member.member_user_id,
+          name: member.member_name || 'غير معروف',
+        });
         handleClose();
       }
     } finally {
