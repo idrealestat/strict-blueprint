@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Bell, Check, Trash2, Clock, Volume2, VolumeX, 
   Calendar, CheckCircle, AlertCircle, Info, Star,
-  ChevronRight, Settings, Home, Phone, ExternalLink,
+  ChevronRight, Settings, Home, Phone,
   Zap, BellOff, Globe, Shield, Sparkles
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -53,13 +53,6 @@ export default function NotificationsSidebar({
   // Notification settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationSoundEnabled, setNotificationSoundEnabled] = useState(true);
-
-  // Navigate to notification settings
-  const goToNotificationSettings = () => {
-    navigate('/notification-settings');
-    onClose();
-  };
-
   const {
     notifications,
     unreadCount,
@@ -309,16 +302,6 @@ export default function NotificationsSidebar({
                     {/* لوحة التنبيهات الذكية */}
                     <SmartAlertsPanel offers={offers} />
                     
-                    {/* رابط لصفحة الإعدادات التفصيلية */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={goToNotificationSettings}
-                      className="w-full text-xs border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10 justify-center gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      فتح صفحة الإعدادات الكاملة
-                    </Button>
                   </motion.div>
                 )}
               </AnimatePresence>
