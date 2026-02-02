@@ -19,10 +19,20 @@ import { toast } from 'sonner';
 export interface NativeCallLog {
   id: string;
   phone: string;
-  name?: string;
+  name?: string; // الاسم من الجهاز (جهات الاتصال)
+  deviceName?: string; // الاسم المسجل بالجهاز (Device Name)
   type: 'incoming' | 'outgoing' | 'missed';
   timestamp: Date;
   duration?: number; // بالثواني
+}
+
+// نتيجة المطابقة مع العميل
+export interface CallMatchResult {
+  customerId: string | null;
+  customerName: string | null;
+  deviceName: string | null;
+  finalDisplayName: string; // الاسم النهائي للعرض (التطبيق > الجهاز > مجهول)
+  isLinkedToCustomer: boolean;
 }
 
 // حالة الصلاحيات
@@ -48,7 +58,9 @@ interface UseCallLogsPermissionReturn {
   requestPermissions: () => Promise<boolean>;
   fetchCallLogs: () => Promise<void>;
   disableLinking: () => void;
-  matchCallWithCustomer: (phone: string, customers: { phone: string; name: string; id: string }[]) => { customerId: string; customerName: string } | null;
+  enableLinking: () => void;
+  matchCallWithCustomer: (phone: string, customers: { phone: string; name: string; id: string }[]) => CallMatchResult;
+  resolveDisplayName: (callLog: NativeCallLog, customers: { phone: string; name: string; id: string }[]) => CallMatchResult;
 }
 
 // مفتاح التخزين المحلي
@@ -259,16 +271,38 @@ export function useCallLogsPermission(): UseCallLogsPermissionReturn {
     localStorage.setItem(LINKING_ENABLED_KEY, 'false');
     setCallLogs([]); // مسح البيانات المحلية
     toast.success('تم إيقاف ربط الاتصالات');
+    // إرسال حدث للإعدادات
+    window.dispatchEvent(new CustomEvent('callLogsLinkingChanged'));
+  }, []);
+
+  /**
+   * تفعيل الربط مرة أخرى (من الإعدادات)
+   */
+  const enableLinking = useCallback(() => {
+    setIsLinkingEnabled(true);
+    localStorage.setItem(LINKING_ENABLED_KEY, 'true');
+    toast.success('تم تفعيل ربط الاتصالات');
+    // إرسال حدث للإعدادات
+    window.dispatchEvent(new CustomEvent('callLogsLinkingChanged'));
   }, []);
 
   /**
    * مطابقة رقم المكالمة مع العملاء
+   * @returns CallMatchResult مع الاسم النهائي
    */
   const matchCallWithCustomer = useCallback((
     phone: string,
     customers: { phone: string; name: string; id: string }[]
-  ): { customerId: string; customerName: string } | null => {
-    if (!phone) return null;
+  ): CallMatchResult => {
+    if (!phone) {
+      return {
+        customerId: null,
+        customerName: null,
+        deviceName: null,
+        finalDisplayName: 'جهة اتصال غير معروفة',
+        isLinkedToCustomer: false,
+      };
+    }
 
     // تنظيف الرقم للمقارنة
     const cleanPhone = phone.replace(/\D/g, '');
@@ -294,14 +328,66 @@ export function useCallLogsPermission(): UseCallLogsPermissionReturn {
       for (const pv of phoneVariants) {
         for (const cv of customerVariants) {
           if (pv === cv && pv.length >= 9) {
-            return { customerId: customer.id, customerName: customer.name };
+            return {
+              customerId: customer.id,
+              customerName: customer.name,
+              deviceName: null,
+              finalDisplayName: customer.name, // الاسم من التطبيق
+              isLinkedToCustomer: true,
+            };
           }
         }
       }
     }
 
-    return null;
+    return {
+      customerId: null,
+      customerName: null,
+      deviceName: null,
+      finalDisplayName: 'جهة اتصال غير معروفة',
+      isLinkedToCustomer: false,
+    };
   }, []);
+
+  /**
+   * 🔴 Matching Logic الإلزامي:
+   * 1. إذا الرقم موجود في التطبيق → استخدم الاسم من التطبيق
+   * 2. إذا غير موجود → استخدم اسم الجهاز (Device Name)
+   * 3. إذا لا يوجد اسم → "جهة اتصال غير معروفة"
+   */
+  const resolveDisplayName = useCallback((
+    callLog: NativeCallLog,
+    customers: { phone: string; name: string; id: string }[]
+  ): CallMatchResult => {
+    // 1. محاولة المطابقة مع العملاء في التطبيق
+    const matchResult = matchCallWithCustomer(callLog.phone, customers);
+    
+    if (matchResult.isLinkedToCustomer && matchResult.customerName) {
+      // الرقم موجود في التطبيق - استخدم اسم التطبيق
+      return matchResult;
+    }
+    
+    // 2. الرقم غير موجود - استخدم اسم الجهاز
+    const deviceName = callLog.name || callLog.deviceName;
+    if (deviceName && deviceName.trim()) {
+      return {
+        customerId: null,
+        customerName: null,
+        deviceName: deviceName,
+        finalDisplayName: deviceName, // الاسم من الجهاز
+        isLinkedToCustomer: false,
+      };
+    }
+    
+    // 3. لا يوجد اسم - عرض "غير معروف"
+    return {
+      customerId: null,
+      customerName: null,
+      deviceName: null,
+      finalDisplayName: 'جهة اتصال غير معروفة',
+      isLinkedToCustomer: false,
+    };
+  }, [matchCallWithCustomer]);
 
   // جلب السجلات تلقائياً عند تفعيل الربط
   useEffect(() => {
@@ -322,6 +408,8 @@ export function useCallLogsPermission(): UseCallLogsPermissionReturn {
     requestPermissions,
     fetchCallLogs,
     disableLinking,
+    enableLinking,
     matchCallWithCustomer,
+    resolveDisplayName,
   };
 }

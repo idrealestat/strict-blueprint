@@ -1991,6 +1991,31 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                     onDisableLinking={disableLinking}
                     onCallCardClick={handleCallCardClick}
                     onCreateCustomer={handleCreateCustomerFromCall}
+                    resolveDisplayName={(callLog, custs) => {
+                      // 🔴 Matching Logic الإلزامي
+                      const matchResult = matchCallWithCustomer(callLog.phone, custs);
+                      if (matchResult.isLinkedToCustomer && matchResult.customerName) {
+                        return matchResult;
+                      }
+                      // استخدم اسم الجهاز إن وجد
+                      const deviceName = callLog.name || callLog.deviceName;
+                      if (deviceName && deviceName.trim()) {
+                        return {
+                          customerId: null,
+                          customerName: null,
+                          deviceName: deviceName,
+                          finalDisplayName: deviceName,
+                          isLinkedToCustomer: false,
+                        };
+                      }
+                      return {
+                        customerId: null,
+                        customerName: null,
+                        deviceName: null,
+                        finalDisplayName: 'جهة اتصال غير معروفة',
+                        isLinkedToCustomer: false,
+                      };
+                    }}
                   />
                 )}
                 

@@ -6,10 +6,15 @@
  * ✅ يربط الأرقام بالعملاء الموجودين تلقائياً
  * ✅ يدعم إنشاء عميل جديد من المكالمة
  * ✅ متوافق مع سياسات المتاجر
+ * 
+ * 🔴 Matching Logic الإلزامي:
+ * 1. إذا الرقم موجود في التطبيق → استخدم الاسم من التطبيق
+ * 2. إذا غير موجود → استخدم اسم الجهاز (Device Name)
+ * 3. إذا لا يوجد اسم → "جهة اتصال غير معروفة"
  */
 
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -27,9 +32,10 @@ import {
   Link2Off,
   Apple,
   Settings,
+  ExternalLink,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { NativeCallLog } from '@/hooks/useCallLogsPermission';
+import { NativeCallLog, CallMatchResult } from '@/hooks/useCallLogsPermission';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
@@ -55,6 +61,9 @@ interface RecentCallsColumnProps {
   onDisableLinking: () => void;
   onCallCardClick: (callLog: NativeCallLog, matchedCustomer: Customer | null) => void;
   onCreateCustomer: (phone: string, name?: string) => void;
+  
+  // دالة تحديد الاسم النهائي
+  resolveDisplayName: (callLog: NativeCallLog, customers: Customer[]) => CallMatchResult;
 }
 
 // أيقونة نوع المكالمة
@@ -121,51 +130,29 @@ export default function RecentCallsColumn({
   onDisableLinking,
   onCallCardClick,
   onCreateCustomer,
+  resolveDisplayName,
 }: RecentCallsColumnProps) {
   
-  // مطابقة المكالمات مع العملاء
-  const matchedCalls = useMemo(() => {
+  // 🔴 Matching Logic الإلزامي - تحديد الاسم النهائي لكل مكالمة
+  const resolvedCalls = useMemo(() => {
     return callLogs.map(call => {
-      const cleanPhone = call.phone.replace(/\D/g, '');
-      const phoneVariants = [
-        cleanPhone,
-        cleanPhone.replace(/^966/, '0'),
-        cleanPhone.replace(/^0/, '966'),
-        cleanPhone.slice(-9),
-      ];
-
+      const resolution = resolveDisplayName(call, customers);
+      
+      // إيجاد العميل المطابق إن وجد
       let matchedCustomer: Customer | null = null;
-
-      for (const customer of customers) {
-        if (!customer.phone) continue;
-        
-        const customerClean = customer.phone.replace(/\D/g, '');
-        const customerVariants = [
-          customerClean,
-          customerClean.replace(/^966/, '0'),
-          customerClean.replace(/^0/, '966'),
-          customerClean.slice(-9),
-        ];
-
-        for (const pv of phoneVariants) {
-          for (const cv of customerVariants) {
-            if (pv === cv && pv.length >= 9) {
-              matchedCustomer = customer;
-              break;
-            }
-          }
-          if (matchedCustomer) break;
-        }
-        if (matchedCustomer) break;
+      if (resolution.isLinkedToCustomer && resolution.customerId) {
+        matchedCustomer = customers.find(c => c.id === resolution.customerId) || null;
       }
 
       return {
         ...call,
         matchedCustomer,
-        displayName: matchedCustomer?.name || call.name || 'جهة اتصال غير معروفة',
+        resolution,
+        displayName: resolution.finalDisplayName,
+        isLinked: resolution.isLinkedToCustomer,
       };
     });
-  }, [callLogs, customers]);
+  }, [callLogs, customers, resolveDisplayName]);
 
   // عرض رسالة iOS
   if (isIOS && isLinkingEnabled) {
@@ -240,7 +227,7 @@ export default function RecentCallsColumn({
             <div>
               <h3 className="font-semibold text-violet-900 text-sm">الاتصالات الأخيرة</h3>
               <span className="text-xs text-violet-600">
-                {matchedCalls.length} اتصال
+                {resolvedCalls.length} اتصال
               </span>
             </div>
           </div>
@@ -260,6 +247,7 @@ export default function RecentCallsColumn({
               size="icon"
               onClick={onDisableLinking}
               className="h-8 w-8 text-violet-600 hover:bg-violet-200"
+              title="إيقاف الربط"
             >
               <Settings className="w-4 h-4" />
             </Button>
@@ -271,13 +259,13 @@ export default function RecentCallsColumn({
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-2">
           <AnimatePresence>
-            {matchedCalls.length === 0 && !isLoading ? (
+            {resolvedCalls.length === 0 && !isLoading ? (
               <div className="text-center py-8">
                 <Phone className="w-10 h-10 text-violet-300 mx-auto mb-2" />
                 <p className="text-sm text-violet-500">لا توجد اتصالات</p>
               </div>
             ) : (
-              matchedCalls.map((call, index) => (
+              resolvedCalls.map((call, index) => (
                 <motion.div
                   key={call.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -286,10 +274,10 @@ export default function RecentCallsColumn({
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card 
-                    className={`cursor-pointer hover:shadow-md transition-all border-r-4 ${
-                      call.matchedCustomer 
-                        ? 'border-r-green-500 bg-green-50/30' 
-                        : 'border-r-violet-400 bg-white'
+                    className={`cursor-pointer hover:shadow-md transition-all ${
+                      call.isLinked 
+                        ? 'border-t-[1.5px] border-t-green-500 border-b-[1.5px] border-b-green-300 bg-green-50/30' 
+                        : 'border-t-[1.5px] border-t-violet-400 bg-white'
                     }`}
                     onClick={() => onCallCardClick(call, call.matchedCustomer)}
                   >
@@ -299,7 +287,7 @@ export default function RecentCallsColumn({
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <Avatar className="h-9 w-9 flex-shrink-0">
                             <AvatarFallback className={`text-xs ${
-                              call.matchedCustomer 
+                              call.isLinked 
                                 ? 'bg-green-100 text-green-700' 
                                 : 'bg-violet-100 text-violet-700'
                             }`}>
@@ -307,6 +295,7 @@ export default function RecentCallsColumn({
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
+                            {/* 🔴 الاسم النهائي حسب قاعدة المطابقة */}
                             <p className="font-medium text-sm truncate text-foreground">
                               {call.displayName}
                             </p>
@@ -342,15 +331,15 @@ export default function RecentCallsColumn({
                         </div>
                       </div>
                       
-                      {/* زر إنشاء عميل - يظهر فقط للأرقام غير المربوطة */}
-                      {!call.matchedCustomer && (
+                      {/* 🔴 زر إنشاء عميل - يظهر فقط للأرقام غير المربوطة */}
+                      {!call.isLinked && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="w-full mt-2 h-7 text-xs gap-1 text-violet-600 hover:bg-violet-100"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onCreateCustomer(call.phone, call.name);
+                            onCreateCustomer(call.phone, call.displayName !== 'جهة اتصال غير معروفة' ? call.displayName : undefined);
                           }}
                         >
                           <UserPlus className="w-3 h-3" />
@@ -358,12 +347,15 @@ export default function RecentCallsColumn({
                         </Button>
                       )}
                       
-                      {/* مؤشر العميل المربوط */}
-                      {call.matchedCustomer && (
+                      {/* 🔴 مؤشر العميل المربوط - الضغط يفتح ملف العميل */}
+                      {call.isLinked && call.matchedCustomer && (
                         <div className="mt-2 pt-2 border-t border-green-100">
-                          <div className="flex items-center gap-1 text-[10px] text-green-600">
-                            <User className="w-3 h-3" />
-                            <span>مربوط بـ: {call.matchedCustomer.name}</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 text-[10px] text-green-600">
+                              <User className="w-3 h-3" />
+                              <span>مربوط بـ: {call.matchedCustomer.name}</span>
+                            </div>
+                            <ExternalLink className="w-3 h-3 text-green-500" />
                           </div>
                         </div>
                       )}
