@@ -113,6 +113,16 @@ const SlugPlatformPage: React.FC = () => {
   }
 
   const cardData = businessCard?.data || {};
+  
+  console.log('[SlugPlatformPage] Rendering with:', {
+    slug,
+    hasBusinessCard: !!businessCard,
+    cardDataKeys: Object.keys(cardData),
+    userName: cardData.userName,
+    profileImage: cardData.profileImage ? 'exists' : 'missing',
+    coverImage: cardData.coverImage ? 'exists' : 'missing',
+  });
+  
   const pageTitle = cardData.userName ? `منصة ${cardData.userName} العقارية` : 'المنصة العقارية';
   const pageDescription = cardData.userName
     ? `تصفح العروض العقارية المميزة من ${cardData.userName} - وسيط عقاري معتمد`
