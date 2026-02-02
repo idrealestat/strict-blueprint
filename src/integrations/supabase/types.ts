@@ -1428,6 +1428,90 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_members: {
+        Row: {
+          accepted_at: string | null
+          can_accept_opportunities: boolean | null
+          can_manage_customers: boolean | null
+          can_manage_team: boolean | null
+          can_publish_properties: boolean | null
+          can_view_all_customers: boolean | null
+          can_view_analytics: boolean | null
+          can_view_smart_opportunities: boolean | null
+          created_at: string | null
+          id: string
+          invited_at: string | null
+          invited_by: string
+          member_email: string | null
+          member_fal_license: string | null
+          member_name: string | null
+          member_phone: string | null
+          member_role: string
+          member_user_id: string | null
+          member_whatsapp: string | null
+          metadata: Json | null
+          notes: string | null
+          organization_user_id: string
+          removed_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          can_accept_opportunities?: boolean | null
+          can_manage_customers?: boolean | null
+          can_manage_team?: boolean | null
+          can_publish_properties?: boolean | null
+          can_view_all_customers?: boolean | null
+          can_view_analytics?: boolean | null
+          can_view_smart_opportunities?: boolean | null
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          invited_by: string
+          member_email?: string | null
+          member_fal_license?: string | null
+          member_name?: string | null
+          member_phone?: string | null
+          member_role?: string
+          member_user_id?: string | null
+          member_whatsapp?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          organization_user_id: string
+          removed_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          can_accept_opportunities?: boolean | null
+          can_manage_customers?: boolean | null
+          can_manage_team?: boolean | null
+          can_publish_properties?: boolean | null
+          can_view_all_customers?: boolean | null
+          can_view_analytics?: boolean | null
+          can_view_smart_opportunities?: boolean | null
+          created_at?: string | null
+          id?: string
+          invited_at?: string | null
+          invited_by?: string
+          member_email?: string | null
+          member_fal_license?: string | null
+          member_name?: string | null
+          member_phone?: string | null
+          member_role?: string
+          member_user_id?: string | null
+          member_whatsapp?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          organization_user_id?: string
+          removed_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       platform_listings: {
         Row: {
           ac_units: string | null
@@ -1902,6 +1986,56 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_customers: {
+        Row: {
+          assigned_by_user_id: string
+          assigned_to_user_id: string
+          assignment_type: string | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          notes: string | null
+          organization_user_id: string
+          original_owner_user_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_by_user_id: string
+          assigned_to_user_id: string
+          assignment_type?: string | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          notes?: string | null
+          organization_user_id: string
+          original_owner_user_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_by_user_id?: string
+          assigned_to_user_id?: string
+          assignment_type?: string | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          organization_user_id?: string
+          original_owner_user_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       slug_firstname_exceptions: {
         Row: {
           allowed_city: string | null
@@ -2088,6 +2222,54 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_opportunity_rotation: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string | null
+          current_member_index: number | null
+          expires_at: string | null
+          id: string
+          members_order: string[] | null
+          opportunity_data: Json
+          opportunity_key: string
+          organization_user_id: string
+          passed_by: string[] | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string | null
+          current_member_index?: number | null
+          expires_at?: string | null
+          id?: string
+          members_order?: string[] | null
+          opportunity_data: Json
+          opportunity_key: string
+          organization_user_id: string
+          passed_by?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string | null
+          current_member_index?: number | null
+          expires_at?: string | null
+          id?: string
+          members_order?: string[] | null
+          opportunity_data?: Json
+          opportunity_key?: string
+          organization_user_id?: string
+          passed_by?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sms_logs: {
         Row: {
           appointment_id: string | null
@@ -2154,6 +2336,135 @@ export type Database = {
           setting_key?: string
           setting_value?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      team_activity_log: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_title: string | null
+          entity_type: string | null
+          id: string
+          organization_user_id: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_title?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_user_id: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_title?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      team_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          notification_type: string
+          organization_user_id: string
+          recipient_user_id: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          sender_user_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          organization_user_id: string
+          recipient_user_id: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          sender_user_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          organization_user_id?: string
+          recipient_user_id?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          sender_user_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      team_settings: {
+        Row: {
+          created_at: string | null
+          customer_visibility: string | null
+          id: string
+          metadata: Json | null
+          notify_admin_on_customer_add: boolean | null
+          notify_admin_on_opportunity_action: boolean | null
+          notify_admin_on_property_publish: boolean | null
+          opportunity_timeout_hours: number | null
+          organization_user_id: string
+          require_approval_for_publishing: boolean | null
+          share_customers_enabled: boolean | null
+          smart_opportunities_rotation: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_visibility?: string | null
+          id?: string
+          metadata?: Json | null
+          notify_admin_on_customer_add?: boolean | null
+          notify_admin_on_opportunity_action?: boolean | null
+          notify_admin_on_property_publish?: boolean | null
+          opportunity_timeout_hours?: number | null
+          organization_user_id: string
+          require_approval_for_publishing?: boolean | null
+          share_customers_enabled?: boolean | null
+          smart_opportunities_rotation?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_visibility?: string | null
+          id?: string
+          metadata?: Json | null
+          notify_admin_on_customer_add?: boolean | null
+          notify_admin_on_opportunity_action?: boolean | null
+          notify_admin_on_property_publish?: boolean | null
+          opportunity_timeout_hours?: number | null
+          organization_user_id?: string
+          require_approval_for_publishing?: boolean | null
+          share_customers_enabled?: boolean | null
+          smart_opportunities_rotation?: boolean | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2633,6 +2944,42 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_organization_members: {
+        Args: { org_user_id: string }
+        Returns: {
+          accepted_at: string | null
+          can_accept_opportunities: boolean | null
+          can_manage_customers: boolean | null
+          can_manage_team: boolean | null
+          can_publish_properties: boolean | null
+          can_view_all_customers: boolean | null
+          can_view_analytics: boolean | null
+          can_view_smart_opportunities: boolean | null
+          created_at: string | null
+          id: string
+          invited_at: string | null
+          invited_by: string
+          member_email: string | null
+          member_fal_license: string | null
+          member_name: string | null
+          member_phone: string | null
+          member_role: string
+          member_user_id: string | null
+          member_whatsapp: string | null
+          metadata: Json | null
+          notes: string | null
+          organization_user_id: string
+          removed_at: string | null
+          status: string
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organization_members"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_real_estate_role: { Args: { _user_id: string }; Returns: string }
       get_user_entitlement_status: {
         Args: { p_user_id: string }
@@ -2654,6 +3001,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_organization_admin: {
+        Args: { check_user_id: string; org_user_id: string }
         Returns: boolean
       }
     }

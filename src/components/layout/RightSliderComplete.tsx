@@ -55,6 +55,8 @@ import FalLicenseDisplay from "@/components/business-card/FalLicenseDisplay";
 import { useFinancialDocuments } from "@/hooks/useFinancialDocuments";
 import FinancialDocumentsPanel from "./FinancialDocumentsPanel";
 import { WorkspacePanel } from "@/components/workspace";
+import { TeamManagementPanel } from "@/components/team";
+import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { toast as sonnerToast } from "sonner";
 
 interface Broker {
@@ -236,11 +238,13 @@ export default function RightSliderComplete({
   const [showQuotationsPanel, setShowQuotationsPanel] = useState(false);
   const [showReceiptsPanel, setShowReceiptsPanel] = useState(false);
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
+  const [showTeamManagementPanel, setShowTeamManagementPanel] = useState(false);
   const navigate = useNavigate();
   const { signOut, isAuthenticated, isOwner } = useAuth();
   const { toast } = useToast();
   const { flags } = useFeatureFlags();
   const { customersWithQuotations, customersWithReceipts, totalQuotations, totalReceipts } = useFinancialDocuments();
+  const { isOrganization, members, canManageTeam } = useTeamManagement();
 
   // Filter menu items based on feature flags AND role restrictions
   const visibleMenuItems = useMemo(() => {
@@ -250,11 +254,16 @@ export default function RightSliderComplete({
         return isOwner;
       }
       
+      // Team Management - visible only for offices/companies
+      if (item.id === 'colleagues') {
+        return isOrganization || canManageTeam;
+      }
+      
       // Check feature flags for other items
       if (!item.flagKey) return true;
       return flags[item.flagKey] === true;
     });
-  }, [flags, isOwner]);
+  }, [flags, isOwner, isOrganization, canManageTeam]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -500,6 +509,12 @@ export default function RightSliderComplete({
     // Handle workspace - فتح لوحة مساحة العمل
     if (item.id === 'workspace' || item.path === '/workspace') {
       setShowWorkspacePanel(true);
+      return;
+    }
+    
+    // Handle team management - فتح لوحة إدارة الفريق
+    if (item.id === 'colleagues') {
+      setShowTeamManagementPanel(true);
       return;
     }
     
@@ -851,6 +866,11 @@ export default function RightSliderComplete({
           <WorkspacePanel
             isOpen={showWorkspacePanel}
             onClose={() => setShowWorkspacePanel(false)}
+          />
+          {/* لوحة إدارة الفريق */}
+          <TeamManagementPanel
+            isOpen={showTeamManagementPanel}
+            onClose={() => setShowTeamManagementPanel(false)}
           />
         </>
       )}
