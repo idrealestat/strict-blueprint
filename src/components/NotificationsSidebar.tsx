@@ -271,13 +271,6 @@ export default function NotificationsSidebar({
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={goToNotificationSettings}
-                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                    title="إعدادات الإشعارات"
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                  </button>
-                  <button
                     onClick={() => setShowSettings(!showSettings)}
                     className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                   >
