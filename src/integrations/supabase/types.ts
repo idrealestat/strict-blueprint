@@ -2378,6 +2378,51 @@ export type Database = {
           },
         ]
       }
+      workspace_members: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          fal_license_number: string
+          id: string
+          invited_at: string
+          organization_name: string
+          organization_type: string
+          organization_user_id: string
+          role: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          fal_license_number: string
+          id?: string
+          invited_at?: string
+          organization_name: string
+          organization_type: string
+          organization_user_id: string
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          fal_license_number?: string
+          id?: string
+          invited_at?: string
+          organization_name?: string
+          organization_type?: string
+          organization_user_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       active_platform_listings: {
