@@ -35,6 +35,12 @@ export function useLiveViewersRealtime(platformSlug?: string) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const viewersMapRef = useRef<Map<string, ViewerPresence>>(new Map());
 
+  // تطبيع اسم الحي (إزالة "حي " من البداية للتطابق)
+  const normalizeDistrictName = (name: string): string => {
+    if (!name) return '';
+    return name.replace(/^حي\s+/i, '').trim();
+  };
+
   // حساب العدادات من الزوار الحاليين
   const recalculateCounts = useCallback(() => {
     const offers: Record<string, number> = {};
@@ -46,16 +52,26 @@ export function useLiveViewersRealtime(platformSlug?: string) {
       if (viewer.offerId) {
         offers[viewer.offerId] = (offers[viewer.offerId] || 0) + 1;
       }
-      // عداد الحي
+      // عداد الحي - نطبّع الاسم للتطابق
       if (viewer.city && viewer.district) {
-        const districtKey = `${viewer.city}_${viewer.district}`;
+        const normalizedDistrict = normalizeDistrictName(viewer.district);
+        const districtKey = `${viewer.city}_${normalizedDistrict}`;
         districts[districtKey] = (districts[districtKey] || 0) + 1;
+        
+        // أيضاً نضيف مفتاح بـ "حي " للتوافق مع لوحة التحكم
+        const districtKeyWithPrefix = `${viewer.city}_حي ${normalizedDistrict}`;
+        districts[districtKeyWithPrefix] = (districts[districtKeyWithPrefix] || 0) + 1;
       }
       // عداد المدينة
       if (viewer.city) {
         cities[viewer.city] = (cities[viewer.city] || 0) + 1;
       }
     });
+
+    // Debug log للتشخيص
+    if (Object.keys(offers).length > 0 || Object.keys(districts).length > 0 || Object.keys(cities).length > 0) {
+      console.log('[LiveViewers] State updated:', { offers, districts, cities, totalViewers: viewersMapRef.current.size });
+    }
 
     setLiveViewers({ offers, districts, cities });
   }, []);
@@ -132,8 +148,22 @@ export function useLiveViewersRealtime(platformSlug?: string) {
   }, [liveViewers.offers]);
 
   const getDistrictViewers = useCallback((city: string, district: string): number => {
+    // نجرب المفتاح كما هو أولاً
     const key = `${city}_${district}`;
-    return liveViewers.districts[key] || 0;
+    if (liveViewers.districts[key]) {
+      return liveViewers.districts[key];
+    }
+    
+    // نجرب بدون "حي "
+    const normalizedDistrict = district.replace(/^حي\s+/i, '').trim();
+    const keyNormalized = `${city}_${normalizedDistrict}`;
+    if (liveViewers.districts[keyNormalized]) {
+      return liveViewers.districts[keyNormalized];
+    }
+    
+    // نجرب مع "حي "
+    const keyWithPrefix = `${city}_حي ${normalizedDistrict}`;
+    return liveViewers.districts[keyWithPrefix] || 0;
   }, [liveViewers.districts]);
 
   const getCityViewers = useCallback((city: string): number => {
@@ -155,6 +185,7 @@ export function useLiveViewersRealtime(platformSlug?: string) {
 
 /**
  * Hook للزائر - يُستخدم في الصفحات العامة لتسجيل حضوره
+ * يستخدم الـ canonical ID (UUID الكامل) لضمان مطابقة لوحة التحكم
  */
 export function useRegisterPublicViewer(
   platformSlug?: string,
@@ -164,10 +195,16 @@ export function useRegisterPublicViewer(
 ) {
   const viewerIdRef = useRef<string>(`viewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const hasTrackedRef = useRef(false);
 
   useEffect(() => {
+    // ننتظر حتى يكون لدينا slug صالح
     if (!platformSlug) return;
-
+    
+    // إذا كان الـ offerId قصير جداً (أقل من 8 أحرف)، ننتظر التحديث للـ canonical ID
+    // هذا يمنع الاشتراك المبكر بـ ID مختصر
+    const isValidOfferId = offerId && offerId.length >= 8;
+    
     const channelName = `live-viewers-${platformSlug}`;
     const channel = supabase.channel(channelName, {
       config: {
@@ -193,34 +230,51 @@ export function useRegisterPublicViewer(
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({
-          viewerId: viewerIdRef.current,
-          offerId,
-          city,
-          district,
-          joinedAt: new Date().toISOString(),
-          device,
-          browser,
-        });
-
-        // إرسال حدث محلي للتتبع
-        window.dispatchEvent(new CustomEvent('offerViewedWithDetails', {
-          detail: {
+        // نسجل فقط إذا كان لدينا offerId صالح
+        if (isValidOfferId) {
+          await channel.track({
+            viewerId: viewerIdRef.current,
             offerId,
+            city,
+            district,
+            joinedAt: new Date().toISOString(),
+            device,
+            browser,
+          });
+          hasTrackedRef.current = true;
+
+          console.log('[LiveViewer] Registered:', { offerId, city, district, slug: platformSlug });
+
+          // إرسال حدث محلي للتتبع
+          window.dispatchEvent(new CustomEvent('offerViewedWithDetails', {
+            detail: {
+              offerId,
+              viewerId: viewerIdRef.current,
+              city,
+              district,
+              device,
+              browser,
+              timestamp: new Date().toISOString(),
+            }
+          }));
+        } else {
+          // نسجل بدون offerId (سيتم التحديث لاحقاً)
+          await channel.track({
             viewerId: viewerIdRef.current,
             city,
             district,
+            joinedAt: new Date().toISOString(),
             device,
             browser,
-            timestamp: new Date().toISOString(),
-          }
-        }));
+          });
+        }
       }
     });
 
     return () => {
       channel.unsubscribe();
       channelRef.current = null;
+      hasTrackedRef.current = false;
     };
   }, [platformSlug, offerId, city, district]);
 

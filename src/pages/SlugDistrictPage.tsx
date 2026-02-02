@@ -16,6 +16,7 @@ import { slugToArabic, arabicToSlug, buildOfferUrl } from '@/utils/slugify';
 import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
 import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { usePagePresence } from '@/hooks/usePagePresence';
+import { useRegisterPublicViewer } from '@/hooks/useLiveViewersRealtime';
 
 interface Listing {
   id: string;
@@ -52,6 +53,13 @@ const SlugDistrictPage: React.FC = () => {
   const [districtName, setDistrictName] = useState('');
   const [brokerName, setBrokerName] = useState('');
   const [offerLiveViewers, setOfferLiveViewers] = useState<Record<string, number>>({});
+
+  // تحويل الـ slugs إلى أسماء عربية
+  const city = citySlug ? slugToArabic(citySlug) : '';
+  const district = districtSlug ? slugToArabic(districtSlug) : '';
+
+  // ✅ تسجيل الزائر في قناة المشاهدين المباشرين - يظهر في لوحة تحكم الوسيط
+  useRegisterPublicViewer(slug, undefined, city, district);
 
   const { liveCount } = usePagePresence('district', `${slug}-${citySlug}-${districtSlug}`);
   // تتبع المشاهدين لكل عرض
