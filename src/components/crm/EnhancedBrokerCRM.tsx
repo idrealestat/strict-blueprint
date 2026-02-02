@@ -100,7 +100,7 @@ import { toast } from "sonner";
 import CustomerDetailsPage from "./CustomerDetailsPage";
 import ContactsPanel from "./ContactsPanel";
 import TasksPanel from "./TasksPanel";
-import AssignCustomerToMemberDialog from "@/components/team/AssignCustomerToMemberDialog";
+import AssignCustomerPopover from "@/components/team/AssignCustomerPopover";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useCallLogsPermission } from "@/hooks/useCallLogsPermission";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
@@ -655,8 +655,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [selectedReportSubCategory, setSelectedReportSubCategory] = useState<string>('');
   const [searchType, setSearchType] = useState<'name' | 'tag'>('name');
   const [searchTab, setSearchTab] = useState<'all' | 'offers' | 'requests'>('all');
-  const [showColleagueDialog, setShowColleagueDialog] = useState(false);
-  const [colleagueCustomer, setColleagueCustomer] = useState<Customer | null>(null);
+  // تم استبدال showColleagueDialog و colleagueCustomer بـ AssignCustomerPopover المتكامل
   const [showContactsPanel, setShowContactsPanel] = useState(false);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
   
@@ -2570,19 +2569,23 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       </div>
                                     </div>
                                     
-                                    {/* 4. زر إضافة زميل للمتابعة */}
+                                    {/* 4. زر إضافة زميل للمتابعة - قائمة منبثقة */}
                                     {featureFlags.business_card_add_colleague_enabled && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setColleagueCustomer(customer);
-                                        setShowColleagueDialog(true);
-                                      }}
-                                      className="w-full py-1 text-[10px] text-blue-600 border border-dashed border-blue-400 rounded hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
-                                    >
-                                      <Users className="w-3 h-3" />
-                                      إضافة زميل للمتابعة
-                                    </button>
+                                      <AssignCustomerPopover
+                                        customerId={customer.id}
+                                        customerName={customer.name}
+                                        onSuccess={() => {
+                                          // يمكن إضافة تحديث للبيانات هنا
+                                        }}
+                                      >
+                                        <button
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="w-full py-1 text-[10px] text-blue-600 border border-dashed border-blue-400 rounded hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
+                                        >
+                                          <Users className="w-3 h-3" />
+                                          إضافة زميل للمتابعة
+                                        </button>
+                                      </AssignCustomerPopover>
                                     )}
                                   </div>
                                   
@@ -4032,21 +4035,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         </DialogContent>
       </Dialog>
 
-      {/* نافذة إضافة زميل للمتابعة - يستخدم الزملاء الحقيقيين من إدارة الفريق */}
-      <AssignCustomerToMemberDialog
-        isOpen={showColleagueDialog}
-        onClose={() => {
-          setShowColleagueDialog(false);
-          setColleagueCustomer(null);
-        }}
-        customerId={colleagueCustomer?.id || ''}
-        customerName={colleagueCustomer?.name || ''}
-        onSuccess={() => {
-          // تحديث البيانات بعد التعيين
-          setShowColleagueDialog(false);
-          setColleagueCustomer(null);
-        }}
-      />
+      {/* تم استبدال AssignCustomerToMemberDialog بـ AssignCustomerPopover المتكامل داخل كل بطاقة */}
 
       {/* حوار إدارة الأعمدة */}
       <Dialog open={showColumnsManager} onOpenChange={setShowColumnsManager}>
