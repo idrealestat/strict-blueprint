@@ -100,6 +100,7 @@ import { toast } from "sonner";
 import CustomerDetailsPage from "./CustomerDetailsPage";
 import ContactsPanel from "./ContactsPanel";
 import TasksPanel from "./TasksPanel";
+import AssignCustomerToMemberDialog from "@/components/team/AssignCustomerToMemberDialog";
 import { useCallLogs } from "@/hooks/useCallLogs";
 import { useCallLogsPermission } from "@/hooks/useCallLogsPermission";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
@@ -763,14 +764,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     deleteTask: deleteCRMTask,
   } = useCRMTasks();
   
-  // قائمة الزملاء (Mock)
-  const colleagues = [
-    { id: '1', name: 'أحمد السالم', role: 'وسيط عقاري' },
-    { id: '2', name: 'محمد الفهد', role: 'مدير مبيعات' },
-    { id: '3', name: 'خالد العتيبي', role: 'وسيط معتمد' },
-    { id: '4', name: 'سارة الحربي', role: 'مستشارة عقارية' },
-    { id: '5', name: 'نورة القحطاني', role: 'مديرة فرع' },
-  ];
+  // تم استبدال الزملاء الوهميين بـ AssignCustomerToMemberDialog الذي يجلب الزملاء من قاعدة البيانات
   
   // استخدام hook سجل المكالمات
   const { 
@@ -4038,45 +4032,21 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         </DialogContent>
       </Dialog>
 
-      {/* نافذة إضافة زميل للمتابعة */}
-      <Dialog open={showColleagueDialog} onOpenChange={setShowColleagueDialog}>
-        <DialogContent className="max-w-sm" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              إضافة زميل للمتابعة
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-gray-600 mb-3">
-              اختر زميلاً لمتابعة العميل: {colleagueCustomer?.name}
-            </p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {colleagues.map((colleague) => (
-                <button
-                  key={colleague.id}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors text-right"
-                  onClick={() => {
-                    toast.success(`تم إضافة ${colleague.name} لمتابعة العميل`);
-                    setShowColleagueDialog(false);
-                    setColleagueCustomer(null);
-                  }}
-                >
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
-                      {colleague.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-sm">{colleague.name}</p>
-                    <p className="text-xs text-gray-500">{colleague.role}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* نافذة إضافة زميل للمتابعة - يستخدم الزملاء الحقيقيين من إدارة الفريق */}
+      <AssignCustomerToMemberDialog
+        isOpen={showColleagueDialog}
+        onClose={() => {
+          setShowColleagueDialog(false);
+          setColleagueCustomer(null);
+        }}
+        customerId={colleagueCustomer?.id || ''}
+        customerName={colleagueCustomer?.name || ''}
+        onSuccess={() => {
+          // تحديث البيانات بعد التعيين
+          setShowColleagueDialog(false);
+          setColleagueCustomer(null);
+        }}
+      />
 
       {/* حوار إدارة الأعمدة */}
       <Dialog open={showColumnsManager} onOpenChange={setShowColumnsManager}>
