@@ -306,18 +306,27 @@ END:VCARD`;
 
     const fetchSlug = async () => {
       try {
-        const { data: row } = await supabase
+        // جلب المستخدم الحقيقي من auth
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const actualUserId = authUser?.id || user.id;
+        
+        console.log('[BusinessCardProfile] Fetching slug for user:', actualUserId);
+        
+        const { data: row, error } = await supabase
           .from('business_cards')
           .select('slug')
-          .eq('user_id', user.id)
+          .eq('user_id', actualUserId)
           .maybeSingle();
+
+        console.log('[BusinessCardProfile] Slug result:', { row, error });
 
         const slugFromDb = String(row?.slug ?? '').trim().toLowerCase();
         if (!cancelled && slugFromDb) {
           setDbSlug(slugFromDb);
+          console.log('[BusinessCardProfile] Set dbSlug to:', slugFromDb);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[BusinessCardProfile] Error fetching slug:', err);
       }
     };
 
