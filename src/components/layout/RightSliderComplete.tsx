@@ -54,6 +54,7 @@ import OfficialCardMiniPreview from "@/components/business-card/OfficialCardMini
 import FalLicenseDisplay from "@/components/business-card/FalLicenseDisplay";
 import { useFinancialDocuments } from "@/hooks/useFinancialDocuments";
 import FinancialDocumentsPanel from "./FinancialDocumentsPanel";
+import { WorkspacePanel } from "@/components/workspace";
 import { toast as sonnerToast } from "sonner";
 
 interface Broker {
@@ -234,6 +235,7 @@ export default function RightSliderComplete({
   const [brokers] = useState<Broker[]>(SAMPLE_BROKERS);
   const [showQuotationsPanel, setShowQuotationsPanel] = useState(false);
   const [showReceiptsPanel, setShowReceiptsPanel] = useState(false);
+  const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const navigate = useNavigate();
   const { signOut, isAuthenticated, isOwner } = useAuth();
   const { toast } = useToast();
@@ -485,13 +487,19 @@ export default function RightSliderComplete({
   );
 
   const handleItemClick = (item: SidebarItem) => {
-    // Handle action items (quotations, receipts)
+    // Handle action items (quotations, receipts, workspace)
     if (item.path === 'action:quotations') {
       setShowQuotationsPanel(true);
       return;
     }
     if (item.path === 'action:receipts') {
       setShowReceiptsPanel(true);
+      return;
+    }
+    
+    // Handle workspace - فتح لوحة مساحة العمل
+    if (item.id === 'workspace' || item.path === '/workspace') {
+      setShowWorkspacePanel(true);
       return;
     }
     
@@ -838,6 +846,11 @@ export default function RightSliderComplete({
             isOpen={showReceiptsPanel}
             onClose={() => setShowReceiptsPanel(false)}
             onNavigateToCustomer={handleNavigateToCustomer}
+          />
+          {/* لوحة مساحة العمل */}
+          <WorkspacePanel
+            isOpen={showWorkspacePanel}
+            onClose={() => setShowWorkspacePanel(false)}
           />
         </>
       )}
