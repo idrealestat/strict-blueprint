@@ -10,7 +10,6 @@ import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, ChevronLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { slugToArabic, arabicToSlug, districtSlugToArabic } from '@/utils/slugify';
 import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
 import { usePagePresence } from '@/hooks/usePagePresence';
 import { useRegisterPublicViewer } from '@/hooks/useLiveViewersRealtime';
@@ -84,6 +83,11 @@ const SlugOfferDetailsPage: React.FC = () => {
   const [brokerName, setBrokerName] = useState('');
   const [businessCardData, setBusinessCardData] = useState<Record<string, any> | null>(null);
 
+  // ✅ نعتمد أسماء المدينة/الحي من سجل العرض نفسه لضمان التطابق 100% مع لوحة التحكم
+  // (بدون أي افتراضات عن تحويل slug إلى عربي)
+  const [presenceCity, setPresenceCity] = useState<string>('');
+  const [presenceDistrict, setPresenceDistrict] = useState<string>('');
+
   // مهم جداً: في بعض المسارات قد يصل offerId بشكل مختصر (suffix)
   // بينما قاعدة البيانات + لوحة التحكم تستخدم الـ UUID الكامل.
   // لذلك نعتمد canonicalOfferId الذي يتم ضبطه بعد العثور على السجل الحقيقي.
@@ -92,10 +96,7 @@ const SlugOfferDetailsPage: React.FC = () => {
   const { liveCount } = usePagePresence('offer', canonicalOfferId);
 
   // ✅ تسجيل حضور الزائر في الوقت الفعلي - هذا يجعل العين حمراء في لوحة التحكم
-  const city = citySlug ? slugToArabic(citySlug) : '';
-  // ✅ استخدام districtSlugToArabic ليُرجع "حي X" بدلاً من "X" فقط - للتطابق مع لوحة التحكم
-  const district = districtSlug ? districtSlugToArabic(districtSlug) : '';
-  useRegisterPublicViewer(slug, canonicalOfferId, city, district);
+  useRegisterPublicViewer(slug, canonicalOfferId, presenceCity, presenceDistrict);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -159,6 +160,10 @@ const SlugOfferDetailsPage: React.FC = () => {
 
         // تثبيت الـ ID الحقيقي (UUID الكامل) لمطابقة نظام المشاهدين المباشرين في لوحة التحكم
         setCanonicalOfferId(foundListing.id);
+
+        // ✅ تثبيت city/district من نفس سجل العرض لضمان تطابق مفاتيح الحي داخل لوحة التحكم
+        setPresenceCity(foundListing.city || '');
+        setPresenceDistrict(foundListing.district || '');
 
         // زيادة عدد المشاهدات (في Supabase)
         await supabase
@@ -350,7 +355,8 @@ const SlugOfferDetailsPage: React.FC = () => {
       <OfferDetailsPage
         listing={listingForDetails}
         isOpen={true}
-        onClose={() => navigate(`/${slug}/${citySlug}/${districtSlug}`)}
+        // ✅ الرجوع دائماً للمنصة العامة الرئيسية وليس لمستوى المدينة/الحي
+        onClose={() => navigate(`/${slug}`)}
         brokerName={brokerName}
         brokerPhone={businessCardData?.primaryPhone}
         platformSlug={slug}
