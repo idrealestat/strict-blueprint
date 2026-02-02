@@ -470,8 +470,11 @@ export default function MyPlatformComplete({
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
 
-  // ✅ Hook المشاهدين المباشرين عبر Supabase Presence (الأساسي)
-  const { getOfferViewers, getDistrictViewers, getCityViewers, getTotalViewers, liveViewers: realtimeLiveViewers } = useLiveViewersRealtime(currentSlug || undefined);
+  // ✅ Hook المشاهدين المباشرين عبر Presence (الأساسي)
+  // مهم: لازم يكون نفس الـ slug المستخدم في الصفحات العامة (/{slug}/...)
+  // نعتمد على currentSlug (وسيتم مزامنته لاحقاً فور جلب slug الحقيقي من قاعدة البيانات)
+  const effectiveSlug = (currentSlug || '').trim().toLowerCase() || undefined;
+  const { getOfferViewers, getDistrictViewers, getCityViewers, getTotalViewers, liveViewers: realtimeLiveViewers } = useLiveViewersRealtime(effectiveSlug);
 
   // دالة موحدة للحصول على عدد المشاهدين (المصدر الوحيد: Presence)
   const getLiveViewers = useCallback((offerId: string): number => {
@@ -899,7 +902,14 @@ export default function MyPlatformComplete({
       if (!isMounted) return;
 
       if (!error && data?.slug) {
-        setPlatformSlug(String(data.slug));
+        const dbSlug = String(data.slug).trim().toLowerCase();
+        setPlatformSlug(dbSlug);
+        // مزامنة slug المستخدم في القنوات/الروابط
+        // هذا يمنع اختلاف القناة بين لوحة التحكم والصفحات العامة
+        if (dbSlug) {
+          localStorage.setItem('public_platform_slug', dbSlug);
+          setCurrentSlug(dbSlug);
+        }
       }
     };
 
