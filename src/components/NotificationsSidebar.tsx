@@ -299,59 +299,32 @@ export default function NotificationsSidebar({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-white/10 rounded-lg p-3 mb-2 space-y-3"
+                    className="bg-white rounded-xl p-4 mb-2 space-y-4 max-h-[60vh] overflow-y-auto"
                   >
-                    {/* إعداد صوت التنبيه */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {soundEnabled ? (
-                          <Volume2 className="w-5 h-5 text-[#D4AF37]" />
-                        ) : (
-                          <VolumeX className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className="text-sm">صوت التنبيه</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={testSound}
-                          className="text-xs text-white/70 hover:text-white hover:bg-white/10"
-                        >
-                          اختبار
-                        </Button>
-                        <Switch
-                          checked={soundEnabled}
-                          onCheckedChange={toggleSound}
-                        />
-                      </div>
-                    </div>
+                    {/* إعدادات الإشعارات القابلة للطي */}
+                    <CollapsibleNotificationSettings
+                      notificationsEnabled={notificationsEnabled}
+                      soundEnabled={soundEnabled}
+                      onSettingsChange={(enabled, sound) => {
+                        setNotificationsEnabled(enabled);
+                        if (sound !== soundEnabled) {
+                          toggleSound();
+                        }
+                      }}
+                    />
                     
-                    {/* إعدادات الإشعارات المفصلة */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {notificationsEnabled ? (
-                          <Bell className="w-5 h-5 text-[#D4AF37]" />
-                        ) : (
-                          <BellOff className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className="text-sm">الإشعارات</span>
-                      </div>
-                      <Switch
-                        checked={notificationsEnabled}
-                        onCheckedChange={setNotificationsEnabled}
-                      />
-                    </div>
+                    {/* لوحة التنبيهات الذكية */}
+                    <SmartAlertsPanel offers={offers} />
                     
                     {/* رابط لصفحة الإعدادات التفصيلية */}
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={goToNotificationSettings}
-                      className="w-full text-xs text-white/80 hover:text-white hover:bg-white/20 justify-start"
+                      className="w-full text-xs border-[#D4AF37] text-[#01411C] hover:bg-[#D4AF37]/10 justify-center gap-2"
                     >
-                      <ExternalLink className="w-4 h-4 ml-2" />
-                      فتح الإعدادات التفصيلية
+                      <ExternalLink className="w-4 h-4" />
+                      فتح صفحة الإعدادات الكاملة
                     </Button>
                   </motion.div>
                 )}
