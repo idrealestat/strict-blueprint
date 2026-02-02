@@ -1,11 +1,14 @@
 /**
  * useOfferViewNotifications.ts
  * نظام إشعارات فورية عند مشاهدة العروض مع بيانات الموقع والجهاز
+ * يستخدم قاعدة البيانات للإحصائيات بدلاً من localStorage
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { showPushNotification } from './usePushNotifications';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuthContext } from '@/context/AuthContext';
 
 export interface ViewerInfo {
   ip?: string;
@@ -136,6 +139,7 @@ export async function getLocationInfo(): Promise<{ city?: string; country?: stri
 
 // Hook رئيسي
 export function useOfferViewNotifications() {
+  const { user } = useAuthContext();
   const [notifications, setNotifications] = useState<OfferViewNotification[]>([]);
   const [stats, setStats] = useState<ViewStats>({
     current: 0,
@@ -164,7 +168,7 @@ export function useOfferViewNotifications() {
     }
 
     loadStats();
-  }, []);
+  }, [user]);
 
   // حفظ الإعدادات
   const saveSettings = useCallback((enabled: boolean, sound: boolean) => {
@@ -176,60 +180,114 @@ export function useOfferViewNotifications() {
     setSoundEnabled(sound);
   }, []);
 
-  // تحميل الإحصائيات
-  const loadStats = useCallback(() => {
-    const viewsLog = JSON.parse(localStorage.getItem('offer_views_log') || '[]');
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const thisYear = now.getFullYear().toString();
+  // تحميل الإحصائيات من قاعدة البيانات
+  const loadStats = useCallback(async () => {
+    if (!user) {
+      // فولباك للـ localStorage للمستخدمين غير المسجلين
+      const viewsLog = JSON.parse(localStorage.getItem('offer_views_log') || '[]');
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const thisYear = now.getFullYear().toString();
 
-    let todayViews = 0;
-    let monthViews = 0;
-    let yearViews = 0;
-    let totalInteractions = 0;
+      let todayViews = 0;
+      let monthViews = 0;
+      let yearViews = 0;
+      let totalInteractions = 0;
 
-    const dailyStats: { [key: string]: { views: number; interactions: number } } = {};
+      viewsLog.forEach((log: any) => {
+        const logDate = log.timestamp?.split('T')[0] || '';
+        const logMonth = logDate.substring(0, 7);
+        const logYear = logDate.substring(0, 4);
 
-    viewsLog.forEach((log: any) => {
-      const logDate = log.timestamp?.split('T')[0] || '';
-      const logMonth = logDate.substring(0, 7);
-      const logYear = logDate.substring(0, 4);
-
-      if (logDate === today) todayViews++;
-      if (logMonth === thisMonth) monthViews++;
-      if (logYear === thisYear) yearViews++;
-      if (log.interaction) totalInteractions++;
-
-      if (!dailyStats[logDate]) {
-        dailyStats[logDate] = { views: 0, interactions: 0 };
-      }
-      dailyStats[logDate].views++;
-      if (log.interaction) dailyStats[logDate].interactions++;
-    });
-
-    // آخر 30 يوم
-    const history: { date: string; views: number; interactions: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      history.push({
-        date: dateStr,
-        views: dailyStats[dateStr]?.views || 0,
-        interactions: dailyStats[dateStr]?.interactions || 0,
+        if (logDate === today) todayViews++;
+        if (logMonth === thisMonth) monthViews++;
+        if (logYear === thisYear) yearViews++;
+        if (log.interaction) totalInteractions++;
       });
+
+      setStats({
+        current: liveViewersRef.current.size,
+        today: todayViews,
+        thisMonth: monthViews,
+        thisYear: yearViews,
+        totalInteractions,
+        history: [],
+      });
+      return;
     }
 
-    setStats({
-      current: liveViewersRef.current.size,
-      today: todayViews,
-      thisMonth: monthViews,
-      thisYear: yearViews,
-      totalInteractions,
-      history,
-    });
-  }, []);
+    try {
+      // جلب الإحصائيات من قاعدة البيانات
+      const now = new Date();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+      // جلب المشاهدات من قاعدة البيانات
+      const { data: allLogs, error } = await supabase
+        .from('offer_views_log')
+        .select('created_at, offer_id, offer_title, metadata')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10000);
+
+      if (error) {
+        console.error('[useOfferViewNotifications] Error fetching stats:', error);
+        return;
+      }
+
+      const logs = allLogs || [];
+      let todayViews = 0;
+      let monthViews = 0;
+      let yearViews = 0;
+      let totalInteractions = 0;
+
+      const dailyStats: { [key: string]: { views: number; interactions: number } } = {};
+
+      logs.forEach((log: any) => {
+        const logDate = new Date(log.created_at);
+        const dateStr = logDate.toISOString().split('T')[0];
+
+        if (logDate >= today) todayViews++;
+        if (logDate >= startOfMonth) monthViews++;
+        if (logDate >= startOfYear) yearViews++;
+        if ((log.metadata as any)?.interaction) totalInteractions++;
+
+        if (!dailyStats[dateStr]) {
+          dailyStats[dateStr] = { views: 0, interactions: 0 };
+        }
+        dailyStats[dateStr].views++;
+        if ((log.metadata as any)?.interaction) dailyStats[dateStr].interactions++;
+      });
+
+      // آخر 30 يوم
+      const history: { date: string; views: number; interactions: number }[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        history.push({
+          date: dateStr,
+          views: dailyStats[dateStr]?.views || 0,
+          interactions: dailyStats[dateStr]?.interactions || 0,
+        });
+      }
+
+      setStats({
+        current: liveViewersRef.current.size,
+        today: todayViews,
+        thisMonth: monthViews,
+        thisYear: yearViews,
+        totalInteractions,
+        history,
+      });
+    } catch (e) {
+      console.error('[useOfferViewNotifications] Stats load error:', e);
+    }
+  }, [user]);
 
   // إضافة مشاهدة جديدة
   const recordView = useCallback((offerId: string, offerTitle: string, viewerInfo: ViewerInfo) => {
