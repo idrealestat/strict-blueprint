@@ -1314,7 +1314,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     }, 700);
   }, []);
 
-  // Touch move handler with RTL-aware auto-scroll
+  // Touch move handler with RTL-aware auto-scroll (horizontal + vertical)
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
@@ -1339,32 +1339,51 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         setDropIndicator(target);
       }
       
-      // RTL-aware auto-scroll when dragging near edges
-      // في RTL: السحب لليمين = scroll لليمين (عرض أعمدة اليسار)
-      // في RTL: السحب لليسار = scroll لليسار (عرض أعمدة اليمين)
+      // Clear existing auto-scroll
+      if (autoScrollIntervalRef.current) {
+        clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+      
       const container = kanbanContainerRef.current;
+      const edgeThreshold = 60;
+      const scrollSpeed = 8;
+      const verticalEdgeThreshold = 50;
+      const verticalScrollSpeed = 6;
+      
+      // Find the column's scrollable area for vertical scrolling
+      const columnElement = target ? document.querySelector(`[data-column-id="${target.columnId}"][data-column-scroll]`) : null;
+      
       if (container) {
         const containerRect = container.getBoundingClientRect();
-        const edgeThreshold = 60; // منطقة الحافة للتمرير التلقائي
-        const scrollSpeed = 8;
         
-        // Clear existing auto-scroll
-        if (autoScrollIntervalRef.current) {
-          clearInterval(autoScrollIntervalRef.current);
-          autoScrollIntervalRef.current = null;
+        // Check for VERTICAL scroll first (within column)
+        if (columnElement) {
+          const columnRect = columnElement.getBoundingClientRect();
+          
+          if (touch.clientY > columnRect.bottom - verticalEdgeThreshold) {
+            // Near bottom - scroll down
+            autoScrollIntervalRef.current = setInterval(() => {
+              columnElement.scrollTop += verticalScrollSpeed;
+            }, 16);
+            return; // Don't do horizontal scroll if doing vertical
+          } else if (touch.clientY < columnRect.top + verticalEdgeThreshold) {
+            // Near top - scroll up
+            autoScrollIntervalRef.current = setInterval(() => {
+              columnElement.scrollTop -= verticalScrollSpeed;
+            }, 16);
+            return; // Don't do horizontal scroll if doing vertical
+          }
         }
         
-        // RTL: السحب للحافة اليمنى = تمرير لليمين (scrollLeft يزيد)
-        // RTL: السحب للحافة اليسرى = تمرير لليسار (scrollLeft ينقص)
+        // HORIZONTAL scrolling for columns (if not doing vertical)
         if (touch.clientX > containerRect.right - edgeThreshold) {
-          // الحافة اليمنى - تمرير لليمين لعرض المزيد من الأعمدة
           autoScrollIntervalRef.current = setInterval(() => {
             if (kanbanContainerRef.current) {
               kanbanContainerRef.current.scrollLeft += scrollSpeed;
             }
           }, 16);
         } else if (touch.clientX < containerRect.left + edgeThreshold) {
-          // الحافة اليسرى - تمرير لليسار لعرض المزيد من الأعمدة
           autoScrollIntervalRef.current = setInterval(() => {
             if (kanbanContainerRef.current) {
               kanbanContainerRef.current.scrollLeft -= scrollSpeed;
@@ -2230,6 +2249,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                         <div 
                           className="p-2 space-y-0 min-h-[400px] max-h-[600px] overflow-y-auto"
                           data-column-id={column.id}
+                          data-column-scroll="true"
                           onDragOver={(e) => {
                             e.preventDefault();
                             if (draggedCustomer && columnCustomers.length === 0) {
