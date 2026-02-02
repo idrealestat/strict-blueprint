@@ -871,11 +871,69 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
     toast({ title: 'جاري الاتصال...', description: phone });
   };
 
+  // بناء رابط العرض الهرمي الصحيح (/{slug}/{city}/{district}/{offerId})
+  const getOfferPublicUrl = (): string => {
+    // إذا كنا على صفحة عامة، استخدم الرابط الحالي
+    const pathname = window.location.pathname;
+    const isPublicPage = !pathname.startsWith('/app') && !pathname.startsWith('/auth');
+    
+    if (isPublicPage) {
+      return window.location.href;
+    }
+    
+    // بناء الرابط الهرمي من بيانات العرض
+    const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com';
+    const slug = platformSlug || localStorage.getItem('public_platform_slug') || '';
+    
+    if (!slug || !listing.city || !listing.district) {
+      // fallback لرابط المنصة فقط
+      return `https://${publishedDomain}/${slug || ''}`;
+    }
+    
+    // تحويل المدينة والحي لـ slug
+    const citySlugMap: Record<string, string> = {
+      'الرياض': 'riyadh', 'جدة': 'jeddah', 'مكة': 'makkah', 'المدينة': 'madinah',
+      'الدمام': 'dammam', 'الخبر': 'alkhobr', 'الظهران': 'dhahran', 'تبوك': 'tabuk',
+      'أبها': 'abha', 'الطائف': 'taif', 'بريدة': 'buraidah', 'حائل': 'hail',
+      'نجران': 'najran', 'جازان': 'jazan', 'الجبيل': 'jubail', 'ينبع': 'yanbu',
+      'الأحساء': 'ahsa', 'القطيف': 'qatif', 'خميس مشيط': 'khamis',
+    };
+    
+    const arabicToSlug = (text: string): string => {
+      const direct = citySlugMap[text.trim()];
+      if (direct) return direct;
+      
+      // تحويل الحروف العربية
+      const map: Record<string, string> = {
+        'ا': 'a', 'أ': 'a', 'إ': 'e', 'آ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th',
+        'ج': 'j', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'th', 'ر': 'r', 'ز': 'z',
+        'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a',
+        'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+        'ه': 'h', 'ة': 'a', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ئ': 'e', 'ء': '', 'ؤ': 'o',
+      };
+      
+      let result = text.trim().toLowerCase().replace(/^(حي|منطقة)\s*/i, '');
+      let converted = '';
+      for (const char of result) {
+        if (map[char] !== undefined) converted += map[char];
+        else if (/[a-z0-9]/.test(char)) converted += char;
+        else if (char === ' ' || char === '-') converted += '-';
+      }
+      return converted.replace(/-+/g, '-').replace(/^-|-$/g, '') || 'item';
+    };
+    
+    const citySlug = arabicToSlug(listing.city);
+    const districtSlug = arabicToSlug(listing.district);
+    const shortId = listing.id.length > 8 ? listing.id.slice(-8) : listing.id;
+    
+    return `https://${publishedDomain}/${slug}/${citySlug}/${districtSlug}/${shortId}`;
+  };
+
   const handleWhatsApp = () => {
     const phone = listing.ownerPhone || brokerPhone || '0500000000';
     
-    // بناء رابط العرض العام
-    const currentUrl = window.location.href;
+    // بناء رابط العرض العام الهرمي
+    const offerUrl = getOfferPublicUrl();
     
     // بناء الرسالة المفصلة
     let message = `🏠 *أريد الاستفسار عن هذا العرض*\n\n`;
@@ -884,7 +942,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
     if (listing.area) message += `📐 المساحة: ${listing.area} م²\n`;
     message += `💰 السعر: ${listing.price.toLocaleString()} ريال سعودي\n`;
     if (listing.bedrooms) message += `🛏️ عدد الغرف: ${listing.bedrooms}\n`;
-    message += `\n🔗 شاهد العرض:\n${currentUrl}`;
+    message += `\n🔗 شاهد العرض:\n${offerUrl}`;
     
     // Track whatsapp CTA click
     track({
@@ -911,10 +969,13 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   };
 
   const handleShare = async () => {
+    // استخدام الرابط الهرمي الصحيح
+    const offerUrl = getOfferPublicUrl();
+    
     const shareData = {
       title: listing.title,
       text: `${listing.title} - ${formatPrice(listing.price)}`,
-      url: window.location.href
+      url: offerUrl
     };
     
     // Track share CTA click
@@ -942,7 +1003,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(window.location.href);
+        await navigator.clipboard.writeText(offerUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         toast({ title: 'تم نسخ الرابط!' });
