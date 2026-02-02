@@ -1,13 +1,19 @@
+import { useState, useEffect } from 'react';
 import { 
   X, Home, UserCheck, BookOpen, Crown, Briefcase, Archive, 
   FileText, Receipt, Plus, BarChart3, Info, Headphones, Settings,
-  Users, Building2, Bell
+  Users, Building2, Bell, MessageCircle, Sparkles, Shield, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
+import { useFloatingBubblePermission } from "@/hooks/useFloatingBubblePermission";
+import { toast } from "sonner";
 
 interface RightSliderProps {
   isOpen: boolean;
@@ -42,6 +48,98 @@ const mockUser = {
   type: 'individual' as const,
   plan: 'المحترف'
 };
+
+/**
+ * 🔴 مكون إعدادات المساعد الذكي العائم في الـ Right Slider
+ * يظهر فقط إذا فعّل المالك الخاصية
+ */
+function FloatingBubbleQuickSettings() {
+  const { flags, loading: flagsLoading } = useFeatureFlags();
+  const {
+    isOwnerEnabled,
+    hasPermission,
+    isActive,
+    platform,
+    isLoading,
+    requestPermission,
+    toggleBubble,
+  } = useFloatingBubblePermission();
+
+  // إذا الخاصية معطلة من المالك أو جاري التحميل → لا يظهر أي شيء
+  if (flagsLoading || isLoading) {
+    return null;
+  }
+
+  // 🔴 الخاصية معطلة من لوحة تحكم المالك → لا يظهر الزر نهائياً
+  if (!isOwnerEnabled || !flags.floating_bubble_enabled) {
+    return null;
+  }
+
+  const handleToggle = async () => {
+    // Android: التحقق من الصلاحيات أولاً
+    if (platform === 'android' && !hasPermission && !isActive) {
+      const opened = await requestPermission();
+      if (opened) {
+        toast.info('يرجى تفعيل صلاحية العرض فوق التطبيقات ثم العودة للتطبيق');
+      }
+      return;
+    }
+    
+    await toggleBubble();
+  };
+
+  return (
+    <Card className="border-[#D4AF37]/30 bg-gradient-to-br from-[#01411C]/5 to-[#01411C]/10">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+            <CardTitle className="text-sm">المساعد الذكي العائم</CardTitle>
+          </div>
+          <Badge variant={isActive ? 'default' : 'secondary'} className="text-xs">
+            {isActive ? 'مفعّل' : 'معطّل'}
+          </Badge>
+        </div>
+        <CardDescription className="text-xs">
+          {platform === 'android' ? 'فقاعة عائمة فوق جميع التطبيقات' : 'زر عائم داخل التطبيق'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
+        {/* Android: حالة الصلاحية */}
+        {platform === 'android' && !hasPermission && (
+          <div className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-amber-500" />
+              <span>صلاحية العرض فوق التطبيقات مطلوبة</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={requestPermission}
+              className="h-6 text-xs px-2"
+            >
+              <ExternalLink className="w-3 h-3 ml-1" />
+              تفعيل
+            </Button>
+          </div>
+        )}
+        
+        {/* زر التفعيل/التعطيل */}
+        <div className="flex items-center justify-between p-2 border rounded-lg">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-[#01411C]" />
+            <span className="text-sm">إظهار المساعد الذكي كبابل</span>
+          </div>
+          <Switch
+            checked={isActive}
+            onCheckedChange={handleToggle}
+            disabled={platform === 'android' && !hasPermission}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 const RightSlider = ({ isOpen, onClose }: RightSliderProps) => {
   const navigate = useNavigate();
@@ -113,6 +211,11 @@ const RightSlider = ({ isOpen, onClose }: RightSliderProps) => {
 
           {/* Navigation Tab */}
           <TabsContent value="navigation" className="p-4">
+            {/* 🔴 إعدادات المساعد الذكي - يظهر فقط إذا فعّلها المالك */}
+            <div className="mb-4">
+              <FloatingBubbleQuickSettings />
+            </div>
+            
             <div className="space-y-2">
               {RIGHT_SIDEBAR_ITEMS.map((item) => (
                 <button
