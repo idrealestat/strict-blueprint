@@ -472,11 +472,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       'ضائع': 'lost'
     };
 
-    const columnId = columnMap[c.status || 'active'] || 'leads';
-
     const metadataObj = (c.metadata && typeof c.metadata === 'object' && !Array.isArray(c.metadata))
       ? (c.metadata as Record<string, any>)
       : {};
+
+    // ✅ دعم الأعمدة المخصصة: نقرأ columnId من metadata إن وجد (مع fallback على status)
+    const metaColumnId = typeof metadataObj.columnId === 'string' ? metadataObj.columnId : undefined;
+    const fallbackColumnId = columnMap[c.status || 'active'] || 'leads';
+    const columnId = metaColumnId || fallbackColumnId;
 
     const metaClientType = metadataObj.clientType as string | undefined;
     const metaInterestLevel = metadataObj.interestLevel as string | undefined;
@@ -1208,6 +1211,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const handleDrop = (columnId: string, position?: number) => {
     if (!draggedCustomer) return;
 
+     const statusMap: Record<string, string> = {
+       leads: 'new',
+       contacted: 'active',
+       viewing: 'viewing',
+       negotiation: 'negotiation',
+       closed: 'closed',
+       lost: 'lost',
+     };
+
     setColumns(prev => {
       const newColumns = prev.map(col => ({
         ...col,
@@ -1229,6 +1241,28 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setCustomers(prev => prev.map(c => 
       c.id === draggedCustomer ? { ...c, columnId } : c
     ));
+
+    // ✅ حفظ النقل في قاعدة البيانات حتى لا يرجع العميل لعموده السابق بعد الخروج والعودة
+    try {
+      const currentCustomer = customers.find(c => c.id === draggedCustomer);
+      const currentMeta = (currentCustomer?.metadata && typeof currentCustomer.metadata === 'object' && !Array.isArray(currentCustomer.metadata))
+        ? (currentCustomer.metadata as Record<string, any>)
+        : {};
+
+      void dbUpdateCustomer(
+        draggedCustomer,
+        {
+          status: statusMap[columnId] || (currentCustomer?.status || 'active'),
+          metadata: {
+            ...currentMeta,
+            columnId,
+          },
+        },
+        { isStatusChange: true }
+      );
+    } catch (e) {
+      console.error('[CRM] Failed to persist drag drop:', e);
+    }
 
     setDraggedCustomer(null);
     setDropIndicator(null);
@@ -1415,6 +1449,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     
     // If we were dragging and have a drop target
     if (touchDragCustomer && dropIndicator) {
+      const statusMap: Record<string, string> = {
+        leads: 'new',
+        contacted: 'active',
+        viewing: 'viewing',
+        negotiation: 'negotiation',
+        closed: 'closed',
+        lost: 'lost',
+      };
+
       // Move customer to new column
       setColumns(prev => {
         const newColumns = prev.map(col => ({
@@ -1438,6 +1481,28 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         c.id === touchDragCustomer ? { ...c, columnId: dropIndicator.columnId } : c
       ));
 
+      // ✅ حفظ النقل في قاعدة البيانات (حتى لا يرجع للعمود السابق)
+      try {
+        const currentCustomer = customers.find(c => c.id === touchDragCustomer);
+        const currentMeta = (currentCustomer?.metadata && typeof currentCustomer.metadata === 'object' && !Array.isArray(currentCustomer.metadata))
+          ? (currentCustomer.metadata as Record<string, any>)
+          : {};
+
+        void dbUpdateCustomer(
+          touchDragCustomer,
+          {
+            status: statusMap[dropIndicator.columnId] || (currentCustomer?.status || 'active'),
+            metadata: {
+              ...currentMeta,
+              columnId: dropIndicator.columnId,
+            },
+          },
+          { isStatusChange: true }
+        );
+      } catch (e) {
+        console.error('[CRM] Failed to persist touch drop:', e);
+      }
+
       toast.success('تم نقل العميل بنجاح');
     }
     
@@ -1454,7 +1519,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setTouchCurrentPos(null);
     setDropIndicator(null);
     isLongPressRef.current = false;
-  }, [touchDragCustomer, dropIndicator]);
+  }, [touchDragCustomer, dropIndicator, customers, dbUpdateCustomer]);
 
   // Show drag hint on first load for mobile users
   useEffect(() => {
@@ -2595,17 +2660,58 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                       <AssignCustomerPopover
                                         customerId={customer.id}
                                         customerName={customer.name}
-                                        onSuccess={() => {
-                                          // يمكن إضافة تحديث للبيانات هنا
+                                        onSuccess={(assigned) => {
+                                          // ✅ عرض اسم الزميل مكان الزر + حفظه في metadata
+                                          const currentMeta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+                                            ? (customer.metadata as Record<string, any>)
+                                            : {};
+
+                                          const nextMeta = {
+                                            ...currentMeta,
+                                            assignedColleagueUserId: assigned.userId,
+                                            assignedColleagueName: assigned.name,
+                                          };
+
+                                          setCustomers(prev => prev.map(c =>
+                                            c.id === customer.id
+                                              ? { ...c, metadata: nextMeta }
+                                              : c
+                                          ));
+
+                                          void dbUpdateCustomer(customer.id, { metadata: nextMeta });
                                         }}
                                       >
-                                        <button
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="w-full py-1 text-[10px] text-blue-600 border border-dashed border-blue-400 rounded hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
-                                        >
-                                          <Users className="w-3 h-3" />
-                                          إضافة زميل للمتابعة
-                                        </button>
+                                        {(() => {
+                                          const meta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+                                            ? (customer.metadata as Record<string, any>)
+                                            : {};
+                                          const assignedName = typeof meta.assignedColleagueName === 'string' ? meta.assignedColleagueName : '';
+
+                                          if (assignedName) {
+                                            return (
+                                              <button
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-full py-1 text-[10px] border rounded transition-colors flex items-center justify-center"
+                                                style={{
+                                                  borderColor: '#D4AF37',
+                                                  color: '#01411C',
+                                                }}
+                                              >
+                                                <span className="truncate">{assignedName}</span>
+                                              </button>
+                                            );
+                                          }
+
+                                          return (
+                                            <button
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="w-full py-1 text-[10px] text-blue-600 border border-dashed border-blue-400 rounded hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
+                                            >
+                                              <Users className="w-3 h-3" />
+                                              إضافة زميل للمتابعة
+                                            </button>
+                                          );
+                                        })()}
                                       </AssignCustomerPopover>
                                     )}
                                   </div>
