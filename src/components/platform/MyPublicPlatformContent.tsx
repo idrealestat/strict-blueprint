@@ -146,6 +146,7 @@ interface MyPublicPlatformContentProps {
   userId?: string;
   platformSlug?: string; // slug المستخدم في رابط المنصة العامة
   businessCardOverride?: (BusinessCardData & { swapState?: boolean }) | null; // بيانات قادمة من قاعدة البيانات للعرض العام
+  ownerListingsFromParent?: any[]; // العروض القادمة من المكون الأب (لتجنب جلب مزدوج)
 }
 
 const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
@@ -153,6 +154,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   userId = 'default',
   platformSlug,
   businessCardOverride,
+  ownerListingsFromParent,
 }) => {
   const navigate = useNavigate();
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
@@ -194,8 +196,13 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
 
   // slug المستخدم للمنصة العامة
   const currentSlug = platformSlug || localStorage.getItem('public_platform_slug') || 'default';
-  // مزامنة (للـمالك فقط)
-  const { syncFromLocalStorage, listings: ownerDbListings, fetchListings: ownerFetchListings } = usePlatformListings(!isPublicViewer ? currentSlug : undefined);
+  
+  // ✅ للمالك: نستخدم currentSlug لجلب العروض (أو undefined للجلب بـ user_id)
+  // إصلاح: عندما يكون currentSlug = 'default'، نمرر undefined ليتم الجلب بـ user_id
+  const ownerSlugForQuery = !isPublicViewer ? (currentSlug !== 'default' ? currentSlug : undefined) : undefined;
+  const { syncFromLocalStorage, listings: ownerDbListings, fetchListings: ownerFetchListings, loading: ownerDbLoading } = usePlatformListings(ownerSlugForQuery);
+  
+  console.log('[MyPublicPlatformContent] Init - isPublicViewer:', isPublicViewer, 'currentSlug:', currentSlug, 'ownerSlugForQuery:', ownerSlugForQuery, 'ownerDbListings:', ownerDbListings?.length, 'loading:', ownerDbLoading);
 
   // جلب العروض للزوار من قاعدة البيانات (حتى تظهر على أي جهاز)
   // يستخدم slug أولاً، ثم user_id كخيار ثانٍ
@@ -261,30 +268,32 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       return;
     }
 
-    // (2) تبويب المنصة للمالك: المصدر هو قاعدة البيانات (نفس مصدر تبويب العروض)
+  // (2) تبويب المنصة للمالك: المصدر هو قاعدة البيانات (نفس مصدر تبويب العروض)
     // ✅ يعرض فقط العروض الظاهرة (غير المخفية) كما يراها الزوار
-    const loadFromDatabase = () => {
-      if (ownerDbListings && ownerDbListings.length > 0) {
-        // فلترة العروض المخفية والمسودات - تبويب المنصة يعرض ما يراه الزوار فقط
-        const visibleListings = ownerDbListings.filter(listing => 
-          listing.status === 'published' && !listing.isHidden
-        );
-        
-        if (visibleListings.length > 0) {
-          const hierarchy = buildHierarchy(visibleListings as any[]);
-          setHierarchyData(hierarchy);
-          setAllListings(flattenListings(hierarchy));
-        } else {
-          setHierarchyData([]);
-          setAllListings([]);
-        }
+    // ✅ إصلاح: نتحقق من وجود ownerDbListings ونبني الهرمية فوراً
+    console.log('[MyPublicPlatformContent] Owner mode - ownerDbListings:', ownerDbListings?.length, 'slug:', currentSlug);
+    
+    if (ownerDbListings && ownerDbListings.length > 0) {
+      // فلترة العروض المخفية والمسودات - تبويب المنصة يعرض ما يراه الزوار فقط
+      const visibleListings = ownerDbListings.filter(listing => 
+        listing.status === 'published' && !listing.isHidden
+      );
+      
+      console.log('[MyPublicPlatformContent] Visible listings for platform tab:', visibleListings.length);
+      
+      if (visibleListings.length > 0) {
+        const hierarchy = buildHierarchy(visibleListings as any[]);
+        setHierarchyData(hierarchy);
+        setAllListings(flattenListings(hierarchy));
       } else {
         setHierarchyData([]);
         setAllListings([]);
       }
-    };
-
-    loadFromDatabase();
+    } else {
+      // ✅ إصلاح: لا نمسح البيانات إذا كان الجلب لا يزال جارياً
+      // نترك البيانات الحالية حتى يكتمل الجلب
+      console.log('[MyPublicPlatformContent] No ownerDbListings yet, keeping current state');
+    }
 
     // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
     if (typeof businessCardOverride !== 'undefined') {

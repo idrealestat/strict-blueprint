@@ -1994,6 +1994,8 @@ export default function MyPlatformComplete({
                 totalDeals: 156
               }}
               userId={user?.id || 'default'}
+              platformSlug={currentSlug}
+              ownerListingsFromParent={dbListings}
             />
           </TabsContent>
 
