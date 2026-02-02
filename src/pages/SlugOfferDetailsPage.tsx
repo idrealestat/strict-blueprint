@@ -84,12 +84,17 @@ const SlugOfferDetailsPage: React.FC = () => {
   const [brokerName, setBrokerName] = useState('');
   const [businessCardData, setBusinessCardData] = useState<Record<string, any> | null>(null);
 
-  const { liveCount } = usePagePresence('offer', offerId);
+  // مهم جداً: في بعض المسارات قد يصل offerId بشكل مختصر (suffix)
+  // بينما قاعدة البيانات + لوحة التحكم تستخدم الـ UUID الكامل.
+  // لذلك نعتمد canonicalOfferId الذي يتم ضبطه بعد العثور على السجل الحقيقي.
+  const [canonicalOfferId, setCanonicalOfferId] = useState<string | undefined>(offerId);
+
+  const { liveCount } = usePagePresence('offer', canonicalOfferId);
 
   // ✅ تسجيل حضور الزائر في الوقت الفعلي - هذا يجعل العين حمراء في لوحة التحكم
   const city = citySlug ? slugToArabic(citySlug) : '';
   const district = districtSlug ? slugToArabic(districtSlug) : '';
-  useRegisterPublicViewer(slug, offerId, city, district);
+  useRegisterPublicViewer(slug, canonicalOfferId, city, district);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -149,6 +154,9 @@ const SlugOfferDetailsPage: React.FC = () => {
           setLoading(false);
           return;
         }
+
+        // تثبيت الـ ID الحقيقي (UUID الكامل) لمطابقة نظام المشاهدين المباشرين في لوحة التحكم
+        setCanonicalOfferId(foundListing.id);
 
         // زيادة عدد المشاهدات (في Supabase)
         await supabase
