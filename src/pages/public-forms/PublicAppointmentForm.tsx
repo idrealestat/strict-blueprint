@@ -20,20 +20,7 @@ import { useEventTracker } from '@/hooks/useEventTracker';
 import { createNotification } from '@/utils/notificationTriggers';
 import { markAsNew } from '@/hooks/usePublishedAdsManager';
 
-const getMockBroker = (brokerId: string): BrokerInfo => ({
-  id: brokerId,
-  name: 'أحمد محمد',
-  company: 'شركة الوساطة العقارية',
-  phone: '0512345678',
-  email: 'ahmed@example.com',
-  location: 'الرياض',
-  licenseNumber: 'FAL-12345678',
-  rating: 4.8,
-  verified: true,
-  profileImage: '',
-  coverImage: '',
-  logoImage: '',
-});
+// ⚠️ محمي: لا يُسمح بإعادة البيانات الوهمية - يجب استخدام البيانات الحقيقية فقط من قاعدة البيانات
 
 const appointmentTypes = [
   "معاينة عقار",
@@ -136,17 +123,31 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [brokerUserId, setBrokerUserId] = useState<string | null>(null);
-  const [fetchedBroker, setFetchedBroker] = useState<BrokerInfo | null>(null);
+  const [broker, setBroker] = useState<BrokerInfo | null>(brokerInfo || null);
+  const [isLoadingBroker, setIsLoadingBroker] = useState(!brokerInfo);
   const { track, trackPageView } = useEventTracker();
   
   // جلب بيانات الوسيط من business_card إذا كان slug موجود ولم يتم تمرير brokerInfo
   useEffect(() => {
     const fetchBrokerData = async () => {
-      if (slug && !brokerInfo) {
+      if (brokerInfo) {
+        setBroker(brokerInfo);
+        setBrokerUserId(brokerInfo.id);
+        setIsLoadingBroker(false);
+        return;
+      }
+      
+      if (!slug && !brokerId) {
+        setIsLoadingBroker(false);
+        return;
+      }
+      
+      setIsLoadingBroker(true);
+      try {
         const { data } = await supabase
           .from('business_cards')
           .select('user_id, id, data')
-          .eq('slug', slug)
+          .eq('slug', slug || brokerId)
           .eq('published', true)
           .single();
         
@@ -157,7 +158,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
           
           // استخراج بيانات الوسيط من البطاقة مع الصور
           const cardData = data.data as Record<string, any>;
-          setFetchedBroker({
+          setBroker({
             id: data.id,
             name: cardData?.userName || cardData?.name || 'وسيط عقاري',
             company: cardData?.companyName || cardData?.company || 'شركة عقارية',
@@ -172,15 +173,14 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
             logoImage: cardData?.logoImage || '',
           });
         }
-      } else if (brokerInfo) {
-        setBrokerUserId(brokerInfo.id);
+      } catch (error) {
+        console.error('Error loading broker data:', error);
+      } finally {
+        setIsLoadingBroker(false);
       }
     };
     fetchBrokerData();
-  }, [slug, brokerInfo, trackPageView]);
-  
-  // استخدام البيانات الممررة أو المجلوبة أو الافتراضية
-  const broker = brokerInfo || fetchedBroker || getMockBroker(brokerId || '1');
+  }, [slug, brokerId, brokerInfo, trackPageView]);
 
   const [formData, setFormData] = useState<FormData>({
     clientName: '',
@@ -388,6 +388,18 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
       setIsSubmitting(false);
     }
   };
+
+  // ⚠️ محمي: عرض شاشة تحميل حتى جلب بيانات الوسيط الحقيقية
+  if (isLoadingBroker || !broker) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] flex items-center justify-center" dir="rtl">
+        <div className="text-center text-white">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-[#D4AF37]" />
+          <p className="text-lg">جاري تحميل بيانات الوسيط...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
