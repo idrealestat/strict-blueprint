@@ -34,7 +34,7 @@ const SlugPlatformPage: React.FC = () => {
   const navigate = useNavigate();
   const [businessCard, setBusinessCard] = useState<BusinessCardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [invalidSlug, setInvalidSlug] = useState(false);
 
   // تتبع الزوار المتصلين حالياً
   const { liveCount } = usePagePresence('platform', slug);
@@ -45,7 +45,7 @@ const SlugPlatformPage: React.FC = () => {
   useEffect(() => {
     const fetchBusinessCard = async () => {
       if (!slug) {
-        setNotFound(true);
+        setInvalidSlug(true);
         setLoading(false);
         return;
       }
@@ -56,17 +56,16 @@ const SlugPlatformPage: React.FC = () => {
           .select('*')
           .eq('slug', slug)
           .eq('published', true)
-          .single();
+          .maybeSingle();
 
-        if (error || !data) {
-          console.log('Business card not found for slug:', slug);
-          setNotFound(true);
-        } else {
-          setBusinessCard(data as BusinessCardData);
-        }
+        // مهم: صفحة المنصة العامة يجب أن تعمل حتى بدون بطاقة أعمال منشورة.
+        // لذلك لا نعامل غياب البطاقة كـ 404.
+        if (error) console.warn('[SlugPlatformPage] business_cards lookup failed:', error);
+        setBusinessCard((data as BusinessCardData) ?? null);
       } catch (err) {
-        console.error('Error fetching business card:', err);
-        setNotFound(true);
+        // نفس المبدأ: لا نمنع عرض المنصة بسبب فشل جلب البطاقة.
+        console.warn('[SlugPlatformPage] Error fetching business card:', err);
+        setBusinessCard(null);
       } finally {
         setLoading(false);
       }
@@ -86,7 +85,7 @@ const SlugPlatformPage: React.FC = () => {
     );
   }
 
-  if (notFound) {
+  if (invalidSlug) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
         <div className="text-center max-w-md mx-auto p-6">
@@ -138,7 +137,7 @@ const SlugPlatformPage: React.FC = () => {
         currentUser={cardData.userName ? { name: cardData.userName } : undefined}
         userId={businessCard?.user_id || 'public'}
         platformSlug={slug}
-        businessCardOverride={cardData as any}
+        businessCardOverride={businessCard ? (cardData as any) : null}
       />
     </>
   );
