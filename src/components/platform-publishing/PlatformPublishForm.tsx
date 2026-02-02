@@ -13,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -871,10 +870,10 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
   };
 
   return (
-    <ScrollArea className="h-full w-full">
+    <div className="h-full w-full overflow-y-auto overflow-x-clip">
       {/* ✅ تجاوب الجوال: منع أي عنصر داخلي من دفع عرض الصفحة أفقياً */}
       <div
-        className="space-y-2 sm:space-y-3 p-2 sm:p-3 pb-24 w-full max-w-full overflow-x-hidden box-border min-w-0 [&_*]:max-w-full [&_*]:min-w-0"
+        className="space-y-2 sm:space-y-3 p-2 sm:p-3 pb-24 w-full max-w-full overflow-x-clip box-border min-w-0 [&_*]:max-w-full [&_*]:min-w-0"
         dir="rtl"
       >
         
@@ -1502,6 +1501,6 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </ScrollArea>
+    </div>
   );
 }
