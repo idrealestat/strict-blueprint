@@ -36,19 +36,25 @@ import {
   FileText,
   LucideIcon,
   CreditCard,
+  Sparkles,
+  Shield,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureFlags, FeatureFlags } from "@/context/FeatureFlagsContext";
 import { useAuthContext } from "@/context/AuthContext";
+import { useFloatingBubblePermission } from "@/hooks/useFloatingBubblePermission";
 import OfficialCardMiniPreview from "@/components/business-card/OfficialCardMiniPreview";
 import FalLicenseDisplay from "@/components/business-card/FalLicenseDisplay";
 import { useFinancialDocuments } from "@/hooks/useFinancialDocuments";
 import FinancialDocumentsPanel from "./FinancialDocumentsPanel";
+import { toast as sonnerToast } from "sonner";
 
 interface Broker {
   id: number;
@@ -518,9 +524,95 @@ export default function RightSliderComplete({
     return undefined;
   };
 
+  // 🔴 مكون إعدادات المساعد الذكي العائم
+  const FloatingBubbleQuickSettings = () => {
+    const {
+      isOwnerEnabled,
+      hasPermission,
+      isActive,
+      platform,
+      isLoading: bubbleLoading,
+      requestPermission,
+      toggleBubble,
+    } = useFloatingBubblePermission();
+
+    // إذا الخاصية معطلة من المالك أو جاري التحميل → لا يظهر أي شيء
+    if (bubbleLoading || !isOwnerEnabled || !flags.floating_bubble_enabled) {
+      return null;
+    }
+
+    const handleToggle = async () => {
+      // Android: التحقق من الصلاحيات أولاً
+      if (platform === 'android' && !hasPermission && !isActive) {
+        const opened = await requestPermission();
+        if (opened) {
+          sonnerToast.info('يرجى تفعيل صلاحية العرض فوق التطبيقات ثم العودة للتطبيق');
+        }
+        return;
+      }
+      
+      await toggleBubble();
+    };
+
+    return (
+      <Card className="border-[#D4AF37]/30 bg-gradient-to-br from-[#01411C]/5 to-[#01411C]/10 mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+              <CardTitle className="text-sm">المساعد الذكي العائم</CardTitle>
+            </div>
+            <Badge variant={isActive ? 'default' : 'secondary'} className="text-xs">
+              {isActive ? 'مفعّل' : 'معطّل'}
+            </Badge>
+          </div>
+          <CardDescription className="text-xs">
+            {platform === 'android' ? 'فقاعة عائمة فوق جميع التطبيقات' : 'زر عائم داخل التطبيق'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {/* Android: حالة الصلاحية */}
+          {platform === 'android' && !hasPermission && (
+            <div className="flex items-center justify-between p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-amber-500" />
+                <span>صلاحية العرض فوق التطبيقات مطلوبة</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={requestPermission}
+                className="h-6 text-xs px-2"
+              >
+                <ExternalLink className="w-3 h-3 ml-1" />
+                تفعيل
+              </Button>
+            </div>
+          )}
+          
+          {/* زر التفعيل/التعطيل */}
+          <div className="flex items-center justify-between p-2 border rounded-lg">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-[#01411C]" />
+              <span className="text-sm">إظهار المساعد الذكي كبابل</span>
+            </div>
+            <Switch
+              checked={isActive}
+              onCheckedChange={handleToggle}
+              disabled={platform === 'android' && !hasPermission}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const NavigationView = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-[#01411C]">القائمة الرئيسية</h3>
+
+      {/* 🔴 إعدادات المساعد الذكي - يظهر فقط إذا فعّلها المالك */}
+      <FloatingBubbleQuickSettings />
 
       <div className="grid grid-cols-1 gap-3">
         {visibleMenuItems.map((item) => {
