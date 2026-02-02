@@ -93,6 +93,24 @@ export function slugToArabic(slug: string): string {
 }
 
 /**
+ * تحويل slug الحي إلى الاسم العربي الكامل (مع "حي " إذا لزم)
+ * يُستخدم لضمان تطابق اسم الحي مع ما هو مخزن في قاعدة البيانات
+ */
+export function districtSlugToArabic(slug: string): string {
+  if (!slug) return '';
+  
+  // تحويل الـ slug إلى نص
+  const name = slug.replace(/-/g, ' ').trim();
+  
+  // إذا كان الاسم لا يبدأ بـ "حي " نضيفها
+  if (!name.startsWith('حي ')) {
+    return `حي ${name}`;
+  }
+  
+  return name;
+}
+
+/**
  * بناء رابط المدينة
  */
 export function buildCityUrl(baseSlug: string, cityName: string): string {

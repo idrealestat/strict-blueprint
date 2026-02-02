@@ -10,7 +10,7 @@ import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, ChevronLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { slugToArabic, arabicToSlug } from '@/utils/slugify';
+import { slugToArabic, arabicToSlug, districtSlugToArabic } from '@/utils/slugify';
 import LiveViewersBadge from '@/components/ui/LiveViewersBadge';
 import { usePagePresence } from '@/hooks/usePagePresence';
 import { useRegisterPublicViewer } from '@/hooks/useLiveViewersRealtime';
@@ -93,7 +93,8 @@ const SlugOfferDetailsPage: React.FC = () => {
 
   // ✅ تسجيل حضور الزائر في الوقت الفعلي - هذا يجعل العين حمراء في لوحة التحكم
   const city = citySlug ? slugToArabic(citySlug) : '';
-  const district = districtSlug ? slugToArabic(districtSlug) : '';
+  // ✅ استخدام districtSlugToArabic ليُرجع "حي X" بدلاً من "X" فقط - للتطابق مع لوحة التحكم
+  const district = districtSlug ? districtSlugToArabic(districtSlug) : '';
   useRegisterPublicViewer(slug, canonicalOfferId, city, district);
 
   useEffect(() => {
