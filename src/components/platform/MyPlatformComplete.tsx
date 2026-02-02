@@ -184,11 +184,7 @@ interface MyPlatformCompleteProps {
     phone: string;
     appTitle?: string;
   } | null;
-  digitalCardHeader?: {
-    logo?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-  };
+  // ⚠️ تم حذف digitalCardHeader - نستخدم businessCardData من قاعدة البيانات فقط
 }
 
 // ===================== Mock Data =====================
@@ -301,8 +297,7 @@ const saveToStorage = (offers: HierarchicalOffer[]) => {
 export default function MyPlatformComplete({ 
   onBack, 
   onNavigate, 
-  user,
-  digitalCardHeader 
+  user
 }: MyPlatformCompleteProps) {
   // State
   const [activeMainTab, setActiveMainTab] = useState<'platform' | 'offers' | 'requests'>('offers');
@@ -1885,22 +1880,22 @@ export default function MyPlatformComplete({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white" dir="rtl">
-      {/* Header - موحد مع بطاقة العمل الرقمية */}
+      {/* Header - موحد مع بطاقة العمل الرقمية - الألوان من النظام الموحد */}
       <header 
-        className="sticky top-0 z-40 border-b-4 shadow-lg relative overflow-hidden"
+        className="sticky top-0 z-40 border-b-4 shadow-lg relative overflow-hidden bg-gradient-to-r from-[#01411C] to-[#065f41]"
         style={{
-          background: `linear-gradient(135deg, ${digitalCardHeader?.primaryColor || '#01411C'} 0%, ${digitalCardHeader?.primaryColor || '#01411C'}dd 100%)`,
-          borderColor: digitalCardHeader?.secondaryColor || '#D4AF37',
+          borderColor: '#D4AF37',
         }}
       >
         {/* صورة الخلفية من بطاقة العمل */}
         {businessCardData?.coverImage && (
           <div 
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-30"
             style={{
               backgroundImage: `url(${businessCardData.coverImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
+              backgroundBlendMode: 'overlay',
             }}
           />
         )}
@@ -1910,20 +1905,22 @@ export default function MyPlatformComplete({
           <div className="flex flex-col gap-3">
             {/* اسم الصفحة في الأعلى */}
             <div className="flex items-center justify-center gap-3">
-              {/* الشعار أو صورة البروفايل من بطاقة العمل */}
-              {(businessCardData?.logoImage || businessCardData?.profileImage || digitalCardHeader?.logo) && (
+              {/* الشعار أو صورة البروفايل من بطاقة العمل - مصدر الحقيقة الوحيد */}
+              {(businessCardData?.logoImage || businessCardData?.profileImage) && (
                 <img 
-                  src={businessCardData?.logoImage || businessCardData?.profileImage || digitalCardHeader?.logo} 
+                  src={businessCardData?.logoImage || businessCardData?.profileImage} 
                   alt="Logo" 
-                  className="w-10 h-10 rounded-full border-2 border-white/50 object-cover shadow-lg" 
+                  className="w-10 h-10 rounded-full border-2 border-[#D4AF37] object-cover shadow-lg" 
                 />
               )}
               <div className="text-center">
                 <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2 whitespace-nowrap">
                   <Home className="w-5 h-5" />
-                  {businessCardData?.companyName || 'منصتي'}
+                  {businessCardData?.companyName || businessCardData?.userName || 'منصتي'}
                 </h1>
-                <p className="text-xs text-white/80">{businessCardData?.userName || platformUrl}</p>
+                {businessCardData?.userName && businessCardData?.companyName && (
+                  <p className="text-xs text-white/80">{businessCardData.userName}</p>
+                )}
               </div>
             </div>
             
@@ -1933,8 +1930,7 @@ export default function MyPlatformComplete({
                 onClick={onBack}
                 variant="outline"
                 size="sm"
-                className="border-2 bg-white/10 text-white hover:bg-white/20"
-                style={{ borderColor: digitalCardHeader?.secondaryColor || '#D4AF37' }}
+                className="border-2 border-[#D4AF37] bg-white/10 text-white hover:bg-white/20"
               >
                 <ArrowRight className="w-4 h-4 ml-1" />
                 العودة
@@ -1943,11 +1939,7 @@ export default function MyPlatformComplete({
               <Button
                 onClick={() => setShowPublishDialog(true)}
                 size="sm"
-                className="text-white"
-                style={{ 
-                  backgroundColor: digitalCardHeader?.secondaryColor || '#D4AF37',
-                  color: digitalCardHeader?.primaryColor || '#01411C',
-                }}
+                className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
               >
                 <Plus className="w-4 h-4 ml-1" />
                 نشر إعلان
@@ -1985,17 +1977,17 @@ export default function MyPlatformComplete({
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: المنصه - عرض المنصة العامة بأسلوب جديد */}
+          {/* Tab: المنصه - عرض المنصة العامة - البيانات من قاعدة البيانات فقط */}
           <TabsContent value="platform" className="space-y-0 -mx-4 -mt-2">
             <MyPublicPlatformContent 
-              currentUser={{
-                name: user?.name || 'مستخدم تجريبي',
+              currentUser={user ? {
+                name: user.name,
                 title: 'وسيط عقاري معتمد',
                 rating: 5.0,
                 badge: 'ماسي',
                 totalDeals: 156
-              }}
-              userId={user?.id || 'default'}
+              } : undefined}
+              userId={user?.id}
               platformSlug={currentSlug}
               ownerListingsFromParent={dbListings}
             />

@@ -1052,7 +1052,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               
               const isOfficeOrCompany = accountType === 'office' || accountType === 'company';
               
-              let primaryName = effectiveBusinessCardData?.userName || currentUser?.name || 'مستخدم تجريبي';
+              // ⚠️ محمي: لا نستخدم قيم وهمية - البيانات من قاعدة البيانات فقط
+              let primaryName = effectiveBusinessCardData?.userName || currentUser?.name || '';
               let secondaryName: string | null = null;
               
               if (isOfficeOrCompany && effectiveBusinessCardData?.companyName) {
@@ -1060,7 +1061,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                   primaryName = effectiveBusinessCardData.companyName;
                   secondaryName = effectiveBusinessCardData.userName || null;
                 } else {
-                  primaryName = effectiveBusinessCardData.userName || currentUser?.name || 'مستخدم تجريبي';
+                  primaryName = effectiveBusinessCardData.userName || currentUser?.name || '';
                   secondaryName = effectiveBusinessCardData.companyName;
                 }
               }
