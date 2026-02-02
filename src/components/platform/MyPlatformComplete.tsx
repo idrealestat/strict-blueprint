@@ -1315,8 +1315,8 @@ export default function MyPlatformComplete({
     const ad = publishedAds.find((a: any) => a.id === id);
     const safeSlug = (platformSlug || '').trim().toLowerCase();
     
-    // بناء الرابط الهرمي الجديد حسب نوع العنصر (باستخدام الدومين المنشور)
-    const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'strict-page-playbook.lovable.app';
+    // بناء الرابط الهرمي حسب نوع العنصر (على الدومين المنشور)
+    const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com';
     const publishedOrigin = `https://${publishedDomain}`;
     let shareUrl = publishedOrigin;
     if (type === 'offer' && safeSlug && cityName && districtName) {
@@ -1326,7 +1326,8 @@ export default function MyPlatformComplete({
     } else if (type === 'city' && safeSlug && cityName) {
       shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName));
     } else if (safeSlug) {
-      shareUrl = `${publishedOrigin}/${safeSlug}`;
+      // استخدم نفس util لتفادي اختلافات الدومين بين البيئات
+      shareUrl = getFullUrl(`/${safeSlug}`);
     }
 
     let text = `🏠 *${title}*\n\n`;
@@ -2280,7 +2281,19 @@ export default function MyPlatformComplete({
                                       <Button size="sm" variant="ghost" onClick={() => toggleOfferVisibility(city.cityName, '', offer.id)} className="flex-1 text-xs">
                                         {offer.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                       </Button>
-                                      <Button size="sm" className="flex-1 text-xs bg-green-500 text-white" onClick={() => shareItemWhatsApp(offer.title, offer.id, city.cityName, undefined, 'offer')}>
+                                      <Button
+                                        size="sm"
+                                        className="flex-1 text-xs bg-green-500 text-white"
+                                        onClick={() => shareItemWhatsApp(
+                                          offer.title,
+                                          offer.id,
+                                          city.cityName,
+                                          // مهم: لا ترسل undefined هنا لأن هذا يجعل الرابط يرجع لرابط المنصة فقط
+                                          // ولو كان هذا العرض "مباشر" في واجهة الترتيب، غالباً لديه حي فعلي في البيانات
+                                          offer.district || '',
+                                          'offer'
+                                        )}
+                                      >
                                         <MessageSquare className="w-3 h-3" />
                                       </Button>
                                       <Button size="sm" className="flex-1 text-xs bg-red-500 text-white" onClick={() => exportOfferToPDF(offer, city.cityName)}>
