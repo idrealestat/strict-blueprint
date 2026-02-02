@@ -35,10 +35,23 @@ export function useLiveViewersRealtime(platformSlug?: string) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const viewersMapRef = useRef<Map<string, ViewerPresence>>(new Map());
 
+  // ===================== Normalization =====================
+  // تطبيع عربي خفيف للمفاتيح (بدون تغيير ما يُعرض للمستخدم)
+  const normalizeKeyPart = (value?: string): string => {
+    if (!value) return '';
+    return value
+      .toString()
+      .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '') // تشكيل
+      .replace(/\u0640/g, '') // تطويل
+      .replace(/\s+/g, ' ') // توحيد المسافات
+      .trim();
+  };
+
   // تطبيع اسم الحي (إزالة "حي " من البداية للتطابق)
   const normalizeDistrictName = (name: string): string => {
-    if (!name) return '';
-    return name.replace(/^حي\s+/i, '').trim();
+    const cleaned = normalizeKeyPart(name);
+    if (!cleaned) return '';
+    return cleaned.replace(/^حي\s+/i, '').trim();
   };
 
   // حساب العدادات من الزوار الحاليين
@@ -48,23 +61,26 @@ export function useLiveViewersRealtime(platformSlug?: string) {
     const cities: Record<string, number> = {};
 
     viewersMapRef.current.forEach((viewer) => {
+      const cityKey = normalizeKeyPart(viewer.city);
+      const districtRaw = normalizeKeyPart(viewer.district);
+
       // عداد العرض
       if (viewer.offerId) {
         offers[viewer.offerId] = (offers[viewer.offerId] || 0) + 1;
       }
       // عداد الحي - نطبّع الاسم للتطابق
-      if (viewer.city && viewer.district) {
-        const normalizedDistrict = normalizeDistrictName(viewer.district);
-        const districtKey = `${viewer.city}_${normalizedDistrict}`;
+      if (cityKey && districtRaw) {
+        const normalizedDistrict = normalizeDistrictName(districtRaw);
+        const districtKey = `${cityKey}_${normalizedDistrict}`;
         districts[districtKey] = (districts[districtKey] || 0) + 1;
         
         // أيضاً نضيف مفتاح بـ "حي " للتوافق مع لوحة التحكم
-        const districtKeyWithPrefix = `${viewer.city}_حي ${normalizedDistrict}`;
+        const districtKeyWithPrefix = `${cityKey}_حي ${normalizedDistrict}`;
         districts[districtKeyWithPrefix] = (districts[districtKeyWithPrefix] || 0) + 1;
       }
       // عداد المدينة
-      if (viewer.city) {
-        cities[viewer.city] = (cities[viewer.city] || 0) + 1;
+      if (cityKey) {
+        cities[cityKey] = (cities[cityKey] || 0) + 1;
       }
     });
 
@@ -148,26 +164,30 @@ export function useLiveViewersRealtime(platformSlug?: string) {
   }, [liveViewers.offers]);
 
   const getDistrictViewers = useCallback((city: string, district: string): number => {
+    const cityKey = normalizeKeyPart(city);
+    const districtKeyRaw = normalizeKeyPart(district);
+
     // نجرب المفتاح كما هو أولاً
-    const key = `${city}_${district}`;
+    const key = `${cityKey}_${districtKeyRaw}`;
     if (liveViewers.districts[key]) {
       return liveViewers.districts[key];
     }
     
     // نجرب بدون "حي "
-    const normalizedDistrict = district.replace(/^حي\s+/i, '').trim();
-    const keyNormalized = `${city}_${normalizedDistrict}`;
+    const normalizedDistrict = districtKeyRaw.replace(/^حي\s+/i, '').trim();
+    const keyNormalized = `${cityKey}_${normalizedDistrict}`;
     if (liveViewers.districts[keyNormalized]) {
       return liveViewers.districts[keyNormalized];
     }
     
     // نجرب مع "حي "
-    const keyWithPrefix = `${city}_حي ${normalizedDistrict}`;
+    const keyWithPrefix = `${cityKey}_حي ${normalizedDistrict}`;
     return liveViewers.districts[keyWithPrefix] || 0;
   }, [liveViewers.districts]);
 
   const getCityViewers = useCallback((city: string): number => {
-    return liveViewers.cities[city] || 0;
+    const cityKey = normalizeKeyPart(city);
+    return liveViewers.cities[cityKey] || 0;
   }, [liveViewers.cities]);
 
   const getTotalViewers = useCallback((): number => {
@@ -196,15 +216,68 @@ export function useRegisterPublicViewer(
   const viewerIdRef = useRef<string>(`viewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const hasTrackedRef = useRef(false);
+  const deviceRef = useRef<string | undefined>(undefined);
+  const browserRef = useRef<string | undefined>(undefined);
+
+  // ===== keep latest payload in refs to avoid resubscribe churn =====
+  const latestRef = useRef<{ offerId?: string; city?: string; district?: string }>({
+    offerId,
+    city,
+    district,
+  });
 
   useEffect(() => {
-    // ننتظر حتى يكون لدينا slug صالح
+    latestRef.current = { offerId, city, district };
+  }, [offerId, city, district]);
+
+  const normalizePublicValue = (value?: string) => {
+    if (!value) return undefined;
+    const cleaned = value
+      .toString()
+      .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+      .replace(/\u0640/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || undefined;
+  };
+
+  const isCanonicalOfferId = (id?: string) => {
+    if (!id) return false;
+    // UUIDs غالباً تحتوي على '-' وطولها 32+
+    return id.includes('-') && id.length >= 32;
+  };
+
+  const trackNow = useCallback(async () => {
+    const ch = channelRef.current;
+    if (!ch) return;
+
+    const payload = latestRef.current;
+
+    const normalizedCity = normalizePublicValue(payload.city);
+    const normalizedDistrict = normalizePublicValue(payload.district);
+    const normalizedOfferId = normalizePublicValue(payload.offerId);
+
+    // نضمن أن الحي لا يُرسل فارغاً إذا توفر لاحقاً
+    const trackPayload: any = {
+      viewerId: viewerIdRef.current,
+      joinedAt: new Date().toISOString(),
+      device: deviceRef.current,
+      browser: browserRef.current,
+      city: normalizedCity,
+      district: normalizedDistrict,
+    };
+
+    if (isCanonicalOfferId(normalizedOfferId)) {
+      trackPayload.offerId = normalizedOfferId;
+    }
+
+    await ch.track(trackPayload);
+    hasTrackedRef.current = true;
+  }, []);
+
+  useEffect(() => {
     if (!platformSlug) return;
-    
-    // إذا كان الـ offerId قصير جداً (أقل من 8 أحرف)، ننتظر التحديث للـ canonical ID
-    // هذا يمنع الاشتراك المبكر بـ ID مختصر
-    const isValidOfferId = offerId && offerId.length >= 8;
-    
+
     const channelName = `live-viewers-${platformSlug}`;
     const channel = supabase.channel(channelName, {
       config: {
@@ -216,7 +289,7 @@ export function useRegisterPublicViewer(
 
     channelRef.current = channel;
 
-    // جمع معلومات الجهاز
+    // جمع معلومات الجهاز مرة واحدة
     const ua = navigator.userAgent;
     let device = 'Desktop';
     if (/Mobile|Android|iPhone/.test(ua)) device = 'Mobile';
@@ -228,46 +301,13 @@ export function useRegisterPublicViewer(
     else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
     else if (ua.includes('Edg')) browser = 'Edge';
 
+    deviceRef.current = device;
+    browserRef.current = browser;
+
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        // نسجل فقط إذا كان لدينا offerId صالح
-        if (isValidOfferId) {
-          await channel.track({
-            viewerId: viewerIdRef.current,
-            offerId,
-            city,
-            district,
-            joinedAt: new Date().toISOString(),
-            device,
-            browser,
-          });
-          hasTrackedRef.current = true;
-
-          console.log('[LiveViewer] Registered:', { offerId, city, district, slug: platformSlug });
-
-          // إرسال حدث محلي للتتبع
-          window.dispatchEvent(new CustomEvent('offerViewedWithDetails', {
-            detail: {
-              offerId,
-              viewerId: viewerIdRef.current,
-              city,
-              district,
-              device,
-              browser,
-              timestamp: new Date().toISOString(),
-            }
-          }));
-        } else {
-          // نسجل بدون offerId (سيتم التحديث لاحقاً)
-          await channel.track({
-            viewerId: viewerIdRef.current,
-            city,
-            district,
-            joinedAt: new Date().toISOString(),
-            device,
-            browser,
-          });
-        }
+        // نرسل البيانات الأحدث (offer/city/district) مع معلومات الجهاز
+        await trackNow();
       }
     });
 
@@ -276,7 +316,17 @@ export function useRegisterPublicViewer(
       channelRef.current = null;
       hasTrackedRef.current = false;
     };
-  }, [platformSlug, offerId, city, district]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [platformSlug]);
+
+  // إعادة تحديث Presence عند تغيّر offerId/city/district بدون إعادة اشتراك
+  useEffect(() => {
+    if (!platformSlug) return;
+    if (!channelRef.current) return;
+    // لا ننتظر اكتمال المدينة/الحي: لو صار التحديث متاح لاحقاً نسجله فوراً
+    trackNow().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerId, city, district, platformSlug]);
 
   return viewerIdRef.current;
 }
