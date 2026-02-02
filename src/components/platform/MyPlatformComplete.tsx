@@ -1354,16 +1354,20 @@ export default function MyPlatformComplete({
   const shareItemLink = async (title: string, id: string, cityName?: string, districtName?: string, type: 'city' | 'district' | 'offer' = 'offer') => {
     const safeSlug = (platformSlug || '').trim().toLowerCase();
     
+    // ✅ استخدام الدومين المنشور الصحيح (wasataai.com) دائماً
+    const publishedDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'wasataai.com';
+    const publishedOrigin = `https://${publishedDomain}`;
+    
     // بناء الرابط الهرمي حسب نوع العنصر
-    let shareUrl = window.location.origin;
+    let shareUrl = publishedOrigin;
     if (type === 'offer' && safeSlug && cityName && districtName) {
-      shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id), window.location.origin);
+      shareUrl = getFullUrl(buildOfferUrl(safeSlug, cityName, districtName, id));
     } else if (type === 'district' && safeSlug && cityName && districtName) {
-      shareUrl = getFullUrl(buildDistrictUrl(safeSlug, cityName, districtName), window.location.origin);
+      shareUrl = getFullUrl(buildDistrictUrl(safeSlug, cityName, districtName));
     } else if (type === 'city' && safeSlug && cityName) {
-      shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName), window.location.origin);
+      shareUrl = getFullUrl(buildCityUrl(safeSlug, cityName));
     } else if (safeSlug) {
-      shareUrl = `${window.location.origin}/${safeSlug}`;
+      shareUrl = `${publishedOrigin}/${safeSlug}`;
     }
 
     await navigator.clipboard.writeText(shareUrl);
