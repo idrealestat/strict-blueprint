@@ -1,6 +1,7 @@
 /**
  * AssignCustomerPopover.tsx
  * قائمة منبثقة لتعيين عميل لزميل - تظهر مباشرة تحت الزر
+ * مع حقل ملاحظة أسفل القائمة
  */
 
 import { useState } from 'react';
@@ -19,9 +20,8 @@ import {
   User,
   Loader2,
   Users,
-  ChevronRight,
-  ArrowRight,
   Send,
+  MessageSquare,
 } from 'lucide-react';
 import { useTeamManagement, type OrganizationMember } from '@/hooks/useTeamManagement';
 import { useSharedCustomers } from '@/hooks/useSharedCustomers';
@@ -54,8 +54,6 @@ export default function AssignCustomerPopover({
   const { assignCustomerToMember } = useSharedCustomers(user?.id);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [step, setStep] = useState<'list' | 'note'>('list');
-  const [selectedMember, setSelectedMember] = useState<OrganizationMember | null>(null);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,33 +65,22 @@ export default function AssignCustomerPopover({
   // اسم المسؤول الحالي
   const currentUserName = currentUser?.name || currentUser?.companyName || 'المسؤول';
 
-  const handleSelectMember = (member: OrganizationMember) => {
-    setSelectedMember(member);
-    setStep('note');
-  };
-
-  const handleBack = () => {
-    setStep('list');
-    setSelectedMember(null);
-    setNotes('');
-  };
-
-  const handleSubmit = async () => {
-    if (!user || !selectedMember?.member_user_id) return;
+  const handleAssign = async (member: OrganizationMember) => {
+    if (!user || !member.member_user_id) return;
 
     setIsSubmitting(true);
 
     try {
       const success = await assignCustomerToMember({
         customerId,
-        assignToUserId: selectedMember.member_user_id,
+        assignToUserId: member.member_user_id,
         organizationUserId: user.id,
         notes: notes.trim() || undefined,
         senderName: currentUserName,
       });
 
       if (success) {
-        toast.success(`تم تعيين "${customerName}" لـ ${selectedMember.member_name}`);
+        toast.success(`تم تعيين "${customerName}" لـ ${member.member_name}`);
         onSuccess?.();
         handleClose();
       }
@@ -104,9 +91,7 @@ export default function AssignCustomerPopover({
 
   const handleClose = () => {
     setIsOpen(false);
-    setSelectedMember(null);
     setNotes('');
-    setStep('list');
   };
 
   return (
@@ -124,9 +109,7 @@ export default function AssignCustomerPopover({
         <div className="px-3 py-2 border-b bg-gradient-to-l from-[#01411C]/10 to-white">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#01411C]" />
-            <span className="text-sm font-bold text-gray-800">
-              {step === 'list' ? 'اختر زميلاً' : 'أضف ملاحظة'}
-            </span>
+            <span className="text-sm font-bold text-gray-800">اختر زميلاً</span>
           </div>
           <p className="text-[10px] text-gray-500 mt-0.5 truncate">
             👤 {customerName}
@@ -134,120 +117,77 @@ export default function AssignCustomerPopover({
         </div>
 
         {/* قائمة الزملاء */}
-        {step === 'list' && (
-          <ScrollArea className="max-h-[220px]">
-            {membersLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-              </div>
-            ) : activeMembers.length === 0 ? (
-              <div className="text-center py-6 px-3">
-                <div className="w-10 h-10 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-2">
-                  <Users className="w-5 h-5 text-gray-400" />
-                </div>
-                <p className="text-xs font-medium text-gray-600">لا يوجد زملاء</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  أضف زملاء من إدارة الفريق
-                </p>
-              </div>
-            ) : (
-              <div className="py-1">
-                {activeMembers.map((member) => {
-                  const roleConfig = ROLE_CONFIG[member.member_role as keyof typeof ROLE_CONFIG] || ROLE_CONFIG.member;
-                  const RoleIcon = roleConfig.icon;
-
-                  return (
-                    <button
-                      key={member.id}
-                      onClick={() => handleSelectMember(member)}
-                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#01411C]/5 transition-colors text-right group"
-                    >
-                      <Avatar className="w-8 h-8 shrink-0 border border-gray-200">
-                        <AvatarFallback className={roleConfig.color}>
-                          <RoleIcon className="w-3.5 h-3.5" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-[#01411C] transition-colors">
-                          {member.member_name || 'غير معروف'}
-                        </p>
-                        <p className="text-[10px] text-gray-400">
-                          {roleConfig.label}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#01411C] transition-colors" />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </ScrollArea>
-        )}
-
-        {/* إضافة ملاحظة */}
-        {step === 'note' && selectedMember && (
-          <div className="p-3 space-y-3">
-            {/* الزميل المختار */}
-            <div className="flex items-center gap-2 p-2 bg-[#01411C]/5 rounded-lg">
-              <Avatar className="w-7 h-7 border border-[#01411C]/30">
-                <AvatarFallback className={ROLE_CONFIG[selectedMember.member_role as keyof typeof ROLE_CONFIG]?.color || 'bg-gray-100'}>
-                  {(() => {
-                    const Icon = ROLE_CONFIG[selectedMember.member_role as keyof typeof ROLE_CONFIG]?.icon || User;
-                    return <Icon className="w-3 h-3" />;
-                  })()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-[#01411C] truncate">{selectedMember.member_name}</p>
-              </div>
-              <button
-                onClick={handleBack}
-                className="text-[10px] text-gray-500 hover:text-[#01411C]"
-              >
-                تغيير
-              </button>
+        <ScrollArea className="max-h-[180px]">
+          {membersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
             </div>
-
-            {/* حقل الملاحظة */}
-            <div>
-              <Input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="ملاحظة للزميل (اختياري)..."
-                className="text-sm h-9"
-              />
-              <p className="text-[9px] text-gray-400 mt-1">
-                تظهر مع اسمك في الإشعار
+          ) : activeMembers.length === 0 ? (
+            <div className="text-center py-6 px-3">
+              <div className="w-10 h-10 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                <Users className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-xs font-medium text-gray-600">لا يوجد زملاء</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                أضف زملاء من إدارة الفريق
               </p>
             </div>
+          ) : (
+            <div className="py-1">
+              {activeMembers.map((member) => {
+                const roleConfig = ROLE_CONFIG[member.member_role as keyof typeof ROLE_CONFIG] || ROLE_CONFIG.member;
+                const RoleIcon = roleConfig.icon;
 
-            {/* أزرار */}
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBack}
-                className="flex-1 h-8 text-xs"
-              >
-                <ArrowRight className="w-3 h-3 ml-1" />
-                رجوع
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex-1 h-8 text-xs bg-[#01411C] hover:bg-[#01411C]/90"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-3 h-3 ml-1" />
-                    تعيين
-                  </>
-                )}
-              </Button>
+                return (
+                  <button
+                    key={member.id}
+                    disabled={isSubmitting}
+                    onClick={() => handleAssign(member)}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#01411C]/5 transition-colors text-right group disabled:opacity-50"
+                  >
+                    <Avatar className="w-8 h-8 shrink-0 border border-gray-200">
+                      <AvatarFallback className={roleConfig.color}>
+                        <RoleIcon className="w-3.5 h-3.5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate group-hover:text-[#01411C] transition-colors">
+                        {member.member_name || 'غير معروف'}
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        {roleConfig.label}
+                      </p>
+                    </div>
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#01411C]" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#01411C] transition-colors" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
+          )}
+        </ScrollArea>
+
+        {/* حقل الملاحظة في الأسفل */}
+        {activeMembers.length > 0 && (
+          <div className="p-2 border-t bg-gray-50/50">
+            <div className="flex items-center gap-1.5 mb-1">
+              <MessageSquare className="w-3 h-3 text-gray-400" />
+              <span className="text-[10px] text-gray-500">ملاحظة للزميل (اختياري)</span>
+            </div>
+            <Input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="اكتب ملاحظة تظهر في الإشعار..."
+              className="text-xs h-8 bg-white"
+            />
+            {notes.trim() && (
+              <p className="text-[9px] text-amber-600 mt-1 flex items-center gap-1">
+                🔔 ستظهر مع اسمك في إشعار الزميل
+              </p>
+            )}
           </div>
         )}
       </PopoverContent>

@@ -1,11 +1,12 @@
 /**
  * useTeamNotifications.ts
- * Hook لإدارة إشعارات الفريق
+ * Hook لإدارة إشعارات الفريق مع التنبيه الصوتي
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
+import { NotificationSounds } from '@/utils/notificationSounds';
 
 export interface TeamNotification {
   id: string;
@@ -150,6 +151,13 @@ export function useTeamNotifications() {
           const newNotification = payload.new as TeamNotification;
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
+          
+          // تشغيل صوت التنبيه عند استقبال إشعار جديد
+          try {
+            NotificationSounds.chime(0.6);
+          } catch (e) {
+            console.log('Could not play notification sound');
+          }
         }
       )
       .subscribe();
