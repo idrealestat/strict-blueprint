@@ -1719,37 +1719,39 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           </Button>
         </div>
 
-        {/* Dashboard Stats - إحصائيات مصغرة */}
-        <div className="flex flex-wrap gap-2 mt-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-blue-200 shadow-sm">
-            <span className="text-sm">👥</span>
-            <span className="text-sm font-bold text-gray-900">{customers.length}</span>
-            <span className="text-xs text-gray-500">إجمالي</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-green-200 shadow-sm">
-            <span className="text-sm">✅</span>
-            <span className="text-sm font-bold text-gray-900">{tabCounts.active}</span>
-            <span className="text-xs text-gray-500">نشط</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-purple-200 shadow-sm">
-            <span className="text-sm">🆕</span>
-            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'leads').length}</span>
-            <span className="text-xs text-gray-500">جدد</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-amber-200 shadow-sm">
-            <span className="text-sm">💰</span>
-            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'negotiation').length}</span>
-            <span className="text-xs text-gray-500">صفقات</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-emerald-200 shadow-sm">
-            <span className="text-sm">🎯</span>
-            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'closed').length}</span>
-            <span className="text-xs text-gray-500">مغلق</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-red-200 shadow-sm">
-            <span className="text-sm">🔥</span>
-            <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.interestLevel === 'hot').length}</span>
-            <span className="text-xs text-gray-500">ساخن</span>
+        {/* Dashboard Stats - إحصائيات مصغرة قابلة للسحب */}
+        <div className="mt-3 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max pb-1">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-blue-200 shadow-sm whitespace-nowrap">
+              <span className="text-sm">👥</span>
+              <span className="text-sm font-bold text-gray-900">{customers.length}</span>
+              <span className="text-xs text-gray-500">إجمالي</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-green-200 shadow-sm whitespace-nowrap">
+              <span className="text-sm">✅</span>
+              <span className="text-sm font-bold text-gray-900">{tabCounts.active}</span>
+              <span className="text-xs text-gray-500">نشط</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-purple-200 shadow-sm whitespace-nowrap">
+              <span className="text-sm">🆕</span>
+              <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'leads').length}</span>
+              <span className="text-xs text-gray-500">جدد</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-amber-200 shadow-sm whitespace-nowrap">
+              <span className="text-sm">💰</span>
+              <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'negotiation').length}</span>
+              <span className="text-xs text-gray-500">صفقات</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-emerald-200 shadow-sm whitespace-nowrap">
+              <span className="text-sm">🎯</span>
+              <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.columnId === 'closed').length}</span>
+              <span className="text-xs text-gray-500">مغلق</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-red-200 shadow-sm whitespace-nowrap">
+              <span className="text-sm">🔥</span>
+              <span className="text-sm font-bold text-gray-900">{customers.filter(c => c.interestLevel === 'hot').length}</span>
+              <span className="text-xs text-gray-500">ساخن</span>
+            </div>
           </div>
         </div>
         
