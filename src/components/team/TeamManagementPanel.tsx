@@ -120,7 +120,8 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
     await updateMemberPermissions(member.id, { [key]: value });
   };
 
-  if (!isOrganization && !canManageTeam) {
+  // إذا لم يكن مفتوحاً، لا نعرض شيء
+  if (!isOpen) {
     return null;
   }
 
