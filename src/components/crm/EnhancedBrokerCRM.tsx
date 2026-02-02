@@ -635,6 +635,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressRef = useRef(false);
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTouchPosRef = useRef<{ x: number; y: number } | null>(null);
   const [showDragHint, setShowDragHint] = useState(false);
   const [dragHintDismissed, setDragHintDismissed] = useState(() => {
     return localStorage.getItem('crm_drag_hint_dismissed') === 'true';
@@ -1310,6 +1311,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   // Touch move handler with RTL-aware auto-scroll (horizontal + vertical)
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
+    lastTouchPosRef.current = { x: touch.clientX, y: touch.clientY };
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
     
     // Cancel long press quickly if user is clearly scrolling/moving (so scroll works immediately)
@@ -1360,12 +1362,26 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
             // قريب من الحافة السفلية - المستخدم يسحب للأسفل - نريد scroll DOWN لإظهار المزيد
             autoScrollIntervalRef.current = setInterval(() => {
               columnElement.scrollTop += verticalScrollSpeed;
+
+              // تحديث المؤشر الأخضر أثناء التمرير حتى لو الإصبع ثابت
+              const pos = lastTouchPosRef.current;
+              if (pos) {
+                const updatedTarget = findColumnAtPoint(pos.x, pos.y);
+                if (updatedTarget) setDropIndicator(updatedTarget);
+              }
             }, 16);
             return;
           } else if (touch.clientY < columnRect.top + verticalEdgeThreshold) {
             // قريب من الحافة العلوية - المستخدم يسحب للأعلى - نريد scroll UP لإظهار المزيد
             autoScrollIntervalRef.current = setInterval(() => {
               columnElement.scrollTop -= verticalScrollSpeed;
+
+              // تحديث المؤشر الأخضر أثناء التمرير حتى لو الإصبع ثابت
+              const pos = lastTouchPosRef.current;
+              if (pos) {
+                const updatedTarget = findColumnAtPoint(pos.x, pos.y);
+                if (updatedTarget) setDropIndicator(updatedTarget);
+              }
             }, 16);
             return;
           }
