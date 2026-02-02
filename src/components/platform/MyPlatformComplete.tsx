@@ -86,7 +86,6 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
 import { usePlatformListings } from "@/hooks/usePlatformListings";
-import { useLiveViewers } from "@/hooks/useLiveViewers";
 
 // ===================== Types =====================
 
@@ -461,31 +460,13 @@ export default function MyPlatformComplete({
   // Hook إشعارات المشاهدات
   const { stats: viewStats, notificationsEnabled, soundEnabled, saveSettings } = useOfferViewNotifications();
 
-  // ✅ جمع جميع IDs العروض لتتبع المشاهدين المباشرين
-  const allOfferIds = useMemo(() => {
-    const ids: string[] = [];
-    // من العروض المنشورة
-    try {
-      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-      publishedAds.forEach((ad: any) => {
-        if (ad?.id) ids.push(ad.id);
-      });
-    } catch {
-      // ignore
-    }
-    return ids;
-  }, []);
-
-  // ✅ Hook المشاهدين المباشرين - يستمع للأحداث في الوقت الفعلي (legacy)
-  const { getLiveViewers: getLiveViewersLocal } = useLiveViewers(allOfferIds);
-
   // ✅ Hook المشاهدين المباشرين عبر Supabase Presence (الأساسي)
   const { getOfferViewers, getDistrictViewers, getCityViewers, getTotalViewers, liveViewers: realtimeLiveViewers } = useLiveViewersRealtime(currentSlug);
 
-  // دالة موحدة للحصول على عدد المشاهدين (تدمج المحلي مع Realtime)
+  // دالة موحدة للحصول على عدد المشاهدين (المصدر الوحيد: Presence)
   const getLiveViewers = useCallback((offerId: string): number => {
-    return getOfferViewers(offerId) + getLiveViewersLocal(offerId);
-  }, [getOfferViewers, getLiveViewersLocal]);
+    return getOfferViewers(offerId);
+  }, [getOfferViewers]);
 
   
   // Hierarchical State (مدينة ← حي ← عروض)
@@ -2137,7 +2118,7 @@ export default function MyPlatformComplete({
                               <h3 className={`font-bold text-base md:text-lg ${isCityExpanded ? 'text-white' : 'text-[#01411C]'}`}>{city.cityName}</h3>
                               {/* 👁️ عين المشاهدات المباشرة للمدينة - محسوبة من مجموع كل العروض */}
                               <LiveViewerIndicator 
-                                liveViewers={[...city.directOffers, ...city.districts.flatMap(d => d.offers)].reduce((sum, o) => sum + getLiveViewers(o.id), 0)}
+                                liveViewers={getCityViewers(city.cityName)}
                                 size="sm"
                               />
                               {city.isHidden && <Badge variant="outline" className="text-xs bg-gray-100">مخفي</Badge>}
@@ -2175,7 +2156,7 @@ export default function MyPlatformComplete({
                       <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/20">
                         {/* مؤشر المشاهدات المباشرة للمدينة */}
                         <LiveViewerIndicator 
-                          liveViewers={getCityViewers(city.cityName) + allCityOffers.reduce((sum, o) => sum + getLiveViewers(o.id), 0)}
+                          liveViewers={getCityViewers(city.cityName)}
                           size="sm"
                         />
 
@@ -2267,7 +2248,7 @@ export default function MyPlatformComplete({
                                     {/* مؤشر المشاهدات المباشرة */}
                                     <div className="absolute top-2 right-2">
                                       <LiveViewerIndicator 
-                                        liveViewers={getLiveViewers(offer.id)}
+                                        liveViewers={getOfferViewers(offer.id)}
                                         totalViews={offer.views || 0}
                                         size="sm"
                                       />
@@ -2370,7 +2351,7 @@ export default function MyPlatformComplete({
                                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-emerald-200">
                                   {/* مؤشر المشاهدات المباشرة للحي - محسوب من مجموع عروض الحي */}
                                     <LiveViewerIndicator 
-                                      liveViewers={district.offers.reduce((sum, o) => sum + getLiveViewers(o.id), 0)}
+                                      liveViewers={getDistrictViewers(city.cityName, district.districtName)}
                                       size="sm"
                                     />
 
@@ -2525,7 +2506,7 @@ export default function MyPlatformComplete({
                                             {/* مؤشر المشاهدات المباشرة */}
                                             <div className="absolute bottom-2 right-2">
                                               <LiveViewerIndicator 
-                                                liveViewers={getLiveViewers(offer.id)}
+                                                liveViewers={getOfferViewers(offer.id)}
                                                 size="sm"
                                               />
                                             </div>
