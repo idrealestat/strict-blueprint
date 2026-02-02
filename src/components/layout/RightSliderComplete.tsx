@@ -4,7 +4,8 @@
  * القائمة اليمنى للتطبيق - القائمة الرئيسية
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -244,7 +245,32 @@ export default function RightSliderComplete({
   const { toast } = useToast();
   const { flags } = useFeatureFlags();
   const { customersWithQuotations, customersWithReceipts, totalQuotations, totalReceipts } = useFinancialDocuments();
-  const { isOrganization, members, canManageTeam } = useTeamManagement();
+  const { isOrganization, members, canManageTeam, isLoading: isTeamLoading } = useTeamManagement();
+  const { user } = useAuthContext();
+  
+  // جلب نوع الحساب مباشرة للتحقق السريع
+  const [directAccountType, setDirectAccountType] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchAccountType = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('account_type')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setDirectAccountType(data.account_type);
+      }
+    };
+    
+    fetchAccountType();
+  }, [user]);
+  
+  // التحقق من نوع الحساب مباشرة
+  const isOrganizationAccount = directAccountType === 'office' || directAccountType === 'company';
 
   // Filter menu items based on feature flags AND role restrictions
   const visibleMenuItems = useMemo(() => {
@@ -255,15 +281,16 @@ export default function RightSliderComplete({
       }
       
       // Team Management - visible only for offices/companies
+      // نستخدم isOrganizationAccount المباشر من الملف الشخصي لتجنب مشكلة التحميل
       if (item.id === 'colleagues') {
-        return isOrganization || canManageTeam;
+        return isOrganizationAccount || isOrganization || canManageTeam;
       }
       
       // Check feature flags for other items
       if (!item.flagKey) return true;
       return flags[item.flagKey] === true;
     });
-  }, [flags, isOwner, isOrganization, canManageTeam]);
+  }, [flags, isOwner, isOrganization, isOrganizationAccount, canManageTeam]);
 
   // Handle logout
   const handleLogout = async () => {
