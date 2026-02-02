@@ -51,7 +51,6 @@ const SlugPlatformPage: React.FC = () => {
       }
 
       try {
-        console.log('[SlugPlatformPage] Fetching business card for slug:', slug);
         const { data, error } = await supabase
           .from('business_cards')
           .select('*')
@@ -59,13 +58,9 @@ const SlugPlatformPage: React.FC = () => {
           .eq('published', true)
           .maybeSingle();
 
-        console.log('[SlugPlatformPage] Result:', { data, error });
-
         // مهم: صفحة المنصة العامة يجب أن تعمل حتى بدون بطاقة أعمال منشورة.
         // لذلك لا نعامل غياب البطاقة كـ 404.
-        if (error) {
-          console.warn('[SlugPlatformPage] business_cards lookup failed:', error);
-        }
+        if (error) console.warn('[SlugPlatformPage] business_cards lookup failed:', error);
         setBusinessCard((data as BusinessCardData) ?? null);
       } catch (err) {
         // نفس المبدأ: لا نمنع عرض المنصة بسبب فشل جلب البطاقة.
@@ -113,16 +108,6 @@ const SlugPlatformPage: React.FC = () => {
   }
 
   const cardData = businessCard?.data || {};
-  
-  console.log('[SlugPlatformPage] Rendering with:', {
-    slug,
-    hasBusinessCard: !!businessCard,
-    cardDataKeys: Object.keys(cardData),
-    userName: cardData.userName,
-    profileImage: cardData.profileImage ? 'exists' : 'missing',
-    coverImage: cardData.coverImage ? 'exists' : 'missing',
-  });
-  
   const pageTitle = cardData.userName ? `منصة ${cardData.userName} العقارية` : 'المنصة العقارية';
   const pageDescription = cardData.userName
     ? `تصفح العروض العقارية المميزة من ${cardData.userName} - وسيط عقاري معتمد`
@@ -152,7 +137,7 @@ const SlugPlatformPage: React.FC = () => {
         currentUser={cardData.userName ? { name: cardData.userName } : undefined}
         userId={businessCard?.user_id || 'public'}
         platformSlug={slug}
-        businessCardOverride={businessCard ? { ...cardData, slug: businessCard.slug, user_id: businessCard.user_id } as any : null}
+        businessCardOverride={businessCard ? (cardData as any) : null}
       />
     </>
   );
