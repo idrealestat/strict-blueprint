@@ -332,54 +332,54 @@ export default function NotificationsSidebar({
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-6 bg-white/10 w-full">
+                <TabsList className="grid grid-cols-6 bg-transparent w-full gap-1">
                   <TabsTrigger 
                     value="all" 
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                    className="text-xs text-[#D4AF37] data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] data-[state=active]:rounded-md data-[state=active]:font-bold"
                   >
                     الكل
                   </TabsTrigger>
                   <TabsTrigger 
                     value="unread"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
+                    className="text-xs text-white data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] data-[state=active]:rounded-md data-[state=active]:font-bold relative"
                   >
                     غير مقروءة
                     {totalUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
                         {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
                       </span>
                     )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="opportunities"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
+                    className="text-xs text-[#D4AF37] data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] data-[state=active]:rounded-md data-[state=active]:font-bold relative"
                   >
                     الفرص
                     {smartOpportunitiesUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] flex items-center justify-center animate-pulse">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center animate-pulse">
                         {smartOpportunitiesUnreadCount > 9 ? '9+' : smartOpportunitiesUnreadCount}
                       </span>
                     )}
                   </TabsTrigger>
                   <TabsTrigger 
                     value="tasks"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                    className="text-xs text-white data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] data-[state=active]:rounded-md data-[state=active]:font-bold"
                   >
                     المهام
                   </TabsTrigger>
                   <TabsTrigger 
                     value="appointments"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]"
+                    className="text-xs text-[#D4AF37] data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] data-[state=active]:rounded-md data-[state=active]:font-bold"
                   >
                     المواعيد
                   </TabsTrigger>
                   <TabsTrigger 
                     value="domains"
-                    className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] relative"
+                    className="text-xs text-white data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C] data-[state=active]:rounded-md data-[state=active]:font-bold relative"
                   >
                     النطاقات
                     {domainUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
                         {domainUnreadCount > 9 ? '9+' : domainUnreadCount}
                       </span>
                     )}
