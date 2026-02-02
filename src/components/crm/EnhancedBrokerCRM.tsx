@@ -101,9 +101,12 @@ import CustomerDetailsPage from "./CustomerDetailsPage";
 import ContactsPanel from "./ContactsPanel";
 import TasksPanel from "./TasksPanel";
 import { useCallLogs } from "@/hooks/useCallLogs";
+import { useCallLogsPermission } from "@/hooks/useCallLogsPermission";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { clientTypes, interestLevels, reportCategories, ClientType, InterestLevel } from "@/types/offer";
 import { getFullUrl } from "@/utils/slugify";
+import CallLogsLinkingBanner from "./CallLogsLinkingBanner";
+import RecentCallsColumn from "./RecentCallsColumn";
 
 // Types
 interface Customer {
@@ -779,6 +782,62 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     addSampleData,
     clearAllLogs 
   } = useCallLogs();
+  
+  // ✅ نظام ربط الاتصالات الجديد (متوافق مع سياسات المتاجر)
+  const {
+    isNativePlatform,
+    isAndroid,
+    isIOS,
+    isLinkingEnabled,
+    callLogs: nativeCallLogs,
+    isLoading: permissionLoading,
+    error: permissionError,
+    requestPermissions,
+    fetchCallLogs: refreshNativeCallLogs,
+    disableLinking,
+    matchCallWithCustomer,
+  } = useCallLogsPermission();
+  
+  // حالة إخفاء البانر مؤقتاً
+  const [linkingBannerDismissed, setLinkingBannerDismissed] = useState(() => {
+    return localStorage.getItem('call_logs_banner_dismissed') === 'true';
+  });
+  
+  // دالة تفعيل الربط
+  const handleEnableLinking = async () => {
+    const success = await requestPermissions();
+    if (success) {
+      setLinkingBannerDismissed(true);
+      localStorage.setItem('call_logs_banner_dismissed', 'true');
+    }
+  };
+  
+  // دالة إخفاء البانر
+  const handleDismissBanner = () => {
+    setLinkingBannerDismissed(true);
+    localStorage.setItem('call_logs_banner_dismissed', 'true');
+  };
+  
+  // التعامل مع الضغط على بطاقة اتصال
+  const handleCallCardClick = (callLog: any, matchedCustomer: any) => {
+    if (matchedCustomer) {
+      const customer = customers.find(c => c.id === matchedCustomer.id);
+      if (customer) {
+        setSelectedCustomer(customer);
+        setShowFullDetails(true);
+      }
+    } else {
+      // اقتراح إنشاء عميل جديد
+      setNewCustomer(prev => ({ ...prev, name: callLog.name || '', phone: callLog.phone }));
+      setShowAddCustomer(true);
+    }
+  };
+  
+  // إنشاء عميل جديد من مكالمة
+  const handleCreateCustomerFromCall = (phone: string, name?: string) => {
+    setNewCustomer(prev => ({ ...prev, name: name || '', phone }));
+    setShowAddCustomer(true);
+  };
   
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
@@ -1587,10 +1646,24 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         </div>
       </header>
 
+      {/* ✅ Banner ربط الاتصالات - يظهر فقط إذا لم يتم تفعيل الربط ولم يتم إخفاؤه */}
+      {!linkingBannerDismissed && !isLinkingEnabled && (
+        <div className="container mx-auto px-4 pt-4">
+          <CallLogsLinkingBanner
+            isIOS={isIOS}
+            isLinkingEnabled={isLinkingEnabled}
+            isLoading={permissionLoading}
+            onEnableLinking={handleEnableLinking}
+            onDismiss={handleDismissBanner}
+          />
+        </div>
+      )}
+
       {/* Filter Tabs - التبويبات الخمسة */}
       <div className="container mx-auto px-4 pt-4">
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           <Button
+
             variant={activeFilterTab === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveFilterTab('all')}
@@ -1898,8 +1971,31 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               dir="rtl"
             >
               <div className="flex gap-3 md:gap-4 min-w-max px-2">
-                {/* عمود الاتصالات الأخيرة - ثابت - يمكن إخفاؤه من لوحة تحكم المالك */}
-                {recentCallsVisible && (
+                {/* ✅ عمود الاتصالات الأخيرة المحسّن - متوافق مع سياسات المتاجر */}
+                {recentCallsVisible && isLinkingEnabled && (
+                  <RecentCallsColumn
+                    callLogs={nativeCallLogs.length > 0 ? nativeCallLogs : recentCalls.map(c => ({
+                      id: c.id,
+                      phone: c.phone,
+                      name: c.name,
+                      type: c.type,
+                      timestamp: c.date || new Date(),
+                      duration: c.duration ? parseInt(c.duration.split(':')[0]) * 60 + parseInt(c.duration.split(':')[1] || '0') : undefined,
+                    }))}
+                    customers={customers.map(c => ({ id: c.id, name: c.name, phone: c.phone }))}
+                    isLoading={permissionLoading || callLogsLoading}
+                    error={permissionError}
+                    isIOS={isIOS}
+                    isLinkingEnabled={isLinkingEnabled}
+                    onRefresh={refreshNativeCallLogs}
+                    onDisableLinking={disableLinking}
+                    onCallCardClick={handleCallCardClick}
+                    onCreateCustomer={handleCreateCustomerFromCall}
+                  />
+                )}
+                
+                {/* عمود الاتصالات القديم - يظهر فقط إذا لم يتم تفعيل الربط */}
+                {recentCallsVisible && !isLinkingEnabled && (
                 <div className="w-56 md:w-64 flex-shrink-0 rounded-xl bg-gradient-to-b from-gray-50 to-gray-100 border-2 border-gray-300">
                   <div className="p-2 md:p-3 border-b-2 border-gray-300 bg-gray-200">
                     <div className="flex items-center justify-between mb-2">
@@ -1946,7 +2042,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                       >
                         <Download className="w-3 h-3" />
                       </Button>
-                      {/* ✅ تم إزالة زر البيانات التجريبية */}
                     </div>
                     {/* مدخل ملف CSV مخفي */}
                     <input
@@ -1973,7 +2068,16 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                       <div className="text-center py-8 text-gray-400">
                         <Phone className="w-10 h-10 mx-auto mb-2 opacity-50" />
                         <p className="text-xs">لا توجد مكالمات</p>
-                        <p className="text-[10px] mt-1">أضف مكالمة أو استورد من CSV</p>
+                        <p className="text-[10px] mt-1">
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-primary"
+                            onClick={handleEnableLinking}
+                          >
+                            فعّل ربط الاتصالات
+                          </Button>
+                        </p>
                       </div>
                     ) : (
                     recentCalls.map((call) => (
@@ -1985,7 +2089,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                           'border-r-red-500'
                         }`}
                         onClick={() => {
-                          // البحث عن العميل بالرقم أو إضافته
                           const existingCustomer = customers.find(c => c.phone === call.phone);
                           if (existingCustomer) {
                             setSelectedCustomer(existingCustomer);
