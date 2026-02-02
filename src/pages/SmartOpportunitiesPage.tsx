@@ -535,6 +535,25 @@ const SmartOpportunitiesPage = () => {
           </div>
         )}
 
+        {/* شريط التقدم - في الأعلى */}
+        {filteredOpportunities.length > 0 && currentIndex < filteredOpportunities.length && (
+          <div className="w-full max-w-md lg:max-w-4xl mx-auto mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-300"
+                    style={{ width: `${((currentIndex + 1) / filteredOpportunities.length) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  {currentIndex + 1} / {filteredOpportunities.length}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* المحتوى */}
         <div className="flex flex-col items-center justify-center py-4">
           {isLoading ? (
@@ -617,24 +636,6 @@ const SmartOpportunitiesPage = () => {
           )}
         </div>
 
-        {/* شريط التقدم */}
-        {filteredOpportunities.length > 0 && currentIndex < filteredOpportunities.length && (
-          <div className="fixed bottom-20 left-4 right-4 max-w-md mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-300"
-                    style={{ width: `${((currentIndex + 1) / filteredOpportunities.length) * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  {currentIndex + 1} / {filteredOpportunities.length}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Right Slider */}
