@@ -292,15 +292,16 @@ export default function NotificationsSidebar({
                 </div>
               </div>
 
-              {/* Settings Panel */}
+              {/* Settings Panel - إعدادات الإشعارات والتنبيهات الذكية */}
               <AnimatePresence>
                 {showSettings && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-white/10 rounded-lg p-3 mb-2"
+                    className="bg-white/10 rounded-lg p-3 mb-2 space-y-3"
                   >
+                    {/* إعداد صوت التنبيه */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {soundEnabled ? (
@@ -325,6 +326,33 @@ export default function NotificationsSidebar({
                         />
                       </div>
                     </div>
+                    
+                    {/* إعدادات الإشعارات المفصلة */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {notificationsEnabled ? (
+                          <Bell className="w-5 h-5 text-[#D4AF37]" />
+                        ) : (
+                          <BellOff className="w-5 h-5 text-gray-400" />
+                        )}
+                        <span className="text-sm">الإشعارات</span>
+                      </div>
+                      <Switch
+                        checked={notificationsEnabled}
+                        onCheckedChange={setNotificationsEnabled}
+                      />
+                    </div>
+                    
+                    {/* رابط لصفحة الإعدادات التفصيلية */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={goToNotificationSettings}
+                      className="w-full text-xs text-white/80 hover:text-white hover:bg-white/20 justify-start"
+                    >
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                      فتح الإعدادات التفصيلية
+                    </Button>
                   </motion.div>
                 )}
               </AnimatePresence>
