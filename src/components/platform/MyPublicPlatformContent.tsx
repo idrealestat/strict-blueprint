@@ -8,9 +8,11 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Star, Building2, MapPin, Eye, BedDouble, Bath, Maximize, MessageSquare, Share2, TrendingUp, RefreshCw, Download, User, Copy, Link, Users, FileDown } from 'lucide-react';
 import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
+import { arabicToSlug } from '@/utils/slugify';
 import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { getDisplayName } from '@/components/business-card/DisplayNameSettings';
 import { Badge } from '@/components/ui/badge';
@@ -152,6 +154,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   platformSlug,
   businessCardOverride,
 }) => {
+  const navigate = useNavigate();
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
@@ -570,6 +573,18 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const ListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
     if (!listing) return null;
 
+    const getPublicOfferPath = () => {
+      const safeSlug = (currentSlug || '').trim();
+      if (!safeSlug || safeSlug === 'default') return '';
+
+      const citySlug = arabicToSlug(listing.city || '');
+      const districtSlug = arabicToSlug(listing.district || '');
+      const offerShortId = listing.id && listing.id.length > 8 ? listing.id.slice(-8) : listing.id;
+      if (!citySlug || !districtSlug || !offerShortId) return '';
+
+      return `/${safeSlug}/${citySlug}/${districtSlug}/${offerShortId}`;
+    };
+
     const handleViewDetails = () => {
       setSelectedListing(listing);
       setShowDetails(true);
@@ -597,7 +612,17 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       
       // إطلاق حدث لتحديث الإحصائيات في الصفحات الأخرى (للتوافقية)
       window.dispatchEvent(new CustomEvent('offerViewed', { detail: { offerId: listing.id } }));
-      
+
+      // ✅ في المنصة العامة: لازم يتغير الرابط في شريط العنوان
+      if (isPublicViewer) {
+        const path = getPublicOfferPath();
+        if (path) {
+          navigate(path);
+          return;
+        }
+      }
+
+      // داخل لوحة التحكم/المعاينة: نفتح المودال كما كان
       handleViewDetails();
     };
 
