@@ -1479,14 +1479,25 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
             <span>مدعوم من</span>
             <span className="font-bold text-[#D4AF37]">وساطه AI Wasata</span>
           </p>
-          <a 
-            href="/terms" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-white/60 hover:text-[#D4AF37] transition-colors underline"
-          >
-            شروط الاستخدام | Terms of Service
-          </a>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <a 
+              href="/terms" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-white/60 hover:text-[#D4AF37] transition-colors underline"
+            >
+              شروط الاستخدام | Terms of Service
+            </a>
+            <span className="text-white/30">|</span>
+            <a 
+              href="/privacy" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-white/60 hover:text-[#D4AF37] transition-colors underline"
+            >
+              سياسة الخصوصية | Privacy Policy
+            </a>
+          </div>
         </footer>
       </div>
 
