@@ -67,6 +67,7 @@ import { OnboardingGuard } from "./components/auth/OnboardingGuard";
 import { useAuthContext } from "./context/AuthContext";
 import { useEntitlementsContext } from "./context/EntitlementsContext";
 import TermsPage from "./pages/TermsPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -590,8 +591,9 @@ const App = () => {
                   {/* صفحة الانضمام للفريق */}
                   <Route path="/join/:token" element={<JoinTeamPage />} />
                   
-                  {/* Public Terms Page - MUST be before dynamic slug routes */}
+                  {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
                   
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
