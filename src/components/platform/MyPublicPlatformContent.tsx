@@ -188,8 +188,9 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const SWAP_KEY = `business_card_swap_${userId}`;
 
   // تحديد وضع الصفحة العامة للزائر
-  // الزائر: عندما يكون هناك platformSlug أو businessCardOverride (يأتي من صفحة خارجية)
-  const isPublicViewer = Boolean(platformSlug && businessCardOverride);
+  // ✅ القاعدة الصحيحة: أي صفحة عليها platformSlug بدون بيانات عروض من الأب => تعتبر "زائر".
+  // (داخل منصتي/تبويب المنصة نمرر ownerListingsFromParent دائماً)
+  const isPublicViewer = Boolean(platformSlug && !ownerListingsFromParent);
   
   // تحديد القناة: in_app_preview للمالك، public_web للزائر
   const trackingChannel = isPublicViewer ? 'public_web' : 'in_app_preview';
@@ -1167,64 +1168,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               </div>
             )}
 
-            {/* أزرار الإجراءات - من بطاقة الأعمال الرقمية */}
-            <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-              {/* إرسال طلب */}
-              <Button 
-                size="sm" 
-                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
-                onClick={() => {
-                  const url = `https://wasataai.com/${currentSlug}/request`;
-                  navigator.clipboard.writeText(url);
-                  toast.success('تم نسخ رابط إرسال طلب');
-                  window.open(url, '_blank');
-                }}
-              >
-                📝 إرسال طلب
-              </Button>
-              
-              {/* إرسال عرض */}
-              <Button 
-                size="sm" 
-                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
-                onClick={() => {
-                  const url = `https://wasataai.com/${currentSlug}/offer`;
-                  navigator.clipboard.writeText(url);
-                  toast.success('تم نسخ رابط إرسال عرض');
-                  window.open(url, '_blank');
-                }}
-              >
-                🏠 إرسال عرض
-              </Button>
-              
-              {/* عرض سعر */}
-              <Button 
-                size="sm" 
-                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
-                onClick={() => {
-                  const url = `https://wasataai.com/${currentSlug}/quote`;
-                  navigator.clipboard.writeText(url);
-                  toast.success('تم نسخ رابط عرض السعر');
-                  window.open(url, '_blank');
-                }}
-              >
-                💰 عرض سعر
-              </Button>
-              
-              {/* إنشاء موعد */}
-              <Button 
-                size="sm" 
-                className="bg-[#D4AF37] hover:bg-[#f1c40f] text-[#01411C] font-medium"
-                onClick={() => {
-                  const url = `https://wasataai.com/${currentSlug}/appointment`;
-                  navigator.clipboard.writeText(url);
-                  toast.success('تم نسخ رابط إنشاء موعد');
-                  window.open(url, '_blank');
-                }}
-              >
-                📅 إنشاء موعد
-              </Button>
-            </div>
+            {/* تمت إزالة أزرار (إرسال طلب/عرض/سعر/موعد) من هيدر المنصة لأنها ليست ضمن الطلب الحالي */}
 
             {/* أزرار التواصل */}
             <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
