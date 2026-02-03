@@ -8,10 +8,11 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2, FileText, Send, DollarSign, CheckCircle, Clock, XCircle, Inbox, Package } from 'lucide-react';
+import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2, FileText, Send, DollarSign, CheckCircle, Clock, XCircle, Inbox, Package, BarChart3 } from 'lucide-react';
 import VisitorsHeatMap from './analytics/VisitorsHeatMap';
 import ViewsLogPage from './analytics/ViewsLogPage';
 import PublicPagesStats from './analytics/PublicPagesStats';
+import MarketAnalyticsDashboard from './analytics/MarketAnalyticsDashboard';
 import { useAnalyticsStats } from '@/hooks/useAnalyticsStats';
 import { useReceivedDocuments } from '@/hooks/useReceivedDocuments';
 import { useCRMCustomers } from '@/hooks/useCRMCustomers';
@@ -40,7 +41,7 @@ interface DocumentStats {
 }
 
 const AnalyticsDashboard = () => {
-  const [activeTab, setActiveTab] = useState<'market' | 'platform'>('market');
+  const [activeTab, setActiveTab] = useState<'market-analytics' | 'market' | 'platform' | 'public-pages'>('market-analytics');
   const { platformStats, loading } = useAnalyticsStats();
   const { documents, loading: docsLoading } = useReceivedDocuments();
   const { customers } = useCRMCustomers();
@@ -147,10 +148,14 @@ const AnalyticsDashboard = () => {
     <div className="space-y-6">
       {/* تبويبات رئيسية */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
-        <TabsList className="grid grid-cols-3 w-full max-w-lg bg-gray-100 dark:bg-gray-800">
+        <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-gray-100 dark:bg-gray-800">
+          <TabsTrigger value="market-analytics" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
+            <BarChart3 className="w-4 h-4" />
+            تحليلات السوق
+          </TabsTrigger>
           <TabsTrigger value="market" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
             <TrendingUp className="w-4 h-4" />
-            تحليلات السوق
+            المؤشرات العامة
           </TabsTrigger>
           <TabsTrigger value="public-pages" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
             <FileBarChart className="w-4 h-4" />
@@ -161,6 +166,11 @@ const AnalyticsDashboard = () => {
             منصتي
           </TabsTrigger>
         </TabsList>
+
+        {/* تبويب تحليلات السوق الشاملة */}
+        <TabsContent value="market-analytics" className="space-y-6 mt-6">
+          <MarketAnalyticsDashboard />
+        </TabsContent>
 
         {/* تبويب تحليلات السوق */}
         <TabsContent value="market" className="space-y-6 mt-6">
