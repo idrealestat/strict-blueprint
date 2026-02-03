@@ -236,25 +236,29 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     return listings;
   };
 
+  // ===== تحميل بيانات البطاقة للزائر (useEffect منفصل لضمان التفاعل مع businessCardOverride) =====
+  useEffect(() => {
+    if (!isPublicViewer) return;
+    
+    // ✅ إصلاح: بطاقة الوسيط للزائر تأتي من businessCardOverride مباشرة
+    // (SlugPlatformPage يمرر cardData = businessCard?.data أي البيانات الداخلية مباشرة)
+    if (businessCardOverride !== null && businessCardOverride !== undefined) {
+      const cardDataDirect = businessCardOverride as BusinessCardData;
+      console.log('[MyPublicPlatformContent] ✅ Public viewer - setting businessCardData from override:', {
+        hasProfileImage: !!cardDataDirect?.profileImage,
+        hasCoverImage: !!cardDataDirect?.coverImage,
+        hasLogoImage: !!cardDataDirect?.logoImage,
+        userName: cardDataDirect?.userName,
+      });
+      setBusinessCardData(cardDataDirect);
+      setIsSwapped(Boolean((cardDataDirect as any)?.swapState));
+    }
+  }, [isPublicViewer, businessCardOverride]);
+
   // ===== تحميل العروض =====
   useEffect(() => {
     // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات
     if (isPublicViewer) {
-      // ✅ إصلاح: بطاقة الوسيط للزائر تأتي من businessCardOverride مباشرة
-      // (SlugPlatformPage يمرر cardData = businessCard?.data أي البيانات الداخلية مباشرة)
-      if (businessCardOverride !== null && businessCardOverride !== undefined) {
-        // البيانات القادمة هي المحتوى الداخلي مباشرة، لا نحتاج لاستخراج .data
-        const cardDataDirect = businessCardOverride as BusinessCardData;
-        console.log('[MyPublicPlatformContent] Public viewer - setting businessCardData from override:', {
-          hasProfileImage: !!cardDataDirect?.profileImage,
-          hasCoverImage: !!cardDataDirect?.coverImage,
-          hasLogoImage: !!cardDataDirect?.logoImage,
-          userName: cardDataDirect?.userName,
-        });
-        setBusinessCardData(cardDataDirect);
-        setIsSwapped(Boolean((cardDataDirect as any)?.swapState));
-      }
-
       if (publicDbError) {
         console.error('Public listings error:', publicDbError);
       }
@@ -426,7 +430,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
     currentUser,
     STORAGE_KEY,
     SWAP_KEY,
-    businessCardOverride,
     userId,
   ]);
 
