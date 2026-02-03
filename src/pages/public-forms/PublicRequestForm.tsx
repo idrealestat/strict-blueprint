@@ -707,13 +707,25 @@ export default function PublicRequestForm() {
     }
   };
 
-  // ⚠️ محمي: عرض شاشة تحميل حتى جلب بيانات الوسيط الحقيقية
-  if (isLoadingBroker || !broker) {
+  // ⚠️ محمي: عرض شاشة تحميل أو رسالة خطأ
+  if (isLoadingBroker) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] flex items-center justify-center" dir="rtl">
         <div className="text-center text-white">
           <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-[#D4AF37]" />
           <p className="text-lg">جاري تحميل بيانات الوسيط...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // إذا لم يُعثر على الوسيط
+  if (!broker) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#01411C] via-[#065f41] to-[#01411C] flex items-center justify-center" dir="rtl">
+        <div className="text-center text-white">
+          <p className="text-lg mb-4">لم يتم العثور على بيانات الوسيط</p>
+          <p className="text-sm text-white/70">تأكد من صحة الرابط</p>
         </div>
       </div>
     );
