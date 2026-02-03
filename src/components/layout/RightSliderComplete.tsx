@@ -59,6 +59,7 @@ import { WorkspacePanel } from "@/components/workspace";
 import { TeamManagementPanel } from "@/components/team";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { toast as sonnerToast } from "sonner";
+import ComprehensiveAppSettings from "@/components/settings/ComprehensiveAppSettings";
 
 interface Broker {
   id: number;
@@ -194,8 +195,9 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     id: "settings",
     icon: Settings,
     label: "الإعدادات",
-    path: "/settings",
+    path: "action:app-settings",
     color: "#01411C",
+    description: "إعدادات التطبيق الشامل",
   },
 ];
 
@@ -240,6 +242,7 @@ export default function RightSliderComplete({
   const [showReceiptsPanel, setShowReceiptsPanel] = useState(false);
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [showTeamManagementPanel, setShowTeamManagementPanel] = useState(false);
+  const [showAppSettings, setShowAppSettings] = useState(false);
   const navigate = useNavigate();
   const { signOut, isAuthenticated, isOwner } = useAuth();
   const { toast } = useToast();
@@ -542,6 +545,12 @@ export default function RightSliderComplete({
     // Handle team management - فتح لوحة إدارة الفريق
     if (item.id === 'colleagues') {
       setShowTeamManagementPanel(true);
+      return;
+    }
+    
+    // Handle app settings - فتح إعدادات التطبيق الشاملة
+    if (item.path === 'action:app-settings') {
+      setShowAppSettings(true);
       return;
     }
     
@@ -898,6 +907,11 @@ export default function RightSliderComplete({
           <TeamManagementPanel
             isOpen={showTeamManagementPanel}
             onClose={() => setShowTeamManagementPanel(false)}
+          />
+          {/* إعدادات التطبيق الشاملة */}
+          <ComprehensiveAppSettings
+            isOpen={showAppSettings}
+            onClose={() => setShowAppSettings(false)}
           />
         </>
       )}
