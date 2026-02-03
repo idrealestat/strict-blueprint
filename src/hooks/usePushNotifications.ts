@@ -269,17 +269,32 @@ export async function showPushNotification(title: string, body: string, data?: a
     return false;
   }
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`timeout_after_${ms}ms`)), ms)
+      ),
+    ]);
+  };
+
   try {
     if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      registration.active?.postMessage({
-        type: 'SHOW_NOTIFICATION',
-        title,
-        body,
-        icon: '/favicon.ico',
-        data,
-      });
-      return true;
+      // ✅ لا تنتظر ready بلا نهاية (قد يحدث في بعض البيئات/المعاينات)
+      try {
+        const registration = await withTimeout(navigator.serviceWorker.ready, 1500);
+        registration.active?.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          title,
+          body,
+          icon: '/favicon.ico',
+          data,
+        });
+        return true;
+      } catch (e) {
+        // Fallback سريع إذا لم يصبح الـ SW جاهزاً
+        console.warn('[Push] serviceWorker.ready timeout/failure, falling back:', e);
+      }
     }
     
     // Fallback للمتصفحات التي لا تدعم Service Worker
