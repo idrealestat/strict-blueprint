@@ -1,6 +1,7 @@
 /**
  * FinancialDocumentsPanel.tsx
  * لوحة عرض عروض الأسعار وسندات القبض
+ * تعرض البيانات من جميع المصادر: localStorage, received_documents, crm_customers
  */
 
 import { useState } from 'react';
@@ -15,6 +16,14 @@ import {
   ExternalLink,
   X,
   Calendar,
+  Database,
+  HardDrive,
+  Inbox,
+  Building,
+  MessageSquare,
+  CheckCircle,
+  Clock,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,12 +43,13 @@ export default function FinancialDocumentsPanel({
   onClose,
   onNavigateToCustomer,
 }: FinancialDocumentsPanelProps) {
-  const { customersWithQuotations, customersWithReceipts, isLoading } = useFinancialDocuments();
+  const { customersWithQuotations, customersWithReceipts, isLoading, totalQuotations, totalReceipts } = useFinancialDocuments();
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
 
   const customers = type === 'quotations' ? customersWithQuotations : customersWithReceipts;
   const documents = type === 'quotations' ? 'quotations' : 'receipts';
   const title = type === 'quotations' ? 'عروض الأسعار' : 'سندات القبض';
+  const totalDocs = type === 'quotations' ? totalQuotations : totalReceipts;
   const icon = type === 'quotations' ? FileText : Receipt;
   const IconComponent = icon;
   const color = type === 'quotations' ? '#01411C' : '#D4AF37';
@@ -66,6 +76,57 @@ export default function FinancialDocumentsPanel({
 
   const formatCurrency = (amount: number) => {
     return amount?.toLocaleString('ar-SA') || '0';
+  };
+
+  const getSourceIcon = (source?: string) => {
+    switch (source) {
+      case 'received':
+        return <Inbox className="w-3 h-3" />;
+      case 'database':
+        return <Database className="w-3 h-3" />;
+      case 'local':
+      default:
+        return <HardDrive className="w-3 h-3" />;
+    }
+  };
+
+  const getSourceLabel = (source?: string) => {
+    switch (source) {
+      case 'received':
+        return 'مستلم';
+      case 'database':
+        return 'محفوظ';
+      case 'local':
+      default:
+        return 'محلي';
+    }
+  };
+
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <Badge className="bg-green-100 text-green-700 text-xs gap-1">
+            <CheckCircle className="w-3 h-3" />
+            مقبول
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge className="bg-red-100 text-red-700 text-xs gap-1">
+            <XCircle className="w-3 h-3" />
+            مرفوض
+          </Badge>
+        );
+      case 'pending':
+      default:
+        return (
+          <Badge className="bg-orange-100 text-orange-700 text-xs gap-1">
+            <Clock className="w-3 h-3" />
+            معلق
+          </Badge>
+        );
+    }
   };
 
   if (!isOpen) return null;
@@ -100,7 +161,7 @@ export default function FinancialDocumentsPanel({
               <div>
                 <h2 className="text-lg font-bold text-white">{title}</h2>
                 <p className="text-white/80 text-sm">
-                  {customers.length} عميل
+                  {totalDocs} {type === 'quotations' ? 'عرض' : 'سند'} • {customers.length} عميل
                 </p>
               </div>
             </div>
@@ -129,8 +190,22 @@ export default function FinancialDocumentsPanel({
                     لا توجد {title} محفوظة
                   </p>
                   <p className="text-gray-400 text-sm mt-1">
-                    ستظهر هنا {title} عند إنشائها من بطاقات العملاء
+                    ستظهر هنا {title} من:
                   </p>
+                  <div className="flex flex-col items-center gap-2 mt-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-2">
+                      <Inbox className="w-4 h-4" />
+                      النماذج العامة (عروض الأسعار المستلمة)
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Database className="w-4 h-4" />
+                      بطاقات العملاء (المستندات المحفوظة)
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      المعلومات الأساسية في صفحة التفاصيل
+                    </span>
+                  </div>
                 </div>
               ) : (
                 customers.map((customer) => {
@@ -198,22 +273,49 @@ export default function FinancialDocumentsPanel({
                               {customerDocs.map((doc, index) => (
                                 <div
                                   key={doc.id || index}
-                                  className="bg-white p-3 rounded-lg border flex items-center justify-between"
+                                  className="bg-white p-3 rounded-lg border space-y-2"
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-gray-100 rounded-lg">
-                                      <DollarSign className="w-4 h-4 text-gray-600" />
-                                    </div>
-                                    <div>
-                                      <p className="font-medium text-gray-800">
-                                        {formatCurrency(doc.total)} ر.س
-                                      </p>
-                                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>{formatDate(doc.createdAt)}</span>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="p-2 bg-gray-100 rounded-lg">
+                                        <DollarSign className="w-4 h-4 text-gray-600" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-gray-800">
+                                          {formatCurrency(doc.total)} ر.س
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                          <Calendar className="w-3 h-3" />
+                                          <span>{formatDate(doc.createdAt)}</span>
+                                        </div>
                                       </div>
                                     </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                      {doc.status && getStatusBadge(doc.status)}
+                                      <Badge variant="outline" className="text-xs gap-1">
+                                        {getSourceIcon(doc.source)}
+                                        {getSourceLabel(doc.source)}
+                                      </Badge>
+                                    </div>
                                   </div>
+                                  
+                                  {/* معلومات إضافية */}
+                                  {(doc.propertyTitle || doc.message) && (
+                                    <div className="pt-2 border-t border-dashed space-y-1">
+                                      {doc.propertyTitle && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                                          <Building className="w-3 h-3" />
+                                          <span>{doc.propertyTitle}</span>
+                                        </div>
+                                      )}
+                                      {doc.message && (
+                                        <div className="flex items-start gap-2 text-xs text-gray-600">
+                                          <MessageSquare className="w-3 h-3 mt-0.5" />
+                                          <span className="line-clamp-2">{doc.message}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
 
@@ -259,3 +361,4 @@ export default function FinancialDocumentsPanel({
     </AnimatePresence>
   );
 }
+
