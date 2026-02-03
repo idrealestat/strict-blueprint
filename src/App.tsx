@@ -66,6 +66,7 @@ import RoleGuard from "./components/auth/RoleGuard";
 import { OnboardingGuard } from "./components/auth/OnboardingGuard";
 import { useAuthContext } from "./context/AuthContext";
 import { useEntitlementsContext } from "./context/EntitlementsContext";
+import TermsPage from "./pages/TermsPage";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -607,6 +608,9 @@ const App = () => {
                   {/* Hierarchical District/Offer Routes */}
                   <Route path="/:slug/:citySlug/:districtSlug" element={<SlugDistrictPage />} />
                   <Route path="/:slug/:citySlug/:districtSlug/:offerId" element={<SlugOfferDetailsPage />} />
+                  
+                  {/* Public Terms Page */}
+                  <Route path="/terms" element={<TermsPage />} />
                   
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
