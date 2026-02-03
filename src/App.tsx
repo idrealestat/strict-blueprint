@@ -593,6 +593,7 @@ const App = () => {
                   <Route path="/:slug" element={<SlugPlatformPage />} />
                   <Route path="/:slug/card" element={<SlugBusinessCardPage />} />
                   <Route path="/:slug/calendar" element={<SlugCalendarPage />} />
+                  <Route path="/:slug/appointment" element={<SlugCalendarPage />} />
                   <Route path="/:slug/offers" element={<SlugOffersPage />} />
                   <Route path="/:slug/offer" element={<SlugOfferPage />} />
                   <Route path="/:slug/request" element={<SlugRequestPage />} />
