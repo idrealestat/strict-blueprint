@@ -1109,13 +1109,35 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       is_hidden: false,
     };
 
-    const { error } = await supabase
-      .from('platform_listings')
-      .upsert(isUuid(ad.id) ? { id: ad.id, ...listingData } : listingData, { onConflict: 'id' });
+    // ✅ إذا كان ID ليس UUID، استخدم INSERT بدون ID (سيتم توليده تلقائياً)
+    let upsertResult;
+    if (isUuid(ad.id)) {
+      upsertResult = await supabase
+        .from('platform_listings')
+        .upsert({ id: ad.id, ...listingData }, { onConflict: 'id' });
+    } else {
+      // توليد UUID جديد أو INSERT بدون ID
+      upsertResult = await supabase
+        .from('platform_listings')
+        .insert(listingData)
+        .select('id')
+        .single();
+    }
 
-    if (error) {
-      console.error('Error syncing listing to database:', error);
+    if (upsertResult.error) {
+      console.error('Error syncing listing to database:', upsertResult.error);
+      console.error('Listing data that failed:', JSON.stringify(listingData, null, 2));
       return false;
+    }
+    
+    // حفظ الـ ID الجديد في localStorage للربط
+    if (upsertResult.data?.id && !isUuid(ad.id)) {
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      const adIndex = publishedAds.findIndex((a: any) => a.id === ad.id);
+      if (adIndex !== -1) {
+        publishedAds[adIndex].dbId = upsertResult.data.id;
+        localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+      }
     }
 
     console.log('Listing synced to database successfully');
