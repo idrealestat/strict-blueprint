@@ -36,13 +36,16 @@
 
 ---
 
-## 🔒 القسم الثالث: منصة النشر العامة (محمي بشكل صارم)
+## 🔒 القسم الثالث: منصة النشر العامة (محمي بشكل صارم - مقفل تماماً)
+
+> ⛔ **تحذير صارم:** هذا القسم مقفل تماماً ولا يُعدّل بدون إذن مباشر من المستخدم!
 
 ### الروابط المحمية
 | الرابط | الغرض | الملف |
 |--------|-------|-------|
 | `wasataai.com/:slug` | الصفحة الرئيسية للمنصة العامة | `SlugPlatformPage.tsx` |
 | `wasataai.com/:slug/:city/:district/:offerId` | صفحة تفاصيل العرض | `SlugOfferDetailsPage.tsx` |
+| `wasataai.com/platform/:slug` | المنصة العامة (مسار بديل) | `PublicPlatformPage.tsx` |
 
 ### سياسات RLS المحمية (قاعدة البيانات)
 ```sql
@@ -53,6 +56,13 @@ USING: (status = 'published' AND is_hidden = false)
 -- المالك يرى جميع عروضه
 Policy: "Users can view their own listings"
 USING: (auth.uid() = user_id)
+
+-- سياسة business_cards المحمية (تم إصلاحها 2026-02-03)
+Policy: "Anyone can view published cards or owners view their own"
+USING: (published = true OR auth.uid() = user_id)
+
+-- صلاحية تنفيذ دالة الملكية (تم منحها للمستخدمين المسجلين)
+GRANT EXECUTE ON FUNCTION check_business_card_ownership TO authenticated;
 ```
 
 ### سلوك الرجوع المحمي
@@ -62,6 +72,9 @@ USING: (auth.uid() = user_id)
 ### الملفات المحمية
 - `src/pages/SlugPlatformPage.tsx` - الصفحة الرئيسية العامة
 - `src/pages/SlugOfferDetailsPage.tsx` - تفاصيل العرض + سلوك الرجوع
+- `src/pages/PublicPlatformPage.tsx` - صفحة المنصة العامة (مسار بديل)
+- `src/components/platform/MyPublicPlatformContent.tsx` - محتوى المنصة العامة
+- `src/hooks/usePublicBusinessCard.ts` - جلب بيانات البطاقة العامة
 
 ---
 
@@ -128,29 +141,62 @@ graph LR
 
 ---
 
-## 🔒 القسم السابع: النماذج العامة (محمي بشكل صارم)
+## 🔒 القسم السابع: النماذج العامة (محمي بشكل صارم - مقفل تماماً)
+
+> ⛔ **تحذير صارم:** هذا القسم مقفل تماماً ولا يُعدّل بدون إذن مباشر من المستخدم!
+
+### الصفحات المحمية المقفلة
+| الصفحة | الرابط | الملف | الحالة |
+|--------|--------|-------|--------|
+| إرسال عرض | `/:slug/offer` | `PublicOfferForm.tsx` | 🔒 مقفل |
+| إرسال طلب | `/:slug/request` | `PublicRequestForm.tsx` | 🔒 مقفل |
+| عرض سعر | `/:slug/quote` | `PublicPriceQuoteForm.tsx` | 🔒 مقفل |
+| إنشاء/جدولة موعد | `/:slug/calendar` | `PublicAppointmentForm.tsx` | 🔒 مقفل |
 
 ### القواعد المحمية
 | القاعدة | الوصف |
 |---------|-------|
-| مصدر البيانات | من قاعدة البيانات `business_cards` فقط |
+| مصدر البيانات | من قاعدة البيانات `business_cards` فقط (مع `published = true`) |
 | لا بيانات وهمية | تم حذف `getMockBroker()` نهائياً من جميع الملفات |
 | شاشة تحميل | تظهر حتى جلب بيانات الوسيط الحقيقية |
 | الهيدر | يستخدم `PublicFormLayout` مع بيانات الوسيط الحقيقية |
 
-### الملفات المحمية
-| الملف | الوصف |
-|-------|-------|
-| `src/pages/public-forms/PublicFormLayout.tsx` | الهيدر المشترك للنماذج |
-| `src/pages/public-forms/PublicOfferForm.tsx` | نموذج إرسال عرض |
-| `src/pages/public-forms/PublicRequestForm.tsx` | نموذج إرسال طلب |
-| `src/pages/public-forms/PublicPriceQuoteForm.tsx` | نموذج عرض سعر |
-| `src/pages/public-forms/PublicAppointmentForm.tsx` | نموذج جدولة موعد |
+### سياسات RLS المحمية (تم إصلاحها 2026-02-03)
+```sql
+-- سياسة القراءة للبطاقات المنشورة (متاحة للجميع)
+Policy: "Anyone can view published cards or owners view their own"
+ON: public.business_cards
+FOR: SELECT
+USING: (published = true OR auth.uid() = user_id)
 
-### الممنوعات
+-- صلاحية تنفيذ دالة الملكية
+GRANT EXECUTE ON FUNCTION check_business_card_ownership TO authenticated;
+
+-- سياسة التحديث (للمستخدمين المسجلين فقط)
+Policy: "Users can update their own business card"
+ON: public.business_cards
+FOR: UPDATE
+TO: authenticated
+USING: (auth.uid() = user_id OR check_business_card_ownership(...))
+WITH CHECK: (auth.uid() = user_id)
+```
+
+### الملفات المحمية المقفلة
+| الملف | الوصف | الحالة |
+|-------|-------|--------|
+| `src/pages/public-forms/PublicFormLayout.tsx` | الهيدر المشترك للنماذج | 🔒 مقفل |
+| `src/pages/public-forms/PublicOfferForm.tsx` | نموذج إرسال عرض | 🔒 مقفل |
+| `src/pages/public-forms/PublicRequestForm.tsx` | نموذج إرسال طلب | 🔒 مقفل |
+| `src/pages/public-forms/PublicPriceQuoteForm.tsx` | نموذج عرض سعر | 🔒 مقفل |
+| `src/pages/public-forms/PublicAppointmentForm.tsx` | نموذج جدولة موعد | 🔒 مقفل |
+| `src/pages/public-forms/index.ts` | تصدير النماذج | 🔒 مقفل |
+
+### الممنوعات (بشكل قاطع)
 - ❌ إعادة إضافة `getMockBroker()` أو أي بيانات وهمية
 - ❌ عرض النموذج قبل تحميل بيانات الوسيط
 - ❌ استخدام قيم افتراضية مثل "أحمد محمد" أو "شركة الوساطة"
+- ❌ تعديل سياسات RLS بدون إذن صريح
+- ❌ تغيير روابط الصفحات العامة
 
 ---
 
@@ -186,12 +232,12 @@ graph LR
 - **إبلاغ المستخدم بالعربية** بسبب التعديل المطلوب
 - **انتظار الموافقة أو الرفض** قبل أي تنفيذ
 
-### 2. 📝 صيغة طلب الإذن
+### 2. 📝 صيغة طلب الإذن (إلزامية)
 ```
 ⚠️ أحتاج لتعديل [اسم الملف/الوظيفة]
 السبب: [شرح واضح بالعربية]
 التأثير: [ما الذي سيتغير]
-هل توافق على هذا التعديل؟
+هل توافق على هذا التعديل؟ (نعم / لا)
 ```
 
 ### 3. 🔗 الحفاظ على الروابط
@@ -214,12 +260,33 @@ graph LR
 - لا قيم وهمية مثل `'مستخدم تجريبي'`
 - البيانات من `businessCardData` (قاعدة البيانات) فقط
 
-### 9. 📋 حماية النماذج العامة
+### 9. 📋 حماية النماذج العامة (مقفل تماماً)
 - لا إعادة لـ `getMockBroker()` - تم حذفه نهائياً
 - لا عرض للنموذج قبل تحميل بيانات الوسيط
 - الهيدر يعرض بيانات البطاقة الرقمية الحقيقية فقط
 
+### 10. 🔐 حماية سياسات RLS (مقفل تماماً)
+- لا تعديل على سياسات `business_cards` بدون إذن صريح
+- لا تغيير على صلاحيات دالة `check_business_card_ownership`
+- السياسات الحالية تم اختبارها وتعمل بشكل صحيح
+
 ---
 
-**آخر تحديث:** 2026-02-02
-**سبب التحديث:** حذف البيانات الوهمية من النماذج العامة وإضافة شاشة تحميل
+## 🔒 ملخص الأقفال الصارمة
+
+| الفئة | الملفات/الوظائف | الحالة |
+|-------|-----------------|--------|
+| منصة النشر العامة | `SlugPlatformPage`, `PublicPlatformPage`, `MyPublicPlatformContent` | 🔒 مقفل |
+| نموذج إرسال عرض | `PublicOfferForm.tsx` | 🔒 مقفل |
+| نموذج إرسال طلب | `PublicRequestForm.tsx` | 🔒 مقفل |
+| نموذج عرض سعر | `PublicPriceQuoteForm.tsx` | 🔒 مقفل |
+| نموذج جدولة موعد | `PublicAppointmentForm.tsx` | 🔒 مقفل |
+| الهيدر المشترك | `PublicFormLayout.tsx` | 🔒 مقفل |
+| هوك البطاقة العامة | `usePublicBusinessCard.ts` | 🔒 مقفل |
+| سياسات RLS | `business_cards` SELECT/UPDATE policies | 🔒 مقفل |
+| دالة الملكية | `check_business_card_ownership` | 🔒 مقفل |
+
+---
+
+**آخر تحديث:** 2026-02-03
+**سبب التحديث:** إضافة حماية صارمة على منصة النشر العامة والنماذج العامة بعد إصلاح سياسات RLS
