@@ -952,8 +952,11 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
 
   // Handle Publish
   const handlePublish = async () => {
+    console.log('🚀 بدء عملية النشر...');
+    
     if (!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city) {
       toast.error('يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة');
+      console.log('❌ حقول مطلوبة ناقصة');
       return;
     }
 
@@ -994,6 +997,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       console.warn('Could not fetch slug before publish:', e);
     }
     try {
+      console.log('📦 تجهيز بيانات الإعلان...');
       const adData: PublishedAdData = {
         id: `ad_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         // استخدام العنوان المولد بالذكاء الاصطناعي إن وجد، وإلا توليد عنوان تلقائي
@@ -1087,10 +1091,12 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
           detail: { eventType: 'property_published', propertyType: propertyData.propertyType, city: propertyData.locationDetails.city }
         }));
       } else {
-        toast.error(result.message);
+        console.error('❌ فشل النشر:', result.message);
+        toast.error(result.message || 'فشل في نشر الإعلان');
       }
     } catch (error) {
-      toast.error('حدث خطأ أثناء نشر الإعلان');
+      console.error('❌ خطأ غير متوقع أثناء النشر:', error);
+      toast.error('حدث خطأ أثناء نشر الإعلان - يرجى المحاولة مرة أخرى');
     } finally {
       setIsPublishing(false);
     }
