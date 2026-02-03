@@ -160,6 +160,8 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
   const [allListings, setAllListings] = useState<Listing[]>([]);
   const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
+  const [publicCardLoading, setPublicCardLoading] = useState(false);
+  const [publicCardError, setPublicCardError] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isSwapped, setIsSwapped] = useState(false);
@@ -239,10 +241,12 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   // ===== تحميل بيانات البطاقة للزائر (useEffect منفصل لضمان التفاعل مع businessCardOverride) =====
   useEffect(() => {
     if (!isPublicViewer) return;
-    
-    // ✅ إصلاح: بطاقة الوسيط للزائر تأتي من businessCardOverride مباشرة
-    // (SlugPlatformPage يمرر cardData = businessCard?.data أي البيانات الداخلية مباشرة)
-    if (businessCardOverride !== null && businessCardOverride !== undefined) {
+
+    let cancelled = false;
+
+    const setFromOverride = () => {
+      // ✅ بطاقة الوسيط للزائر تأتي من businessCardOverride مباشرة
+      // (SlugPlatformPage يمرر cardData = businessCard?.data أي البيانات الداخلية مباشرة)
       const cardDataDirect = businessCardOverride as BusinessCardData;
       console.log('[MyPublicPlatformContent] ✅ Public viewer - setting businessCardData from override:', {
         hasProfileImage: !!cardDataDirect?.profileImage,
@@ -250,10 +254,96 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         hasLogoImage: !!cardDataDirect?.logoImage,
         userName: cardDataDirect?.userName,
       });
+      setPublicCardError(null);
       setBusinessCardData(cardDataDirect);
       setIsSwapped(Boolean((cardDataDirect as any)?.swapState));
+    };
+
+    const fetchFromDbBySlug = async () => {
+      // ✅ Fallback: في حال صفحة النشر العامة لم تمرر businessCardOverride لأي سبب
+      // نجلب بطاقة الأعمال المنشورة مباشرة بالـ slug.
+      setPublicCardLoading(true);
+      setPublicCardError(null);
+      try {
+        const { data, error } = await supabase
+          .from('business_cards')
+          .select('data, slug, user_id, published')
+          .eq('slug', currentSlug)
+          .eq('published', true)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (error) {
+          console.warn('[MyPublicPlatformContent] Public card fetch by slug failed:', error);
+          setPublicCardError(error.message);
+          setBusinessCardData(null);
+          return;
+        }
+
+        if (!data?.data) {
+          setPublicCardError('لم يتم العثور على بطاقة أعمال منشورة لهذا الرابط.');
+          setBusinessCardData(null);
+          return;
+        }
+
+        const raw = data.data as unknown as Record<string, any>;
+        const cardData: BusinessCardData = {
+          userName: raw.userName || raw.name || '',
+          companyName: raw.companyName || '',
+          accountType: raw.accountType || 'individual',
+          falLicense: raw.falLicense || '',
+          falExpiry: raw.falExpiry || '',
+          commercialRegistration: raw.commercialRegistration || '',
+          commercialExpiryDate: raw.commercialExpiryDate || '',
+          primaryPhone: raw.primaryPhone || raw.phone || '',
+          email: raw.email || '',
+          domain: raw.domain || '',
+          googleMapsLocation: raw.googleMapsLocation || '',
+          location: raw.location || '',
+          officialPlatform: raw.officialPlatform || '',
+          bio: raw.bio || '',
+          achievements: raw.achievements || {
+            totalDeals: 0,
+            totalProperties: 0,
+            totalClients: 0,
+            yearsOfExperience: 0,
+            awards: [],
+            certifications: [],
+            topPerformer: false,
+            verified: false,
+          },
+          profileImage: raw.profileImage || '',
+          coverImage: raw.coverImage || '',
+          logoImage: raw.logoImage || '',
+          displayNameType: raw.displayNameType || 'personal',
+          platformNameArabic: raw.platformNameArabic || '',
+        };
+
+        console.log('[MyPublicPlatformContent] ✅ Public viewer - fetched businessCardData by slug:', {
+          slug: data.slug,
+          hasProfileImage: !!cardData?.profileImage,
+          hasCoverImage: !!cardData?.coverImage,
+          hasLogoImage: !!cardData?.logoImage,
+          userName: cardData?.userName,
+        });
+        setBusinessCardData(cardData);
+        setIsSwapped(Boolean(raw?.swapState));
+      } finally {
+        if (!cancelled) setPublicCardLoading(false);
+      }
+    };
+
+    if (businessCardOverride !== null && businessCardOverride !== undefined) {
+      setFromOverride();
+    } else {
+      void fetchFromDbBySlug();
     }
-  }, [isPublicViewer, businessCardOverride]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPublicViewer, businessCardOverride, currentSlug]);
 
   // ===== تحميل العروض =====
   useEffect(() => {
@@ -904,6 +994,22 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           backgroundColor: 'rgba(1, 65, 28, 0.85)'
         } : undefined}
       >
+        {/* ✅ تحذير صريح عند غياب بيانات البطاقة في صفحة النشر العامة */}
+        {isPublicViewer && !publicCardLoading && !effectiveBusinessCardData && (
+          <div className="relative z-20 mb-4 rounded-lg bg-white/10 border border-white/20 p-3">
+            <div className="text-sm font-semibold">تعذّر تحميل بيانات الهيدر</div>
+            <div className="text-xs text-white/80 mt-1">
+              {publicCardError || 'تأكد من أن بطاقة الأعمال منشورة لهذا الـ slug.'}
+            </div>
+          </div>
+        )}
+
+        {isPublicViewer && publicCardLoading && (
+          <div className="relative z-20 mb-4 rounded-lg bg-white/10 border border-white/20 p-3">
+            <div className="text-sm">جاري تحميل بيانات الوسيط...</div>
+          </div>
+        )}
+
         {/* Pattern overlay - only when no cover image */}
         {!effectiveBusinessCardData?.coverImage && (
           <div className="absolute inset-0 opacity-10">
