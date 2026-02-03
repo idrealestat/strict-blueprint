@@ -1474,11 +1474,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
         )}
         
         {/* Footer */}
-        <footer className="bg-[#01411C] text-white py-4 text-center mt-12 rounded-xl">
-          <p className="text-sm opacity-75 flex items-center justify-center gap-2">
+        <footer className="bg-[#01411C] text-white py-6 text-center mt-12 rounded-xl">
+          <p className="text-sm opacity-75 flex items-center justify-center gap-2 mb-3">
             <span>مدعوم من</span>
             <span className="font-bold text-[#D4AF37]">وساطه AI Wasata</span>
           </p>
+          <a 
+            href="/terms" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-white/60 hover:text-[#D4AF37] transition-colors underline"
+          >
+            شروط الاستخدام | Terms of Service
+          </a>
         </footer>
       </div>
 
