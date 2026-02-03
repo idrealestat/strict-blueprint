@@ -357,7 +357,11 @@ export default function PublicRequestForm() {
   };
 
   // تهيئة الخريطة
+  // ملاحظة مهمة: الصفحة تعرض شاشة تحميل حتى يتم جلب بيانات الوسيط.
+  // إن شغّلنا التهيئة أثناء شاشة التحميل فلن يكون عنصر الخريطة موجوداً،
+  // وبالتالي لن تظهر الخريطة لاحقاً. ننتظر حتى يصبح broker جاهزاً.
   useEffect(() => {
+    if (isLoadingBroker || !broker) return;
     if (!mapContainer.current || mapRef.current) return;
 
     const centerLat = 24.7136;
@@ -406,8 +410,11 @@ export default function PublicRequestForm() {
         mapRef.current.remove();
         mapRef.current = null;
       }
+      markerRef.current = null;
+      streetLayerRef.current = null;
+      satelliteLayerRef.current = null;
     };
-  }, []);
+  }, [isLoadingBroker, broker]);
 
   // تبديل طبقة الخريطة
   const toggleMapLayer = () => {

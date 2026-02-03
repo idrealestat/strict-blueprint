@@ -406,7 +406,11 @@ export default function PublicOfferForm() {
   };
 
   // Initialize Map
+  // ملاحظة مهمة: هذه الصفحة تعرض شاشة تحميل حتى يتم جلب بيانات الوسيط.
+  // إذا حاولنا تهيئة Leaflet أثناء شاشة التحميل، فلن يكون عنصر الخريطة موجوداً
+  // وبالتالي لن تُنشأ الخريطة أبداً. لذلك نربط التهيئة بانتهاء التحميل ووجود broker.
   useEffect(() => {
+    if (isLoadingBroker || !broker) return;
     if (!mapContainer.current || mapRef.current) return;
 
     const map = L.map(mapContainer.current).setView([24.7136, 46.6753], 12);
@@ -448,8 +452,11 @@ export default function PublicOfferForm() {
     return () => {
       map.remove();
       mapRef.current = null;
+      markerRef.current = null;
+      streetLayerRef.current = null;
+      satelliteLayerRef.current = null;
     };
-  }, []);
+  }, [isLoadingBroker, broker]);
 
   // Toggle map layer
   const toggleMapLayer = () => {
