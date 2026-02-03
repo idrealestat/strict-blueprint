@@ -240,15 +240,19 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   useEffect(() => {
     // (1) صفحة عامة للزائر: المصدر هو قاعدة البيانات
     if (isPublicViewer) {
-      // بطاقة الوسيط للزائر تأتي من businessCardOverride (من الـ backend)
-      if (typeof businessCardOverride !== 'undefined' && businessCardOverride !== null) {
-        const overrideAny = businessCardOverride as any;
-        const normalizedCard = overrideAny?.data && typeof overrideAny.data === 'object'
-          ? overrideAny.data
-          : overrideAny;
-
-        setBusinessCardData(normalizedCard);
-        setIsSwapped(Boolean(overrideAny?.data?.swapState ?? overrideAny?.swapState));
+      // ✅ إصلاح: بطاقة الوسيط للزائر تأتي من businessCardOverride مباشرة
+      // (SlugPlatformPage يمرر cardData = businessCard?.data أي البيانات الداخلية مباشرة)
+      if (businessCardOverride !== null && businessCardOverride !== undefined) {
+        // البيانات القادمة هي المحتوى الداخلي مباشرة، لا نحتاج لاستخراج .data
+        const cardDataDirect = businessCardOverride as BusinessCardData;
+        console.log('[MyPublicPlatformContent] Public viewer - setting businessCardData from override:', {
+          hasProfileImage: !!cardDataDirect?.profileImage,
+          hasCoverImage: !!cardDataDirect?.coverImage,
+          hasLogoImage: !!cardDataDirect?.logoImage,
+          userName: cardDataDirect?.userName,
+        });
+        setBusinessCardData(cardDataDirect);
+        setIsSwapped(Boolean((cardDataDirect as any)?.swapState));
       }
 
       if (publicDbError) {
@@ -303,19 +307,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
       setAllListings([]);
     }
 
-    // في الصفحة العامة: نستخدم البيانات القادمة من قاعدة البيانات للبطاقة فقط
-    if (typeof businessCardOverride !== 'undefined') {
-      if (businessCardOverride !== null) {
-        const overrideAny = businessCardOverride as any;
-        const normalizedCard = overrideAny?.data && typeof overrideAny.data === 'object'
-          ? overrideAny.data
-          : overrideAny;
-
-        setBusinessCardData(normalizedCard);
-        setIsSwapped(Boolean(overrideAny?.data?.swapState ?? overrideAny?.swapState));
-      }
-      return;
-    }
+    // للمالك: نحمل بيانات البطاقة من قاعدة البيانات (لا نستخدم businessCardOverride هنا)
 
     const loadCardData = async () => {
       // ✅ الحماية: جلب بيانات البطاقة من قاعدة البيانات فقط
