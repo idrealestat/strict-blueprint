@@ -7,3 +7,6 @@ export { CreateReportDialog } from './CreateReportDialog';
 export { default as OffersStatsPDFReport } from './OffersStatsPDFReport';
 export { default as OffersPerformanceComparison } from './OffersPerformanceComparison';
 export { default as MarketAnalyticsDashboard } from './MarketAnalyticsDashboard';
+export { default as PersonalKPIsDashboard } from './PersonalKPIsDashboard';
+export { default as MarketStatsDashboard } from './MarketStatsDashboard';
+export { default as AnalyticsSummaryDashboard } from './AnalyticsSummaryDashboard';

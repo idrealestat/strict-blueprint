@@ -8,11 +8,14 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2, FileText, Send, DollarSign, CheckCircle, Clock, XCircle, Inbox, Package, BarChart3 } from 'lucide-react';
+import { TrendingUp, Users, Building, Eye, Flame, Globe, MapPin, FileBarChart, Loader2, FileText, Send, DollarSign, CheckCircle, Clock, XCircle, Inbox, Package, BarChart3, Target, Layers } from 'lucide-react';
 import VisitorsHeatMap from './analytics/VisitorsHeatMap';
 import ViewsLogPage from './analytics/ViewsLogPage';
 import PublicPagesStats from './analytics/PublicPagesStats';
 import MarketAnalyticsDashboard from './analytics/MarketAnalyticsDashboard';
+import PersonalKPIsDashboard from './analytics/PersonalKPIsDashboard';
+import MarketStatsDashboard from './analytics/MarketStatsDashboard';
+import AnalyticsSummaryDashboard from './analytics/AnalyticsSummaryDashboard';
 import { useAnalyticsStats } from '@/hooks/useAnalyticsStats';
 import { useReceivedDocuments } from '@/hooks/useReceivedDocuments';
 import { useCRMCustomers } from '@/hooks/useCRMCustomers';
@@ -41,7 +44,7 @@ interface DocumentStats {
 }
 
 const AnalyticsDashboard = () => {
-  const [activeTab, setActiveTab] = useState<'market-analytics' | 'market' | 'platform' | 'public-pages'>('market-analytics');
+  const [activeTab, setActiveTab] = useState<'market-analytics' | 'personal-kpis' | 'market-stats' | 'summary' | 'platform' | 'public-pages'>('personal-kpis');
   const { platformStats, loading } = useAnalyticsStats();
   const { documents, loading: docsLoading } = useReceivedDocuments();
   const { customers } = useCRMCustomers();
@@ -148,265 +151,55 @@ const AnalyticsDashboard = () => {
     <div className="space-y-6">
       {/* تبويبات رئيسية */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-gray-100 dark:bg-gray-800">
-          <TabsTrigger value="market-analytics" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
-            <BarChart3 className="w-4 h-4" />
-            تحليلات السوق
-          </TabsTrigger>
-          <TabsTrigger value="market" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
-            <TrendingUp className="w-4 h-4" />
-            المؤشرات العامة
-          </TabsTrigger>
-          <TabsTrigger value="public-pages" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
-            <FileBarChart className="w-4 h-4" />
-            الصفحات العامة
-          </TabsTrigger>
-          <TabsTrigger value="platform" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-2">
-            <Building className="w-4 h-4" />
-            منصتي
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <TabsList className="inline-flex min-w-max bg-gray-100 dark:bg-gray-800 gap-1 p-1">
+            <TabsTrigger value="personal-kpis" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-1.5 text-xs sm:text-sm whitespace-nowrap">
+              <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              مؤشراتي الشخصية
+            </TabsTrigger>
+            <TabsTrigger value="market-analytics" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-1.5 text-xs sm:text-sm whitespace-nowrap">
+              <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              تحليلات الأداء
+            </TabsTrigger>
+            <TabsTrigger value="market-stats" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-1.5 text-xs sm:text-sm whitespace-nowrap">
+              <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              إحصائيات السوق
+            </TabsTrigger>
+            <TabsTrigger value="summary" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-1.5 text-xs sm:text-sm whitespace-nowrap">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              ملخص شامل
+            </TabsTrigger>
+            <TabsTrigger value="public-pages" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-1.5 text-xs sm:text-sm whitespace-nowrap">
+              <FileBarChart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              الصفحات العامة
+            </TabsTrigger>
+            <TabsTrigger value="platform" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white gap-1.5 text-xs sm:text-sm whitespace-nowrap">
+              <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              منصتي
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* تبويب تحليلات السوق الشاملة */}
+        {/* تبويب مؤشرات الأداء الشخصية */}
+        <TabsContent value="personal-kpis" className="space-y-6 mt-6">
+          <PersonalKPIsDashboard />
+        </TabsContent>
+
+        {/* تبويب تحليلات الأداء الشاملة */}
         <TabsContent value="market-analytics" className="space-y-6 mt-6">
           <MarketAnalyticsDashboard />
         </TabsContent>
 
-        {/* تبويب تحليلات السوق */}
-        <TabsContent value="market" className="space-y-6 mt-6">
-          {/* المؤشرات السريعة */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {metrics.map((metric, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-2xl">{metric.icon}</div>
-                  <div className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${metric.change.startsWith('+') ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
-                    {metric.change}
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
-                  {metric.value}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
-                  {metric.title}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* الرسم البياني */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h4 className="text-lg font-bold text-gray-800 dark:text-white">الأداء السنوي</h4>
-                <p className="text-gray-600 dark:text-gray-300">مقارنة بين الإيرادات وعدد العملاء</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <select className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg px-3 py-1.5 text-sm border-none focus:ring-2 focus:ring-blue-500">
-                  <option>2024</option>
-                  <option>2023</option>
-                  <option>2022</option>
-                </select>
-                <button className="px-4 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors">
-                  تصدير
-                </button>
-              </div>
-            </div>
-            
-            {/* رسم بياني مبسط */}
-            <div className="relative h-64">
-              <div className="absolute inset-0 flex items-end gap-1">
-                {chartData.revenue.map((value, index) => (
-                  <div
-                    key={index}
-                    className="flex-1 flex flex-col items-center justify-end"
-                  >
-                    <div
-                      className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-lg opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
-                      style={{ height: `${(value / maxRevenue) * 100}%` }}
-                      title={`${chartData.labels[index]}: $${value.toLocaleString()}`}
-                    ></div>
-                    <div className="text-xs text-gray-500 mt-2 hidden md:block">
-                      {chartData.labels[index].slice(0, 3)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* وسيلة الإيضاح */}
-            <div className="flex items-center justify-center gap-6 mt-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-300">الإيرادات</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-300">العملاء</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* إحصائيات الطلبات والعروض وعروض الأسعار المستلمة */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* إحصائيات الطلبات المستلمة */}
-            <Card className="border-2 border-blue-200 dark:border-blue-800 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Send className="w-5 h-5" />
-                  الطلبات المستلمة
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">الإجمالي</span>
-                  <span className="text-2xl font-bold text-blue-600">{requestsStats.total}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 text-center">
-                    <Clock className="w-4 h-4 text-orange-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">معلقة</span>
-                    <p className="font-bold text-orange-600">{requestsStats.pending}</p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
-                    <CheckCircle className="w-4 h-4 text-green-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">مقبولة</span>
-                    <p className="font-bold text-green-600">{requestsStats.approved}</p>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
-                    <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">مرفوضة</span>
-                    <p className="font-bold text-red-600">{requestsStats.rejected}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* إحصائيات العروض المستلمة */}
-            <Card className="border-2 border-purple-200 dark:border-purple-800 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Package className="w-5 h-5" />
-                  العروض المستلمة
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">الإجمالي</span>
-                  <span className="text-2xl font-bold text-purple-600">{offersStats.total}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 text-center">
-                    <Clock className="w-4 h-4 text-orange-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">معلقة</span>
-                    <p className="font-bold text-orange-600">{offersStats.pending}</p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
-                    <CheckCircle className="w-4 h-4 text-green-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">مقبولة</span>
-                    <p className="font-bold text-green-600">{offersStats.approved}</p>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
-                    <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">مرفوضة</span>
-                    <p className="font-bold text-red-600">{offersStats.rejected}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* إحصائيات عروض الأسعار المستلمة */}
-            <Card className="border-2 border-amber-200 dark:border-amber-800 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white py-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <DollarSign className="w-5 h-5" />
-                  عروض الأسعار المستلمة
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">الإجمالي</span>
-                  <span className="text-2xl font-bold text-amber-600">{quotesStats.total}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 text-center">
-                    <Clock className="w-4 h-4 text-orange-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">معلقة</span>
-                    <p className="font-bold text-orange-600">{quotesStats.pending}</p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
-                    <CheckCircle className="w-4 h-4 text-green-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">مقبولة</span>
-                    <p className="font-bold text-green-600">{quotesStats.approved}</p>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
-                    <XCircle className="w-4 h-4 text-red-500 mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">مرفوضة</span>
-                    <p className="font-bold text-red-600">{quotesStats.rejected}</p>
-                  </div>
-                </div>
-                {quotesStats.totalAmount > 0 && (
-                  <div className="pt-2 border-t border-dashed">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">إجمالي المبالغ</span>
-                      <span className="font-bold text-green-600">{quotesStats.totalAmount.toLocaleString()} ر.س</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* الجدول */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h4 className="text-lg font-bold text-gray-800 dark:text-white">أفضل 5 عملاء</h4>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-700/50">
-                    <th className="text-right py-3 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">العميل</th>
-                    <th className="text-right py-3 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">الصفقات</th>
-                    <th className="text-right py-3 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">القيمة</th>
-                    <th className="text-right py-3 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">الحالة</th>
-                    <th className="text-right py-3 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topClients.map((client, index) => (
-                    <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                      <td className="py-3 px-6 text-right">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center text-white text-sm">
-                            {client.name.charAt(0)}
-                          </div>
-                          <span className="font-medium text-gray-800 dark:text-white">{client.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-6 text-right">
-                        <span className="font-medium text-gray-800 dark:text-white">{client.deals}</span>
-                      </td>
-                      <td className="py-3 px-6 text-right">
-                        <span className="font-bold text-green-600 dark:text-green-400">{client.value}</span>
-                      </td>
-                      <td className="py-3 px-6 text-right">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyle(client.status)}`}>
-                          {client.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-6 text-right">
-                        <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium">
-                          عرض التفاصيل ←
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        {/* تبويب إحصائيات السوق */}
+        <TabsContent value="market-stats" className="space-y-6 mt-6">
+          <MarketStatsDashboard />
         </TabsContent>
+
+        {/* تبويب الملخص الشامل */}
+        <TabsContent value="summary" className="space-y-6 mt-6">
+          <AnalyticsSummaryDashboard />
+        </TabsContent>
+
 
         {/* تبويب الصفحات العامة */}
         <TabsContent value="public-pages" className="space-y-6 mt-6">
