@@ -590,6 +590,9 @@ const App = () => {
                   {/* صفحة الانضمام للفريق */}
                   <Route path="/join/:token" element={<JoinTeamPage />} />
                   
+                  {/* Public Terms Page - MUST be before dynamic slug routes */}
+                  <Route path="/terms" element={<TermsPage />} />
+                  
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
                   <Route path="/:slug/card" element={<SlugBusinessCardPage />} />
@@ -609,8 +612,6 @@ const App = () => {
                   <Route path="/:slug/:citySlug/:districtSlug" element={<SlugDistrictPage />} />
                   <Route path="/:slug/:citySlug/:districtSlug/:offerId" element={<SlugOfferDetailsPage />} />
                   
-                  {/* Public Terms Page */}
-                  <Route path="/terms" element={<TermsPage />} />
                   
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
