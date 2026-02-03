@@ -3063,6 +3063,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_manager_or_admin: {
+        Args: { org_user_id: string }
+        Returns: boolean
+      }
       is_organization_admin: {
         Args: { check_user_id: string; org_user_id: string }
         Returns: boolean
