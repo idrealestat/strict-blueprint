@@ -670,9 +670,6 @@ export default function RightSliderComplete({
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-[#01411C]">القائمة الرئيسية</h3>
 
-      {/* 🔴 إعدادات المساعد الذكي - يظهر فقط إذا فعّلها المالك */}
-      <FloatingBubbleQuickSettings />
-
       <div className="grid grid-cols-1 gap-3">
         {visibleMenuItems.map((item) => {
           const IconComponent = item.icon;

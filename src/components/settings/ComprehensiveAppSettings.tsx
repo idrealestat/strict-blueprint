@@ -135,6 +135,13 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
     description: 'إعدادات شريط الأخبار العقارية',
     color: '#01411C',
   },
+  {
+    id: 'ai-assistant',
+    icon: Sparkles,
+    label: 'المساعد الذكي العائم',
+    description: 'إعدادات وساطه AI والفقاعة العائمة',
+    color: '#8b5cf6',
+  },
 ];
 
 interface ComprehensiveAppSettingsProps {
@@ -251,6 +258,15 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
       showImages: true,
       categories: ['market', 'regulations', 'projects'],
       refreshInterval: 30,
+    },
+    // المساعد الذكي
+    aiAssistant: {
+      bubbleEnabled: true,
+      autoSpeak: false,
+      showOnAllPages: true,
+      position: 'bottom-right',
+      voiceEnabled: true,
+      quickSuggestions: true,
     },
   });
 
@@ -672,6 +688,42 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
               description="إظهار صور الأخبار"
               checked={settings.news.showImages}
               onChange={(v) => updateSetting('news', 'showImages', v)}
+            />
+          </div>
+        );
+
+      case 'ai-assistant':
+        return (
+          <div className="space-y-4">
+            <SettingToggle
+              label="تفعيل الفقاعة العائمة"
+              description="إظهار المساعد الذكي كزر عائم"
+              checked={settings.aiAssistant.bubbleEnabled}
+              onChange={(v) => updateSetting('aiAssistant', 'bubbleEnabled', v)}
+            />
+            <SettingToggle
+              label="النطق التلقائي"
+              description="قراءة ردود المساعد صوتياً"
+              checked={settings.aiAssistant.autoSpeak}
+              onChange={(v) => updateSetting('aiAssistant', 'autoSpeak', v)}
+            />
+            <SettingToggle
+              label="الظهور في كل الصفحات"
+              description="عرض الفقاعة في جميع صفحات التطبيق"
+              checked={settings.aiAssistant.showOnAllPages}
+              onChange={(v) => updateSetting('aiAssistant', 'showOnAllPages', v)}
+            />
+            <SettingToggle
+              label="الأوامر الصوتية"
+              description="تفعيل التحدث مع المساعد صوتياً"
+              checked={settings.aiAssistant.voiceEnabled}
+              onChange={(v) => updateSetting('aiAssistant', 'voiceEnabled', v)}
+            />
+            <SettingToggle
+              label="الاقتراحات السريعة"
+              description="عرض اقتراحات الأسئلة الشائعة"
+              checked={settings.aiAssistant.quickSuggestions}
+              onChange={(v) => updateSetting('aiAssistant', 'quickSuggestions', v)}
             />
           </div>
         );
