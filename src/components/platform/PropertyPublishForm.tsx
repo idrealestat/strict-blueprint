@@ -954,20 +954,44 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const handlePublish = async () => {
     console.log('🚀 بدء عملية النشر...');
     
-    // 1. التحقق من معلومات المالك - إلزامي
-    if (!propertyData.ownerName || !propertyData.ownerIdNumber || !propertyData.ownerPhone || !propertyData.ownerBirthDate) {
+    // 🧪 تشخيص: طباعة القيم الفعلية لمعرفة لماذا تُعتبر فارغة
+    console.log('🧪 PropertyPublishForm - قيم الحقول المطلوبة:', {
+      ownerName: `"${propertyData.ownerName}"`,
+      ownerIdNumber: `"${propertyData.ownerIdNumber}"`,
+      ownerPhone: `"${propertyData.ownerPhone}"`,
+      ownerBirthDate: `"${propertyData.ownerBirthDate}"`,
+      deedNumber: `"${propertyData.deedNumber}"`,
+      deedDate: `"${propertyData.deedDate}"`,
+      deedCity: `"${propertyData.deedCity}"`,
+      adLicense: `"${propertyData.adLicense}"`,
+    });
+    
+    // 1. التحقق من معلومات المالك - إلزامي (مع trim للتأكد من عدم وجود مسافات فقط)
+    if (!propertyData.ownerName?.trim() || !propertyData.ownerIdNumber?.trim() || !propertyData.ownerPhone?.trim() || !propertyData.ownerBirthDate?.trim()) {
+      console.log('❌ معلومات المالك ناقصة:', {
+        ownerName: !propertyData.ownerName?.trim(),
+        ownerIdNumber: !propertyData.ownerIdNumber?.trim(),
+        ownerPhone: !propertyData.ownerPhone?.trim(),
+        ownerBirthDate: !propertyData.ownerBirthDate?.trim(),
+      });
       toast.error('يرجى ملء معلومات المالك: الاسم ورقم الهوية وتاريخ الميلاد ورقم الجوال');
       return;
     }
 
     // 2. التحقق من معلومات الصك - إلزامي
-    if (!propertyData.deedNumber || !propertyData.deedDate || !propertyData.deedCity) {
+    if (!propertyData.deedNumber?.trim() || !propertyData.deedDate?.trim() || !propertyData.deedCity?.trim()) {
+      console.log('❌ معلومات الصك ناقصة:', {
+        deedNumber: !propertyData.deedNumber?.trim(),
+        deedDate: !propertyData.deedDate?.trim(),
+        deedCity: !propertyData.deedCity?.trim(),
+      });
       toast.error('يرجى ملء معلومات الصك: رقم الصك وتاريخ الصك ومدينة الصك');
       return;
     }
 
     // 3. التحقق من الترخيص الإعلاني - إلزامي
-    if (!propertyData.adLicense || propertyData.adLicense.trim() === '') {
+    if (!propertyData.adLicense?.trim()) {
+      console.log('❌ الترخيص الإعلاني ناقص');
       toast.error('يرجى إدخال رقم الترخيص الإعلاني - حقل إلزامي للنشر');
       return;
     }
