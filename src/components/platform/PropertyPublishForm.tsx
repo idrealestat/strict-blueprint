@@ -960,8 +960,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       return;
     }
 
-    if (!propertyData.ownerName || !propertyData.ownerIdNumber || !propertyData.ownerPhone) {
-      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الهوية ورقم الجوال');
+    if (!propertyData.ownerName || !propertyData.ownerPhone) {
+      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الجوال');
       return;
     }
 
