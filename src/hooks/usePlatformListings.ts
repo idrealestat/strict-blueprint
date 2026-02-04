@@ -516,11 +516,11 @@ export function usePlatformListings(slug?: string) {
       }
 
       // نقرأ العروض الموجودة مسبقاً لهذا الـ slug حتى نمنع التكرار عند كل مزامنة
-      // (بدون أي افتراضات على شكل الـ id القادم من localStorage)
+      // ✅ نجلب كل العروض (بما فيها المحذوفة soft delete) لمنع إعادة إدراجها
       const { data: existingRows, error: existingErr } = await supabase
         .from('platform_listings')
-        .select('id, title, price, city, district, property_type, smart_path')
-        .eq('slug', currentSlug);
+        .select('id, title, price, city, district, property_type, smart_path, deleted_at')
+        .eq('user_id', user.id); // ✅ استخدام user_id بدلاً من slug فقط
 
       if (existingErr) throw existingErr;
 
@@ -542,14 +542,57 @@ export function usePlatformListings(slug?: string) {
       };
 
       const existingByKey = new Map<string, string>();
+      const deletedKeys = new Set<string>(); // ✅ تتبع العروض المحذوفة لمنع إعادة إدراجها
       (existingRows || []).forEach((r: any) => {
         if (!r?.id) return;
         const key = buildKey(r);
+        
+        // ✅ إذا كان العرض محذوفاً، نحفظ المفتاح لتجاوزه
+        if (r.deleted_at) {
+          deletedKeys.add(key);
+          return;
+        }
+        
         if (!existingByKey.has(key)) existingByKey.set(key, r.id);
       });
 
+      // ✅ فلترة العروض المحذوفة قبل المزامنة
+      const filteredAdsToSync = adsToSync.filter((ad: any) => {
+        const smartPath = firstNonEmpty(ad.smartPath, ad.platformPath, ad.smart_path);
+        const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
+        const city = String(firstNonEmpty(ad.locationDetails?.city, ad.city, parsedFromPath.city, 'غير محدد') as any);
+        const district = String(firstNonEmpty(ad.locationDetails?.district, ad.district, parsedFromPath.district, 'غير محدد') as any);
+        const titleCandidate = firstNonEmpty(ad.title);
+        const title = !titleCandidate || String(titleCandidate).trim() === 'عرض بدون عنوان'
+          ? buildFallbackTitle(ad, city, district)
+          : String(titleCandidate);
+        const price = Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0;
+        const propertyType = firstNonEmpty(ad.propertyType, ad.property_type, 'شقة');
+        
+        const key = buildKey({
+          title,
+          price,
+          city,
+          district,
+          property_type: propertyType,
+          smart_path: smartPath,
+        });
+        
+        // ✅ تجاوز العروض التي تم حذفها سابقاً
+        if (deletedKeys.has(key)) {
+          console.log('⚠️ تجاوز عرض محذوف سابقاً:', key);
+          return false;
+        }
+        return true;
+      });
+
+      if (filteredAdsToSync.length === 0) {
+        if (!silent) toast.info('لا توجد عروض جديدة للمزامنة');
+        return;
+      }
+
       // تحويل وإدراج/تحديث (Upsert) بدون تكرار
-      const listingsToUpsert = adsToSync.map((ad: any) => {
+      const listingsToUpsert = filteredAdsToSync.map((ad: any) => {
         // استخراج الصور
         const images =
           ad.images ||
@@ -729,14 +772,40 @@ export function usePlatformListings(slug?: string) {
         },
         (payload) => {
           console.log('Realtime update:', payload);
+          
           if (payload.eventType === 'INSERT') {
-            setListings(prev => [mapDbToListing(payload.new), ...prev]);
+            const newRow = payload.new as any;
+            // ✅ لا نضيف إذا كان محذوفاً
+            if (newRow.deleted_at) return;
+            
+            setListings(prev => {
+              // ✅ منع التكرار: لا نضيف إذا كان موجوداً مسبقاً
+              const exists = prev.some(l => l.id === newRow.id);
+              if (exists) return prev;
+              return [mapDbToListing(newRow), ...prev];
+            });
           } else if (payload.eventType === 'UPDATE') {
-            setListings(prev => prev.map(l => 
-              l.id === payload.new.id ? mapDbToListing(payload.new) : l
-            ));
+            const updatedRow = payload.new as any;
+            
+            // ✅ إذا تم حذفه (soft delete)، نزيله من القائمة
+            if (updatedRow.deleted_at) {
+              setListings(prev => prev.filter(l => l.id !== updatedRow.id));
+              return;
+            }
+            
+            setListings(prev => {
+              const exists = prev.some(l => l.id === updatedRow.id);
+              if (exists) {
+                return prev.map(l => 
+                  l.id === updatedRow.id ? mapDbToListing(updatedRow) : l
+                );
+              }
+              // إذا لم يكن موجوداً، نضيفه (حالة نادرة)
+              return [mapDbToListing(updatedRow), ...prev];
+            });
           } else if (payload.eventType === 'DELETE') {
-            setListings(prev => prev.filter(l => l.id !== payload.old.id));
+            // ✅ حذف فعلي من قاعدة البيانات (نادر)
+            setListings(prev => prev.filter(l => l.id !== (payload.old as any).id));
           }
         }
       )
@@ -964,6 +1033,7 @@ export function usePublicPlatformListings(slug?: string, userId?: string) {
 }
 
 // دالة مساعدة لمزامنة عرض واحد إلى قاعدة البيانات (تلقائياً عند النشر)
+// ✅ محدثة لمنع التكرار عبر التحقق من وجود العرض أولاً
 export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
   try {
     // ✅ الحصول على user_id - مطلوب لسياسات RLS
@@ -973,10 +1043,7 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       return false;
     }
 
-    // ✅ الحصول على الـ slug من قاعدة البيانات مباشرة (أكثر موثوقية من localStorage)
-    // مهم: لا نوقف المزامنة بالكامل إذا لم يوجد slug بعد (بعض المستخدمين لم ينشروا بطاقة العمل).
-    // في هذه الحالة نستخدم slug داخلي (pending-<userId>) ليظهر العرض داخل التطبيق (حسب user_id)
-    // بدون أن يفسد المسارات العامة.
+    // ✅ الحصول على الـ slug من قاعدة البيانات مباشرة
     let slug = (localStorage.getItem('public_platform_slug') || '').trim();
     if (!slug || slug === 'default') {
       const { data: cardData, error: slugErr } = await supabase
@@ -1036,14 +1103,45 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       : String(titleCandidate);
 
     const description = firstNonEmpty(ad.aiDescription, ad.description);
+    const priceNum = Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0;
+    const propertyType = String(firstNonEmpty(ad.propertyType, ad.property_type, 'شقة') || 'شقة');
+
+    // ✅ منع التكرار: البحث عن عرض مطابق قبل الإدراج
+    const buildDupKey = (r: any) =>
+      `${String(r.title ?? '').trim()}__${String(r.price ?? '').trim()}__${String(r.city ?? '').trim()}__${String(r.district ?? '').trim()}__${String(r.property_type ?? '').trim()}`;
+
+    const currentKey = buildDupKey({ title, price: priceNum, city, district, property_type: propertyType });
+
+    const { data: existingRows, error: existingErr } = await supabase
+      .from('platform_listings')
+      .select('id, title, price, city, district, property_type')
+      .eq('user_id', user.id)
+      .is('deleted_at', null);
+
+    if (existingErr) {
+      console.error('Error checking existing listings:', existingErr);
+    }
+
+    const existingMatch = (existingRows || []).find((row: any) => buildDupKey(row) === currentKey);
+    if (existingMatch) {
+      console.log('⚠️ العرض موجود مسبقاً في قاعدة البيانات، تم تجاوز الإدراج:', existingMatch.id);
+      // تحديث localStorage بالـ ID الصحيح
+      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+      const adIndex = publishedAds.findIndex((a: any) => a.id === ad.id);
+      if (adIndex !== -1 && !isUuid(ad.id)) {
+        publishedAds[adIndex].dbId = existingMatch.id;
+        localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+      }
+      return true; // نعتبرها نجاح لأن العرض موجود
+    }
 
     const listingData = {
-      user_id: user.id, // ✅ مطلوب لسياسات RLS
+      user_id: user.id,
       slug: effectiveSlug,
       title,
       description: description ? String(description) : null,
-      price: Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0,
-      property_type: firstNonEmpty(ad.propertyType, ad.property_type, 'شقة'),
+      price: priceNum,
+      property_type: propertyType,
       area: !isEmptyValue(ad.area) ? Number(String(ad.area).replace(/[^\d.]/g, '')) : null,
       bedrooms: !isEmptyValue(ad.bedrooms) ? Number(String(ad.bedrooms).replace(/[^\d]/g, '')) : null,
       bathrooms: !isEmptyValue(ad.bathrooms) ? Number(String(ad.bathrooms).replace(/[^\d]/g, '')) : null,
@@ -1054,7 +1152,6 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       street: firstNonEmpty(ad.locationDetails?.street, ad.street, null),
       owner_name: firstNonEmpty(ad.ownerName, null),
       owner_phone: firstNonEmpty(ad.ownerPhone, null),
-      // حقول المالك الإضافية
       owner_id_number: firstNonEmpty(ad.ownerIdNumber, null),
       owner_birth_date: firstNonEmpty(ad.ownerBirthDate, null),
       owner_city: firstNonEmpty(ad.ownerCity, ad.locationDetails?.city, null),
@@ -1098,7 +1195,6 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       broker_phone: firstNonEmpty(ad.brokerPhone, null),
       lat: firstNonEmpty(ad.locationDetails?.latitude, ad.lat, null),
       lng: firstNonEmpty(ad.locationDetails?.longitude, ad.lng, null),
-      // حقول معلومات التأجير
       contract_duration: firstNonEmpty(ad.contractDuration, null),
       contract_start_date: firstNonEmpty(ad.contractStartDate, null),
       contract_end_date: firstNonEmpty(ad.contractEndDate, null),
@@ -1109,14 +1205,13 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       is_hidden: false,
     };
 
-    // ✅ إذا كان ID ليس UUID، استخدم INSERT بدون ID (سيتم توليده تلقائياً)
+    // ✅ إذا كان ID هو UUID، استخدم UPSERT، وإلا INSERT
     let upsertResult;
     if (isUuid(ad.id)) {
       upsertResult = await supabase
         .from('platform_listings')
         .upsert({ id: ad.id, ...listingData }, { onConflict: 'id' });
     } else {
-      // توليد UUID جديد أو INSERT بدون ID
       upsertResult = await supabase
         .from('platform_listings')
         .insert(listingData)
@@ -1140,7 +1235,7 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
       }
     }
 
-    console.log('Listing synced to database successfully');
+    console.log('✅ Listing synced to database successfully');
     return true;
   } catch (err) {
     console.error('Error in syncSingleListingToDatabase:', err);
