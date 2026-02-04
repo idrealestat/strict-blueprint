@@ -666,6 +666,14 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const [showImportCallLogs, setShowImportCallLogs] = useState(false);
   const [showAddCallLog, setShowAddCallLog] = useState(false);
   const [newCallLog, setNewCallLog] = useState({ phone: '', name: '', type: 'incoming' as const });
+  
+  // ✅ وضع التحديد المتعدد للحذف/النقل
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<Set<string>>(new Set());
+  
+  // ✅ تنبيه الرقم المكرر
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ existingCustomer: Customer; newName: string; phone: string } | null>(null);
   const callLogFileInputRef = useRef<HTMLInputElement>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportCustomer, setReportCustomer] = useState<Customer | null>(null);
@@ -1133,19 +1141,160 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setShowDeleteConfirm(true);
   };
 
-  // Confirm delete customer - حذف حقيقي من قاعدة البيانات
+  // ✅ دالة أرشفة العميل (للأسماء غير المكررة)
+  const archiveCustomer = async (customer: Customer) => {
+    try {
+      await dbUpdateCustomer(customer.id, { status: 'archived' });
+      setCustomers(prev => prev.filter(c => c.id !== customer.id));
+      setColumns(prev => prev.map(col => ({
+        ...col,
+        customerIds: col.customerIds.filter(id => id !== customer.id)
+      })));
+      toast.success('تم أرشفة العميل - يمكنك استعادته من الأرشيف');
+    } catch (error) {
+      console.error('[CRM] Archive error:', error);
+      toast.error('فشل في أرشفة العميل');
+    }
+  };
+
+  // ✅ التحقق من التكرار بالرقم
+  const checkDuplicateByPhone = (phone: string, excludeId?: string): Customer | undefined => {
+    const normalizedPhone = phone.replace(/\D/g, '');
+    return customers.find(c => {
+      if (excludeId && c.id === excludeId) return false;
+      const cPhone = (c.phone || '').replace(/\D/g, '');
+      const cWhatsapp = (c.whatsapp || '').replace(/\D/g, '');
+      return cPhone === normalizedPhone || cWhatsapp === normalizedPhone;
+    });
+  };
+
+  // ✅ تبديل تحديد عميل
+  const toggleCustomerSelection = (customerId: string) => {
+    const newSelection = new Set(selectedCustomerIds);
+    if (newSelection.has(customerId)) {
+      newSelection.delete(customerId);
+    } else {
+      newSelection.add(customerId);
+    }
+    setSelectedCustomerIds(newSelection);
+  };
+
+  // ✅ تحديد/إلغاء تحديد الكل في العمود
+  const toggleSelectAllInColumn = (columnId: string) => {
+    const columnCustomerIds = customers.filter(c => c.columnId === columnId).map(c => c.id);
+    const allSelected = columnCustomerIds.every(id => selectedCustomerIds.has(id));
+    const newSelection = new Set(selectedCustomerIds);
+    
+    if (allSelected) {
+      columnCustomerIds.forEach(id => newSelection.delete(id));
+    } else {
+      columnCustomerIds.forEach(id => newSelection.add(id));
+    }
+    setSelectedCustomerIds(newSelection);
+  };
+
+  // ✅ حذف/أرشفة متعدد
+  const handleBulkDelete = async () => {
+    const selectedIds = Array.from(selectedCustomerIds);
+    let archivedCount = 0;
+    let deletedCount = 0;
+    
+    for (const id of selectedIds) {
+      const customer = customers.find(c => c.id === id);
+      if (!customer) continue;
+      
+      // التحقق من التكرار - إذا مكرر نحذف نهائياً
+      const duplicate = checkDuplicateByPhone(customer.phone, customer.id);
+      if (duplicate) {
+        await dbDeleteCustomer(id);
+        deletedCount++;
+      } else {
+        // غير مكرر - أرشفة
+        await dbUpdateCustomer(id, { status: 'archived' });
+        archivedCount++;
+      }
+    }
+    
+    setCustomers(prev => prev.filter(c => !selectedCustomerIds.has(c.id)));
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      customerIds: col.customerIds.filter(id => !selectedCustomerIds.has(id))
+    })));
+    
+    setSelectedCustomerIds(new Set());
+    setIsSelectionMode(false);
+    
+    if (archivedCount > 0 && deletedCount > 0) {
+      toast.success(`تم أرشفة ${archivedCount} وحذف ${deletedCount} مكرر نهائياً`);
+    } else if (archivedCount > 0) {
+      toast.success(`تم أرشفة ${archivedCount} عميل`);
+    } else {
+      toast.success(`تم حذف ${deletedCount} مكرر نهائياً`);
+    }
+  };
+
+  // ✅ نقل متعدد إلى عمود
+  const handleBulkMove = async (targetColumnId: string) => {
+    const selectedIds = Array.from(selectedCustomerIds);
+    const statusMap: Record<string, string> = {
+      'leads': 'new',
+      'contacted': 'active',
+      'viewing': 'viewing',
+      'negotiation': 'negotiation',
+      'closed': 'closed',
+      'lost': 'lost'
+    };
+    
+    for (const id of selectedIds) {
+      const customer = customers.find(c => c.id === id);
+      if (!customer) continue;
+      
+      const currentMeta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+        ? (customer.metadata as Record<string, any>)
+        : {};
+      
+      await dbUpdateCustomer(id, {
+        status: statusMap[targetColumnId] || targetColumnId,
+        metadata: { ...currentMeta, columnId: targetColumnId }
+      });
+    }
+    
+    setCustomers(prev => prev.map(c => 
+      selectedCustomerIds.has(c.id) 
+        ? { ...c, columnId: targetColumnId, status: statusMap[targetColumnId] || targetColumnId }
+        : c
+    ));
+    
+    setSelectedCustomerIds(new Set());
+    setIsSelectionMode(false);
+    
+    const targetColumn = columns.find(c => c.id === targetColumnId);
+    toast.success(`تم نقل ${selectedIds.length} عميل إلى "${targetColumn?.title}"`);
+  };
+
+  // Confirm delete customer - أرشفة أو حذف حسب التكرار
   const confirmDeleteCustomer = async () => {
     if (!customerToDelete) return;
     
     try {
-      // ✅ حذف حقيقي من قاعدة البيانات أولاً
-      const success = await dbDeleteCustomer(customerToDelete.id);
-      if (!success) {
-        toast.error('فشل في حذف العميل من قاعدة البيانات');
-        return;
+      // التحقق من التكرار
+      const duplicate = checkDuplicateByPhone(customerToDelete.phone, customerToDelete.id);
+      
+      if (duplicate) {
+        // مكرر - حذف نهائي
+        const success = await dbDeleteCustomer(customerToDelete.id);
+        if (!success) {
+          toast.error('فشل في حذف العميل من قاعدة البيانات');
+          return;
+        }
+        toast.success('تم حذف العميل المكرر نهائياً');
+      } else {
+        // غير مكرر - أرشفة
+        await dbUpdateCustomer(customerToDelete.id, { status: 'archived' });
+        toast.success('تم أرشفة العميل - يمكنك استعادته من الأرشيف');
       }
       
-      // Remove from customers array (التحديث المحلي سيحدث تلقائياً عبر Realtime)
+      // Remove from customers array
       setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
       
       // Remove from columns
@@ -1156,11 +1305,32 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       
       setShowDeleteConfirm(false);
       setCustomerToDelete(null);
-      // toast يُعرض من dbDeleteCustomer
     } catch (error) {
       console.error('[CRM] Delete error:', error);
       toast.error('حدث خطأ أثناء الحذف');
     }
+  };
+
+  // ✅ معالجة تنبيه التكرار - اختيار الاسم الرئيسي
+  const handleDuplicateChoice = async (keepExisting: boolean) => {
+    if (!duplicateInfo) return;
+    
+    if (keepExisting) {
+      // إبقاء الموجود - لا نفعل شيء
+      toast.info('تم الإبقاء على البطاقة الحالية');
+    } else {
+      // تحديث الاسم الموجود بالاسم الجديد
+      await dbUpdateCustomer(duplicateInfo.existingCustomer.id, { name: duplicateInfo.newName });
+      setCustomers(prev => prev.map(c => 
+        c.id === duplicateInfo.existingCustomer.id 
+          ? { ...c, name: duplicateInfo.newName }
+          : c
+      ));
+      toast.success('تم تحديث اسم البطاقة');
+    }
+    
+    setShowDuplicateAlert(false);
+    setDuplicateInfo(null);
   };
 
   // Check if customer is unread
@@ -1678,53 +1848,68 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     toast.success('تم فتح واتساب لإرسال الاعتذار');
   };
 
-  // Handle add customer
-  const handleAddCustomer = () => {
+  // Handle add customer - مع التحقق من التكرار
+  const handleAddCustomer = async () => {
     if (!newCustomer.name || !newCustomer.phone) {
       toast.error('الاسم ورقم الجوال مطلوبان');
       return;
     }
 
-    const customer: Customer = {
-      id: Date.now().toString(),
+    // ✅ التحقق من التكرار بالرقم
+    const existingCustomer = checkDuplicateByPhone(newCustomer.phone);
+    if (existingCustomer) {
+      // إذا الاسم مختلف - نعرض تنبيه اختيار
+      if (existingCustomer.name !== newCustomer.name) {
+        setDuplicateInfo({
+          existingCustomer,
+          newName: newCustomer.name,
+          phone: newCustomer.phone,
+        });
+        setShowDuplicateAlert(true);
+        return;
+      } else {
+        // نفس الاسم والرقم - موجود بالفعل
+        toast.error('هذا العميل موجود بالفعل');
+        return;
+      }
+    }
+
+    // ✅ إضافة إلى قاعدة البيانات
+    const result = await dbAddCustomer({
       name: newCustomer.name,
       phone: newCustomer.phone,
       email: newCustomer.email || undefined,
       company: newCustomer.company || undefined,
-      type: newCustomer.type as Customer['type'],
-      interestLevel: newCustomer.interestLevel as Customer['interestLevel'],
-      propertyType: newCustomer.propertyType || undefined,
+      status: 'جديد',
+      property_type: newCustomer.propertyType || undefined,
       budget: newCustomer.budget || undefined,
       location: newCustomer.location || undefined,
       notes: newCustomer.notes || undefined,
       tags: newCustomer.tags,
-      status: 'active',
-      columnId: 'leads',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    setCustomers(prev => [...prev, customer]);
-    setColumns(prev => prev.map(col => 
-      col.id === 'leads' 
-        ? { ...col, customerIds: [...col.customerIds, customer.id] }
-        : col
-    ));
-
-    setNewCustomer({
-      name: '',
-      phone: '',
-      email: '',
-      company: '',
-      type: 'buyer',
-      interestLevel: 'moderate',
-      propertyType: '',
-      budget: '',
-      location: '',
-      notes: '',
-      tags: [],
+      metadata: {
+        clientType: newCustomer.type,
+        interestLevel: newCustomer.interestLevel,
+        columnId: 'leads',
+      },
     });
-    setShowAddCustomer(false);
-    toast.success('تم إضافة العميل بنجاح');
+
+    if (result) {
+      // تحديث الواجهة سيحدث تلقائياً عبر Realtime
+      setNewCustomer({
+        name: '',
+        phone: '',
+        email: '',
+        company: '',
+        type: 'buyer',
+        interestLevel: 'moderate',
+        propertyType: '',
+        budget: '',
+        location: '',
+        notes: '',
+        tags: [],
+      });
+      setShowAddCustomer(false);
+    }
   };
 
   // Get customers for column
@@ -2302,6 +2487,66 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                 </div>
                 )}
 
+                {/* ✅ شريط التحديد المتعدد */}
+                {isSelectionMode && (
+                  <div className="w-full flex-shrink-0 mb-3 p-3 bg-blue-50 border-2 border-blue-300 rounded-xl">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="w-5 h-5 text-blue-600" />
+                        <span className="font-bold text-blue-800">تم تحديد {selectedCustomerIds.size} عميل</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* نقل إلى عمود */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline" className="border-blue-300 text-blue-700">
+                              <ArrowRightLeft className="w-4 h-4 ml-1" />
+                              نقل إلى
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="bg-white z-50">
+                            {columns.map(col => (
+                              <DropdownMenuItem
+                                key={col.id}
+                                onClick={() => handleBulkMove(col.id)}
+                                className="flex items-center gap-2"
+                              >
+                                <div className={`w-3 h-3 rounded-full ${COLUMN_COLORS[col.id]?.border || 'border-gray-300'}`} />
+                                {col.title}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        
+                        {/* حذف/أرشفة */}
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={handleBulkDelete}
+                          disabled={selectedCustomerIds.size === 0}
+                        >
+                          <Trash2 className="w-4 h-4 ml-1" />
+                          حذف المحدد
+                        </Button>
+                        
+                        {/* إلغاء */}
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => {
+                            setIsSelectionMode(false);
+                            setSelectedCustomerIds(new Set());
+                          }}
+                        >
+                          <X className="w-4 h-4 ml-1" />
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* خط أخضر مؤشر للإفلات بين الأعمدة */}
                 {columnDropIndicator === 0 && (
                   <div className="w-1 bg-green-500 rounded-full animate-pulse self-stretch" />
@@ -2432,10 +2677,36 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 {/* البطاقة المضغوطة */}
                                   <div 
                                     className="p-3"
-                                    onClick={() => toggleCardExpansion(customer.id)}
+                                    onClick={() => {
+                                      if (isSelectionMode) {
+                                        toggleCustomerSelection(customer.id);
+                                      } else {
+                                        toggleCardExpansion(customer.id);
+                                      }
+                                    }}
                                   >
                                     {/* 1. Header: الصورة + الاسم + أيقونة السحب */}
                                     <div className="flex items-center gap-2 mb-2">
+                                      {/* ✅ مربع الاختيار في وضع التحديد المتعدد */}
+                                      {isSelectionMode && (
+                                        <div 
+                                          className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                                            selectedCustomerIds.has(customer.id) 
+                                              ? 'bg-blue-600 border-blue-600' 
+                                              : 'border-gray-300 hover:border-blue-400'
+                                          }`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleCustomerSelection(customer.id);
+                                          }}
+                                        >
+                                          {selectedCustomerIds.has(customer.id) && (
+                                            <Check className="w-3 h-3 text-white" />
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      {/* 1.1 الصورة الشخصية */}
                                       {/* 1.1 الصورة الشخصية */}
                                       <div className="relative">
                                         <Avatar className="w-10 h-10 border-2 border-[#D4AF37]">
@@ -2617,6 +2888,17 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                             >
                                               <Trash2 className="w-4 h-4" />
                                               <span>حذف</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsSelectionMode(true);
+                                                setSelectedCustomerIds(new Set([customer.id]));
+                                              }}
+                                              className="flex items-center gap-2 text-blue-600 focus:text-blue-600"
+                                            >
+                                              <CheckSquare className="w-4 h-4" />
+                                              <span>تحديد متعدد</span>
                                             </DropdownMenuItem>
                                           </DropdownMenuContent>
                                         </DropdownMenu>
@@ -4471,6 +4753,44 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ✅ حوار تنبيه الرقم المكرر */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="w-5 h-5" />
+              رقم جوال مكرر!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right space-y-3">
+              <p>الرقم <strong dir="ltr">{duplicateInfo?.phone}</strong> موجود بالفعل باسم:</p>
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="font-bold text-blue-800">{duplicateInfo?.existingCustomer.name}</p>
+              </div>
+              <p>تريد إدخاله باسم جديد:</p>
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="font-bold text-orange-800">{duplicateInfo?.newName}</p>
+              </div>
+              <p className="font-medium">أي الاسمين تريد أن يكون الرئيسي؟</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction
+              onClick={() => handleDuplicateChoice(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              الإبقاء على "{duplicateInfo?.existingCustomer.name}"
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => handleDuplicateChoice(false)}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              استخدام "{duplicateInfo?.newName}"
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Spacer for bottom bar */}
       <div className="h-24"></div>

@@ -165,6 +165,14 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     color: "#D4AF37",
   },
   {
+    id: "crm-archive",
+    icon: Archive,
+    label: "أرشيف العملاء",
+    path: "action:crm-archive",
+    color: "#8B5CF6",
+    description: "العملاء المؤرشفين",
+  },
+  {
     id: "tasks-management",
     icon: Plus,
     label: "إدارة المهام",
@@ -244,6 +252,7 @@ export default function RightSliderComplete({
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [showTeamManagementPanel, setShowTeamManagementPanel] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
+  const [showCRMArchive, setShowCRMArchive] = useState(false);
   const navigate = useNavigate();
   const { signOut, isAuthenticated, isOwner } = useAuth();
   const { toast } = useToast();
@@ -534,6 +543,10 @@ export default function RightSliderComplete({
     }
     if (item.path === 'action:receipts') {
       setShowReceiptsPanel(true);
+      return;
+    }
+    if (item.path === 'action:crm-archive') {
+      setShowCRMArchive(true);
       return;
     }
     
@@ -911,6 +924,12 @@ export default function RightSliderComplete({
             isOpen={showAppSettings}
             onClose={() => setShowAppSettings(false)}
           />
+          {/* أرشيف إدارة العملاء */}
+          {showCRMArchive && (
+            <CRMArchivePanel
+              onClose={() => setShowCRMArchive(false)}
+            />
+          )}
         </>
       )}
     </AnimatePresence>
