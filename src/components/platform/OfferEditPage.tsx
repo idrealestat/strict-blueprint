@@ -132,7 +132,8 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     price: l.price || 0,
     priceType: 'total',
     description: l.description || '',
-    phone: l.ownerPhone || cardData.phone || '',
+    // رقم الوسيط (من بطاقة الأعمال الرقمية، وليس رقم المالك)
+    phone: cardData.phone || '',
     // استخدام بيانات بطاقة الأعمال الرقمية
     falLicense: cardData.falLicense || '',
     whatsapp: cardData.phone || '',
@@ -834,11 +835,11 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   />
                 </div>
 
-                {/* معلومات التواصل */}
+                {/* معلومات التواصل - رقم الوسيط فقط */}
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                   <h4 className="font-bold text-gray-800 flex items-center gap-2">
                     <Phone className="w-4 h-4 text-[#01411C]" />
-                    تواصل والاستفسارات
+                    تواصل الوسيط / Broker Contact
                   </h4>
                   <Input
                     value={formData.phone}

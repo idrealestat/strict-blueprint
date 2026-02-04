@@ -60,6 +60,7 @@ import { TeamManagementPanel } from "@/components/team";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { toast as sonnerToast } from "sonner";
 import ComprehensiveAppSettings from "@/components/settings/ComprehensiveAppSettings";
+import CRMArchivePanel from "@/components/crm/CRMArchivePanel";
 
 interface Broker {
   id: number;
