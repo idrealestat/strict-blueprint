@@ -78,6 +78,8 @@ interface Listing {
   ownerNationalAddress?: string;
   ownerCity?: string;
   ownerDistrict?: string;
+  ownerGoogleLocation?: string;
+  ownerEmail?: string;
 
   // Deed
   deedNumber?: string;
@@ -97,6 +99,13 @@ interface Listing {
   contractEndDate?: string;
   isCurrentlyRented?: boolean;
   rentalContractFile?: string;
+
+  // Hashtags
+  hashtags?: string[];
+
+  // Location coordinates
+  lat?: number;
+  lng?: number;
 }
 
 interface OfferEditPageProps {
@@ -150,7 +159,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     ownerNationalAddress: l.ownerNationalAddress || '',
     ownerCity: l.ownerCity || l.city || '',
     ownerDistrict: l.ownerDistrict || l.district || '',
-    ownerGoogleLocation: '',
+    ownerGoogleLocation: l.ownerGoogleLocation || (l.lat && l.lng ? `https://maps.google.com/?q=${l.lat},${l.lng}` : ''),
     ownerNotes: '',
     // حقول معلومات الصك
     deedNumber: l.deedNumber || '',
@@ -159,8 +168,8 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
     deedNotes: '',
     deedCity: l.deedCity || '',
     propertyNotes: '',
-    // الهاشتاقات
-    hashtags: ['#شقة', '#للبيع', '#الرياض'] as string[],
+    // الهاشتاقات - استخدام الهاشتاقات الممررة أو الافتراضية
+    hashtags: (l.hashtags && l.hashtags.length > 0) ? l.hashtags : [] as string[],
     // معلومات التأجير
     contractDuration: l.contractDuration || 12,
     contractStartDate: l.contractStartDate || '',
@@ -185,20 +194,63 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
   const [showRentalEndOptions, setShowRentalEndOptions] = useState(false);
   const deedImageInputRef = useRef<HTMLInputElement>(null);
   const rentalContractInputRef = useRef<HTMLInputElement>(null);
+  const mediaUploadRef = useRef<HTMLInputElement>(null);
 
-  const images = listing.images?.length ? listing.images : [
-    listing.image,
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-  ];
+  // إدارة الوسائط (صور + فيديو)
+  const [managedImages, setManagedImages] = useState<string[]>(
+    listing.images?.length ? listing.images.filter(Boolean) : [listing.image].filter(Boolean)
+  );
+  const [managedVideos, setManagedVideos] = useState<string[]>(listing.videos?.length ? listing.videos.filter(Boolean) : []);
+  const [tour3DUrl, setTour3DUrl] = useState(listing.tour3DUrl || '');
 
-  const videos = listing.videos?.length ? listing.videos : [];
+  // تحديث الوسائط عند تغيير الـ listing
+  useEffect(() => {
+    setManagedImages(listing.images?.length ? listing.images.filter(Boolean) : [listing.image].filter(Boolean));
+    setManagedVideos(listing.videos?.length ? listing.videos.filter(Boolean) : []);
+    setTour3DUrl(listing.tour3DUrl || '');
+  }, [listing.id]);
 
   const mediaItems: Array<{ type: 'image' | 'video'; url: string }> = [
-    ...images.filter(Boolean).map((url) => ({ type: 'image' as const, url })),
-    ...videos.filter(Boolean).map((url) => ({ type: 'video' as const, url })),
+    ...managedImages.map((url) => ({ type: 'image' as const, url })),
+    ...managedVideos.map((url) => ({ type: 'video' as const, url })),
   ];
+
+  // إضافة وسائط جديدة
+  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (file.type.startsWith('video')) {
+          setManagedVideos(prev => [...prev, reader.result as string]);
+          toast({ title: '✅ تم إضافة الفيديو' });
+        } else {
+          setManagedImages(prev => [...prev, reader.result as string]);
+          toast({ title: '✅ تم إضافة الصورة' });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    // مسح الـ input للسماح برفع نفس الملف مرة أخرى
+    e.target.value = '';
+  };
+
+  // حذف وسائط
+  const handleDeleteMedia = (index: number, type: 'image' | 'video') => {
+    if (type === 'image') {
+      setManagedImages(prev => prev.filter((_, i) => i !== index));
+      toast({ title: '🗑️ تم حذف الصورة' });
+    } else {
+      // نحسب الـ index الحقيقي للفيديو
+      const videoIndex = index - managedImages.length;
+      setManagedVideos(prev => prev.filter((_, i) => i !== videoIndex));
+      toast({ title: '🗑️ تم حذف الفيديو' });
+    }
+    // إعادة ضبط الـ index المحدد
+    if (selectedImageIndex >= mediaItems.length - 1) {
+      setSelectedImageIndex(Math.max(0, mediaItems.length - 2));
+    }
+  };
 
   const tabs = [
     { id: 'basic', label: 'معلومات أساسية', labelEn: 'Basic info' },
@@ -426,9 +478,15 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
       area: formData.area,
       bedrooms: formData.bedrooms,
       bathrooms: formData.bathrooms,
-      tour3DUrl: formData.tour3DUrl,
+      tour3DUrl: tour3DUrl,
+      // الوسائط المحدثة
+      images: managedImages,
+      videos: managedVideos,
+      image: managedImages[0] || listing.image,
       // الترخيص الإعلاني
       adLicense: formData.adLicense,
+      // الهاشتاقات
+      hashtags: formData.hashtags,
       // تفاصيل المالك
       ownerName: formData.ownerName,
       ownerPhone: formData.ownerMobile,
@@ -437,6 +495,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
       ownerNationalAddress: formData.ownerNationalAddress,
       ownerCity: formData.ownerCity,
       ownerDistrict: formData.ownerDistrict,
+      ownerGoogleLocation: formData.ownerGoogleLocation,
       // معلومات الصك
       deedNumber: formData.deedNumber,
       deedDate: formData.deedDate,
@@ -561,53 +620,70 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
               {/* شبكة الصور والفيديو على شكل انستقرام */}
               <div className="grid grid-cols-4 gap-2 mb-3">
                 {mediaItems.map((item, index) => (
-                  <button
+                  <div
                     key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`relative aspect-square rounded-lg overflow-hidden transition-all ${
+                    className={`relative aspect-square rounded-lg overflow-hidden transition-all group ${
                       index === selectedImageIndex 
                         ? 'ring-2 ring-[#01411C] scale-105' 
                         : 'opacity-70 hover:opacity-100'
                     }`}
                   >
-                    {item.type === 'video' ? (
-                      <>
-                        <video src={item.url} className="w-full h-full object-cover" muted />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <Video className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="absolute bottom-1 right-1 bg-[#01411C] text-white text-[10px] px-1.5 py-0.5 rounded">فيديو</span>
-                      </>
-                    ) : (
-                      <img src={item.url} alt="" className="w-full h-full object-cover" />
-                    )}
+                    <button onClick={() => setSelectedImageIndex(index)} className="w-full h-full">
+                      {item.type === 'video' ? (
+                        <>
+                          <video src={item.url} className="w-full h-full object-cover" muted />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Video className="w-6 h-6 text-white" />
+                          </div>
+                          <span className="absolute bottom-1 right-1 bg-[#01411C] text-white text-[10px] px-1.5 py-0.5 rounded">فيديو</span>
+                        </>
+                      ) : (
+                        <img src={item.url} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </button>
                     {index === 0 && (
                       <span className="absolute top-1 right-1 bg-[#D4AF37] text-[#01411C] text-[10px] px-1.5 py-0.5 rounded font-bold">رئيسية</span>
                     )}
-                  </button>
+                    {/* زر الحذف */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteMedia(index, item.type); }}
+                      className="absolute top-1 left-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
                 ))}
-                <button className="aspect-square rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all">
+                {/* زر إضافة وسائط */}
+                <input
+                  ref={mediaUploadRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleMediaUpload}
+                  className="hidden"
+                />
+                <button 
+                  onClick={() => mediaUploadRef.current?.click()}
+                  className="aspect-square rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all"
+                >
                   <Plus className="w-6 h-6 text-gray-500" />
                 </button>
               </div>
 
-              {/* رابط الجولة 3D */}
-              {listing.tour3DUrl && (
-                <div className="bg-[#01411C]/10 border border-[#01411C]/30 rounded-xl p-3 flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-[#01411C]" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-[#01411C]">رابط الجولة الافتراضية 3D</p>
-                    <a 
-                      href={listing.tour3DUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 underline truncate block"
-                    >
-                      {listing.tour3DUrl}
-                    </a>
-                  </div>
-                </div>
-              )}
+              {/* رابط الجولة 3D - قابل للتعديل */}
+              <div className="bg-[#01411C]/10 border border-[#01411C]/30 rounded-xl p-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-[#01411C] mb-2">
+                  <Globe className="w-4 h-4" />
+                  رابط الجولة الافتراضية 3D
+                </label>
+                <Input
+                  value={tour3DUrl}
+                  onChange={(e) => setTour3DUrl(e.target.value)}
+                  placeholder="https://matterport.com/... أو أي رابط جولة افتراضية"
+                  className="bg-white border-gray-200"
+                  dir="ltr"
+                />
+              </div>
             </div>
           )}
 
@@ -840,20 +916,42 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                   onClick={() => {
                     // فتح بطاقة المالك داخل إدارة الأعمال (CRM)
                     const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
-                    const matched = listing.linkedCustomerId
-                      ? customers.find((c: any) => c.id === listing.linkedCustomerId)
-                      : customers.find((c: any) => (c.phone && c.phone === formData.ownerMobile) || c.name === formData.ownerName);
+                    
+                    // البحث بالهاتف أولاً ثم بالاسم
+                    let matched = null;
+                    
+                    if (listing.linkedCustomerId) {
+                      matched = customers.find((c: any) => c.id === listing.linkedCustomerId);
+                    }
+                    
+                    if (!matched && formData.ownerMobile) {
+                      const normalizedPhone = formData.ownerMobile.replace(/[\s\-\+]/g, '');
+                      matched = customers.find((c: any) => {
+                        const customerPhone = (c.phone || '').replace(/[\s\-\+]/g, '');
+                        return customerPhone && customerPhone === normalizedPhone;
+                      });
+                    }
+                    
+                    if (!matched && formData.ownerName) {
+                      matched = customers.find((c: any) => c.name === formData.ownerName);
+                    }
 
-                    const customerId = matched?.id || listing.linkedCustomerId;
+                    const customerId = matched?.id;
 
                     if (!customerId) {
-                      toast({ title: '⚠️ لم يتم العثور على بطاقة المالك بعد' , variant: 'destructive' });
+                      toast({ title: '⚠️ لم يتم العثور على بطاقة المالك - تأكد من ربط العقار بعميل في إدارة العملاء', variant: 'destructive' });
                       return;
                     }
 
-                    window.dispatchEvent(new CustomEvent('openCustomerDetails', {
-                      detail: { customerId, activeTab: 'published_ads' }
-                    }));
+                    // إغلاق صفحة التعديل أولاً
+                    onClose();
+                    
+                    // الانتظار قليلاً ثم إرسال الحدث
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('openCustomerDetails', {
+                        detail: { customerId, activeTab: 'published_ads' }
+                      }));
+                    }, 100);
                   }}
                   className="w-full bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#01411C] font-bold"
                 >
@@ -1402,16 +1500,16 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
             <motion.img
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
-              src={images[selectedImageIndex]}
+              src={mediaItems[selectedImageIndex]?.url || ''}
               alt={listing.title}
               className="max-w-[95vw] max-h-[95vh] object-contain"
             />
-            {images.length > 1 && (
+            {mediaItems.length > 1 && (
               <>
                 <button
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    setSelectedImageIndex(prev => (prev - 1 + images.length) % images.length);
+                    setSelectedImageIndex(prev => (prev - 1 + mediaItems.length) % mediaItems.length);
                   }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
                 >
@@ -1420,7 +1518,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedImageIndex(prev => (prev + 1) % images.length);
+                    setSelectedImageIndex(prev => (prev + 1) % mediaItems.length);
                   }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center"
                 >
@@ -1429,7 +1527,7 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
               </>
             )}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-              {images.map((_, index) => (
+              {mediaItems.map((_, index) => (
                 <button
                   key={index}
                   onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(index); }}
