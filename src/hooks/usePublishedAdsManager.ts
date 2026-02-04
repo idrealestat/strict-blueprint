@@ -11,6 +11,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { createNotification, triggerPublishingNotification } from '@/utils/notificationTriggers';
 import { showPushNotification } from './usePushNotifications';
 
+// ============== Phone normalization helpers (ربط العميل يعتمد عليها) ==============
+const normalizePhone = (raw?: string | null): string => {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  // اترك الأرقام فقط (مع الاحتفاظ بـ + لو موجود)
+  const cleaned = v.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+  const digits = cleaned.startsWith('+') ? cleaned.slice(1) : cleaned;
+
+  // 05xxxxxxxx → 9665xxxxxxxx
+  if (digits.startsWith('0') && digits.length === 10) return `966${digits.slice(1)}`;
+  // 5xxxxxxxx → 9665xxxxxxxx (احتياط)
+  if (digits.startsWith('5') && digits.length === 9) return `966${digits}`;
+  // 9665xxxxxxxx → ثابت
+  if (digits.startsWith('966') && digits.length >= 12) return digits;
+  return digits;
+};
+
+const phoneVariants = (raw?: string | null): string[] => {
+  const normalized = normalizePhone(raw);
+  if (!normalized) return [];
+  // جهّز بديل محلي 05xxxxxxx للتطابق مع أي تخزين قديم
+  const local = normalized.startsWith('966') && normalized.length >= 12
+    ? `0${normalized.slice(3)}`
+    : normalized;
+  return Array.from(new Set([raw ? String(raw).trim() : '', normalized, local].filter(Boolean)));
+};
+
 // Published Ad Interface
 export interface PublishedAdData {
   id: string;
@@ -286,11 +313,22 @@ export function usePublishedAdsManager() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      const variants = phoneVariants(phone);
+      if (variants.length === 0) return null;
+
+      // PostgREST .or() يدعم تكرار نفس الحقل عدة مرات
+      const orParts: string[] = [];
+      for (const v of variants) {
+        // تجنب حقن الـ commas داخل القيمة
+        const safe = v.replace(/,/g, '');
+        orParts.push(`phone.eq.${safe}`, `whatsapp.eq.${safe}`);
+      }
+
       const { data, error } = await supabase
         .from('crm_customers')
         .select('*')
         .eq('user_id', user.id)
-        .or(`phone.eq.${phone},whatsapp.eq.${phone}`)
+        .or(orParts.join(','))
         .maybeSingle();
 
       if (error) {
@@ -311,9 +349,13 @@ export function usePublishedAdsManager() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      const normalizedOwnerPhone = normalizePhone(adData.ownerPhone);
+
       // إعداد metadata مع بيانات المالك الإضافية
       const metadata: Record<string, any> = {
         source: 'published_ad',
+        originalOwnerPhone: adData.ownerPhone || null,
+        normalizedOwnerPhone: normalizedOwnerPhone || null,
         idNumber: adData.ownerIdNumber || null,
         birthDate: adData.ownerBirthDate || null,
         ownerCity: adData.locationDetails?.city || null,
@@ -328,8 +370,9 @@ export function usePublishedAdsManager() {
         .insert({
           user_id: user.id,
           name: adData.ownerName,
-          phone: adData.ownerPhone || null,
-          whatsapp: adData.ownerPhone || null,
+          // ✅ تخزين الهاتف بشكل موحّد قدر الإمكان لتسهيل الربط والبحث لاحقاً
+          phone: normalizedOwnerPhone || adData.ownerPhone || null,
+          whatsapp: normalizedOwnerPhone || adData.ownerPhone || null,
           status: 'جديد',
           priority: 'متوسط',
           source: 'نشر إعلان',
@@ -526,15 +569,22 @@ export function usePublishedAdsManager() {
       }
       
       // 3. Push Notification
-      await showPushNotification(
-        '🏠 تم نشر إعلانك بنجاح!',
-        `${adData.propertyType} في ${adData.locationDetails?.city || 'الموقع'} - ${adData.ownerName}`,
-        { type: 'ad_published', adId: adData.id }
-      );
+      // ✅ لا تدع إشعار الـ Push يعطل النشر (بعض البيئات تُرجع Promises بطيئة/غير مستقرة)
+      await Promise.race([
+        showPushNotification(
+          '🏠 تم نشر إعلانك بنجاح!',
+          `${adData.propertyType} في ${adData.locationDetails?.city || 'الموقع'} - ${adData.ownerName}`,
+          { type: 'ad_published', adId: adData.id }
+        ),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
       
       // مزامنة تلقائية إلى قاعدة البيانات أولاً ثم إرسال الأحداث
       console.log('🔄 بدء مزامنة العرض إلى قاعدة البيانات:', adData.id);
-      const synced = await syncSingleListingToDatabase(adData);
+      const synced = await Promise.race([
+        syncSingleListingToDatabase(adData),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 8000)),
+      ]);
       if (synced) {
         console.log('✅ تمت مزامنة العرض إلى قاعدة البيانات تلقائياً:', adData.id);
       } else {
