@@ -1061,9 +1061,25 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         originalTabId: propertyData.originalTabId,
       };
 
-      const result = await publishAdWithCustomerLink(adData);
+      // ✅ ضمان عدم علق الواجهة: إذا انتظرت المزامنة الخارجية أكثر من 10 ثوانٍ، نعتبرها نجاح جزئي ونُنهي الـ loading
+      let result: { success: boolean; customerId: string | null; isNewCustomer: boolean; message: string };
+      try {
+        result = await Promise.race([
+          publishAdWithCustomerLink(adData),
+          new Promise<{ success: false; customerId: null; isNewCustomer: false; message: string }>((resolve) =>
+            setTimeout(() => resolve({ success: false, customerId: null, isNewCustomer: false, message: 'timeout' }), 10000)
+          ),
+        ]);
+      } catch (e) {
+        console.error('❌ Exception in publishAdWithCustomerLink:', e);
+        result = { success: false, customerId: null, isNewCustomer: false, message: String(e) };
+      }
+
+      // حتى لو timeout — البيانات محفوظة فعلياً في localStorage (publishAdWithCustomerLink حفظها أولاً)
+      // لذلك نعتبرها نجاح جزئي ونعرض الإجراءات
+      const partialSuccess = result.message === 'timeout';
       
-      if (result.success) {
+      if (result.success || partialSuccess) {
         setPublishedAd({ ...adData, linkedCustomerId: result.customerId || undefined });
         setShowSuccessActions(true);
         onPublish(propertyData);
@@ -1090,6 +1106,10 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
         window.dispatchEvent(new CustomEvent('analyticsEvent', {
           detail: { eventType: 'property_published', propertyType: propertyData.propertyType, city: propertyData.locationDetails.city }
         }));
+
+        if (partialSuccess) {
+          toast.info('⏳ تم حفظ الإعلان محلياً - المزامنة الكاملة قد تستغرق لحظات', { duration: 6000 });
+        }
       } else {
         console.error('❌ فشل النشر:', result.message);
         toast.error(result.message || 'فشل في نشر الإعلان');

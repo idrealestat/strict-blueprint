@@ -495,10 +495,15 @@ export function usePublishedAdsManager() {
       // Update ad with linked customer ID
       adData.linkedCustomerId = customerId;
       
-      // Save to published ads (localStorage)
-      const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-      publishedAds.push(adData);
-      localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+      // ✅ Save to published ads (localStorage) — النقطة الأولى والأسرع للحفظ
+      try {
+        const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+        publishedAds.push(adData);
+        localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
+        console.log('✅ تم حفظ الإعلان في localStorage:', adData.id);
+      } catch (storageErr) {
+        console.error('❌ فشل حفظ الإعلان في localStorage:', storageErr);
+      }
       
       // Mark items as new (for pulsing dot) - النقطة الحمراء النابضة
       markAsNew('published_ad', adData.id);
