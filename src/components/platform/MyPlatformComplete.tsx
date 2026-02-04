@@ -2485,19 +2485,28 @@ export default function MyPlatformComplete({
                                             const images = (fullAd?.images?.length ? fullAd.images : [offer.image]).filter(Boolean);
                                             const videos = (fullAd?.videos || []).filter(Boolean);
 
+                                            // جلب الهاشتاقات من المصدر الصحيح
+                                            let hashtags: string[] = [];
+                                            if (fullAd?.hashtags && Array.isArray(fullAd.hashtags)) {
+                                              hashtags = fullAd.hashtags;
+                                            } else if (fullAd?.customHashtags && Array.isArray(fullAd.customHashtags)) {
+                                              hashtags = fullAd.customHashtags;
+                                            }
+
                                             setSelectedOfferForEdit({
                                               id: offer.id,
                                               title: fullAd?.title || offer.title,
                                               price: parseInt((fullAd?.price || offer.price || '').toString().replace(/[^\d]/g, '')) || 0,
                                               propertyType: fullAd?.propertyType || offer.propertyType || 'شقة',
-                                              area: offer.area,
-                                              bedrooms: offer.bedrooms,
-                                              bathrooms: offer.bathrooms,
+                                              area: fullAd?.area || offer.area,
+                                              bedrooms: fullAd?.bedrooms || offer.bedrooms,
+                                              bathrooms: fullAd?.bathrooms || offer.bathrooms,
                                               image: images[0] || offer.image,
                                               imageCount: images.length || 1,
-                                              city: fullAd?.locationDetails?.city || city.cityName,
-                                              district: fullAd?.locationDetails?.district || district.districtName,
-                                              description: fullAd?.aiDescription || '',
+                                              city: fullAd?.locationDetails?.city || fullAd?.city || city.cityName,
+                                              district: fullAd?.locationDetails?.district || fullAd?.district || district.districtName,
+                                              street: fullAd?.street || fullAd?.locationDetails?.street || '',
+                                              description: fullAd?.aiDescription || fullAd?.description || '',
                                               ownerName: fullAd?.ownerName || offer.ownerName || '',
                                               ownerPhone: fullAd?.ownerPhone || offer.owner?.phone || '',
                                               ownerEmail: fullAd?.ownerEmail || '',
@@ -2506,6 +2515,7 @@ export default function MyPlatformComplete({
                                               ownerDistrict: fullAd?.ownerDistrict || offer.ownerDistrict || '',
                                               ownerIdNumber: fullAd?.ownerIdNumber || offer.ownerIdNumber || '',
                                               ownerNationalAddress: fullAd?.ownerNationalAddress || offer.ownerNationalAddress || '',
+                                              ownerGoogleLocation: fullAd?.ownerGoogleLocation || fullAd?.locationDetails?.googleMapsLink || '',
                                               deedNumber: fullAd?.deedNumber || offer.deedNumber || '',
                                               deedDate: fullAd?.deedDate || offer.deedDate || '',
                                               deedCity: fullAd?.deedCity || offer.deedCity || '',
@@ -2517,6 +2527,11 @@ export default function MyPlatformComplete({
                                               videos,
                                               tour3DUrl: fullAd?.tour3DUrl || offer.tour3DUrl || '',
                                               linkedCustomerId: fullAd?.linkedCustomerId || offer.linkedCustomerId || undefined,
+                                              // الحقول الإضافية
+                                              adLicense: fullAd?.adLicenseNumber || fullAd?.adLicense || fullAd?.ad_license || '',
+                                              hashtags,
+                                              lat: fullAd?.lat || fullAd?.locationDetails?.lat,
+                                              lng: fullAd?.lng || fullAd?.locationDetails?.lng,
                                             });
                                             setShowEditPage(true);
                                           }}
@@ -2614,23 +2629,49 @@ export default function MyPlatformComplete({
                                                   const fullAd = publishedAds.find((ad: any) => ad.id === offer.id);
                                                   const images = (fullAd?.images?.length ? fullAd.images : [offer.image]).filter(Boolean);
                                                   const videos = (fullAd?.videos || []).filter(Boolean);
+                                                  
+                                                  // جلب الهاشتاقات
+                                                  let hashtags: string[] = [];
+                                                  if (fullAd?.hashtags && Array.isArray(fullAd.hashtags)) {
+                                                    hashtags = fullAd.hashtags;
+                                                  } else if (fullAd?.customHashtags && Array.isArray(fullAd.customHashtags)) {
+                                                    hashtags = fullAd.customHashtags;
+                                                  }
+                                                  
                                                   setSelectedOfferForEdit({
                                                     id: offer.id,
                                                     title: fullAd?.title || offer.title,
                                                     price: parseInt((fullAd?.price || offer.price || '').toString().replace(/[^\d]/g, '')) || 0,
                                                     propertyType: fullAd?.propertyType || offer.propertyType || 'شقة',
-                                                    area: offer.area,
-                                                    bedrooms: offer.bedrooms,
-                                                    bathrooms: offer.bathrooms,
+                                                    area: fullAd?.area || offer.area,
+                                                    bedrooms: fullAd?.bedrooms || offer.bedrooms,
+                                                    bathrooms: fullAd?.bathrooms || offer.bathrooms,
                                                     image: images[0] || offer.image,
                                                     imageCount: images.length || 1,
-                                                    city: fullAd?.locationDetails?.city || city.cityName,
-                                                    district: fullAd?.locationDetails?.district || district.districtName,
-                                                    description: fullAd?.aiDescription || '',
+                                                    city: fullAd?.locationDetails?.city || fullAd?.city || city.cityName,
+                                                    district: fullAd?.locationDetails?.district || fullAd?.district || district.districtName,
+                                                    street: fullAd?.street || fullAd?.locationDetails?.street || '',
+                                                    description: fullAd?.aiDescription || fullAd?.description || '',
                                                     ownerName: fullAd?.ownerName || offer.ownerName || '',
                                                     ownerPhone: fullAd?.ownerPhone || offer.owner?.phone || '',
+                                                    ownerEmail: fullAd?.ownerEmail || '',
+                                                    ownerBirthDate: fullAd?.ownerBirthDate || '',
+                                                    ownerCity: fullAd?.ownerCity || '',
+                                                    ownerDistrict: fullAd?.ownerDistrict || '',
+                                                    ownerIdNumber: fullAd?.ownerIdNumber || '',
+                                                    ownerNationalAddress: fullAd?.ownerNationalAddress || '',
+                                                    ownerGoogleLocation: fullAd?.ownerGoogleLocation || fullAd?.locationDetails?.googleMapsLink || '',
+                                                    deedNumber: fullAd?.deedNumber || '',
+                                                    deedDate: fullAd?.deedDate || '',
+                                                    deedCity: fullAd?.deedCity || '',
                                                     images,
                                                     videos,
+                                                    tour3DUrl: fullAd?.tour3DUrl || '',
+                                                    adLicense: fullAd?.adLicenseNumber || fullAd?.adLicense || fullAd?.ad_license || '',
+                                                    hashtags,
+                                                    lat: fullAd?.lat || fullAd?.locationDetails?.lat,
+                                                    lng: fullAd?.lng || fullAd?.locationDetails?.lng,
+                                                    linkedCustomerId: fullAd?.linkedCustomerId || undefined,
                                                   });
                                                   setShowEditPage(true);
                                                 }}
