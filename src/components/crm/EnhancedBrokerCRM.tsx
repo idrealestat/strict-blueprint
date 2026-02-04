@@ -1133,22 +1133,34 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     setShowDeleteConfirm(true);
   };
 
-  // Confirm delete customer
-  const confirmDeleteCustomer = () => {
+  // Confirm delete customer - حذف حقيقي من قاعدة البيانات
+  const confirmDeleteCustomer = async () => {
     if (!customerToDelete) return;
     
-    // Remove from customers array
-    setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
-    
-    // Remove from columns
-    setColumns(prev => prev.map(col => ({
-      ...col,
-      customerIds: col.customerIds.filter(id => id !== customerToDelete.id)
-    })));
-    
-    setShowDeleteConfirm(false);
-    setCustomerToDelete(null);
-    toast.success('تم حذف العميل بنجاح');
+    try {
+      // ✅ حذف حقيقي من قاعدة البيانات أولاً
+      const success = await dbDeleteCustomer(customerToDelete.id);
+      if (!success) {
+        toast.error('فشل في حذف العميل من قاعدة البيانات');
+        return;
+      }
+      
+      // Remove from customers array (التحديث المحلي سيحدث تلقائياً عبر Realtime)
+      setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
+      
+      // Remove from columns
+      setColumns(prev => prev.map(col => ({
+        ...col,
+        customerIds: col.customerIds.filter(id => id !== customerToDelete.id)
+      })));
+      
+      setShowDeleteConfirm(false);
+      setCustomerToDelete(null);
+      // toast يُعرض من dbDeleteCustomer
+    } catch (error) {
+      console.error('[CRM] Delete error:', error);
+      toast.error('حدث خطأ أثناء الحذف');
+    }
   };
 
   // Check if customer is unread
