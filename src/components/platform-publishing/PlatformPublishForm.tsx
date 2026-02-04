@@ -645,14 +645,38 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
 
   // النشر على المنصات
   const handlePublish = async () => {
-    if (!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city) {
-      toast.error('يرجى ملء الحقول المطلوبة'); return;
+    // تشخيص سريع (لمعرفة لماذا تعتبر الحقول فارغة رغم ظهورها في الواجهة)
+    console.log('🧪 PlatformPublishForm required snapshot', {
+      ownerName: propertyData.ownerName,
+      ownerPhone: propertyData.ownerPhone,
+      ownerIdNumber: propertyData.ownerIdNumber,
+      ownerBirthDate: propertyData.ownerBirthDate,
+      deedNumber: propertyData.deedNumber,
+      deedDate: propertyData.deedDate,
+      deedCity: propertyData.deedCity,
+      adLicense: propertyData.adLicense,
+      selectedPlatformsCount: propertyData.selectedPlatforms?.length,
+    });
+
+    // الإلزامي حسب طلبك: معلومات المالك + معلومات الصك + الترخيص الإعلاني
+    if (
+      !propertyData.ownerName?.trim() ||
+      !propertyData.ownerPhone?.trim() ||
+      !propertyData.ownerIdNumber?.trim() ||
+      !propertyData.ownerBirthDate?.trim()
+    ) {
+      toast.error('يرجى ملء معلومات المالك: الاسم، رقم الهوية، تاريخ الميلاد، رقم الجوال');
+      return;
     }
-    if (!propertyData.ownerName || !propertyData.ownerPhone) {
-      toast.error('يرجى ملء معلومات المالك'); return;
+
+    if (!propertyData.deedNumber?.trim() || !propertyData.deedDate?.trim() || !propertyData.deedCity?.trim()) {
+      toast.error('يرجى ملء معلومات الصك: رقم الصك، تاريخ الصك، مدينة الصك');
+      return;
     }
-    if (!propertyData.adLicense) {
-      toast.error('يرجى إدخال رقم الترخيص الإعلاني'); return;
+
+    if (!propertyData.adLicense?.trim()) {
+      toast.error('يرجى إدخال رقم الترخيص الإعلاني');
+      return;
     }
     if (propertyData.selectedPlatforms.length === 0) {
       toast.error('يرجى اختيار منصة واحدة على الأقل للنشر'); return;
@@ -1454,17 +1478,38 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
               <Button variant="outline" onClick={onCancel} className="flex-1 border-gray-300 text-sm">إلغاء</Button>
               <Button
                 onClick={handlePublish}
-                disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || propertyData.selectedPlatforms.length === 0}
+                disabled={
+                  isPublishing ||
+                  !propertyData.ownerName?.trim() ||
+                  !propertyData.ownerPhone?.trim() ||
+                  !propertyData.ownerIdNumber?.trim() ||
+                  !propertyData.ownerBirthDate?.trim() ||
+                  !propertyData.deedNumber?.trim() ||
+                  !propertyData.deedDate?.trim() ||
+                  !propertyData.deedCity?.trim() ||
+                  !propertyData.adLicense?.trim() ||
+                  propertyData.selectedPlatforms.length === 0
+                }
                 className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37] font-bold text-sm py-5"
               >
                 {isPublishing ? <><Loader2 className="w-4 h-4 ml-1 animate-spin" />جاري النشر...</> : <><Send className="w-4 h-4 ml-1" />نشر الإعلان</>}
               </Button>
             </div>
 
-            {(!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || propertyData.selectedPlatforms.length === 0) && (
+            {(
+              !propertyData.ownerName?.trim() ||
+              !propertyData.ownerPhone?.trim() ||
+              !propertyData.ownerIdNumber?.trim() ||
+              !propertyData.ownerBirthDate?.trim() ||
+              !propertyData.deedNumber?.trim() ||
+              !propertyData.deedDate?.trim() ||
+              !propertyData.deedCity?.trim() ||
+              !propertyData.adLicense?.trim() ||
+              propertyData.selectedPlatforms.length === 0
+            ) && (
               <div className="mt-3 flex items-center gap-2 text-amber-600 text-sm">
                 <AlertCircle className="w-4 h-4" />
-                يرجى ملء الحقول المطلوبة واختيار منصة واحدة على الأقل
+                يرجى ملء الحقول المطلوبة: معلومات المالك، معلومات الصك، الترخيص الإعلاني — واختيار منصة واحدة على الأقل
               </div>
             )}
           </CardContent>
