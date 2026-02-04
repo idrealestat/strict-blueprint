@@ -630,29 +630,33 @@ export default function MyPlatformComplete({
       localStorage.setItem('published_ads_list', JSON.stringify(publishedAds));
     }
 
-    // ✅ مزامنة تلقائية: أي تغيير في الإظهار/الإخفاء ينعكس فوراً على صفحة المشاركة العامة
-    // (بدون إشعارات متكررة)
-    syncFromLocalStorage(currentSlug, { silent: true }).catch((e) => {
-      console.error('Auto-sync to database failed:', e);
-    });
-  }, [cityHierarchy, currentSlug, syncFromLocalStorage]);
+    // ✅ تأخير المزامنة لتجنب المزامنة المتكررة
+    // لا نزامن عند كل تغيير في cityHierarchy - فقط عند تغييرات isHidden الفعلية
+  }, [cityHierarchy]);
 
-  // ✅ مزامنة المنصة العامة مع قائمة العروض المنشورة حتى لا تختفي العروض من «منصتي»
+  // ✅ مزامنة المنصة العامة مع قائمة العروض المنشورة
   useEffect(() => {
     syncPlatformCompleteFromPublishedAds();
   }, []);
 
-  // ✅ مزامنة تلقائية عند فتح منصتي: يرفع كل العروض الحالية لقاعدة البيانات ليظهرها للزوار (بدون إشعارات)
+  // ✅ مزامنة تلقائية مرة واحدة فقط عند فتح منصتي (بدون تكرار)
+  const [hasSynced, setHasSynced] = useState(false);
   useEffect(() => {
-    syncFromLocalStorage(currentSlug, { silent: true }).catch((e) => {
-      console.error('Initial sync to database failed:', e);
-    });
+    if (currentSlug && !hasSynced) {
+      syncFromLocalStorage(currentSlug, { silent: true })
+        .then(() => setHasSynced(true))
+        .catch((e) => {
+          console.error('Initial sync to database failed:', e);
+        });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSlug]);
+  }, [currentSlug, hasSynced]);
 
   // ✅ جلب العروض من قاعدة البيانات عند فتح الصفحة
   useEffect(() => {
-    fetchListings();
+    if (currentSlug) {
+      fetchListings();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSlug]);
 
