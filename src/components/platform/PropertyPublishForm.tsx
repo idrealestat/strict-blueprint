@@ -954,18 +954,19 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   const handlePublish = async () => {
     console.log('🚀 بدء عملية النشر...');
     
-    if (!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city) {
-      toast.error('يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة');
-      console.log('❌ حقول مطلوبة ناقصة');
-      return;
-    }
-
+    // 1. التحقق من معلومات المالك - إلزامي
     if (!propertyData.ownerName || !propertyData.ownerIdNumber || !propertyData.ownerPhone || !propertyData.ownerBirthDate) {
       toast.error('يرجى ملء معلومات المالك: الاسم ورقم الهوية وتاريخ الميلاد ورقم الجوال');
       return;
     }
 
-    // التحقق من رقم الترخيص الإعلاني - إلزامي
+    // 2. التحقق من معلومات الصك - إلزامي
+    if (!propertyData.deedNumber || !propertyData.deedDate || !propertyData.deedCity) {
+      toast.error('يرجى ملء معلومات الصك: رقم الصك وتاريخ الصك ومدينة الصك');
+      return;
+    }
+
+    // 3. التحقق من الترخيص الإعلاني - إلزامي
     if (!propertyData.adLicense || propertyData.adLicense.trim() === '') {
       toast.error('يرجى إدخال رقم الترخيص الإعلاني - حقل إلزامي للنشر');
       return;
@@ -1211,7 +1212,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 />
               </div>
               <div>
-                <Label className="text-[#01411C]">تاريخ الميلاد</Label>
+                <Label className="text-[#01411C]">تاريخ الميلاد *</Label>
                 <Input
                   type="date"
                   value={propertyData.ownerBirthDate}
@@ -1281,7 +1282,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
           <CardContent className="space-y-4 pt-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#01411C]">رقم الصك</Label>
+                <Label className="text-[#01411C]">رقم الصك *</Label>
                 <Input
                   value={propertyData.deedNumber}
                   onChange={(e) => setPropertyData(prev => ({ ...prev, deedNumber: e.target.value }))}
@@ -1290,7 +1291,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 />
               </div>
               <div>
-                <Label className="text-[#01411C]">تاريخ الصك</Label>
+                <Label className="text-[#01411C]">تاريخ الصك *</Label>
                 <Input
                   type="date"
                   value={propertyData.deedDate}
@@ -1299,7 +1300,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                 />
               </div>
               <div>
-                <Label className="text-[#01411C]">مدينة الصك</Label>
+                <Label className="text-[#01411C]">مدينة الصك *</Label>
                 <Select 
                   value={propertyData.deedCity} 
                   onValueChange={(value) => setPropertyData(prev => ({ ...prev, deedCity: value }))}
@@ -2563,7 +2564,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               </Button>
               <Button
                 onClick={handlePublish}
-                disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || !propertyData.ownerIdNumber || !propertyData.ownerBirthDate}
+                disabled={isPublishing || !propertyData.ownerName || !propertyData.ownerPhone || !propertyData.ownerIdNumber || !propertyData.ownerBirthDate || !propertyData.deedNumber || !propertyData.deedDate || !propertyData.deedCity || !propertyData.adLicense}
                 className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37] font-bold text-lg py-6"
               >
                 {isPublishing ? (
@@ -2580,10 +2581,10 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               </Button>
             </div>
 
-            {(!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || !propertyData.ownerIdNumber || !propertyData.ownerBirthDate) && (
+            {(!propertyData.ownerName || !propertyData.ownerPhone || !propertyData.ownerIdNumber || !propertyData.ownerBirthDate || !propertyData.deedNumber || !propertyData.deedDate || !propertyData.deedCity || !propertyData.adLicense) && (
               <div className="mt-3 flex items-center gap-2 text-amber-600 text-sm">
                 <AlertCircle className="w-4 h-4" />
-                يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة، اسم المالك، رقم الهوية، تاريخ الميلاد، جوال المالك
+                يرجى ملء الحقول المطلوبة: معلومات المالك، معلومات الصك، الترخيص الإعلاني
               </div>
             )}
 
