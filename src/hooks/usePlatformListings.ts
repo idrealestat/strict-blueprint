@@ -974,26 +974,26 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
     }
 
     // ✅ الحصول على الـ slug من قاعدة البيانات مباشرة (أكثر موثوقية من localStorage)
-    let slug = localStorage.getItem('public_platform_slug');
+    // مهم: لا نوقف المزامنة بالكامل إذا لم يوجد slug بعد (بعض المستخدمين لم ينشروا بطاقة العمل).
+    // في هذه الحالة نستخدم slug داخلي (pending-<userId>) ليظهر العرض داخل التطبيق (حسب user_id)
+    // بدون أن يفسد المسارات العامة.
+    let slug = (localStorage.getItem('public_platform_slug') || '').trim();
     if (!slug || slug === 'default') {
-      const { data: cardData } = await supabase
+      const { data: cardData, error: slugErr } = await supabase
         .from('business_cards')
         .select('slug')
         .eq('user_id', user.id)
-        .single();
-      
-      if (cardData?.slug) {
-        slug = cardData.slug;
-        localStorage.setItem('public_platform_slug', slug);
+        .maybeSingle();
+
+      if (!slugErr && cardData?.slug) {
+        slug = String(cardData.slug).trim();
+        if (slug) localStorage.setItem('public_platform_slug', slug);
       }
     }
 
-    if (!slug || slug === 'default') {
-      console.warn('No platform slug found, skipping database sync');
-      return false;
-    }
+    const effectiveSlug = slug && slug !== 'default' ? slug : `pending-${user.id}`;
 
-    console.log('🔄 Syncing listing to database with slug:', slug, 'user_id:', user.id);
+    console.log('🔄 Syncing listing to database with slug:', effectiveSlug, 'user_id:', user.id);
 
     const smartPath = firstNonEmpty(ad.smartPath, ad.platformPath, ad.smart_path);
     const parsedFromPath = parseCityDistrictFromSmartPath(smartPath ? String(smartPath) : undefined);
@@ -1039,7 +1039,7 @@ export async function syncSingleListingToDatabase(ad: any): Promise<boolean> {
 
     const listingData = {
       user_id: user.id, // ✅ مطلوب لسياسات RLS
-      slug,
+      slug: effectiveSlug,
       title,
       description: description ? String(description) : null,
       price: Number(String(firstNonEmpty(ad.price, 0) as any).replace(/[^\d]/g, '')) || 0,

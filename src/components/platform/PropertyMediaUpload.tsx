@@ -153,6 +153,8 @@ export default function PropertyMediaUpload({
       return publicUrl;
     } catch (error) {
       console.error('Error uploading file:', error);
+      const message = (error as any)?.message || 'فشل رفع الملف';
+      toast.error(`فشل رفع ${file.name}`, { description: message });
       return null;
     }
   }, []);
