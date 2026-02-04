@@ -960,8 +960,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
       return;
     }
 
-    if (!propertyData.ownerName || !propertyData.ownerPhone) {
-      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الجوال');
+    if (!propertyData.ownerName || !propertyData.ownerIdNumber || !propertyData.ownerPhone || !propertyData.ownerBirthDate) {
+      toast.error('يرجى ملء معلومات المالك: الاسم ورقم الهوية وتاريخ الميلاد ورقم الجوال');
       return;
     }
 
@@ -2563,7 +2563,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               </Button>
               <Button
                 onClick={handlePublish}
-                disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone}
+                disabled={isPublishing || !propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || !propertyData.ownerIdNumber || !propertyData.ownerBirthDate}
                 className="flex-1 bg-[#01411C] hover:bg-[#01411C]/90 text-[#D4AF37] font-bold text-lg py-6"
               >
                 {isPublishing ? (
@@ -2580,10 +2580,10 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               </Button>
             </div>
 
-            {(!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone) && (
+            {(!propertyData.propertyType || !propertyData.purpose || !propertyData.locationDetails.city || !propertyData.ownerName || !propertyData.ownerPhone || !propertyData.ownerIdNumber || !propertyData.ownerBirthDate) && (
               <div className="mt-3 flex items-center gap-2 text-amber-600 text-sm">
                 <AlertCircle className="w-4 h-4" />
-                يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة، اسم المالك، جوال المالك
+                يرجى ملء الحقول المطلوبة: نوع العقار، الغرض، المدينة، اسم المالك، رقم الهوية، تاريخ الميلاد، جوال المالك
               </div>
             )}
 
