@@ -102,6 +102,9 @@ async function transcribeAudioWithWebSpeech(
       recognition.continuous = true;
       recognition.interimResults = false;
       let finalText = '';
+      let resolved = false;
+      let userStopped = false;
+      let recognitionStarted = false;
       
       recognition.onresult = (event: any) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -111,26 +114,67 @@ async function transcribeAudioWithWebSpeech(
         }
       };
       
-      recognition.onerror = (e: any) => {
-        reject(new Error(e?.error ? `خطأ في التعرف على الكلام: ${e.error}` : 'خطأ في التعرف على الكلام'));
+      const safeResolve = (text: string) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(text);
       };
-      
-      recognition.onend = () => resolve(finalText.trim());
+
+      const safeReject = (err: Error) => {
+        if (resolved) return;
+        resolved = true;
+        reject(err);
+      };
+
+      const tryStartRecognition = () => {
+        if (userStopped || resolved) return;
+        try {
+          recognition.start();
+          recognitionStarted = true;
+        } catch {
+          // غالباً start تم استدعاؤه بالفعل أو المتصفح منع إعادة البدء فوراً
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        const code = e?.error as string | undefined;
+        // لا نوقف العملية في "no-speech" و"aborted" لأن المتصفح قد يقطعها بسبب صمت
+        if (code === 'no-speech' || code === 'aborted') {
+          return;
+        }
+        safeReject(new Error(code ? `خطأ في التعرف على الكلام: ${code}` : 'خطأ في التعرف على الكلام'));
+      };
+
+      recognition.onend = () => {
+        // إذا انتهى الصوت أو المستخدم أوقف، ننهي. وإلا نعيد البدء تلقائياً.
+        if (userStopped || resolved) return;
+        // سياسات المتصفح قد توقف الاستماع بعد صمت؛ نعيد التشغيل أثناء تشغيل الصوت
+        setTimeout(() => {
+          tryStartRecognition();
+        }, 250);
+      };
       
       const audio = new Audio(audioUrl);
       const cleanup = () => { audio.pause(); audio.src = ''; };
       
       audio.onended = () => {
         onProgress(100, 'اكتمل التحويل!');
+        userStopped = true;
         try {
           recognition.stop();
         } catch {}
         cleanup();
+        const text = finalText.trim();
+        if (!text) {
+          safeReject(new Error('لم يتم التقاط نص. جرّب رفع الصوت أو التحدث قرب المايك.'));
+          return;
+        }
+        safeResolve(text);
       };
       
       audio.onerror = () => {
         cleanup();
-        reject(new Error('فشل تشغيل الصوت'));
+        safeReject(new Error('فشل تشغيل الصوت'));
       };
       
       audio.ontimeupdate = () => {
@@ -140,16 +184,28 @@ async function transcribeAudioWithWebSpeech(
         }
       };
       
-      audio.onloadedmetadata = async () => {
-        onProgress(5, 'جاري بدء التحويل...');
-        try {
-          recognition.start();
-          await audio.play();
-        } catch (err) {
+      // مهم: start لازم يكون داخل gesture (نحن ما زلنا داخل Promise التي استدعيت من onClick)
+      // لذلك نبدأ التعرف فوراً ثم نشغّل الصوت.
+      onProgress(5, 'جاري بدء التحويل...');
+      tryStartRecognition();
+      
+      audio.onloadedmetadata = () => {
+        // لا نضع await هنا حتى لا نفقد gesture
+        audio.play().catch((err) => {
           cleanup();
-          reject(err instanceof Error ? err : new Error('تعذر بدء التحويل'));
-        }
+          safeReject(err instanceof Error ? err : new Error('تعذر بدء تشغيل الصوت'));
+        });
       };
+
+      // في بعض الأجهزة قد لا يحدث onloadedmetadata بسرعة، فابدأ التحميل فوراً
+      audio.load();
+
+      // حماية: إذا لم يبدأ recognition بسبب قيود gesture، نعطي رسالة واضحة
+      setTimeout(() => {
+        if (!recognitionStarted && !resolved) {
+          safeReject(new Error('لم يبدأ التعرف على الكلام. اضغط زر التحويل مرة أخرى واسمح بالمايك.'));
+        }
+      }, 1500);
     });
   } finally {
     URL.revokeObjectURL(audioUrl);
