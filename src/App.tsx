@@ -85,6 +85,7 @@ import { useAuthContext } from "./context/AuthContext";
 import { useEntitlementsContext } from "./context/EntitlementsContext";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -716,6 +717,7 @@ const App = () => {
                   {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/tiktok/callback" element={<TikTokCallbackPage />} />
                   
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
