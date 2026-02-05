@@ -4,6 +4,7 @@
   */
  
  import { useState, useCallback, useEffect } from 'react';
+ import { supabase } from '@/integrations/supabase/client';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Textarea } from '@/components/ui/textarea';
@@ -109,26 +110,30 @@
    
    // توليد الهاشتاقات بالذكاء الاصطناعي
    const generateHashtags = async () => {
+    if (!description.trim() || description.trim().length < 10) {
+      toast.error('يرجى كتابة وصف أطول (10 أحرف على الأقل) لتوليد الهاشتاقات');
+      return;
+    }
+    
      setIsGeneratingHashtags(true);
      try {
-       // محاكاة توليد ذكي بناءً على الوصف
-       await new Promise(resolve => setTimeout(resolve, 1500));
-       
-       // اختيار هاشتاقات عشوائية من القائمة
-       const shuffled = [...REAL_ESTATE_HASHTAGS].sort(() => 0.5 - Math.random());
-       const selected = shuffled.slice(0, 8);
-       
-       // إضافة هاشتاقات من الوصف
-       if (description) {
-         const words = description.split(' ').filter(w => w.length > 3);
-         const customTags = words.slice(0, 3).map(w => `#${w.replace(/[^\u0600-\u06FFa-zA-Z0-9]/g, '')}`);
-         selected.push(...customTags.filter(t => t.length > 2));
+      const { data, error } = await supabase.functions.invoke('generate-hashtags', {
+        body: { description: description.trim() }
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'فشل في توليد الهاشتاقات');
+      }
+      
+      if (data?.hashtags && Array.isArray(data.hashtags)) {
+        setHashtags(data.hashtags);
+        toast.success(`تم توليد ${data.hashtags.length} هاشتاق بناءً على الوصف`);
+      } else {
+        throw new Error('لم يتم استلام هاشتاقات');
        }
-       
-       setHashtags(selected);
-       toast.success('تم توليد الهاشتاقات بنجاح');
      } catch (error) {
-       toast.error('فشل في توليد الهاشتاقات');
+      console.error('Hashtag generation error:', error);
+      toast.error(error instanceof Error ? error.message : 'فشل في توليد الهاشتاقات');
      } finally {
        setIsGeneratingHashtags(false);
      }
