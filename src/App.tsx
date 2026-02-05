@@ -24,6 +24,7 @@ import { PlatformPublishingSystem } from "./components/platform-publishing";
 import CustomersListPage from "./pages/CustomersListPage";
 import OffersRequestsPage from "./pages/OffersRequestsPage";
 import SmartOpportunitiesPage from "./pages/SmartOpportunitiesPage";
+import VideoToTextPage from "./pages/VideoToTextPage";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import RentedPropertiesReport from "./components/reports/RentedPropertiesReport";
@@ -587,6 +588,9 @@ const App = () => {
                   {/* تجاوز مؤقت للاختبار - يجب إعادة الحماية لاحقاً */}
                   <Route path="/app/offers-requests" element={<OffersRequestsPage />} />
                   <Route path="/app/smart-opportunities" element={<SmartOpportunitiesPage />} />
+                  
+                  {/* نظام تحويل الفيديو إلى نص */}
+                  <Route path="/app/video-to-text" element={<VideoToTextPage />} />
                   
                   {/* صفحة الانضمام للفريق */}
                   <Route path="/join/:token" element={<JoinTeamPage />} />
