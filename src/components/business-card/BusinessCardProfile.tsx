@@ -890,7 +890,7 @@ END:VCARD`;
                 }}
               >
                 <Calendar className="w-4 h-4" />
-                <span className="text-[10px]">إنشاء موعد</span>
+                <span className="text-[10px]">جدولة موعد</span>
               </Button>
 
               <Button
