@@ -1,9 +1,9 @@
-  /**
-  * SocialContentEditorTab.tsx
-  * محرر المحتوى والفيديو للتواصل الاجتماعي
-  */
- 
-import { useState, useMemo } from 'react';
+/**
+ * SocialContentEditorTab.tsx
+ * محرر المحتوى والفيديو للتواصل الاجتماعي
+ */
+
+import { useState, useMemo, useRef } from 'react';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -14,35 +14,95 @@ import { useState, useMemo } from 'react';
  import { ScrollArea } from '@/components/ui/scroll-area';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  import { toast } from 'sonner';
- import { 
-   Video, Type, Palette, Image, Hash, Mic, 
-   AlignRight, AlignCenter, AlignLeft, Upload,
-  Play, Pause, Volume2, Check, X, Sparkles, Eye, Clock, Edit3, Loader2
- } from 'lucide-react';
+import { 
+  Video, Type, Palette, Image, Hash, Mic, 
+  AlignRight, AlignCenter, AlignLeft, Upload,
+  Play, Pause, Volume2, Check, X, Sparkles, Eye, Clock, Edit3, Loader2, Music
+} from 'lucide-react';
  import { 
    VideoSettings, 
    APPROVED_FONTS, 
    SUBTITLE_COLORS 
  } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { Progress } from '@/components/ui/progress';
 
-async function transcribeMediaWithWebSpeech(file: File, language: string): Promise<string> {
+// استخراج الصوت من الفيديو باستخدام FFmpeg
+async function extractAudioFromVideo(
+  file: File,
+  ffmpegRef: React.MutableRefObject<FFmpeg | null>,
+  ffmpegLoadedRef: React.MutableRefObject<boolean>,
+  onProgress: (progress: number, message: string) => void
+): Promise<Blob> {
+  onProgress(0, 'جاري تحميل معالج الفيديو...');
+  
+  if (!ffmpegRef.current) {
+    ffmpegRef.current = new FFmpeg();
+  }
+  
+  if (!ffmpegLoadedRef.current) {
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+    await ffmpegRef.current.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+    ffmpegLoadedRef.current = true;
+  }
+  
+  onProgress(20, 'جاري كتابة ملف الفيديو...');
+  await ffmpegRef.current.writeFile('input.mp4', await fetchFile(file));
+  
+  onProgress(40, 'جاري استخراج الصوت...');
+  await ffmpegRef.current.exec(['-i', 'input.mp4', '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 'audio.wav']);
+  
+  onProgress(80, 'جاري قراءة ملف الصوت...');
+  const audioData = await ffmpegRef.current.readFile('audio.wav');
+  
+  let audioBytes: Uint8Array;
+  if (audioData instanceof Uint8Array) {
+    audioBytes = audioData;
+  } else if (typeof audioData === 'string') {
+    const binaryString = atob(audioData);
+    audioBytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      audioBytes[i] = binaryString.charCodeAt(i);
+    }
+  } else {
+    audioBytes = new Uint8Array(audioData as unknown as ArrayBuffer);
+  }
+  
+  const buffer = new ArrayBuffer(audioBytes.length);
+  const view = new Uint8Array(buffer);
+  view.set(audioBytes);
+  
+  onProgress(100, 'تم استخراج الصوت بنجاح!');
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+// تحويل الصوت إلى نص باستخدام Web Speech API
+async function transcribeAudioWithWebSpeech(
+  audioBlob: Blob,
+  language: string,
+  onProgress: (progress: number, message: string) => void
+): Promise<string> {
   const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   if (!SpeechRecognition) {
     throw new Error('المتصفح لا يدعم التعرف على الكلام. جرّب Google Chrome.');
   }
-
-  const mediaUrl = URL.createObjectURL(file);
-
+  
+  onProgress(0, 'جاري تحضير الصوت للتحويل...');
+  const audioUrl = URL.createObjectURL(audioBlob);
+  
   try {
     return await new Promise<string>((resolve, reject) => {
       const recognition = new SpeechRecognition();
       recognition.lang = language;
       recognition.continuous = true;
       recognition.interimResults = false;
-
       let finalText = '';
-
+      
       recognition.onresult = (event: any) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
@@ -50,48 +110,41 @@ async function transcribeMediaWithWebSpeech(file: File, language: string): Promi
           }
         }
       };
-
+      
       recognition.onerror = (e: any) => {
-        // في بعض المتصفحات الخطأ يكون بسبب عدم السماح بالمايك أو عدم وجود مدخل صوت
         reject(new Error(e?.error ? `خطأ في التعرف على الكلام: ${e.error}` : 'خطأ في التعرف على الكلام'));
       };
-
-      recognition.onend = () => {
-        resolve(finalText.trim());
-      };
-
-      // ملاحظة مهمة: Web Speech API يتعرف على صوت المايك، وليس صوت الملف مباشرة.
-      // هذا يعني أن المتصفح سيطلب إذن المايك، ويجب أن يكون صوت الفيديو/السماعات مسموعاً للمايك.
-      const video = document.createElement('video');
-      video.src = mediaUrl;
-      video.crossOrigin = 'anonymous';
-      video.muted = false;
-      video.playsInline = true;
-      video.preload = 'auto';
-
-      const cleanup = () => {
-        video.pause();
-        video.src = '';
-      };
-
-      video.onended = () => {
+      
+      recognition.onend = () => resolve(finalText.trim());
+      
+      const audio = new Audio(audioUrl);
+      const cleanup = () => { audio.pause(); audio.src = ''; };
+      
+      audio.onended = () => {
+        onProgress(100, 'اكتمل التحويل!');
         try {
           recognition.stop();
-        } catch {
-          // ignore
+        } catch {}
+        cleanup();
+      };
+      
+      audio.onerror = () => {
+        cleanup();
+        reject(new Error('فشل تشغيل الصوت'));
+      };
+      
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          const progressValue = Math.floor((audio.currentTime / audio.duration) * 100);
+          onProgress(progressValue, `جاري التحويل... ${progressValue}%`);
         }
-        cleanup();
       };
-
-      video.onerror = () => {
-        cleanup();
-        reject(new Error('فشل تشغيل الفيديو لبدء التحويل'));
-      };
-
-      video.onloadedmetadata = async () => {
+      
+      audio.onloadedmetadata = async () => {
+        onProgress(5, 'جاري بدء التحويل...');
         try {
           recognition.start();
-          await video.play();
+          await audio.play();
         } catch (err) {
           cleanup();
           reject(err instanceof Error ? err : new Error('تعذر بدء التحويل'));
@@ -99,7 +152,7 @@ async function transcribeMediaWithWebSpeech(file: File, language: string): Promi
       };
     });
   } finally {
-    URL.revokeObjectURL(mediaUrl);
+    URL.revokeObjectURL(audioUrl);
   }
 }
 
@@ -298,11 +351,20 @@ function ContentPreview({
    const [videoFile, setVideoFile] = useState<File | null>(null);
    const [videoUrl, setVideoUrl] = useState('');
    const [isProcessingAudio, setIsProcessingAudio] = useState(false);
+   const [audioExtractionProgress, setAudioExtractionProgress] = useState(0);
+   const [audioExtractionMessage, setAudioExtractionMessage] = useState('');
+   const [transcriptionProgress, setTranscriptionProgress] = useState(0);
+   const [transcriptionMessage, setTranscriptionMessage] = useState('');
+   const [processingStep, setProcessingStep] = useState<'idle' | 'extracting' | 'transcribing'>('idle');
    const [extractedText, setExtractedText] = useState('');
    const [timedWords, setTimedWords] = useState<TimedWord[]>([]);
    const [editingWordIndex, setEditingWordIndex] = useState<number | null>(null);
    const [logoFile, setLogoFile] = useState<File | null>(null);
    const [logoUrl, setLogoUrl] = useState('');
+   
+   // FFmpeg refs
+   const ffmpegRef = useRef<FFmpeg | null>(null);
+   const ffmpegLoadedRef = useRef(false);
    
    // إعدادات الفيديو
    const [videoSettings, setVideoSettings] = useState<VideoSettings>({
@@ -354,14 +416,38 @@ function ContentPreview({
      setIsProcessingAudio(true);
       setTimedWords([]);
       setExtractedText('');
+      setProcessingStep('extracting');
+      setAudioExtractionProgress(0);
 
        try {
-         // نفس لغة الواجهة الافتراضية هنا: عربي، ويمكن تحسينها لاحقاً بإضافة اختيار لغة.
          const language = 'ar-SA';
-         const text = await transcribeMediaWithWebSpeech(videoFile, language);
+         
+         // الخطوة 1: استخراج الصوت من الفيديو
+         const audioBlob = await extractAudioFromVideo(
+           videoFile,
+           ffmpegRef,
+           ffmpegLoadedRef,
+           (progress, message) => {
+             setAudioExtractionProgress(progress);
+             setAudioExtractionMessage(message);
+           }
+         );
+         
+         // الخطوة 2: تحويل الصوت إلى نص
+         setProcessingStep('transcribing');
+         setTranscriptionProgress(0);
+         
+         const text = await transcribeAudioWithWebSpeech(
+           audioBlob,
+           language,
+           (progress, message) => {
+             setTranscriptionProgress(progress);
+             setTranscriptionMessage(message);
+           }
+         );
 
          if (!text) {
-           throw new Error('لم يتم التقاط نص. تأكد من السماح بالمايك ورفع صوت الفيديو.');
+           throw new Error('لم يتم التقاط نص. تأكد من وجود صوت واضح في الفيديو.');
          }
 
          setExtractedText(text);
@@ -384,6 +470,7 @@ function ContentPreview({
          toast.error(error instanceof Error ? error.message : 'فشل تحويل الصوت إلى نص');
       } finally {
         setIsProcessingAudio(false);
+        setProcessingStep('idle');
       }
    };
 
@@ -616,6 +703,44 @@ function ContentPreview({
                    )}
                  </Button>
                  
+                  {/* شريط التقدم */}
+                  {isProcessingAudio && (
+                    <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                      {processingStep === 'extracting' && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Music className="w-4 h-4 text-primary animate-pulse" />
+                            <span className="text-sm font-medium">الخطوة 1: استخراج الصوت</span>
+                          </div>
+                          <Progress value={audioExtractionProgress} className="h-3" />
+                          <p className="text-xs text-muted-foreground text-center">
+                            {audioExtractionMessage || 'جاري الانتظار...'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {processingStep === 'transcribing' && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Check className="w-4 h-4 text-green-500" />
+                            <span className="text-sm text-muted-foreground line-through">استخراج الصوت</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Type className="w-4 h-4 text-primary animate-pulse" />
+                            <span className="text-sm font-medium">الخطوة 2: تحويل الصوت إلى نص</span>
+                          </div>
+                          <Progress value={transcriptionProgress} className="h-3" />
+                          <p className="text-xs text-muted-foreground text-center">
+                            {transcriptionMessage || 'جاري التحويل...'}
+                          </p>
+                          <p className="text-xs text-amber-600 text-center mt-2">
+                            ⚠️ يجب أن يكون صوت الفيديو مسموعاً للمايك
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* النص الكامل */}
                   {extractedText && timedWords.length === 0 && (
                     <div className="space-y-2">
