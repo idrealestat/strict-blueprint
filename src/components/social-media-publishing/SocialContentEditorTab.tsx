@@ -78,18 +78,18 @@ function ContentPreview({
           </div>
 
           {/* منطقة الفيديو أو الصورة */}
-          <div className="relative bg-gray-100 max-h-[200px] mx-auto" style={{ aspectRatio: '9/16', maxWidth: '112px' }}>
+          <div className="relative bg-gray-100 mx-auto rounded-lg overflow-hidden" style={{ aspectRatio: '9/16', width: '180px', maxHeight: '320px' }}>
             {videoUrl ? (
               <video 
                 src={videoUrl} 
-                className="w-full h-full object-cover"
-                muted
-                loop
+                className="w-full h-full object-cover cursor-pointer"
+                controls
                 playsInline
+                loop
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-                <Video className="w-16 h-16 text-gray-400" />
+                <Video className="w-10 h-10 text-gray-400" />
               </div>
             )}
 
