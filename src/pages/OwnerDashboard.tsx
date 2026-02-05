@@ -23,9 +23,11 @@ import {
   Crown, Globe, Lock, Unlock, UserCheck, ChevronLeft, Eye, EyeOff,
   Save, AlertTriangle, ArrowRight, Building2, User, Layers,
   ToggleLeft, ToggleRight, History, Ban, FileWarning, Cog, Plus, Trash2,
-  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall, LayoutGrid, Edit, Link2
+  Download, Upload, FileJson, FileSpreadsheet, Brain, PhoneCall, LayoutGrid, Edit, Link2,
+  Target
 } from "lucide-react";
 import { BehavioralDashboard } from "@/components/behavioral";
+import SpecialRequestsAdminPanel from "@/components/admin/SpecialRequestsAdminPanel";
 import FloatingBubbleOwnerControl from "@/components/settings/FloatingBubbleOwnerControl";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -1521,10 +1523,14 @@ const OwnerDashboard: React.FC = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-9 mb-6 overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-10 mb-6 overflow-x-auto">
             <TabsTrigger value="behavioral" className="flex items-center gap-1 text-xs">
               <Brain className="w-4 h-4" />
               <span className="hidden sm:inline">الذكاء</span>
+            </TabsTrigger>
+            <TabsTrigger value="special-requests" className="flex items-center gap-1 text-xs">
+              <Target className="w-4 h-4" />
+              <span className="hidden sm:inline">طلبات VIP</span>
             </TabsTrigger>
             <TabsTrigger value="global" className="flex items-center gap-1 text-xs">
               <Globe className="w-4 h-4" />
@@ -1571,6 +1577,12 @@ const OwnerDashboard: React.FC = () => {
           <TabsContent value="behavioral">
             <BehavioralDashboard />
           </TabsContent>
+
+          {/* =============== TAB: SPECIAL REQUESTS VIP =============== */}
+          <TabsContent value="special-requests">
+            <SpecialRequestsAdminPanel />
+          </TabsContent>
+
 
           {/* =============== TAB: GLOBAL DEFAULTS (LAYER 1) =============== */}
           <TabsContent value="global">

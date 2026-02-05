@@ -2315,6 +2315,149 @@ export type Database = {
         }
         Relationships: []
       }
+      special_request_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          request_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type: string
+          request_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          request_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_request_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "special_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      special_requests: {
+        Row: {
+          admin_notes: string | null
+          admin_response: string | null
+          broker_info_sent: boolean | null
+          broker_info_sent_at: string | null
+          building_number: string | null
+          city: string
+          created_at: string
+          description: string | null
+          district: string | null
+          found_count: number | null
+          google_maps_link: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          matching_listings: Json | null
+          max_area: number | null
+          min_area: number | null
+          national_address: string | null
+          paid_at: string | null
+          payment_amount: number | null
+          payment_status: string | null
+          postal_code: string | null
+          property_type: string
+          responded_at: string | null
+          responded_by: string | null
+          specific_location: string | null
+          status: string | null
+          street: string | null
+          updated_at: string
+          urgency: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_response?: string | null
+          broker_info_sent?: boolean | null
+          broker_info_sent_at?: string | null
+          building_number?: string | null
+          city: string
+          created_at?: string
+          description?: string | null
+          district?: string | null
+          found_count?: number | null
+          google_maps_link?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          matching_listings?: Json | null
+          max_area?: number | null
+          min_area?: number | null
+          national_address?: string | null
+          paid_at?: string | null
+          payment_amount?: number | null
+          payment_status?: string | null
+          postal_code?: string | null
+          property_type: string
+          responded_at?: string | null
+          responded_by?: string | null
+          specific_location?: string | null
+          status?: string | null
+          street?: string | null
+          updated_at?: string
+          urgency?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_response?: string | null
+          broker_info_sent?: boolean | null
+          broker_info_sent_at?: string | null
+          building_number?: string | null
+          city?: string
+          created_at?: string
+          description?: string | null
+          district?: string | null
+          found_count?: number | null
+          google_maps_link?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          matching_listings?: Json | null
+          max_area?: number | null
+          min_area?: number | null
+          national_address?: string | null
+          paid_at?: string | null
+          payment_amount?: number | null
+          payment_status?: string | null
+          postal_code?: string | null
+          property_type?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          specific_location?: string | null
+          status?: string | null
+          street?: string | null
+          updated_at?: string
+          urgency?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -3071,6 +3214,7 @@ export type Database = {
         Args: { check_user_id: string; org_user_id: string }
         Returns: boolean
       }
+      is_owner_user: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "admin" | "user" | "member"
