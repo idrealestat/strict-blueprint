@@ -17,13 +17,21 @@ import { useState, useMemo } from 'react';
  import { 
    Video, Type, Palette, Image, Hash, Mic, 
    AlignRight, AlignCenter, AlignLeft, Upload,
-  Play, Pause, Volume2, Check, X, Sparkles, Eye
+  Play, Pause, Volume2, Check, X, Sparkles, Eye, Clock, Edit3, Loader2
  } from 'lucide-react';
  import { 
    VideoSettings, 
    APPROVED_FONTS, 
    SUBTITLE_COLORS 
  } from './types';
+import { supabase } from '@/integrations/supabase/client';
+
+// نوع الكلمة مع التوقيت
+interface TimedWord {
+  text: string;
+  start: number;
+  end: number;
+}
  
 // مكون المعاينة التفاعلية
 function ContentPreview({
@@ -206,6 +214,8 @@ function ContentPreview({
    const [videoUrl, setVideoUrl] = useState('');
    const [isProcessingAudio, setIsProcessingAudio] = useState(false);
    const [extractedText, setExtractedText] = useState('');
+   const [timedWords, setTimedWords] = useState<TimedWord[]>([]);
+   const [editingWordIndex, setEditingWordIndex] = useState<number | null>(null);
    
    // إعدادات الفيديو
    const [videoSettings, setVideoSettings] = useState<VideoSettings>({
@@ -247,7 +257,7 @@ function ContentPreview({
      setHashtags(prev => prev.filter(t => t !== tag));
    };
  
-   // محاكاة تحويل الصوت إلى نص
+    // تحويل الصوت إلى نص حقيقي باستخدام ElevenLabs
    const processAudioToText = async () => {
      if (!videoFile) {
        toast.error('يرجى رفع فيديو أولاً');
@@ -255,13 +265,80 @@ function ContentPreview({
      }
      
      setIsProcessingAudio(true);
-     // محاكاة المعالجة
-     await new Promise(resolve => setTimeout(resolve, 2000));
-     
-     setExtractedText('هذا نص تجريبي تم استخراجه من الفيديو. يمكنك تعديله وإضافته كترجمة.');
-     setIsProcessingAudio(false);
-     toast.success('تم استخراج النص من الفيديو بنجاح');
+      setTimedWords([]);
+      setExtractedText('');
+
+      try {
+        // إعداد FormData مع الفيديو
+        const formData = new FormData();
+        formData.append('audio', videoFile);
+
+        // استدعاء edge function
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-speech-to-text`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'فشل تحويل الصوت');
+        }
+
+        const data = await response.json();
+        
+        // تعيين النص الكامل
+        setExtractedText(data.text || '');
+        
+        // تعيين الكلمات مع التوقيت
+        if (data.words && Array.isArray(data.words)) {
+          setTimedWords(data.words.map((w: any) => ({
+            text: w.text || '',
+            start: w.start || 0,
+            end: w.end || 0,
+          })));
+        }
+
+        toast.success('تم استخراج النص من الفيديو بنجاح');
+      } catch (error) {
+        console.error('Speech-to-text error:', error);
+        toast.error(error instanceof Error ? error.message : 'فشل تحويل الصوت إلى نص');
+      } finally {
+        setIsProcessingAudio(false);
+      }
    };
+
+    // تحديث كلمة معينة
+    const updateWord = (index: number, newText: string) => {
+      setTimedWords(prev => prev.map((w, i) => 
+        i === index ? { ...w, text: newText } : w
+      ));
+      // تحديث النص الكامل
+      const newFullText = timedWords.map((w, i) => 
+        i === index ? newText : w.text
+      ).join(' ');
+      setExtractedText(newFullText);
+    };
+
+    // تحديث توقيت كلمة
+    const updateWordTiming = (index: number, field: 'start' | 'end', value: number) => {
+      setTimedWords(prev => prev.map((w, i) => 
+        i === index ? { ...w, [field]: value } : w
+      ));
+    };
+
+    // تنسيق الوقت
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      const ms = Math.floor((seconds % 1) * 100);
+      return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    };
  
    // رفع الفيديو
    const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -423,7 +500,10 @@ function ContentPreview({
                    className="w-full bg-[#01411C] hover:bg-[#016630]"
                  >
                    {isProcessingAudio ? (
-                     <>جاري المعالجة...</>
+                      <>
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                        جاري تحويل الصوت...
+                      </>
                    ) : (
                      <>
                        <Mic className="w-4 h-4 ml-2" />
@@ -432,13 +512,100 @@ function ContentPreview({
                    )}
                  </Button>
                  
-                 {extractedText && (
-                   <Textarea
-                     value={extractedText}
-                     onChange={(e) => setExtractedText(e.target.value)}
-                     placeholder="النص المستخرج..."
-                     className="min-h-[100px]"
-                   />
+                  {/* النص الكامل */}
+                  {extractedText && timedWords.length === 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">النص المستخرج</Label>
+                      <Textarea
+                        value={extractedText}
+                        onChange={(e) => setExtractedText(e.target.value)}
+                        placeholder="النص المستخرج..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  )}
+
+                  {/* الكلمات مع التوقيت */}
+                  {timedWords.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          النص مع التوقيت ({timedWords.length} كلمة)
+                        </Label>
+                        <Badge variant="outline" className="text-xs">
+                          قابل للتعديل
+                        </Badge>
+                      </div>
+                      
+                      <ScrollArea className="h-[200px] border rounded-lg p-2 bg-gray-50">
+                        <div className="space-y-1" dir="rtl">
+                          {timedWords.map((word, index) => (
+                            <div 
+                              key={index}
+                              className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
+                                editingWordIndex === index 
+                                  ? 'bg-[#01411C]/10 border border-[#01411C]' 
+                                  : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              {/* رقم الكلمة */}
+                              <span className="text-xs text-gray-400 w-6 text-center">
+                                {index + 1}
+                              </span>
+                              
+                              {/* الكلمة */}
+                              {editingWordIndex === index ? (
+                                <Input
+                                  value={word.text}
+                                  onChange={(e) => updateWord(index, e.target.value)}
+                                  className="flex-1 h-8 text-sm"
+                                  autoFocus
+                                  onBlur={() => setEditingWordIndex(null)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') setEditingWordIndex(null);
+                                  }}
+                                />
+                              ) : (
+                                <span 
+                                  className="flex-1 text-sm cursor-pointer hover:text-[#01411C]"
+                                  onClick={() => setEditingWordIndex(index)}
+                                >
+                                  {word.text}
+                                </span>
+                              )}
+                              
+                              {/* التوقيت */}
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                                  {formatTime(word.start)}
+                                </span>
+                                <span>→</span>
+                                <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                                  {formatTime(word.end)}
+                                </span>
+                              </div>
+                              
+                              {/* زر التعديل */}
+                              <button
+                                onClick={() => setEditingWordIndex(editingWordIndex === index ? null : index)}
+                                className="p-1 hover:bg-gray-200 rounded"
+                              >
+                                <Edit3 className="w-3 h-3 text-gray-400" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      
+                      {/* النص الكامل للمراجعة */}
+                      <div className="p-3 bg-gray-100 rounded-lg">
+                        <Label className="text-xs text-gray-500 mb-1 block">النص الكامل</Label>
+                        <p className="text-sm leading-relaxed" dir="rtl">
+                          {timedWords.map(w => w.text).join(' ')}
+                        </p>
+                      </div>
+                    </div>
                  )}
                </CardContent>
              </Card>
