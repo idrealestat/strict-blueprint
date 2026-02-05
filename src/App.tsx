@@ -47,6 +47,20 @@ import DomainRequestsListPage from "./pages/DomainRequestsListPage";
 import DomainRequestDetailsPage from "./pages/DomainRequestDetailsPage";
 
 import OwnerDashboard from "./pages/OwnerDashboard";
+import {
+  OwnerDashboardIndex,
+  BehavioralPage,
+  SpecialRequestsPage as SpecialRequestsAdminPage,
+  GlobalSettingsPage,
+  UserOverridesPage,
+  BusinessRulesPage,
+  DomainRequestsPage as OwnerDomainRequestsPage,
+  SlugsPage,
+  ExceptionsPage,
+  BlacklistPage,
+  PatternsPage,
+  ChangelogPage,
+} from "./pages/owner-dashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
 import SlugOfferDetailsPage from "./pages/SlugOfferDetailsPage";
@@ -557,7 +571,93 @@ const App = () => {
                   <Route path="/app/owner" element={
                     <BusinessCardGuard>
                       <RoleGuard allowedRoles={['owner']} showAccessDenied>
-                        <OwnerDashboard />
+                        <OwnerDashboardIndex />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  
+                  {/* Owner Dashboard Sub-pages */}
+                  <Route path="/app/owner-dashboard" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <OwnerDashboardIndex />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/behavioral" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <BehavioralPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/special-requests" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <SpecialRequestsAdminPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/global-settings" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <GlobalSettingsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/user-overrides" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <UserOverridesPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/business-rules" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <BusinessRulesPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/domain-requests" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <OwnerDomainRequestsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/slugs" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <SlugsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/exceptions" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <ExceptionsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/blacklist" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <BlacklistPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/patterns" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <PatternsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/changelog" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <ChangelogPage />
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />
