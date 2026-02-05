@@ -139,8 +139,8 @@
              />
            </TabsContent>
  
-           <TabsContent value="content" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
-             <SocialContentEditorTab />
+            <TabsContent value="content" className="h-full m-0 overflow-y-auto overflow-x-clip w-full max-w-full">
+              <SocialContentEditorTab connectedPlatforms={platforms} />
            </TabsContent>
  
            <TabsContent value="campaigns" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
