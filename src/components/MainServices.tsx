@@ -74,11 +74,11 @@ const MainServices = () => {
     {
       id: 6,
       icon: '🎯',
-      title: 'المبيعات والتسويق',
-      description: 'أدوات التسويق وإدارة المبيعات',
+      title: 'التواصل الاجتماعي',
+      description: 'النشر على منصات التواصل الاجتماعي',
       color: 'from-teal-500 to-green-500',
       link: '/sales',
-      stat: '8 حملات'
+      stat: 'سوشيال ميديا'
     },
     {
       id: 7,

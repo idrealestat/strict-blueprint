@@ -57,7 +57,7 @@ export const FEATURE_FLAG_KEYS: (keyof FeatureFlags)[] = [
 
 // Human-readable labels for each feature
 export const FEATURE_FLAG_LABELS: Record<keyof FeatureFlags, string> = {
-  publishing_enabled: 'النشر على المنصات',
+  publishing_enabled: 'التواصل الاجتماعي',
   smart_paths_enabled: 'المسارات الذكية',
   spatial_intelligence_enabled: 'الذكاء المكاني',
   offers_requests_enabled: 'العروض والطلبات',
