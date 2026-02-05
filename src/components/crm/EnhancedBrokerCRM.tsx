@@ -2723,20 +2723,26 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                   select-none
                                 `}
                               >
-                                <div
-                                  data-customer-id={customer.id}
-                                  style={{
-                                    // If being dragged on touch, follow finger
-                                    ...(touchDragCustomer === customer.id && touchCurrentPos ? {
-                                      position: 'fixed',
-                                      left: touchCurrentPos.x - 100,
-                                      top: touchCurrentPos.y - 50,
-                                      width: '200px',
-                                      zIndex: 9999,
-                                      pointerEvents: 'none',
-                                    } : {})
-                                  }}
-                                >
+                                 <div
+                                   data-customer-id={customer.id}
+                                   onTouchStart={(e) => handleTouchStart(e, customer.id)}
+                                   onTouchMove={handleTouchMove}
+                                   onTouchEnd={handleTouchEnd}
+                                   onTouchCancel={handleTouchEnd}
+                                   style={{
+                                     // If being dragged on touch, follow finger and float above columns
+                                     ...(touchDragCustomer === customer.id && touchCurrentPos
+                                       ? {
+                                           position: 'fixed',
+                                           left: touchCurrentPos.x - 100,
+                                           top: touchCurrentPos.y - 50,
+                                           width: '200px',
+                                           zIndex: 9999,
+                                           pointerEvents: 'none',
+                                         }
+                                       : {}),
+                                   }}
+                                 >
                                 {/* خط نوع العميل في أعلى البطاقة */}
                                 <div 
                                   className="h-1.5 w-full flex-shrink-0"
