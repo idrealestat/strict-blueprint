@@ -926,9 +926,18 @@ export default function RightSliderComplete({
           />
           {/* أرشيف إدارة العملاء */}
           {showCRMArchive && (
-            <CRMArchivePanel
-              onClose={() => setShowCRMArchive(false)}
-            />
+            <motion.div
+              dir="rtl"
+              className="fixed top-0 right-0 z-[60] h-full w-[90%] md:w-[400px] bg-white shadow-2xl border-l-4 border-[#8B5CF6] overflow-hidden"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            >
+              <CRMArchivePanel
+                onClose={() => setShowCRMArchive(false)}
+              />
+            </motion.div>
           )}
         </>
       )}
