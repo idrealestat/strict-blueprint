@@ -72,6 +72,9 @@ interface ListingResult {
   plus_code?: string;
   lat?: number;
   lng?: number;
+  deed_number?: string;
+  deed_date?: string;
+  deed_city?: string;
   created_at: string;
   status: string;
 }
@@ -178,7 +181,7 @@ export default function SpecialRequestsAdminPanel() {
     try {
       let query = supabase
         .from('platform_listings')
-        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, created_at, status')
+        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, deed_number, deed_date, deed_city, created_at, status')
         .is('deleted_at', null);
 
       if (advancedSearchCity) {
@@ -248,6 +251,9 @@ export default function SpecialRequestsAdminPanel() {
         plus_code: l.plus_code || undefined,
         lat: l.lat,
         lng: l.lng,
+        deed_number: l.deed_number || undefined,
+        deed_date: l.deed_date || undefined,
+        deed_city: l.deed_city || undefined,
         created_at: l.created_at,
         status: l.status,
       }));
@@ -293,7 +299,7 @@ export default function SpecialRequestsAdminPanel() {
     try {
       let query = supabase
         .from('platform_listings')
-        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, created_at, status')
+        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, deed_number, deed_date, deed_city, created_at, status')
         .eq('city', request.city)
         .is('deleted_at', null);
 
@@ -342,6 +348,9 @@ export default function SpecialRequestsAdminPanel() {
         plus_code: l.plus_code || undefined,
         lat: l.lat,
         lng: l.lng,
+        deed_number: l.deed_number || undefined,
+        deed_date: l.deed_date || undefined,
+        deed_city: l.deed_city || undefined,
         created_at: l.created_at,
         status: l.status,
       }));
@@ -1037,6 +1046,32 @@ export default function SpecialRequestsAdminPanel() {
                     <div><strong>الموقع:</strong> {selectedListing.city} - {selectedListing.district}</div>
                     {selectedListing.area && <div><strong>المساحة:</strong> {selectedListing.area} م²</div>}
                     <div><strong>السعر:</strong> <span className="text-green-600 font-bold">{selectedListing.price?.toLocaleString()} ريال</span></div>
+                    
+                    {/* معلومات الصك */}
+                    {selectedListing.deed_number && (
+                      <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-amber-700">رقم الصك:</strong> 
+                          <span>{selectedListing.deed_number}</span>
+                          <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.deed_number!)}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        {selectedListing.deed_date && (
+                          <div className="flex items-center gap-2">
+                            <strong className="text-amber-700">تاريخ الصك:</strong> 
+                            <span>{selectedListing.deed_date}</span>
+                          </div>
+                        )}
+                        {selectedListing.deed_city && (
+                          <div className="flex items-center gap-2">
+                            <strong className="text-amber-700">مدينة الصك:</strong> 
+                            <span>{selectedListing.deed_city}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {selectedListing.national_address && (
                       <div className="flex items-center gap-2">
                         <strong>العنوان الوطني:</strong> 
@@ -1066,6 +1101,21 @@ export default function SpecialRequestsAdminPanel() {
                         </Button>
                       </div>
                     )}
+                    
+                    {/* تاريخ الإعلان */}
+                    <div className="pt-2 border-t mt-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="w-4 h-4" />
+                        <strong>تاريخ الإعلان:</strong>
+                        <span>{new Date(selectedListing.created_at).toLocaleDateString('ar-SA', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
