@@ -386,6 +386,7 @@ function ContentPreview({
    const [transcriptionProgress, setTranscriptionProgress] = useState(0);
    const [transcriptionMessage, setTranscriptionMessage] = useState('');
    const [processingStep, setProcessingStep] = useState<'idle' | 'extracting' | 'transcribing'>('idle');
+    const [progressEvents, setProgressEvents] = useState<string[]>([]);
    const [extractedText, setExtractedText] = useState('');
    const [timedWords, setTimedWords] = useState<TimedWord[]>([]);
    const [editingWordIndex, setEditingWordIndex] = useState<number | null>(null);
@@ -447,10 +448,23 @@ function ContentPreview({
      }
      
      setIsProcessingAudio(true);
+      setProgressEvents([]);
       setTimedWords([]);
       setExtractedText('');
       setProcessingStep('extracting');
       setAudioExtractionProgress(0);
+       setAudioExtractionMessage('بدء العملية...');
+       setTranscriptionProgress(0);
+       setTranscriptionMessage('');
+
+       const pushEvent = (msg: string) => {
+         const t = new Date();
+         const stamp = t.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+         setProgressEvents(prev => {
+           const next = [...prev, `${stamp} — ${msg}`];
+           return next.length > 10 ? next.slice(-10) : next;
+         });
+       };
 
        try {
          // الخطوة 1: استخراج الصوت من الفيديو
@@ -461,18 +475,21 @@ function ContentPreview({
            (progress, message) => {
              setAudioExtractionProgress(progress);
              setAudioExtractionMessage(message);
+              if (message) pushEvent(`استخراج الصوت: ${message}`);
            }
          );
          
           // الخطوة 2: تحويل الصوت إلى نص عبر Edge Function
          setProcessingStep('transcribing');
          setTranscriptionProgress(0);
+          pushEvent('بدء تحويل الصوت إلى نص...');
          
           const text = await transcribeAudioWithEdgeFunction(
            audioBlob,
            (progress, message) => {
              setTranscriptionProgress(progress);
              setTranscriptionMessage(message);
+              if (message) pushEvent(`التحويل: ${message}`);
             },
             getAccessToken,
             handleSessionError
@@ -744,7 +761,7 @@ function ContentPreview({
                             <span className="text-sm font-medium">الخطوة 1: استخراج الصوت</span>
                           </div>
                           <Progress value={audioExtractionProgress} className="h-3" />
-                          <p className="text-xs text-muted-foreground text-center">
+                           <p className="text-xs text-muted-foreground text-center">
                             {audioExtractionMessage || 'جاري الانتظار...'}
                           </p>
                         </div>
@@ -765,11 +782,19 @@ function ContentPreview({
                             <span>{transcriptionProgress}%</span>
                             <span>{transcriptionMessage || 'جاري التحويل...'}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground text-center mt-1">
-                            {transcriptionMessage || 'جاري التحويل...'}
-                          </p>
                         </div>
                       )}
+
+                       {progressEvents.length > 0 && (
+                         <div className="mt-3 rounded-lg border bg-background/60 p-3">
+                           <p className="text-xs font-medium text-foreground mb-2">سجل التقدم</p>
+                           <ul className="space-y-1">
+                             {progressEvents.map((e, idx) => (
+                               <li key={idx} className="text-[11px] text-muted-foreground leading-relaxed">{e}</li>
+                             ))}
+                           </ul>
+                         </div>
+                       )}
                     </div>
                   )}
 
