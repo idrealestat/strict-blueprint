@@ -656,7 +656,60 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   const isLongPressRef = useRef(false);
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTouchPosRef = useRef<{ x: number; y: number } | null>(null);
+  const lastHoverColumnIdRef = useRef<string | null>(null);
   const [showDragHint, setShowDragHint] = useState(false);
+
+  // Detect RTL scrollLeft behavior once (different browsers behave differently)
+  const rtlScrollBehavior = useRef<"positive-descending" | "negative" | "positive-ascending">("positive-descending");
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const el = document.createElement('div');
+    el.dir = 'rtl';
+    el.style.width = '4px';
+    el.style.height = '4px';
+    el.style.overflow = 'scroll';
+    el.style.position = 'absolute';
+    el.style.top = '-9999px';
+    // content bigger than container
+    const child = document.createElement('div');
+    child.style.width = '20px';
+    child.style.height = '4px';
+    el.appendChild(child);
+    document.body.appendChild(el);
+
+    // If scrollLeft starts > 0, it's "positive-descending" (Chrome/Safari)
+    // Otherwise set to 1 and see if it becomes 1 ("positive-ascending") or stays 0 and can go negative ("negative")
+    if (el.scrollLeft > 0) {
+      rtlScrollBehavior.current = 'positive-descending';
+    } else {
+      el.scrollLeft = 1;
+      rtlScrollBehavior.current = el.scrollLeft === 1 ? 'positive-ascending' : 'negative';
+    }
+    document.body.removeChild(el);
+  }, []);
+
+  const panKanbanHorizontally = useCallback((visualDeltaX: number) => {
+    // visualDeltaX: + => pan right visually, - => pan left visually
+    const container = kanbanContainerRef.current;
+    if (!container) return;
+
+    // For RTL, most browsers are either positive-descending or negative.
+    // In both cases, to pan visually to the right we must DECREASE scrollLeft.
+    const isRtl = getComputedStyle(container).direction === 'rtl';
+    if (!isRtl) {
+      container.scrollLeft += visualDeltaX;
+      return;
+    }
+
+    const behavior = rtlScrollBehavior.current;
+    if (behavior === 'positive-ascending') {
+      // behaves like LTR axis
+      container.scrollLeft += visualDeltaX;
+    } else {
+      // positive-descending OR negative
+      container.scrollLeft -= visualDeltaX;
+    }
+  }, []);
   const [dragHintDismissed, setDragHintDismissed] = useState(() => {
     return localStorage.getItem('crm_drag_hint_dismissed') === 'true';
   });
@@ -1652,6 +1705,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       const target = findColumnAtPoint(touch.clientX, touch.clientY);
       if (target) {
         setDropIndicator(target);
+        lastHoverColumnIdRef.current = target.columnId;
       }
       
       // Clear existing auto-scroll
@@ -1661,13 +1715,16 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       }
       
       const container = kanbanContainerRef.current;
-      const edgeThreshold = 60;
-      const scrollSpeed = 8;
-      const verticalEdgeThreshold = 50;
-      const verticalScrollSpeed = 6;
+      const edgeThreshold = 70;
+      const scrollSpeed = 10;
+      const verticalEdgeThreshold = 90;
+      const verticalScrollSpeed = 10;
       
       // Find the column's scrollable area for vertical scrolling
-      const columnElement = target ? document.querySelector(`[data-column-id="${target.columnId}"][data-column-scroll]`) : null;
+      const effectiveColumnId = target?.columnId || lastHoverColumnIdRef.current;
+      const columnElement = effectiveColumnId
+        ? document.querySelector(`[data-column-id="${effectiveColumnId}"][data-column-scroll]`)
+        : null;
       
       if (container) {
         const containerRect = container.getBoundingClientRect();
@@ -1708,40 +1765,41 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         }
         
         // HORIZONTAL scrolling for columns (if not doing vertical)
-        // RTL: عند الحافة اليمنى نريد التمرير لليمين (scrollLeft يقل)
-        // عند الحافة اليسرى نريد التمرير لليسار (scrollLeft يزيد)
+        // IMPORTANT: RTL scrollLeft behavior differs between browsers; use panKanbanHorizontally().
         if (touch.clientX > containerRect.right - edgeThreshold) {
-          // الحافة اليمنى في RTL - نريد إظهار المزيد من اليمين
+          // Near RIGHT edge -> pan right visually (show columns further right)
           autoScrollIntervalRef.current = setInterval(() => {
-            if (kanbanContainerRef.current) {
-              kanbanContainerRef.current.scrollLeft -= scrollSpeed;
-              
-              // تحديث المؤشر الأخضر أثناء التمرير
-              const pos = lastTouchPosRef.current;
-              if (pos) {
-                const updatedTarget = findColumnAtPoint(pos.x, pos.y);
-                if (updatedTarget) setDropIndicator(updatedTarget);
+            panKanbanHorizontally(+scrollSpeed);
+
+            // تحديث المؤشر الأخضر أثناء التمرير
+            const pos = lastTouchPosRef.current;
+            if (pos) {
+              const updatedTarget = findColumnAtPoint(pos.x, pos.y);
+              if (updatedTarget) {
+                setDropIndicator(updatedTarget);
+                lastHoverColumnIdRef.current = updatedTarget.columnId;
               }
             }
           }, 16);
         } else if (touch.clientX < containerRect.left + edgeThreshold) {
-          // الحافة اليسرى في RTL - نريد إظهار المزيد من اليسار
+          // Near LEFT edge -> pan left visually (show columns further left)
           autoScrollIntervalRef.current = setInterval(() => {
-            if (kanbanContainerRef.current) {
-              kanbanContainerRef.current.scrollLeft += scrollSpeed;
-              
-              // تحديث المؤشر الأخضر أثناء التمرير
-              const pos = lastTouchPosRef.current;
-              if (pos) {
-                const updatedTarget = findColumnAtPoint(pos.x, pos.y);
-                if (updatedTarget) setDropIndicator(updatedTarget);
+            panKanbanHorizontally(-scrollSpeed);
+
+            // تحديث المؤشر الأخضر أثناء التمرير
+            const pos = lastTouchPosRef.current;
+            if (pos) {
+              const updatedTarget = findColumnAtPoint(pos.x, pos.y);
+              if (updatedTarget) {
+                setDropIndicator(updatedTarget);
+                lastHoverColumnIdRef.current = updatedTarget.columnId;
               }
             }
           }, 16);
         }
       }
     }
-  }, [touchStartPos, touchDragCustomer, findColumnAtPoint]);
+  }, [touchStartPos, touchDragCustomer, findColumnAtPoint, panKanbanHorizontally]);
 
   // Touch end handler
   const handleTouchEnd = useCallback(() => {
