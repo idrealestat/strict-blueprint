@@ -199,3 +199,50 @@
    shares: number;
    status: PostStatus;
  }
+
+// حالة النشر لكل منصة
+export type PublishPlatformStatus = 'pending' | 'uploading' | 'success' | 'failed';
+
+export interface PlatformPublishProgress {
+  platformId: SocialPlatformId;
+  platformName: string;
+  icon: string;
+  status: PublishPlatformStatus;
+  progress: number; // 0-100
+  errorMessage?: string;
+}
+
+// بيانات النشر على التواصل الاجتماعي
+export interface SocialPublishData {
+  description: string;
+  hashtags: string[];
+  selectedPlatforms: SocialPlatformId[];
+  videoFile?: File | null;
+  textOverlays: any[];
+  logo: any | null;
+}
+
+// الهاشتاقات العقارية الشائعة
+export const REAL_ESTATE_HASHTAGS = [
+  '#عقارات',
+  '#عقارات_السعودية',
+  '#عقارات_الرياض',
+  '#عقار',
+  '#للبيع',
+  '#للايجار',
+  '#شقق',
+  '#فلل',
+  '#ارض',
+  '#استثمار_عقاري',
+  '#وسيط_عقاري',
+  '#مسوق_عقاري',
+  '#عروض_عقارية',
+  '#السوق_العقاري',
+  '#تسويق_عقاري',
+  '#realestate',
+  '#property',
+  '#investment',
+  '#riyadh',
+  '#jeddah',
+  '#saudiarabia',
+];
