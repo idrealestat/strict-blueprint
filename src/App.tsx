@@ -19,7 +19,7 @@ import { DigitalCardDashboard, CardEditor } from "./components/digital-card";
 import { CalendarAppointments } from "./components/calendar";
 import { TasksManagement } from "./components/tasks";
 import { MapSystemDashboard } from "./components/map";
-import { AdPublishingSections } from "./components/advertising";
+ import { SocialMediaPublishingSystem } from "./components/social-media-publishing";
 import { PlatformPublishingSystem } from "./components/platform-publishing";
 import CustomersListPage from "./pages/CustomersListPage";
 import OffersRequestsPage from "./pages/OffersRequestsPage";
@@ -447,7 +447,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return <><div className="min-h-screen bg-gray-50 p-4 pb-24"><BottomNavCustomization onBack={handleBack} /></div><AIFloatingButton /></>;
     case "sales":
     case "advertising":
-      return <><AdPublishingSections onBack={handleBack} /><AIFloatingButton /></>;
+       return <><SocialMediaPublishingSystem onClose={handleBack} /><AIFloatingButton /></>;
     case "platform-publishing":
       return <><PlatformPublishingSystem onClose={handleBack} /><AIFloatingButton /></>;
     case "calendar-system-complete":
