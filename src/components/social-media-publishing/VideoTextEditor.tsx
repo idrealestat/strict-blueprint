@@ -104,6 +104,50 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
    // حالة الشعار
    const [logo, setLogo] = useState<LogoOverlay | null>(null);
    const [isLogoSelected, setIsLogoSelected] = useState(false);
+  
+  // مفتاح التخزين المحلي
+  const STORAGE_KEY = 'video-editor-autosave';
+  
+  // استعادة البيانات المحفوظة عند التحميل
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.textOverlays && Array.isArray(data.textOverlays)) {
+          setTextOverlays(data.textOverlays);
+        }
+        if (data.logo) {
+          setLogo(data.logo);
+        }
+        toast.success('تم استعادة المحتوى المحفوظ');
+      }
+    } catch (e) {
+      console.error('Error loading saved data:', e);
+    }
+  }, []);
+  
+  // حفظ تلقائي عند تغيير النصوص أو الشعار
+  useEffect(() => {
+    if (textOverlays.length > 0 || logo) {
+      try {
+        const dataToSave = {
+          textOverlays,
+          logo,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+      } catch (e) {
+        console.error('Error saving data:', e);
+      }
+    }
+  }, [textOverlays, logo]);
+  
+  // مسح البيانات المحفوظة
+  const clearSavedData = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    toast.success('تم مسح المحتوى المحفوظ');
+  }, []);
    
    // حالة السحب
    const [isDragging, setIsDragging] = useState(false);
