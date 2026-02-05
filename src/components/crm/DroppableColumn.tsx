@@ -3,7 +3,7 @@
   * عمود قابل للإفلات باستخدام react-dnd
   */
  
- import React, { useRef } from 'react';
+import React, { useRef } from 'react';
  import { useDrop, useDrag } from 'react-dnd';
  import { ItemTypes, DragItem } from './DraggableCard';
  
@@ -104,9 +104,11 @@
      }),
    });
  
-   // دمج refs
-   dragColumnRef(headerRef);
-   dropColumnRef(dropCardRef(columnRef));
+    // ربط الـ refs بشكل صحيح: لا يمكن تركيب connectors داخل بعض لأنهم يرجعون void
+    // لذلك نربط كل connector على نفس العنصر مباشرة
+    dragColumnRef(headerRef);
+    dropColumnRef(columnRef);
+    dropCardRef(columnRef);
  
    return (
      <div
