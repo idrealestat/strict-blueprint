@@ -26,6 +26,83 @@ import { useState, useMemo } from 'react';
  } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
+async function transcribeMediaWithWebSpeech(file: File, language: string): Promise<string> {
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    throw new Error('المتصفح لا يدعم التعرف على الكلام. جرّب Google Chrome.');
+  }
+
+  const mediaUrl = URL.createObjectURL(file);
+
+  try {
+    return await new Promise<string>((resolve, reject) => {
+      const recognition = new SpeechRecognition();
+      recognition.lang = language;
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      let finalText = '';
+
+      recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalText += event.results[i][0].transcript + ' ';
+          }
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        // في بعض المتصفحات الخطأ يكون بسبب عدم السماح بالمايك أو عدم وجود مدخل صوت
+        reject(new Error(e?.error ? `خطأ في التعرف على الكلام: ${e.error}` : 'خطأ في التعرف على الكلام'));
+      };
+
+      recognition.onend = () => {
+        resolve(finalText.trim());
+      };
+
+      // ملاحظة مهمة: Web Speech API يتعرف على صوت المايك، وليس صوت الملف مباشرة.
+      // هذا يعني أن المتصفح سيطلب إذن المايك، ويجب أن يكون صوت الفيديو/السماعات مسموعاً للمايك.
+      const video = document.createElement('video');
+      video.src = mediaUrl;
+      video.crossOrigin = 'anonymous';
+      video.muted = false;
+      video.playsInline = true;
+      video.preload = 'auto';
+
+      const cleanup = () => {
+        video.pause();
+        video.src = '';
+      };
+
+      video.onended = () => {
+        try {
+          recognition.stop();
+        } catch {
+          // ignore
+        }
+        cleanup();
+      };
+
+      video.onerror = () => {
+        cleanup();
+        reject(new Error('فشل تشغيل الفيديو لبدء التحويل'));
+      };
+
+      video.onloadedmetadata = async () => {
+        try {
+          recognition.start();
+          await video.play();
+        } catch (err) {
+          cleanup();
+          reject(err instanceof Error ? err : new Error('تعذر بدء التحويل'));
+        }
+      };
+    });
+  } finally {
+    URL.revokeObjectURL(mediaUrl);
+  }
+}
+
 // نوع الكلمة مع التوقيت
 interface TimedWord {
   text: string;
@@ -267,8 +344,8 @@ function ContentPreview({
      setHashtags(prev => prev.filter(t => t !== tag));
    };
  
-    // تحويل الصوت إلى نص حقيقي باستخدام ElevenLabs
-   const processAudioToText = async () => {
+     // تحويل الصوت إلى نص (داخل المتصفح عبر Web Speech API) بدل ElevenLabs
+    const processAudioToText = async () => {
      if (!videoFile) {
        toast.error('يرجى رفع فيديو أولاً');
        return;
@@ -278,46 +355,33 @@ function ContentPreview({
       setTimedWords([]);
       setExtractedText('');
 
-      try {
-        // إعداد FormData مع الفيديو
-        const formData = new FormData();
-        formData.append('audio', videoFile);
+       try {
+         // نفس لغة الواجهة الافتراضية هنا: عربي، ويمكن تحسينها لاحقاً بإضافة اختيار لغة.
+         const language = 'ar-SA';
+         const text = await transcribeMediaWithWebSpeech(videoFile, language);
 
-        // استدعاء edge function
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-speech-to-text`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: formData,
-          }
-        );
+         if (!text) {
+           throw new Error('لم يتم التقاط نص. تأكد من السماح بالمايك ورفع صوت الفيديو.');
+         }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'فشل تحويل الصوت');
-        }
+         setExtractedText(text);
 
-        const data = await response.json();
-        
-        // تعيين النص الكامل
-        setExtractedText(data.text || '');
-        
-        // تعيين الكلمات مع التوقيت
-        if (data.words && Array.isArray(data.words)) {
-          setTimedWords(data.words.map((w: any) => ({
-            text: w.text || '',
-            start: w.start || 0,
-            end: w.end || 0,
-          })));
-        }
+         // لا يوجد توقيت كلمات حقيقي عبر Web Speech API، لذا ننشئ توقيتاً تقديرياً بسيطاً
+         // حتى لا تتعطل واجهة التحرير الحالية.
+         const words = text.split(/\s+/).filter(Boolean);
+         const approxWordDuration = 0.35; // تقدير بسيط
+         setTimedWords(
+           words.map((w, idx) => ({
+             text: w,
+             start: idx * approxWordDuration,
+             end: (idx + 1) * approxWordDuration,
+           }))
+         );
 
-        toast.success('تم استخراج النص من الفيديو بنجاح');
+         toast.success('تم تحويل الصوت إلى نص (عبر المتصفح)');
       } catch (error) {
         console.error('Speech-to-text error:', error);
-        toast.error(error instanceof Error ? error.message : 'فشل تحويل الصوت إلى نص');
+         toast.error(error instanceof Error ? error.message : 'فشل تحويل الصوت إلى نص');
       } finally {
         setIsProcessingAudio(false);
       }
