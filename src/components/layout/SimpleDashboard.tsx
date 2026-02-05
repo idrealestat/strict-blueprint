@@ -115,71 +115,61 @@ export default function SimpleDashboard({
   const allServices: ServiceItem[] = useMemo(() => [{
     id: "platform",
     title: "منصتي",
-    description: "نظام متكامل مع CRM وإحصائيات متقدمة وإدارة العقارات",
+    description: "",
     icon: Component,
-    navigateTo: "dashboard-main-252",
-    badge: "النظام الجديد",
-    badgeClass: "bg-[#D4AF37] text-[#01411C]"
+    navigateTo: "dashboard-main-252"
   }, {
     id: "spatial-intelligence",
     title: "الذكاء المكاني",
-    description: "اختبر تحليل المواقع العقارية وتقييم الجاذبية",
+    description: "",
     icon: Sparkles,
     navigateTo: "spatial-intelligence",
-    badge: "🧪 اختبار",
-    badgeClass: "bg-gradient-to-r from-blue-600 to-blue-800 text-white",
     flagKey: "spatial_intelligence_enabled",
     iconBgClass: "bg-gradient-to-r from-blue-600 to-blue-800"
   }, {
     id: "publishing",
     title: "النشر على المنصات",
-    description: "انشر عقاراتك على منصتك الخاصة وعلى المنصات العقارية من مكان واحد",
+    description: "",
     icon: Globe,
     navigateTo: "platform-publishing",
     flagKey: "publishing_enabled"
   }, {
     id: "customer-management",
     title: "إدارة العملاء",
-    description: "نظام كانبان متقدم لإدارة العملاء مع السحب والإفلات",
+    description: "",
     icon: Users,
-    navigateTo: "customer-management-72",
-    badge: "جديد",
-    badgeClass: "bg-[#D4AF37] text-[#01411C]"
+    navigateTo: "customer-management-72"
   }, {
     id: "offers-requests",
     title: "العروض والطلبات",
-    description: "إدارة العروض والطلبات المقبولة من الفرص الذكية",
+    description: "",
     icon: FileText,
     navigateTo: "offers-requests",
     routePath: "/app/offers-requests",
-    badge: "جديد",
-    badgeClass: "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
     flagKey: "offers_requests_enabled"
   }, {
     id: "analytics",
     title: "تحليلات السوق",
-    description: "اكتشف اتجاهات السوق العقاري",
+    description: "",
     icon: TrendingUp,
     navigateTo: "analytics-dashboard"
   }, {
     id: "smart-matches",
     title: "الفرص الذكية",
-    description: "تطابق ذكي بين عروضك وطلباتك مع الوسطاء الآخرين",
+    description: "",
     icon: Sparkles,
     navigateTo: "smart-matches",
-    routePath: "/app/smart-opportunities",
-    badge: "✨ ذكاء اصطناعي",
-    badgeClass: "bg-gradient-to-r from-amber-500 to-orange-500 text-white animate-pulse"
+    routePath: "/app/smart-opportunities"
   }, {
     id: "calendar",
     title: "التقويم والمواعيد",
-    description: "جدولة المواعيد والمعاينات مع العملاء",
+    description: "",
     icon: Calendar,
     navigateTo: "calendar-system-complete"
   }, {
     id: "quick-calculator",
     title: "حاسبة سريعة",
-    description: "حساب العمولة، المساحة، ومسطح البناء",
+    description: "",
     icon: Calculator,
     navigateTo: "quick-calculator",
     flagKey: "quick_calculator_enabled"
@@ -333,11 +323,6 @@ export default function SimpleDashboard({
               };
               return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
                     <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                      {service.badge && <div className="absolute top-2 right-2">
-                          <Badge className={`text-xs ${service.badgeClass || "bg-[#D4AF37] text-[#01411C]"}`}>
-                            {service.badge}
-                          </Badge>
-                        </div>}
                       <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
                         <IconComponent className={`w-8 h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
                       </div>
