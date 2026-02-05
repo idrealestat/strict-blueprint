@@ -52,7 +52,7 @@ export default function SocialContentEditorTab({
   };
   
    return (
-    <div className="h-full flex flex-col" dir="rtl">
+    <div className="min-h-screen flex flex-col pb-20" dir="rtl">
       {/* العنوان */}
       <div className="p-4 pb-2">
         <div className="bg-gradient-to-r from-primary to-primary/70 rounded-xl p-4 text-primary-foreground">
@@ -62,7 +62,7 @@ export default function SocialContentEditorTab({
       </div>
       
       {/* التبويبات */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <div className="px-4">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="editor" className="flex items-center gap-2">
@@ -77,24 +77,16 @@ export default function SocialContentEditorTab({
         </div>
         
          {/* العنوان */}
-        <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              <VideoTextEditor onExport={handleExport} />
-            </div>
-          </ScrollArea>
+        <TabsContent value="editor" className="m-0 p-4">
+          <VideoTextEditor onExport={handleExport} />
         </TabsContent>
          
-        <TabsContent value="publish" className="flex-1 overflow-hidden m-0">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              <SocialPublishPanel
-                connectedPlatforms={connectedPlatforms}
-                hasContent={hasContent}
-                onPublish={handlePublish}
-              />
-            </div>
-          </ScrollArea>
+        <TabsContent value="publish" className="m-0 p-4">
+          <SocialPublishPanel
+            connectedPlatforms={connectedPlatforms}
+            hasContent={hasContent}
+            onPublish={handlePublish}
+          />
         </TabsContent>
       </Tabs>
     </div>
