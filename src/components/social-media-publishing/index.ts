@@ -9,4 +9,6 @@
  export { default as SocialPaidCampaignsTab } from './SocialPaidCampaignsTab';
  export { default as SocialMessagingCampaignsTab } from './SocialMessagingCampaignsTab';
  export { default as SocialAnalyticsTab } from './SocialAnalyticsTab';
+export { default as SocialPublishPanel } from './SocialPublishPanel';
+export { default as VideoTextEditor } from './VideoTextEditor';
  export * from './types';
