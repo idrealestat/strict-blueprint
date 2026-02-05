@@ -3744,62 +3744,62 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       </div>
 
       {/* Bottom Bar - ⚠️ تحذير: هذا الشريط محمي - لا تعدله بدون إذن صريح من صاحب المشروع */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#01411C] to-[#065f41] border-t-2 border-[#D4AF37] backdrop-blur-md">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-around gap-2">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#01411C] to-[#065f41] border-t border-[#D4AF37] backdrop-blur-md">
+        <div className="container mx-auto px-2 py-1.5">
+          <div className="flex items-center justify-around gap-1">
             {/* 1. زر الرجوع للصفحة الرئيسية (أقصى اليمين) */}
             <button
               onClick={onBack}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ArrowRight className="w-5 h-5 text-[#D4AF37]" />
+              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">الرئيسية</span>
+              <span className="text-[10px] text-white/90">الرئيسية</span>
             </button>
             
             {/* 2. زر جهات الاتصال */}
             <button
               onClick={() => setShowContactsPanel(true)}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Users className="w-5 h-5 text-[#D4AF37]" />
+              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users className="w-4 h-4 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">جهات الاتصال</span>
+              <span className="text-[10px] text-white/90">جهات الاتصال</span>
             </button>
             
             {/* 3. زر إضافة عميل (في الوسط - الأبرز) */}
             <button
               onClick={() => setShowAddCustomer(true)}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-12 h-12 rounded-full bg-[#D4AF37] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <Plus className="w-6 h-6 text-[#01411C]" />
+              <div className="w-10 h-10 rounded-full bg-[#D4AF37] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                <Plus className="w-5 h-5 text-[#01411C]" />
               </div>
-              <span className="text-xs text-white font-medium">إضافة عميل</span>
+              <span className="text-[10px] text-white font-medium">إضافة عميل</span>
             </button>
             
             {/* 4. زر التاقات */}
             <button
               onClick={() => setShowTagsManager(true)}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Tag className="w-5 h-5 text-[#D4AF37]" />
+              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Tag className="w-4 h-4 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">التاقات</span>
+              <span className="text-[10px] text-white/90">التاقات</span>
             </button>
             
             {/* 5. زر المهام (أقصى اليسار) */}
             <button
               onClick={() => setShowTasksPanel(true)}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-all group"
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group"
             >
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <CheckSquare className="w-5 h-5 text-[#D4AF37]" />
+              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <CheckSquare className="w-4 h-4 text-[#D4AF37]" />
               </div>
-              <span className="text-xs text-white/90">المهام</span>
+              <span className="text-[10px] text-white/90">المهام</span>
             </button>
           </div>
         </div>
