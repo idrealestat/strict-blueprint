@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { Progress } from '@/components/ui/progress';
+import { useSessionErrorHandler } from '@/hooks/useSessionErrorHandler';
 
 // استخراج الصوت من الفيديو باستخدام FFmpeg
 async function extractAudioFromVideo(
@@ -81,135 +82,77 @@ async function extractAudioFromVideo(
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
-// تحويل الصوت إلى نص باستخدام Web Speech API
-async function transcribeAudioWithWebSpeech(
+// تحويل الصوت إلى نص باستخدام Edge Function (Gemini AI)
+async function transcribeAudioWithEdgeFunction(
   audioBlob: Blob,
-  language: string,
-  onProgress: (progress: number, message: string) => void
+  onProgress: (progress: number, message: string) => void,
+  getAccessToken: () => Promise<string | null>,
+  handleSessionError: () => Promise<void>
 ): Promise<string> {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    throw new Error('المتصفح لا يدعم التعرف على الكلام. جرّب Google Chrome.');
+  onProgress(10, 'جاري تحضير الصوت للإرسال...');
+  
+  // تحويل Blob إلى Base64
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  let binaryString = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    binaryString += String.fromCharCode(uint8Array[i]);
+  }
+  const audioData = btoa(binaryString);
+  
+  onProgress(30, 'جاري إرسال الصوت للتحويل...');
+  
+  const STT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wasata-speech-to-text`;
+  
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    await handleSessionError();
+    throw new Error('يجب تسجيل الدخول للمتابعة');
   }
   
-  onProgress(0, 'جاري تحضير الصوت للتحويل...');
-  const audioUrl = URL.createObjectURL(audioBlob);
+  onProgress(50, 'جاري تحليل الصوت بالذكاء الاصطناعي...');
   
-  try {
-    return await new Promise<string>((resolve, reject) => {
-      const recognition = new SpeechRecognition();
-      recognition.lang = language;
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      let finalText = '';
-      let resolved = false;
-      let userStopped = false;
-      let recognitionStarted = false;
-      
-      recognition.onresult = (event: any) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            finalText += event.results[i][0].transcript + ' ';
-          }
-        }
-      };
-      
-      const safeResolve = (text: string) => {
-        if (resolved) return;
-        resolved = true;
-        resolve(text);
-      };
-
-      const safeReject = (err: Error) => {
-        if (resolved) return;
-        resolved = true;
-        reject(err);
-      };
-
-      const tryStartRecognition = () => {
-        if (userStopped || resolved) return;
-        try {
-          recognition.start();
-          recognitionStarted = true;
-        } catch {
-          // غالباً start تم استدعاؤه بالفعل أو المتصفح منع إعادة البدء فوراً
-        }
-      };
-
-      recognition.onerror = (e: any) => {
-        const code = e?.error as string | undefined;
-        // لا نوقف العملية في "no-speech" و"aborted" لأن المتصفح قد يقطعها بسبب صمت
-        if (code === 'no-speech' || code === 'aborted') {
-          return;
-        }
-        safeReject(new Error(code ? `خطأ في التعرف على الكلام: ${code}` : 'خطأ في التعرف على الكلام'));
-      };
-
-      recognition.onend = () => {
-        // إذا انتهى الصوت أو المستخدم أوقف، ننهي. وإلا نعيد البدء تلقائياً.
-        if (userStopped || resolved) return;
-        // سياسات المتصفح قد توقف الاستماع بعد صمت؛ نعيد التشغيل أثناء تشغيل الصوت
-        setTimeout(() => {
-          tryStartRecognition();
-        }, 250);
-      };
-      
-      const audio = new Audio(audioUrl);
-      const cleanup = () => { audio.pause(); audio.src = ''; };
-      
-      audio.onended = () => {
-        onProgress(100, 'اكتمل التحويل!');
-        userStopped = true;
-        try {
-          recognition.stop();
-        } catch {}
-        cleanup();
-        const text = finalText.trim();
-        if (!text) {
-          safeReject(new Error('لم يتم التقاط نص. جرّب رفع الصوت أو التحدث قرب المايك.'));
-          return;
-        }
-        safeResolve(text);
-      };
-      
-      audio.onerror = () => {
-        cleanup();
-        safeReject(new Error('فشل تشغيل الصوت'));
-      };
-      
-      audio.ontimeupdate = () => {
-        if (audio.duration) {
-          const progressValue = Math.floor((audio.currentTime / audio.duration) * 100);
-          onProgress(progressValue, `جاري التحويل... ${progressValue}%`);
-        }
-      };
-      
-      // مهم: start لازم يكون داخل gesture (نحن ما زلنا داخل Promise التي استدعيت من onClick)
-      // لذلك نبدأ التعرف فوراً ثم نشغّل الصوت.
-      onProgress(5, 'جاري بدء التحويل...');
-      tryStartRecognition();
-      
-      audio.onloadedmetadata = () => {
-        // لا نضع await هنا حتى لا نفقد gesture
-        audio.play().catch((err) => {
-          cleanup();
-          safeReject(err instanceof Error ? err : new Error('تعذر بدء تشغيل الصوت'));
-        });
-      };
-
-      // في بعض الأجهزة قد لا يحدث onloadedmetadata بسرعة، فابدأ التحميل فوراً
-      audio.load();
-
-      // حماية: إذا لم يبدأ recognition بسبب قيود gesture، نعطي رسالة واضحة
-      setTimeout(() => {
-        if (!recognitionStarted && !resolved) {
-          safeReject(new Error('لم يبدأ التعرف على الكلام. اضغط زر التحويل مرة أخرى واسمح بالمايك.'));
-        }
-      }, 1500);
-    });
-  } finally {
-    URL.revokeObjectURL(audioUrl);
+  const response = await fetch(STT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ 
+      audioData, 
+      mimeType: 'audio/wav' 
+    }),
+  });
+  
+  if (response.status === 401) {
+    await handleSessionError();
+    throw new Error('انتهت الجلسة، يرجى تسجيل الدخول مجدداً');
   }
+  
+  if (response.status === 429) {
+    throw new Error('تم تجاوز حد الطلبات، يرجى المحاولة لاحقاً');
+  }
+  
+  if (response.status === 402) {
+    throw new Error('يرجى إضافة رصيد للاستمرار');
+  }
+  
+  onProgress(80, 'جاري استلام النتيجة...');
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'فشل في تحويل الصوت إلى نص');
+  }
+  
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'فشل في تحويل الصوت');
+  }
+  
+  onProgress(100, 'تم التحويل بنجاح!');
+  
+  return result.text || '';
 }
 
 // نوع الكلمة مع التوقيت
@@ -422,6 +365,9 @@ function ContentPreview({
    const ffmpegRef = useRef<FFmpeg | null>(null);
    const ffmpegLoadedRef = useRef(false);
    
+   // Session error handler
+   const { handleSessionError, getAccessToken } = useSessionErrorHandler();
+   
    // إعدادات الفيديو
    const [videoSettings, setVideoSettings] = useState<VideoSettings>({
      subtitlesEnabled: true,
@@ -476,8 +422,6 @@ function ContentPreview({
       setAudioExtractionProgress(0);
 
        try {
-         const language = 'ar-SA';
-         
          // الخطوة 1: استخراج الصوت من الفيديو
          const audioBlob = await extractAudioFromVideo(
            videoFile,
@@ -489,17 +433,18 @@ function ContentPreview({
            }
          );
          
-         // الخطوة 2: تحويل الصوت إلى نص
+          // الخطوة 2: تحويل الصوت إلى نص عبر Edge Function
          setProcessingStep('transcribing');
          setTranscriptionProgress(0);
          
-         const text = await transcribeAudioWithWebSpeech(
+          const text = await transcribeAudioWithEdgeFunction(
            audioBlob,
-           language,
            (progress, message) => {
              setTranscriptionProgress(progress);
              setTranscriptionMessage(message);
-           }
+            },
+            getAccessToken,
+            handleSessionError
          );
 
          if (!text) {
@@ -508,8 +453,7 @@ function ContentPreview({
 
          setExtractedText(text);
 
-         // لا يوجد توقيت كلمات حقيقي عبر Web Speech API، لذا ننشئ توقيتاً تقديرياً بسيطاً
-         // حتى لا تتعطل واجهة التحرير الحالية.
+          // ننشئ توقيتاً تقديرياً بسيطاً للكلمات
          const words = text.split(/\s+/).filter(Boolean);
          const approxWordDuration = 0.35; // تقدير بسيط
          setTimedWords(
@@ -520,7 +464,7 @@ function ContentPreview({
            }))
          );
 
-         toast.success('تم تحويل الصوت إلى نص (عبر المتصفح)');
+          toast.success('تم تحويل الصوت إلى نص بنجاح!');
       } catch (error) {
         console.error('Speech-to-text error:', error);
          toast.error(error instanceof Error ? error.message : 'فشل تحويل الصوت إلى نص');
@@ -788,9 +732,6 @@ function ContentPreview({
                           <Progress value={transcriptionProgress} className="h-3" />
                           <p className="text-xs text-muted-foreground text-center">
                             {transcriptionMessage || 'جاري التحويل...'}
-                          </p>
-                          <p className="text-xs text-amber-600 text-center mt-2">
-                            ⚠️ يجب أن يكون صوت الفيديو مسموعاً للمايك
                           </p>
                         </div>
                       )}
