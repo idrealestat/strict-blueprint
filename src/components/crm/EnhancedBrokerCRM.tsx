@@ -693,22 +693,31 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     const container = kanbanContainerRef.current;
     if (!container) return;
 
-    // For RTL, most browsers are either positive-descending or negative.
-    // In both cases, to pan visually to the right we must DECREASE scrollLeft.
+    const max = Math.max(0, container.scrollWidth - container.clientWidth);
     const isRtl = getComputedStyle(container).direction === 'rtl';
-    if (!isRtl) {
-      container.scrollLeft += visualDeltaX;
-      return;
-    }
-
     const behavior = rtlScrollBehavior.current;
-    if (behavior === 'positive-ascending') {
-      // behaves like LTR axis
-      container.scrollLeft += visualDeltaX;
-    } else {
-      // positive-descending OR negative
-      container.scrollLeft -= visualDeltaX;
-    }
+
+    // Normalize to a single "visual" axis (like LTR):
+    // visual=0 => far left visually, visual=max => far right visually.
+    const toVisual = (actual: number) => {
+      if (!isRtl) return actual;
+      if (behavior === 'positive-ascending') return actual; // RTL behaves like LTR
+      if (behavior === 'negative') return actual + max; // actual: -max..0
+      // positive-descending (Chrome/Safari): actual: max..0
+      return max - actual;
+    };
+
+    const fromVisual = (visual: number) => {
+      if (!isRtl) return visual;
+      if (behavior === 'positive-ascending') return visual;
+      if (behavior === 'negative') return visual - max;
+      // positive-descending
+      return max - visual;
+    };
+
+    const currentVisual = toVisual(container.scrollLeft);
+    const nextVisual = Math.min(max, Math.max(0, currentVisual + visualDeltaX));
+    container.scrollLeft = fromVisual(nextVisual);
   }, []);
   const [dragHintDismissed, setDragHintDismissed] = useState(() => {
     return localStorage.getItem('crm_drag_hint_dismissed') === 'true';
@@ -919,9 +928,22 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   
   // Scroll to right (RTL start) when loaded
   useEffect(() => {
-    if (!isLoading && kanbanContainerRef.current) {
-      // Scroll to the far right for RTL
-      kanbanContainerRef.current.scrollLeft = kanbanContainerRef.current.scrollWidth;
+    const container = kanbanContainerRef.current;
+    if (!isLoading && container) {
+      // Start from far right visually (RTL start)
+      const max = Math.max(0, container.scrollWidth - container.clientWidth);
+      const isRtl = getComputedStyle(container).direction === 'rtl';
+      if (!isRtl) return;
+
+      const behavior = rtlScrollBehavior.current;
+      if (behavior === 'positive-ascending') {
+        container.scrollLeft = max;
+      } else if (behavior === 'negative') {
+        container.scrollLeft = 0; // far right visually
+      } else {
+        // positive-descending
+        container.scrollLeft = 0; // far right visually
+      }
     }
   }, [isLoading]);
   
