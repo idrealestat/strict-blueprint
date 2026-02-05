@@ -679,8 +679,17 @@ import { Input } from '@/components/ui/input';
            )}
  
            {/* لوحة الخطوط */}
-           {showFontPanel && selectedElement?.startsWith('text-') && (
-             <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-black/95 backdrop-blur-lg rounded-xl p-4 z-50 border border-white/10 min-w-[220px]">
+            {showFontPanel && (
+              <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-black/95 backdrop-blur-lg rounded-xl p-4 z-50 border border-white/10 min-w-[220px]">
+                {!selectedElement?.startsWith('text-') ? (
+                  <div className="text-center">
+                    <p className="text-white/60 text-sm mb-3">اختر نصاً أولاً لتغيير الخط</p>
+                    <Button size="sm" variant="ghost" className="text-white/60" onClick={() => setShowFontPanel(false)}>
+                      <X className="w-3 h-3 ml-1" /> إغلاق
+                    </Button>
+                  </div>
+                ) : (
+                  <>
                <p className="text-white/60 text-xs mb-2 text-center">نوع الخط</p>
                <div className="flex flex-col gap-1">
                  {FONTS.map(font => {
@@ -724,6 +733,8 @@ import { Input } from '@/components/ui/input';
                <Button size="sm" variant="ghost" className="w-full mt-3 text-white/60" onClick={() => setShowFontPanel(false)}>
                  <X className="w-3 h-3 ml-1" /> إغلاق
                </Button>
+                  </>
+                )}
              </div>
            )}
          </div>
