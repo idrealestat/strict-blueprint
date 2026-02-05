@@ -9,6 +9,7 @@
  import { useState, useRef, useEffect, useCallback, TouchEvent as ReactTouchEvent } from 'react';
  import { Button } from '@/components/ui/button';
  import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
  import { toast } from 'sonner';
  import { cn } from '@/lib/utils';
  import {
@@ -423,7 +424,7 @@
  
    return (
      <div className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] bg-black/95 rounded-2xl overflow-hidden" dir="rtl">
-       {/* Inputs مخفية */}
+        {/* Hidden file inputs */}
        <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
        <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
  
@@ -474,7 +475,7 @@
          >
            {!videoUrl ? (
              <div
-               className="w-full max-w-[340px] aspect-[9/16] bg-gradient-to-b from-gray-900 to-black rounded-3xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-all"
+                className="w-full max-w-[400px] aspect-[9/16] bg-gradient-to-b from-gray-900 to-black rounded-3xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-all"
                onClick={() => fileInputRef.current?.click()}
              >
                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
@@ -484,7 +485,7 @@
                <p className="text-white/40 text-sm mt-1">MP4, MOV, WebM</p>
              </div>
            ) : (
-             <div className="flex flex-col items-center w-full max-w-[340px]">
+              <div className="flex flex-col items-center w-full max-w-[400px]">
                <div
                  ref={containerRef}
                  className="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
@@ -528,8 +529,14 @@
                        }}
                        onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, overlay.id, overlay.x, overlay.y); }}
                        onTouchStart={(e) => handleTouchStart(e, overlay.id, overlay.x, overlay.y)}
-                       onDoubleClick={() => setEditingTextId(overlay.id)}
-                       onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setSelectedElement(overlay.id);
+                          // Single click to edit for better UX
+                          if (selectedElement === overlay.id) {
+                            setEditingTextId(overlay.id);
+                          }
+                        }}
                      >
                        {selectedElement === overlay.id && <ElementControls id={overlay.id} x={overlay.x} y={overlay.y} />}
                        {showColorPicker === overlay.id && (
@@ -549,17 +556,28 @@
                        {showTimingPanel === overlay.id && <TimingPanel id={overlay.id} />}
                        
                        {editingTextId === overlay.id ? (
-                         <input
+                          <Input
                            value={overlay.text}
                            onChange={(e) => updateTextProp(overlay.id, 'text', e.target.value)}
-                           className="bg-transparent border-0 text-center min-w-[100px] outline-none"
-                           style={{ fontSize: `${overlay.fontSize * 0.8}px`, fontFamily: overlay.fontFamily, color: overlay.color }}
+                            className="bg-white/20 border-white/30 text-center min-w-[150px] h-auto py-2 px-3"
+                            style={{ 
+                              fontSize: `${Math.max(16, overlay.fontSize * 0.7)}px`, 
+                              fontFamily: overlay.fontFamily, 
+                              color: overlay.color,
+                            }}
+                            placeholder="اكتب النص هنا..."
                            autoFocus
-                           onKeyDown={(e) => e.key === 'Enter' && setEditingTextId(null)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation();
+                              if (e.key === 'Enter') setEditingTextId(null);
+                            }}
                            onBlur={() => setEditingTextId(null)}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
                          />
                        ) : (
-                         <span>{overlay.text}</span>
+                          <span className="cursor-text">{overlay.text === 'اكتب هنا...' ? 'اضغط للكتابة' : overlay.text}</span>
                        )}
                      </div>
                    )
@@ -579,11 +597,15 @@
                      }}
                      onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, 'logo', logo.x, logo.y); }}
                      onTouchStart={(e) => handleTouchStart(e, 'logo', logo.x, logo.y)}
-                     onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setSelectedElement('logo'); }}
                    >
                      {selectedElement === 'logo' && <ElementControls id="logo" x={logo.x} y={logo.y} />}
                      {showTimingPanel === 'logo' && <TimingPanel id="logo" />}
-                     <img src={logo.url} alt="Logo" className="w-14 h-14 object-contain drop-shadow-lg" />
+                      <img 
+                        src={logo.url} 
+                        alt="Logo" 
+                        className="w-16 h-16 object-contain drop-shadow-lg pointer-events-none" 
+                      />
                    </div>
                  )}
  
