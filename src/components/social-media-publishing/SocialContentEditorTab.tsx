@@ -1,16 +1,20 @@
  /**
   * SocialContentEditorTab.tsx
-  * محرر فيديو تفاعلي مثل سناب شات وتيكتوك
+ * محرر فيديو تفاعلي مع أكورديون للتحرير والنشر
   */
  
  import VideoTextEditor from './VideoTextEditor';
- import { ScrollArea } from '@/components/ui/scroll-area';
 import SocialPublishPanel from './SocialPublishPanel';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SocialPlatform, SOCIAL_PLATFORMS, SocialPlatformId } from './types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, Send } from 'lucide-react';
- import { useEffect } from 'react';
+import { 
+  Accordion, 
+  AccordionContent, 
+  AccordionItem, 
+  AccordionTrigger 
+} from '@/components/ui/accordion';
+import { Video, Send, ChevronDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
  
 interface SocialContentEditorTabProps {
   connectedPlatforms?: SocialPlatform[];
@@ -19,7 +23,7 @@ interface SocialContentEditorTabProps {
 export default function SocialContentEditorTab({
   connectedPlatforms = SOCIAL_PLATFORMS
 }: SocialContentEditorTabProps) {
-  const [activeTab, setActiveTab] = useState('editor');
+  const [openSection, setOpenSection] = useState<string>('editor');
   const [hasContent, setHasContent] = useState(false);
    
    // تحقق من وجود محتوى محفوظ عند التحميل
@@ -51,8 +55,11 @@ export default function SocialContentEditorTab({
     // سيتم التنفيذ الفعلي هنا
   };
   
+  // عدد المنصات المرتبطة
+  const connectedCount = connectedPlatforms.filter(p => p.status === 'connected').length;
+  
    return (
-    <div className="h-full min-h-0 flex flex-col" dir="rtl">
+    <div className="h-full min-h-0 flex flex-col overflow-y-auto" dir="rtl">
       {/* العنوان */}
       <div className="p-4 pb-2">
         <div className="bg-gradient-to-r from-primary to-primary/70 rounded-xl p-4 text-primary-foreground">
@@ -61,34 +68,83 @@ export default function SocialContentEditorTab({
         </div>
       </div>
       
-      {/* التبويبات */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
-        <div className="px-4">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="editor" className="flex items-center gap-2">
-              <Video className="w-4 h-4" />
-              تحرير الفيديو
-            </TabsTrigger>
-            <TabsTrigger value="publish" className="flex items-center gap-2">
-              <Send className="w-4 h-4" />
-              النشر
-            </TabsTrigger>
-          </TabsList>
-        </div>
-        
-         {/* العنوان */}
-        <TabsContent value="editor" className="flex-1 min-h-0 m-0 p-4 overflow-y-auto">
-          <VideoTextEditor onExport={handleExport} />
-        </TabsContent>
-         
-        <TabsContent value="publish" className="flex-1 min-h-0 m-0 p-4 overflow-y-auto">
-          <SocialPublishPanel
-            connectedPlatforms={connectedPlatforms}
-            hasContent={hasContent}
-            onPublish={handlePublish}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* ملاحظة الاستخدام */}
+      <div className="px-4 pb-2">
+        <p className="text-xs text-muted-foreground text-center bg-muted/50 rounded-lg py-2">
+          👆 المس على العنوان لفتح/إغلاق القسم
+        </p>
+      </div>
+      
+      {/* الأكورديون - قسم واحد مفتوح فقط */}
+      <div className="px-4 pb-20">
+        <Accordion 
+          type="single" 
+          collapsible
+          value={openSection}
+          onValueChange={(value) => setOpenSection(value)}
+          className="space-y-3"
+        >
+          {/* قسم تحرير الفيديو */}
+          <AccordionItem 
+            value="editor" 
+            className="border rounded-xl overflow-hidden bg-card shadow-sm"
+          >
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3 w-full">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Video className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 text-right">
+                  <h3 className="font-bold text-base">تحرير الفيديو</h3>
+                  <p className="text-xs text-muted-foreground">أضف نصوص وشعارات على الفيديو</p>
+                </div>
+                {hasContent && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                    محتوى جاهز
+                  </Badge>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <VideoTextEditor onExport={handleExport} />
+            </AccordionContent>
+          </AccordionItem>
+          
+          {/* قسم النشر */}
+          <AccordionItem 
+            value="publish" 
+            className="border rounded-xl overflow-hidden bg-card shadow-sm"
+          >
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3 w-full">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Send className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 text-right">
+                  <h3 className="font-bold text-base">النشر على المنصات</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {connectedCount > 0 
+                      ? `${connectedCount} منصات مرتبطة`
+                      : 'اربط منصاتك أولاً'}
+                  </p>
+                </div>
+                {!hasContent && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">
+                    بحاجة لمحتوى
+                  </Badge>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <SocialPublishPanel
+                connectedPlatforms={connectedPlatforms}
+                hasContent={hasContent}
+                onPublish={handlePublish}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
     </div>
    );
  }
