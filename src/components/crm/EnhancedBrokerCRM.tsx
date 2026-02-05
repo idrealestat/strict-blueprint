@@ -1622,16 +1622,34 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         }
         
         // HORIZONTAL scrolling for columns (if not doing vertical)
+        // RTL: عند الحافة اليمنى نريد التمرير لليمين (scrollLeft يقل)
+        // عند الحافة اليسرى نريد التمرير لليسار (scrollLeft يزيد)
         if (touch.clientX > containerRect.right - edgeThreshold) {
-          autoScrollIntervalRef.current = setInterval(() => {
-            if (kanbanContainerRef.current) {
-              kanbanContainerRef.current.scrollLeft += scrollSpeed;
-            }
-          }, 16);
-        } else if (touch.clientX < containerRect.left + edgeThreshold) {
+          // الحافة اليمنى في RTL - نريد إظهار المزيد من اليمين
           autoScrollIntervalRef.current = setInterval(() => {
             if (kanbanContainerRef.current) {
               kanbanContainerRef.current.scrollLeft -= scrollSpeed;
+              
+              // تحديث المؤشر الأخضر أثناء التمرير
+              const pos = lastTouchPosRef.current;
+              if (pos) {
+                const updatedTarget = findColumnAtPoint(pos.x, pos.y);
+                if (updatedTarget) setDropIndicator(updatedTarget);
+              }
+            }
+          }, 16);
+        } else if (touch.clientX < containerRect.left + edgeThreshold) {
+          // الحافة اليسرى في RTL - نريد إظهار المزيد من اليسار
+          autoScrollIntervalRef.current = setInterval(() => {
+            if (kanbanContainerRef.current) {
+              kanbanContainerRef.current.scrollLeft += scrollSpeed;
+              
+              // تحديث المؤشر الأخضر أثناء التمرير
+              const pos = lastTouchPosRef.current;
+              if (pos) {
+                const updatedTarget = findColumnAtPoint(pos.x, pos.y);
+                if (updatedTarget) setDropIndicator(updatedTarget);
+              }
             }
           }, 16);
         }
