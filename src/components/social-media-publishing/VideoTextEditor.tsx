@@ -7,7 +7,7 @@
   * - اختيار الخطوط والألوان
   */
  
- import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
  import { Card, CardContent } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@
    onExport?: (data: { textOverlays: TextOverlay[]; logo: LogoOverlay | null }) => void;
  }
  
- export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
+const VideoTextEditor = forwardRef<HTMLDivElement, VideoTextEditorProps>(function VideoTextEditor({ onExport }, ref) {
    // حالة الفيديو
    const [videoFile, setVideoFile] = useState<File | null>(null);
    const [videoUrl, setVideoUrl] = useState('');
@@ -108,6 +108,8 @@
    // حالة السحب
    const [isDragging, setIsDragging] = useState(false);
    const [dragTarget, setDragTarget] = useState<'text' | 'logo' | null>(null);
+  const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
    
    // المراجع
    const videoRef = useRef<HTMLVideoElement>(null);
@@ -249,6 +251,11 @@
    const handleDragStart = (e: React.MouseEvent | React.TouchEvent, target: 'text' | 'logo', id?: string) => {
      e.preventDefault();
      e.stopPropagation();
+    
+    // منع التمرير أثناء السحب
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    
      setIsDragging(true);
      setDragTarget(target);
      if (target === 'text' && id) {
@@ -262,7 +269,9 @@
    
    // أثناء السحب
    const handleDrag = useCallback((e: MouseEvent | TouchEvent) => {
-     if (!isDragging || !canvasRef.current) return;
+    if (!isDragging || !canvasRef.current || !dragTarget) return;
+    
+    e.preventDefault();
      
      const rect = canvasRef.current.getBoundingClientRect();
      let clientX: number, clientY: number;
@@ -282,15 +291,42 @@
      const clampedX = Math.max(5, Math.min(95, x));
      const clampedY = Math.max(5, Math.min(95, y));
      
-     if (dragTarget === 'text' && selectedTextId) {
-       updateText(selectedTextId, { x: clampedX, y: clampedY });
-     } else if (dragTarget === 'logo' && logo) {
-       setLogo(prev => prev ? { ...prev, x: clampedX, y: clampedY } : null);
-     }
-   }, [isDragging, dragTarget, selectedTextId, logo]);
+    // تخزين الموقع الجديد
+    dragPositionRef.current = { x: clampedX, y: clampedY };
+    
+    // استخدام requestAnimationFrame للتحديث المرئي السلس
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    
+    animationFrameRef.current = requestAnimationFrame(() => {
+      if (dragPositionRef.current) {
+        const { x: newX, y: newY } = dragPositionRef.current;
+        
+        if (dragTarget === 'text' && selectedTextId) {
+          setTextOverlays(prev => prev.map(t => 
+            t.id === selectedTextId ? { ...t, x: newX, y: newY } : t
+          ));
+        } else if (dragTarget === 'logo') {
+          setLogo(prev => prev ? { ...prev, x: newX, y: newY } : null);
+        }
+      }
+    });
+  }, [isDragging, dragTarget, selectedTextId]);
    
    // انتهاء السحب
    const handleDragEnd = useCallback(() => {
+    // إعادة تفعيل التمرير
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+    
+    // إلغاء أي animation frame معلق
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    dragPositionRef.current = null;
      setIsDragging(false);
      setDragTarget(null);
    }, []);
@@ -298,9 +334,9 @@
    // إضافة وإزالة مستمعي الأحداث
    useEffect(() => {
      if (isDragging) {
-       window.addEventListener('mousemove', handleDrag);
+      window.addEventListener('mousemove', handleDrag, { passive: false });
        window.addEventListener('mouseup', handleDragEnd);
-       window.addEventListener('touchmove', handleDrag);
+      window.addEventListener('touchmove', handleDrag, { passive: false });
        window.addEventListener('touchend', handleDragEnd);
      }
      return () => {
@@ -308,8 +344,22 @@
        window.removeEventListener('mouseup', handleDragEnd);
        window.removeEventListener('touchmove', handleDrag);
        window.removeEventListener('touchend', handleDragEnd);
+      // تنظيف عند الخروج
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
      };
    }, [isDragging, handleDrag, handleDragEnd]);
+  
+  // تنظيف عند إلغاء تحميل المكون
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, []);
    
    // هل النص مرئي في الوقت الحالي؟
    const isTextVisible = (text: TextOverlay) => {
@@ -329,7 +379,7 @@
    };
  
    return (
-     <div className="space-y-4" dir="rtl">
+    <div ref={ref} className="space-y-4" dir="rtl">
        {/* منطقة رفع الفيديو */}
        {!videoUrl && (
          <Card className="border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors">
@@ -366,7 +416,7 @@
              <Card className="overflow-hidden bg-black">
                <div 
                  ref={canvasRef}
-                 className="relative mx-auto"
+                  className="relative mx-auto touch-none"
                  style={{ aspectRatio: '9/16', maxHeight: '500px' }}
                >
                  <video
@@ -887,4 +937,6 @@
        )}
      </div>
    );
- }
+});
+
+export default VideoTextEditor;
