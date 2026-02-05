@@ -6,10 +6,14 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Link, FileText, BarChart3 } from 'lucide-react';
+ import { ArrowRight, Link, FileText, BarChart3, Megaphone, MessageCircle, Video } from 'lucide-react';
 import PlatformConnectionsTab from './PlatformConnectionsTab';
 import PlatformPublishForm from './PlatformPublishForm';
 import PublishingAnalyticsTab from './PublishingAnalyticsTab';
+ import PaidCampaignsTab from './PaidCampaignsTab';
+ import MessagingCampaignsTab from './MessagingCampaignsTab';
+ import ContentEditorTab from './ContentEditorTab';
+ import AdvancedAnalyticsTab from './AdvancedAnalyticsTab';
 import { ExternalPlatform, AVAILABLE_PLATFORMS, PublishingAnalytics, PlatformPublishedOffer } from './types';
 
 interface PlatformPublishingSystemProps {
@@ -17,7 +21,7 @@ interface PlatformPublishingSystemProps {
 }
 
 export default function PlatformPublishingSystem({ onClose }: PlatformPublishingSystemProps) {
-  const [activeTab, setActiveTab] = useState<'connections' | 'publish' | 'analytics'>('publish');
+   const [activeTab, setActiveTab] = useState<'publish' | 'connections' | 'content' | 'campaigns' | 'messaging' | 'analytics'>('publish');
   const [platforms, setPlatforms] = useState<ExternalPlatform[]>(AVAILABLE_PLATFORMS);
   const [analytics, setAnalytics] = useState<PublishingAnalytics>({
     totalPublished: 0,
@@ -136,34 +140,37 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
         onValueChange={(v) => setActiveTab(v as any)}
         className="flex-1 min-h-0 flex flex-col overflow-hidden overflow-x-clip w-full max-w-full"
       >
-        {/* TabsList في shadcn افتراضياً inline-flex، لذلك نجبره ليصبح Grid بعرض كامل على الجوال */}
-        <TabsList className="!grid w-full max-w-full grid-cols-3 mt-3 px-2 sm:px-3 shrink-0 overflow-x-clip">
-          <TabsTrigger value="publish" className="gap-1 text-xs px-2">
-            <FileText className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">نشر إعلان</span>
-            <span className="sm:hidden">نشر</span>
-          </TabsTrigger>
-          <TabsTrigger value="connections" className="gap-1 text-xs px-2">
-            <Link className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">ربط المنصات</span>
-            <span className="sm:hidden">ربط</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-1 text-xs px-2">
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">التحليلات</span>
-            <span className="sm:hidden">إحصائيات</span>
-          </TabsTrigger>
-        </TabsList>
+         {/* التبويبات - 6 تبويبات */}
+         <div className="shrink-0 mt-3 px-2 overflow-x-auto">
+           <TabsList className="inline-flex w-auto min-w-full gap-1">
+             <TabsTrigger value="publish" className="gap-1 text-xs px-2 whitespace-nowrap">
+               <FileText className="w-3.5 h-3.5" />
+               نشر إعلان
+             </TabsTrigger>
+             <TabsTrigger value="connections" className="gap-1 text-xs px-2 whitespace-nowrap">
+               <Link className="w-3.5 h-3.5" />
+               ربط المنصات
+             </TabsTrigger>
+             <TabsTrigger value="content" className="gap-1 text-xs px-2 whitespace-nowrap">
+               <Video className="w-3.5 h-3.5" />
+               المحتوى
+             </TabsTrigger>
+             <TabsTrigger value="campaigns" className="gap-1 text-xs px-2 whitespace-nowrap">
+               <Megaphone className="w-3.5 h-3.5" />
+               الحملات
+             </TabsTrigger>
+             <TabsTrigger value="messaging" className="gap-1 text-xs px-2 whitespace-nowrap">
+               <MessageCircle className="w-3.5 h-3.5" />
+               المراسلة
+             </TabsTrigger>
+             <TabsTrigger value="analytics" className="gap-1 text-xs px-2 whitespace-nowrap">
+               <BarChart3 className="w-3.5 h-3.5" />
+               التحليلات
+             </TabsTrigger>
+           </TabsList>
+         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden overflow-x-clip w-full max-w-full">
-          <TabsContent value="connections" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
-            <PlatformConnectionsTab 
-              platforms={platforms}
-              onPlatformConnect={handlePlatformConnect}
-              onPlatformDisconnect={handlePlatformDisconnect}
-            />
-          </TabsContent>
-
           <TabsContent value="publish" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
             <PlatformPublishForm 
               connectedPlatforms={platforms}
@@ -172,8 +179,28 @@ export default function PlatformPublishingSystem({ onClose }: PlatformPublishing
             />
           </TabsContent>
 
+           <TabsContent value="connections" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
+             <PlatformConnectionsTab 
+               platforms={platforms}
+               onPlatformConnect={handlePlatformConnect}
+               onPlatformDisconnect={handlePlatformDisconnect}
+             />
+           </TabsContent>
+ 
+           <TabsContent value="content" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
+             <ContentEditorTab />
+           </TabsContent>
+ 
+           <TabsContent value="campaigns" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
+             <PaidCampaignsTab />
+           </TabsContent>
+ 
+           <TabsContent value="messaging" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
+             <MessagingCampaignsTab />
+           </TabsContent>
+ 
           <TabsContent value="analytics" className="h-full m-0 overflow-hidden overflow-x-clip w-full max-w-full">
-            <PublishingAnalyticsTab analytics={analytics} />
+             <AdvancedAnalyticsTab />
           </TabsContent>
         </div>
       </Tabs>
