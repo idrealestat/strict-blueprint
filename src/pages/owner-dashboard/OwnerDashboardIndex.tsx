@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Crown, ChevronLeft, RefreshCw, Brain, Target, Globe, User, 
-  Building2, Clock, Layers, Ban, FileWarning, History, Shield
+  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database
 } from "lucide-react";
 
 interface DashboardSection {
@@ -135,6 +135,14 @@ const OwnerDashboardIndex: React.FC = () => {
       icon: <History className="w-8 h-8" />,
       route: "/app/owner-dashboard/changelog",
       color: "from-gray-500 to-gray-600"
+    },
+    {
+      id: "property-registry",
+      title: "سجل العقارات",
+      description: "جميع العقارات المنشورة",
+      icon: <Database className="w-8 h-8" />,
+      route: "/app/owner-dashboard/property-registry",
+      color: "from-emerald-600 to-emerald-700"
     }
   ];
 

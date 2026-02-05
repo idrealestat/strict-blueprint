@@ -15,3 +15,4 @@ export { default as ExceptionsPage } from './ExceptionsPage';
 export { default as BlacklistPage } from './BlacklistPage';
 export { default as PatternsPage } from './PatternsPage';
 export { default as ChangelogPage } from './ChangelogPage';
+export { default as PropertyRegistryPage } from './PropertyRegistryPage';

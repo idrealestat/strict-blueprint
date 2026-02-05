@@ -123,6 +123,7 @@ export default function SpecialRequestsAdminPanel() {
   const [isAdvancedSearching, setIsAdvancedSearching] = useState(false);
   const [selectedListing, setSelectedListing] = useState<ListingResult | null>(null);
   const [showListingDialog, setShowListingDialog] = useState(false);
+  const [searchSource, setSearchSource] = useState<'listings' | 'registry'>('registry'); // البحث من السجل المركزي افتراضياً
 
   // تحميل الطلبات
   useEffect(() => {
@@ -179,87 +180,146 @@ export default function SpecialRequestsAdminPanel() {
 
     setIsAdvancedSearching(true);
     try {
-      let query = supabase
-        .from('platform_listings')
-        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, deed_number, deed_date, deed_city, created_at, status')
-        .is('deleted_at', null);
+      let results: ListingResult[] = [];
+      
+      if (searchSource === 'registry') {
+        // البحث في السجل المركزي
+        let query = supabase
+          .from('property_registry')
+          .select('id, listing_id, property_title, city, district, price, area, property_type, broker_name, broker_phone, broker_fal_license, owner_name, owner_phone, owner_id_number, owner_national_address, national_address, google_maps_link, plus_code, lat, lng, deed_number, deed_date, deed_city, published_at, ad_license, ad_license_date, ad_license_expires_at');
 
-      if (advancedSearchCity) {
-        query = query.eq('city', advancedSearchCity);
-      }
-
-      if (advancedSearchDistrict) {
-        query = query.ilike('district', `%${advancedSearchDistrict}%`);
-      }
-
-      if (advancedSearchPropertyType) {
-        query = query.eq('property_type', advancedSearchPropertyType);
-      }
-
-      if (advancedSearchNationalAddress) {
-        query = query.ilike('national_address', `%${advancedSearchNationalAddress}%`);
-      }
-
-      if (advancedSearchPlusCode) {
-        query = query.ilike('plus_code', `%${advancedSearchPlusCode}%`);
-      }
-
-      // البحث برابط قوقل يحتاج معالجة خاصة (استخراج الإحداثيات)
-      if (advancedSearchGoogleLink) {
-        const coords = extractCoordsFromGoogleLink(advancedSearchGoogleLink);
-        if (coords) {
-          // البحث ضمن نطاق 500 متر من الموقع
-          const latRange = 0.005; // تقريباً 500 متر
-          const lngRange = 0.005;
-          query = query
-            .gte('lat', coords.lat - latRange)
-            .lte('lat', coords.lat + latRange)
-            .gte('lng', coords.lng - lngRange)
-            .lte('lng', coords.lng + lngRange);
-        } else {
-          query = query.ilike('google_maps_link', `%${advancedSearchGoogleLink}%`);
+        if (advancedSearchCity) {
+          query = query.eq('city', advancedSearchCity);
         }
+        if (advancedSearchDistrict) {
+          query = query.ilike('district', `%${advancedSearchDistrict}%`);
+        }
+        if (advancedSearchPropertyType) {
+          query = query.eq('property_type', advancedSearchPropertyType);
+        }
+        if (advancedSearchNationalAddress) {
+          query = query.ilike('national_address', `%${advancedSearchNationalAddress}%`);
+        }
+        if (advancedSearchPlusCode) {
+          query = query.ilike('plus_code', `%${advancedSearchPlusCode}%`);
+        }
+        if (advancedSearchGoogleLink) {
+          const coords = extractCoordsFromGoogleLink(advancedSearchGoogleLink);
+          if (coords) {
+            const latRange = 0.005;
+            const lngRange = 0.005;
+            query = query
+              .gte('lat', coords.lat - latRange)
+              .lte('lat', coords.lat + latRange)
+              .gte('lng', coords.lng - lngRange)
+              .lte('lng', coords.lng + lngRange);
+          } else {
+            query = query.ilike('google_maps_link', `%${advancedSearchGoogleLink}%`);
+          }
+        }
+
+        const { data, error } = await query.limit(50);
+        if (error) throw error;
+
+        results = (data || []).map((l) => ({
+          id: l.id,
+          title: l.property_title || 'بدون عنوان',
+          city: l.city || '',
+          district: l.district || '',
+          price: l.price || 0,
+          area: l.area,
+          property_type: l.property_type || '',
+          broker_name: l.broker_name || 'غير معروف',
+          broker_phone: l.broker_phone || '',
+          owner_name: l.owner_name || undefined,
+          owner_phone: l.owner_phone || undefined,
+          national_address: l.national_address || l.owner_national_address || undefined,
+          google_maps_link: l.google_maps_link || undefined,
+          plus_code: l.plus_code || undefined,
+          lat: l.lat ? Number(l.lat) : undefined,
+          lng: l.lng ? Number(l.lng) : undefined,
+          deed_number: l.deed_number || undefined,
+          deed_date: l.deed_date || undefined,
+          deed_city: l.deed_city || undefined,
+          created_at: l.published_at,
+          status: 'published',
+        }));
+      } else {
+        // البحث في الإعلانات الحالية
+        let query = supabase
+          .from('platform_listings')
+          .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, deed_number, deed_date, deed_city, created_at, status')
+          .is('deleted_at', null);
+
+        if (advancedSearchCity) {
+          query = query.eq('city', advancedSearchCity);
+        }
+        if (advancedSearchDistrict) {
+          query = query.ilike('district', `%${advancedSearchDistrict}%`);
+        }
+        if (advancedSearchPropertyType) {
+          query = query.eq('property_type', advancedSearchPropertyType);
+        }
+        if (advancedSearchNationalAddress) {
+          query = query.ilike('national_address', `%${advancedSearchNationalAddress}%`);
+        }
+        if (advancedSearchPlusCode) {
+          query = query.ilike('plus_code', `%${advancedSearchPlusCode}%`);
+        }
+        if (advancedSearchGoogleLink) {
+          const coords = extractCoordsFromGoogleLink(advancedSearchGoogleLink);
+          if (coords) {
+            const latRange = 0.005;
+            const lngRange = 0.005;
+            query = query
+              .gte('lat', coords.lat - latRange)
+              .lte('lat', coords.lat + latRange)
+              .gte('lng', coords.lng - lngRange)
+              .lte('lng', coords.lng + lngRange);
+          } else {
+            query = query.ilike('google_maps_link', `%${advancedSearchGoogleLink}%`);
+          }
+        }
+
+        const { data, error } = await query.limit(50);
+        if (error) throw error;
+
+        // جلب بيانات الوسطاء
+        const userIds = [...new Set((data || []).map(l => l.user_id).filter(Boolean))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone')
+          .in('user_id', userIds);
+
+        const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+        results = (data || []).map(l => ({
+          id: l.id,
+          title: l.title,
+          city: l.city,
+          district: l.district,
+          price: l.price,
+          area: l.area,
+          property_type: l.property_type,
+          broker_name: profilesMap.get(l.user_id)?.full_name || 'غير معروف',
+          broker_phone: l.broker_phone || profilesMap.get(l.user_id)?.phone || '',
+          owner_name: l.owner_name || undefined,
+          owner_phone: l.owner_phone || undefined,
+          national_address: l.national_address || undefined,
+          google_maps_link: l.google_maps_link || undefined,
+          plus_code: l.plus_code || undefined,
+          lat: l.lat,
+          lng: l.lng,
+          deed_number: l.deed_number || undefined,
+          deed_date: l.deed_date || undefined,
+          deed_city: l.deed_city || undefined,
+          created_at: l.created_at,
+          status: l.status,
+        }));
       }
-
-      const { data, error } = await query.limit(50);
-
-      if (error) throw error;
-
-      // جلب بيانات الوسطاء
-      const userIds = [...new Set((data || []).map(l => l.user_id).filter(Boolean))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, phone')
-        .in('user_id', userIds);
-
-      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-      const results: ListingResult[] = (data || []).map(l => ({
-        id: l.id,
-        title: l.title,
-        city: l.city,
-        district: l.district,
-        price: l.price,
-        area: l.area,
-        property_type: l.property_type,
-        broker_name: profilesMap.get(l.user_id)?.full_name || 'غير معروف',
-        broker_phone: l.broker_phone || profilesMap.get(l.user_id)?.phone || '',
-        owner_name: l.owner_name || undefined,
-        owner_phone: l.owner_phone || undefined,
-        national_address: l.national_address || undefined,
-        google_maps_link: l.google_maps_link || undefined,
-        plus_code: l.plus_code || undefined,
-        lat: l.lat,
-        lng: l.lng,
-        deed_number: l.deed_number || undefined,
-        deed_date: l.deed_date || undefined,
-        deed_city: l.deed_city || undefined,
-        created_at: l.created_at,
-        status: l.status,
-      }));
 
       setAdvancedSearchResults(results);
-      toast.success(`تم العثور على ${results.length} عقار`);
+      toast.success(`تم العثور على ${results.length} عقار من ${searchSource === 'registry' ? 'السجل المركزي' : 'الإعلانات'}`);
     } catch (error) {
       console.error('Error in advanced search:', error);
       toast.error('فشل في البحث');
@@ -650,6 +710,34 @@ export default function SpecialRequestsAdminPanel() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* اختيار مصدر البحث */}
+              <div className="flex items-center gap-4 p-3 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg border">
+                <Label className="font-semibold">مصدر البحث:</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={searchSource === 'registry' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSearchSource('registry')}
+                    className={searchSource === 'registry' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                  >
+                    <Database className="w-4 h-4 ml-1" />
+                    السجل المركزي
+                  </Button>
+                  <Button
+                    variant={searchSource === 'listings' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSearchSource('listings')}
+                    className={searchSource === 'listings' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                  >
+                    <Building className="w-4 h-4 ml-1" />
+                    الإعلانات الحالية
+                  </Button>
+                </div>
+                <Badge variant="secondary" className="mr-auto">
+                  {searchSource === 'registry' ? 'جميع العقارات المنشورة تاريخياً' : 'الإعلانات النشطة فقط'}
+                </Badge>
+              </div>
+
               {/* معايير البحث */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* المدينة */}
