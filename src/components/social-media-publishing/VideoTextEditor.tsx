@@ -1,75 +1,50 @@
  /**
   * VideoTextEditor.tsx
-  * محرر فيديو تفاعلي مثل سناب شات وتيكتوك
-  * - إضافة نصوص وسحبها على الفيديو
-  * - تحديد وقت ظهور واختفاء كل نص
-  * - إضافة الشعار وسحبه
-  * - اختيار الخطوط والألوان
+  * محرر فيديو تفاعلي بأسلوب سناب شات وتيك توك
+  * - كل الأدوات كـ overlay شفاف على الفيديو
+  * - شريط الألوان أسفل الفيديو مباشرة
+  * - النصوص قابلة للسحب
   */
  
-import { useState, useRef, useEffect, useCallback } from 'react';
- import { Card, CardContent } from '@/components/ui/card';
+ import { useState, useRef, useEffect, useCallback } from 'react';
  import { Button } from '@/components/ui/button';
- import { Input } from '@/components/ui/input';
- import { Label } from '@/components/ui/label';
  import { Slider } from '@/components/ui/slider';
- import { ScrollArea } from '@/components/ui/scroll-area';
- import { Badge } from '@/components/ui/badge';
  import { toast } from 'sonner';
  import {
-   Play, Pause, Plus, Trash2, Type, Image, Move,
-   Palette, AlignCenter, AlignRight, AlignLeft,
-   Bold, Italic, Upload, Eye, EyeOff, GripVertical,
-   Clock, ChevronUp, ChevronDown, Copy
+   Play, Pause, Trash2, Type, Image, 
+   Bold, Italic, Upload, X, Check,
+   Clock, Minus, Plus, Undo2, Move
  } from 'lucide-react';
  
  // الخطوط المتاحة
  const AVAILABLE_FONTS = [
-   { id: 'cairo', name: 'Cairo', nameAr: 'القاهرة', family: 'Cairo, sans-serif' },
-   { id: 'tajawal', name: 'Tajawal', nameAr: 'تجوال', family: 'Tajawal, sans-serif' },
-   { id: 'almarai', name: 'Almarai', nameAr: 'المراعي', family: 'Almarai, sans-serif' },
-   { id: 'noto-arabic', name: 'Noto Arabic', nameAr: 'نوتو عربي', family: '"Noto Sans Arabic", sans-serif' },
-   { id: 'arial', name: 'Arial', nameAr: 'أريال', family: 'Arial, sans-serif' },
+   { id: 'cairo', name: 'القاهرة', family: 'Cairo, sans-serif' },
+   { id: 'tajawal', name: 'تجوال', family: 'Tajawal, sans-serif' },
+   { id: 'almarai', name: 'المراعي', family: 'Almarai, sans-serif' },
+   { id: 'arial', name: 'أريال', family: 'Arial, sans-serif' },
  ];
  
  // الألوان المتاحة
  const AVAILABLE_COLORS = [
-   { id: 'white', name: 'أبيض', color: '#FFFFFF' },
-   { id: 'black', name: 'أسود', color: '#000000' },
-   { id: 'gold', name: 'ذهبي', color: '#FFD700' },
-   { id: 'red', name: 'أحمر', color: '#FF0000' },
-   { id: 'green', name: 'أخضر', color: '#00FF00' },
-   { id: 'blue', name: 'أزرق', color: '#0066FF' },
-   { id: 'yellow', name: 'أصفر', color: '#FFFF00' },
-   { id: 'pink', name: 'وردي', color: '#FF69B4' },
-   { id: 'purple', name: 'بنفسجي', color: '#9B59B6' },
-   { id: 'orange', name: 'برتقالي', color: '#FF6600' },
- ];
- 
- // ألوان الخلفية
- const BACKGROUND_STYLES = [
-   { id: 'none', name: 'بدون', style: 'transparent' },
-   { id: 'solid-black', name: 'أسود', style: 'rgba(0,0,0,0.8)' },
-   { id: 'solid-white', name: 'أبيض', style: 'rgba(255,255,255,0.8)' },
-   { id: 'gradient-dark', name: 'تدرج داكن', style: 'linear-gradient(135deg, rgba(0,0,0,0.9), rgba(50,50,50,0.7))' },
-   { id: 'blur', name: 'ضبابي', style: 'rgba(0,0,0,0.5)' },
+   '#FFFFFF', '#000000', '#FFD700', '#FF0000', 
+   '#00FF00', '#0066FF', '#FF69B4', '#9B59B6', 
+   '#FF6600', '#00CED1', '#01411C'
  ];
  
  // نوع عنصر النص
  interface TextOverlay {
    id: string;
    text: string;
-   x: number; // نسبة مئوية من العرض
-   y: number; // نسبة مئوية من الارتفاع
+   x: number;
+   y: number;
    fontSize: number;
    fontFamily: string;
    color: string;
    backgroundColor: string;
-   alignment: 'left' | 'center' | 'right';
    bold: boolean;
    italic: boolean;
-   startTime: number; // ثانية
-   endTime: number; // ثانية
+   startTime: number;
+   endTime: number;
    visible: boolean;
  }
  
@@ -78,20 +53,18 @@ import { useState, useRef, useEffect, useCallback } from 'react';
    url: string;
    x: number;
    y: number;
-   width: number;
-   height: number;
+   size: number;
    startTime: number;
    endTime: number;
    visible: boolean;
  }
  
  interface VideoTextEditorProps {
-   onExport?: (data: { textOverlays: TextOverlay[]; logo: LogoOverlay | null }) => void;
+   onExport?: (data: { textOverlays: TextOverlay[]; logo: LogoOverlay | null; videoSrc: string | null }) => void;
  }
  
-export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
+ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
    // حالة الفيديو
-   const [videoFile, setVideoFile] = useState<File | null>(null);
    const [videoUrl, setVideoUrl] = useState('');
    const [videoDuration, setVideoDuration] = useState(0);
    const [currentTime, setCurrentTime] = useState(0);
@@ -100,76 +73,60 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
    // حالة النصوص
    const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
    const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+   const [isEditingText, setIsEditingText] = useState(false);
+   const [editingValue, setEditingValue] = useState('');
    
    // حالة الشعار
    const [logo, setLogo] = useState<LogoOverlay | null>(null);
    const [isLogoSelected, setIsLogoSelected] = useState(false);
-  
-  // مفتاح التخزين المحلي
-  const STORAGE_KEY = 'video-editor-autosave';
-  
-  // استعادة البيانات المحفوظة عند التحميل
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.textOverlays && Array.isArray(data.textOverlays)) {
-          setTextOverlays(data.textOverlays);
-        }
-        if (data.logo) {
-          setLogo(data.logo);
-        }
-        toast.success('تم استعادة المحتوى المحفوظ');
-      }
-    } catch (e) {
-      console.error('Error loading saved data:', e);
-    }
-  }, []);
-  
-  // حفظ تلقائي عند تغيير النصوص أو الشعار
-  useEffect(() => {
-    if (textOverlays.length > 0 || logo) {
-      try {
-        const dataToSave = {
-          textOverlays,
-          logo,
-          savedAt: new Date().toISOString()
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-      } catch (e) {
-        console.error('Error saving data:', e);
-      }
-    }
-  }, [textOverlays, logo]);
-  
-  // مسح البيانات المحفوظة
-  const clearSavedData = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    toast.success('تم مسح المحتوى المحفوظ');
-  }, []);
+   
+   // أدوات التحكم المعروضة
+   const [showColorPicker, setShowColorPicker] = useState(false);
+   const [showFontPicker, setShowFontPicker] = useState(false);
+   const [showTimingPanel, setShowTimingPanel] = useState(false);
    
    // حالة السحب
    const [isDragging, setIsDragging] = useState(false);
    const [dragTarget, setDragTarget] = useState<'text' | 'logo' | null>(null);
-  const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+   const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
+   const animationFrameRef = useRef<number | null>(null);
    
    // المراجع
    const videoRef = useRef<HTMLVideoElement>(null);
    const canvasRef = useRef<HTMLDivElement>(null);
    const fileInputRef = useRef<HTMLInputElement>(null);
    const logoInputRef = useRef<HTMLInputElement>(null);
+   const textInputRef = useRef<HTMLInputElement>(null);
    
-   // النص المحدد حاليًا
+   const STORAGE_KEY = 'video-editor-autosave';
    const selectedText = textOverlays.find(t => t.id === selectedTextId);
+   
+   // استعادة البيانات المحفوظة
+   useEffect(() => {
+     try {
+       const saved = localStorage.getItem(STORAGE_KEY);
+       if (saved) {
+         const data = JSON.parse(saved);
+         if (data.textOverlays) setTextOverlays(data.textOverlays);
+         if (data.logo) setLogo(data.logo);
+         toast.success('تم استعادة المحتوى المحفوظ');
+       }
+     } catch (e) {}
+   }, []);
+   
+   // حفظ تلقائي
+   useEffect(() => {
+     if (textOverlays.length > 0 || logo) {
+       localStorage.setItem(STORAGE_KEY, JSON.stringify({ textOverlays, logo, savedAt: new Date().toISOString() }));
+     }
+     onExport?.({ textOverlays, logo, videoSrc: videoUrl || null });
+   }, [textOverlays, logo, videoUrl, onExport]);
    
    // رفع الفيديو
    const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];
      if (file) {
        if (videoUrl) URL.revokeObjectURL(videoUrl);
-       setVideoFile(file);
        setVideoUrl(URL.createObjectURL(file));
        setTextOverlays([]);
        setLogo(null);
@@ -181,57 +138,36 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
    // رفع الشعار
    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];
-     if (file) {
-       if (!file.type.startsWith('image/')) {
-         toast.error('يرجى رفع صورة');
-         return;
-       }
-       const url = URL.createObjectURL(file);
+     if (file && file.type.startsWith('image/')) {
        setLogo({
-         url,
-         x: 80,
-         y: 5,
-         width: 60,
-         height: 60,
-         startTime: 0,
-         endTime: videoDuration || 10,
+         url: URL.createObjectURL(file),
+         x: 85, y: 10, size: 50,
+         startTime: 0, endTime: videoDuration || 10,
          visible: true,
        });
-       toast.success('تم رفع الشعار - اسحبه لتحديد موقعه');
+       toast.success('تم رفع الشعار');
      }
    };
    
-   // تحديث مدة الفيديو
    const handleVideoLoaded = () => {
      if (videoRef.current) {
        setVideoDuration(videoRef.current.duration);
-       // تحديث endTime للشعار
-       if (logo) {
-         setLogo(prev => prev ? { ...prev, endTime: videoRef.current!.duration } : null);
-       }
+       if (logo) setLogo(prev => prev ? { ...prev, endTime: videoRef.current!.duration } : null);
      }
    };
    
-   // تحديث الوقت الحالي
    const handleTimeUpdate = () => {
-     if (videoRef.current) {
-       setCurrentTime(videoRef.current.currentTime);
-     }
+     if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
    };
    
-   // تشغيل/إيقاف الفيديو
    const togglePlay = () => {
      if (videoRef.current) {
-       if (isPlaying) {
-         videoRef.current.pause();
-       } else {
-         videoRef.current.play();
-       }
+       if (isPlaying) videoRef.current.pause();
+       else videoRef.current.play();
        setIsPlaying(!isPlaying);
      }
    };
    
-   // الانتقال لوقت معين
    const seekTo = (time: number) => {
      if (videoRef.current) {
        videoRef.current.currentTime = time;
@@ -243,63 +179,58 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
    const addNewText = () => {
      const newText: TextOverlay = {
        id: `text-${Date.now()}`,
-       text: 'اكتب هنا',
-       x: 50,
-       y: 50,
-       fontSize: 24,
+       text: 'اضغط للكتابة',
+       x: 50, y: 50,
+       fontSize: 28,
        fontFamily: 'Cairo, sans-serif',
        color: '#FFFFFF',
-       backgroundColor: 'rgba(0,0,0,0.5)',
-       alignment: 'center',
-       bold: false,
-       italic: false,
+       backgroundColor: 'rgba(0,0,0,0.6)',
+       bold: false, italic: false,
        startTime: currentTime,
-       endTime: Math.min(currentTime + 3, videoDuration || 10),
+       endTime: Math.min(currentTime + 5, videoDuration || 10),
        visible: true,
      };
      setTextOverlays(prev => [...prev, newText]);
      setSelectedTextId(newText.id);
-     toast.success('تم إضافة نص - اضغط عليه للتعديل');
+     setIsLogoSelected(false);
    };
    
-   // تحديث نص
    const updateText = (id: string, updates: Partial<TextOverlay>) => {
-     setTextOverlays(prev => prev.map(t => 
-       t.id === id ? { ...t, ...updates } : t
-     ));
+     setTextOverlays(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
    };
    
-   // حذف نص
-   const deleteText = (id: string) => {
-     setTextOverlays(prev => prev.filter(t => t.id !== id));
-     if (selectedTextId === id) setSelectedTextId(null);
-     toast.success('تم حذف النص');
-   };
-   
-   // نسخ نص
-   const duplicateText = (id: string) => {
-     const original = textOverlays.find(t => t.id === id);
-     if (original) {
-       const newText: TextOverlay = {
-         ...original,
-         id: `text-${Date.now()}`,
-         y: Math.min(original.y + 10, 90),
-       };
-       setTextOverlays(prev => [...prev, newText]);
-       setSelectedTextId(newText.id);
-       toast.success('تم نسخ النص');
+   const deleteSelected = () => {
+     if (selectedTextId) {
+       setTextOverlays(prev => prev.filter(t => t.id !== selectedTextId));
+       setSelectedTextId(null);
+       toast.success('تم الحذف');
+     } else if (isLogoSelected) {
+       setLogo(null);
+       setIsLogoSelected(false);
+       toast.success('تم حذف الشعار');
      }
+   };
+   
+   // بدء تحرير النص
+   const startEditingText = (text: TextOverlay) => {
+     setEditingValue(text.text);
+     setIsEditingText(true);
+     setTimeout(() => textInputRef.current?.focus(), 100);
+   };
+   
+   const confirmTextEdit = () => {
+     if (selectedTextId && editingValue.trim()) {
+       updateText(selectedTextId, { text: editingValue });
+     }
+     setIsEditingText(false);
    };
    
    // بدء السحب
    const handleDragStart = (e: React.MouseEvent | React.TouchEvent, target: 'text' | 'logo', id?: string) => {
      e.preventDefault();
      e.stopPropagation();
-    
-    // منع التمرير أثناء السحب
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-    
+     document.body.style.overflow = 'hidden';
+     document.body.style.touchAction = 'none';
      setIsDragging(true);
      setDragTarget(target);
      if (target === 'text' && id) {
@@ -309,78 +240,50 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
        setIsLogoSelected(true);
        setSelectedTextId(null);
      }
+     setShowColorPicker(false);
+     setShowFontPicker(false);
+     setShowTimingPanel(false);
    };
    
-   // أثناء السحب
    const handleDrag = useCallback((e: MouseEvent | TouchEvent) => {
-    if (!isDragging || !canvasRef.current || !dragTarget) return;
-    
-    e.preventDefault();
+     if (!isDragging || !canvasRef.current || !dragTarget) return;
+     e.preventDefault();
      
      const rect = canvasRef.current.getBoundingClientRect();
-     let clientX: number, clientY: number;
+     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
      
-     if ('touches' in e) {
-       clientX = e.touches[0].clientX;
-       clientY = e.touches[0].clientY;
-     } else {
-       clientX = e.clientX;
-       clientY = e.clientY;
-     }
+     const x = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100));
+     const y = Math.max(5, Math.min(95, ((clientY - rect.top) / rect.height) * 100));
      
-     const x = ((clientX - rect.left) / rect.width) * 100;
-     const y = ((clientY - rect.top) / rect.height) * 100;
+     dragPositionRef.current = { x, y };
      
-     // تقييد الموقع ضمن الحدود
-     const clampedX = Math.max(5, Math.min(95, x));
-     const clampedY = Math.max(5, Math.min(95, y));
-     
-    // تخزين الموقع الجديد
-    dragPositionRef.current = { x: clampedX, y: clampedY };
-    
-    // استخدام requestAnimationFrame للتحديث المرئي السلس
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(() => {
-      if (dragPositionRef.current) {
-        const { x: newX, y: newY } = dragPositionRef.current;
-        
-        if (dragTarget === 'text' && selectedTextId) {
-          setTextOverlays(prev => prev.map(t => 
-            t.id === selectedTextId ? { ...t, x: newX, y: newY } : t
-          ));
-        } else if (dragTarget === 'logo') {
-          setLogo(prev => prev ? { ...prev, x: newX, y: newY } : null);
-        }
-      }
-    });
-  }, [isDragging, dragTarget, selectedTextId]);
+     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+     animationFrameRef.current = requestAnimationFrame(() => {
+       if (!dragPositionRef.current) return;
+       const { x: newX, y: newY } = dragPositionRef.current;
+       if (dragTarget === 'text' && selectedTextId) {
+         setTextOverlays(prev => prev.map(t => t.id === selectedTextId ? { ...t, x: newX, y: newY } : t));
+       } else if (dragTarget === 'logo') {
+         setLogo(prev => prev ? { ...prev, x: newX, y: newY } : null);
+       }
+     });
+   }, [isDragging, dragTarget, selectedTextId]);
    
-   // انتهاء السحب
    const handleDragEnd = useCallback(() => {
-    // إعادة تفعيل التمرير
-    document.body.style.overflow = '';
-    document.body.style.touchAction = '';
-    
-    // إلغاء أي animation frame معلق
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    
-    dragPositionRef.current = null;
+     document.body.style.overflow = '';
+     document.body.style.touchAction = '';
+     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+     dragPositionRef.current = null;
      setIsDragging(false);
      setDragTarget(null);
    }, []);
    
-   // إضافة وإزالة مستمعي الأحداث
    useEffect(() => {
      if (isDragging) {
-      window.addEventListener('mousemove', handleDrag, { passive: false });
+       window.addEventListener('mousemove', handleDrag, { passive: false });
        window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleDrag, { passive: false });
+       window.addEventListener('touchmove', handleDrag, { passive: false });
        window.addEventListener('touchend', handleDragEnd);
      }
      return () => {
@@ -388,182 +291,142 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
        window.removeEventListener('mouseup', handleDragEnd);
        window.removeEventListener('touchmove', handleDrag);
        window.removeEventListener('touchend', handleDragEnd);
-      // تنظيف عند الخروج
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+       document.body.style.overflow = '';
+       document.body.style.touchAction = '';
      };
    }, [isDragging, handleDrag, handleDragEnd]);
-  
-  // تنظيف عند إلغاء تحميل المكون
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    };
-  }, []);
    
-   // هل النص مرئي في الوقت الحالي؟
-   const isTextVisible = (text: TextOverlay) => {
-     return text.visible && currentTime >= text.startTime && currentTime <= text.endTime;
-   };
+   const isTextVisible = (text: TextOverlay) => text.visible && currentTime >= text.startTime && currentTime <= text.endTime;
+   const isLogoVisible = () => logo && logo.visible && currentTime >= logo.startTime && currentTime <= logo.endTime;
+   const formatTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
    
-   // هل الشعار مرئي؟
-   const isLogoVisible = () => {
-     return logo && logo.visible && currentTime >= logo.startTime && currentTime <= logo.endTime;
-   };
-   
-   // تنسيق الوقت
-   const formatTime = (seconds: number) => {
-     const mins = Math.floor(seconds / 60);
-     const secs = Math.floor(seconds % 60);
-     return `${mins}:${secs.toString().padStart(2, '0')}`;
+   const clearSelection = () => {
+     setSelectedTextId(null);
+     setIsLogoSelected(false);
+     setShowColorPicker(false);
+     setShowFontPicker(false);
+     setShowTimingPanel(false);
    };
  
    return (
-    <div className="space-y-4" dir="rtl">
+     <div className="relative w-full" dir="rtl">
        {/* منطقة رفع الفيديو */}
        {!videoUrl && (
-         <Card className="border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors">
-           <CardContent className="p-8">
-             <input
-               ref={fileInputRef}
-               type="file"
-               accept="video/*"
-               onChange={handleVideoUpload}
-               className="hidden"
-             />
-             <div 
-               className="flex flex-col items-center gap-4 cursor-pointer"
-               onClick={() => fileInputRef.current?.click()}
-             >
-               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                 <Upload className="w-10 h-10 text-primary" />
-               </div>
-               <div className="text-center">
-                 <p className="text-lg font-semibold">اضغط لرفع فيديو</p>
-                 <p className="text-sm text-muted-foreground">MP4, MOV, WebM</p>
-               </div>
-             </div>
-           </CardContent>
-         </Card>
+         <div 
+           className="aspect-[9/16] max-h-[70vh] bg-gradient-to-b from-muted to-muted/50 rounded-2xl flex flex-col items-center justify-center gap-4 cursor-pointer border-2 border-dashed border-primary/30 hover:border-primary/60 transition-all"
+           onClick={() => fileInputRef.current?.click()}
+         >
+           <input ref={fileInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+           <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+             <Upload className="w-10 h-10 text-primary" />
+           </div>
+           <p className="text-lg font-bold">اضغط لرفع فيديو</p>
+           <p className="text-sm text-muted-foreground">MP4, MOV, WebM</p>
+         </div>
        )}
  
-       {/* محرر الفيديو */}
+       {/* محرر الفيديو بأسلوب سناب/تيك توك */}
        {videoUrl && (
-         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-           {/* منطقة الفيديو والتحرير */}
-           <div className="lg:col-span-2 space-y-3">
-             {/* الفيديو مع العناصر */}
-             <Card className="overflow-hidden bg-black">
-               <div 
-                 ref={canvasRef}
-                  className="relative mx-auto touch-none"
-                 style={{ aspectRatio: '9/16', maxHeight: '500px' }}
-               >
-                 <video
-                   ref={videoRef}
-                   src={videoUrl}
-                   className="w-full h-full object-contain"
-                   onLoadedMetadata={handleVideoLoaded}
-                   onTimeUpdate={handleTimeUpdate}
-                   onPlay={() => setIsPlaying(true)}
-                   onPause={() => setIsPlaying(false)}
-                   playsInline
-                 />
-                 
-                 {/* طبقة النصوص */}
-                 {textOverlays.map(text => (
-                   isTextVisible(text) && (
-                     <div
-                       key={text.id}
-                       className={`absolute cursor-move select-none transition-all ${
-                         selectedTextId === text.id ? 'ring-2 ring-primary ring-offset-2' : ''
-                       }`}
-                       style={{
-                         left: `${text.x}%`,
-                         top: `${text.y}%`,
-                         transform: 'translate(-50%, -50%)',
-                         fontSize: `${text.fontSize}px`,
-                         fontFamily: text.fontFamily,
-                         color: text.color,
-                         background: text.backgroundColor,
-                         padding: '8px 16px',
-                         borderRadius: '8px',
-                         textAlign: text.alignment,
-                         fontWeight: text.bold ? 'bold' : 'normal',
-                         fontStyle: text.italic ? 'italic' : 'normal',
-                         maxWidth: '80%',
-                         wordBreak: 'break-word',
-                         zIndex: selectedTextId === text.id ? 20 : 10,
-                       }}
-                       onMouseDown={(e) => handleDragStart(e, 'text', text.id)}
-                       onTouchStart={(e) => handleDragStart(e, 'text', text.id)}
-                       onClick={() => {
-                         setSelectedTextId(text.id);
-                         setIsLogoSelected(false);
-                       }}
-                     >
-                       {text.text}
-                       {selectedTextId === text.id && (
-                         <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
-                           <Move className="w-3 h-3" />
-                         </div>
-                       )}
-                     </div>
-                   )
-                 ))}
-                 
-                 {/* الشعار */}
-                 {isLogoVisible() && logo && (
-                   <div
-                     className={`absolute cursor-move select-none ${
-                       isLogoSelected ? 'ring-2 ring-primary ring-offset-2' : ''
-                     }`}
-                     style={{
-                       left: `${logo.x}%`,
-                       top: `${logo.y}%`,
-                       transform: 'translate(-50%, -50%)',
-                       width: `${logo.width}px`,
-                       height: `${logo.height}px`,
-                       zIndex: isLogoSelected ? 20 : 10,
-                     }}
-                     onMouseDown={(e) => handleDragStart(e, 'logo')}
-                     onTouchStart={(e) => handleDragStart(e, 'logo')}
-                     onClick={() => {
-                       setIsLogoSelected(true);
-                       setSelectedTextId(null);
-                     }}
-                   >
-                     <img 
-                       src={logo.url} 
-                       alt="الشعار" 
-                       className="w-full h-full object-contain rounded-lg shadow-lg"
-                       draggable={false}
-                     />
-                     {isLogoSelected && (
-                       <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
-                         <Move className="w-3 h-3" />
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </div>
-             </Card>
+         <div className="relative">
+           {/* منطقة الفيديو */}
+           <div 
+             ref={canvasRef}
+             className="relative aspect-[9/16] max-h-[70vh] bg-black rounded-2xl overflow-hidden touch-none"
+             onClick={(e) => {
+               if (e.target === e.currentTarget || e.target === videoRef.current) {
+                 clearSelection();
+               }
+             }}
+           >
+             <video
+               ref={videoRef}
+               src={videoUrl}
+               className="w-full h-full object-contain"
+               onLoadedMetadata={handleVideoLoaded}
+               onTimeUpdate={handleTimeUpdate}
+               onPlay={() => setIsPlaying(true)}
+               onPause={() => setIsPlaying(false)}
+               playsInline
+             />
              
-             {/* شريط التحكم */}
-             <Card className="p-3">
-               <div className="flex items-center gap-3">
-                 <Button size="icon" variant="outline" onClick={togglePlay}>
+             {/* طبقة النصوص */}
+             {textOverlays.map(text => (
+               isTextVisible(text) && (
+                 <div
+                   key={text.id}
+                   className={`absolute cursor-move select-none transition-shadow ${
+                     selectedTextId === text.id ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent' : ''
+                   }`}
+                   style={{
+                     left: `${text.x}%`, top: `${text.y}%`,
+                     transform: 'translate(-50%, -50%)',
+                     fontSize: `${text.fontSize}px`,
+                     fontFamily: text.fontFamily,
+                     color: text.color,
+                     background: text.backgroundColor,
+                     padding: '8px 16px',
+                     borderRadius: '8px',
+                     fontWeight: text.bold ? 'bold' : 'normal',
+                     fontStyle: text.italic ? 'italic' : 'normal',
+                     maxWidth: '85%',
+                     textAlign: 'center',
+                     zIndex: selectedTextId === text.id ? 20 : 10,
+                   }}
+                   onMouseDown={(e) => handleDragStart(e, 'text', text.id)}
+                   onTouchStart={(e) => handleDragStart(e, 'text', text.id)}
+                   onDoubleClick={() => startEditingText(text)}
+                 >
+                   {text.text}
+                 </div>
+               )
+             ))}
+             
+             {/* الشعار */}
+             {isLogoVisible() && logo && (
+               <div
+                 className={`absolute cursor-move select-none ${
+                   isLogoSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent' : ''
+                 }`}
+                 style={{
+                   left: `${logo.x}%`, top: `${logo.y}%`,
+                   transform: 'translate(-50%, -50%)',
+                   width: `${logo.size}px`, height: `${logo.size}px`,
+                   zIndex: isLogoSelected ? 20 : 10,
+                 }}
+                 onMouseDown={(e) => handleDragStart(e, 'logo')}
+                 onTouchStart={(e) => handleDragStart(e, 'logo')}
+               >
+                 <img src={logo.url} alt="الشعار" className="w-full h-full object-contain rounded-lg" draggable={false} />
+               </div>
+             )}
+             
+             {/* شريط الأدوات العلوي - شفاف */}
+             <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-30 pointer-events-none">
+               {/* أزرار الإضافة */}
+               <div className="flex gap-2 pointer-events-auto">
+                 <Button size="icon" variant="secondary" className="bg-black/50 hover:bg-black/70 text-white border-0 backdrop-blur-sm" onClick={addNewText}>
+                   <Type className="w-5 h-5" />
+                 </Button>
+                 <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                 <Button size="icon" variant="secondary" className="bg-black/50 hover:bg-black/70 text-white border-0 backdrop-blur-sm" onClick={() => logoInputRef.current?.click()}>
+                   <Image className="w-5 h-5" />
+                 </Button>
+               </div>
+               
+               {/* زر تغيير الفيديو */}
+               <Button size="icon" variant="secondary" className="bg-black/50 hover:bg-black/70 text-white border-0 backdrop-blur-sm pointer-events-auto" onClick={() => fileInputRef.current?.click()}>
+                 <Undo2 className="w-5 h-5" />
+               </Button>
+               <input ref={fileInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+             </div>
+             
+             {/* شريط التشغيل السفلي */}
+             <div className="absolute bottom-3 left-3 right-3 z-30">
+               <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-2">
+                 <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/20" onClick={togglePlay}>
                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                  </Button>
-                 
-                 <span className="text-sm font-mono min-w-[50px]">
-                   {formatTime(currentTime)}
-                 </span>
-                 
+                 <span className="text-xs text-white/80 min-w-[35px]">{formatTime(currentTime)}</span>
                  <Slider
                    value={[currentTime]}
                    min={0}
@@ -572,413 +435,193 @@ export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
                    onValueChange={([val]) => seekTo(val)}
                    className="flex-1"
                  />
-                 
-                 <span className="text-sm font-mono min-w-[50px] text-muted-foreground">
-                   {formatTime(videoDuration)}
-                 </span>
+                 <span className="text-xs text-white/60 min-w-[35px]">{formatTime(videoDuration)}</span>
                </div>
-             </Card>
-             
-             {/* أزرار الإضافة */}
-             <div className="flex gap-2">
-               <Button onClick={addNewText} className="flex-1 gap-2">
-                 <Type className="w-4 h-4" />
-                 إضافة نص
-               </Button>
-               
-               <input
-                 ref={logoInputRef}
-                 type="file"
-                 accept="image/*"
-                 onChange={handleLogoUpload}
-                 className="hidden"
-               />
-               <Button 
-                 variant="outline" 
-                 onClick={() => logoInputRef.current?.click()}
-                 className="flex-1 gap-2"
-               >
-                 <Image className="w-4 h-4" />
-                 {logo ? 'تغيير الشعار' : 'إضافة شعار'}
-               </Button>
-               
-               <Button 
-                 variant="outline"
-                 onClick={() => fileInputRef.current?.click()}
-                 className="gap-2"
-               >
-                 <Upload className="w-4 h-4" />
-                 فيديو جديد
-               </Button>
              </div>
+             
+             {/* حقل تحرير النص - overlay */}
+             {isEditingText && (
+               <div className="absolute inset-0 bg-black/70 z-40 flex items-center justify-center p-4">
+                 <div className="w-full max-w-sm space-y-3">
+                   <input
+                     ref={textInputRef}
+                     value={editingValue}
+                     onChange={(e) => setEditingValue(e.target.value)}
+                     className="w-full bg-white/10 border border-white/30 text-white text-center text-xl p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50"
+                     placeholder="اكتب النص هنا..."
+                     dir="rtl"
+                   />
+                   <div className="flex gap-2 justify-center">
+                     <Button size="icon" variant="secondary" className="bg-white/20 hover:bg-white/30 text-white" onClick={() => setIsEditingText(false)}>
+                       <X className="w-5 h-5" />
+                     </Button>
+                     <Button size="icon" className="bg-primary hover:bg-primary/80" onClick={confirmTextEdit}>
+                       <Check className="w-5 h-5" />
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+             )}
            </div>
            
-           {/* لوحة التحكم */}
-           <div className="space-y-3">
-             <ScrollArea className="h-[600px]">
-               <div className="space-y-3 pl-3">
-                 {/* تحرير النص المحدد */}
+           {/* شريط الأدوات للعنصر المحدد - أسفل الفيديو */}
+           {(selectedTextId || isLogoSelected) && !isEditingText && (
+             <div className="mt-3 bg-card rounded-xl p-3 space-y-3 border animate-fade-in">
+               {/* صف الأزرار الرئيسية */}
+               <div className="flex items-center gap-2 flex-wrap">
                  {selectedText && (
-                   <Card className="p-4 space-y-4 border-primary">
-                     <div className="flex items-center justify-between">
-                       <h3 className="font-semibold flex items-center gap-2">
-                         <Type className="w-4 h-4" />
-                         تحرير النص
-                       </h3>
-                       <div className="flex gap-1">
-                         <Button size="icon" variant="ghost" onClick={() => duplicateText(selectedText.id)}>
-                           <Copy className="w-4 h-4" />
-                         </Button>
-                         <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteText(selectedText.id)}>
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
-                       </div>
-                     </div>
-                     
-                     {/* محتوى النص */}
-                     <div>
-                       <Label className="text-xs">النص</Label>
-                       <Input
-                         value={selectedText.text}
-                         onChange={(e) => updateText(selectedText.id, { text: e.target.value })}
-                         className="mt-1"
-                         dir="rtl"
-                       />
-                     </div>
-                     
-                     {/* حجم الخط */}
-                     <div>
-                       <Label className="text-xs">حجم الخط: {selectedText.fontSize}px</Label>
-                       <Slider
-                         value={[selectedText.fontSize]}
-                         min={12}
-                         max={72}
-                         step={1}
-                         onValueChange={([val]) => updateText(selectedText.id, { fontSize: val })}
-                         className="mt-2"
-                       />
-                     </div>
-                     
-                     {/* الخط */}
-                     <div>
-                       <Label className="text-xs">الخط</Label>
-                       <div className="grid grid-cols-2 gap-1 mt-1">
-                         {AVAILABLE_FONTS.map(font => (
-                           <Button
-                             key={font.id}
-                             size="sm"
-                             variant={selectedText.fontFamily === font.family ? 'default' : 'outline'}
-                             onClick={() => updateText(selectedText.id, { fontFamily: font.family })}
-                             className="text-xs"
-                             style={{ fontFamily: font.family }}
-                           >
-                             {font.nameAr}
-                           </Button>
-                         ))}
-                       </div>
-                     </div>
-                     
-                     {/* لون النص */}
-                     <div>
-                       <Label className="text-xs">لون النص</Label>
-                       <div className="flex flex-wrap gap-1 mt-1">
-                         {AVAILABLE_COLORS.map(c => (
-                           <button
-                             key={c.id}
-                             className={`w-7 h-7 rounded-full border-2 ${
-                               selectedText.color === c.color ? 'border-primary ring-2 ring-primary/50' : 'border-border'
-                             }`}
-                             style={{ backgroundColor: c.color }}
-                             onClick={() => updateText(selectedText.id, { color: c.color })}
-                             title={c.name}
-                           />
-                         ))}
-                       </div>
-                     </div>
-                     
-                     {/* خلفية النص */}
-                     <div>
-                       <Label className="text-xs">خلفية النص</Label>
-                       <div className="grid grid-cols-3 gap-1 mt-1">
-                         {BACKGROUND_STYLES.map(bg => (
-                           <Button
-                             key={bg.id}
-                             size="sm"
-                             variant={selectedText.backgroundColor === bg.style ? 'default' : 'outline'}
-                             onClick={() => updateText(selectedText.id, { backgroundColor: bg.style })}
-                             className="text-xs"
-                           >
-                             {bg.name}
-                           </Button>
-                         ))}
-                       </div>
-                     </div>
-                     
-                     {/* التنسيق */}
-                     <div className="flex gap-2">
-                       <Button
-                         size="icon"
-                         variant={selectedText.bold ? 'default' : 'outline'}
-                         onClick={() => updateText(selectedText.id, { bold: !selectedText.bold })}
-                       >
-                         <Bold className="w-4 h-4" />
-                       </Button>
-                       <Button
-                         size="icon"
-                         variant={selectedText.italic ? 'default' : 'outline'}
-                         onClick={() => updateText(selectedText.id, { italic: !selectedText.italic })}
-                       >
-                         <Italic className="w-4 h-4" />
-                       </Button>
-                       <div className="flex-1" />
-                       <Button
-                         size="icon"
-                         variant={selectedText.alignment === 'right' ? 'default' : 'outline'}
-                         onClick={() => updateText(selectedText.id, { alignment: 'right' })}
-                       >
-                         <AlignRight className="w-4 h-4" />
-                       </Button>
-                       <Button
-                         size="icon"
-                         variant={selectedText.alignment === 'center' ? 'default' : 'outline'}
-                         onClick={() => updateText(selectedText.id, { alignment: 'center' })}
-                       >
-                         <AlignCenter className="w-4 h-4" />
-                       </Button>
-                       <Button
-                         size="icon"
-                         variant={selectedText.alignment === 'left' ? 'default' : 'outline'}
-                         onClick={() => updateText(selectedText.id, { alignment: 'left' })}
-                       >
-                         <AlignLeft className="w-4 h-4" />
-                       </Button>
-                     </div>
-                     
-                     {/* التوقيت */}
-                     <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                       <Label className="text-xs flex items-center gap-1">
-                         <Clock className="w-3 h-3" />
-                         توقيت الظهور
-                       </Label>
-                       <div className="grid grid-cols-2 gap-2">
-                         <div>
-                           <Label className="text-[10px] text-muted-foreground">يبدأ</Label>
-                           <div className="flex items-center gap-1">
-                             <Input
-                               type="number"
-                               value={selectedText.startTime.toFixed(1)}
-                               onChange={(e) => updateText(selectedText.id, { startTime: parseFloat(e.target.value) || 0 })}
-                               className="h-8 text-xs"
-                               min={0}
-                               max={videoDuration}
-                               step={0.1}
-                             />
-                             <span className="text-xs">ث</span>
-                           </div>
-                         </div>
-                         <div>
-                           <Label className="text-[10px] text-muted-foreground">ينتهي</Label>
-                           <div className="flex items-center gap-1">
-                             <Input
-                               type="number"
-                               value={selectedText.endTime.toFixed(1)}
-                               onChange={(e) => updateText(selectedText.id, { endTime: parseFloat(e.target.value) || videoDuration })}
-                               className="h-8 text-xs"
-                               min={selectedText.startTime}
-                               max={videoDuration}
-                               step={0.1}
-                             />
-                             <span className="text-xs">ث</span>
-                           </div>
-                         </div>
-                       </div>
-                       <Button 
-                         size="sm" 
-                         variant="outline" 
-                         className="w-full text-xs"
-                         onClick={() => updateText(selectedText.id, { startTime: currentTime })}
-                       >
-                         تعيين البداية للوقت الحالي
-                       </Button>
-                     </div>
-                     
-                     {/* إظهار/إخفاء */}
-                     <Button
-                       variant="outline"
-                       className="w-full gap-2"
-                       onClick={() => updateText(selectedText.id, { visible: !selectedText.visible })}
-                     >
-                       {selectedText.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                       {selectedText.visible ? 'مرئي' : 'مخفي'}
+                   <>
+                     <Button size="sm" variant={showColorPicker ? 'default' : 'outline'} className="gap-1" onClick={() => { setShowColorPicker(!showColorPicker); setShowFontPicker(false); setShowTimingPanel(false); }}>
+                       <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: selectedText.color }} />
+                       اللون
                      </Button>
-                   </Card>
+                     <Button size="sm" variant={showFontPicker ? 'default' : 'outline'} onClick={() => { setShowFontPicker(!showFontPicker); setShowColorPicker(false); setShowTimingPanel(false); }}>
+                       الخط
+                     </Button>
+                     <Button size="sm" variant={selectedText.bold ? 'default' : 'outline'} onClick={() => updateText(selectedText.id, { bold: !selectedText.bold })}>
+                       <Bold className="w-4 h-4" />
+                     </Button>
+                     <Button size="sm" variant={selectedText.italic ? 'default' : 'outline'} onClick={() => updateText(selectedText.id, { italic: !selectedText.italic })}>
+                       <Italic className="w-4 h-4" />
+                     </Button>
+                     <Button size="sm" variant="outline" className="gap-1" onClick={() => startEditingText(selectedText)}>
+                       تعديل النص
+                     </Button>
+                   </>
                  )}
                  
-                 {/* تحرير الشعار */}
-                 {isLogoSelected && logo && (
-                   <Card className="p-4 space-y-4 border-primary">
-                     <div className="flex items-center justify-between">
-                       <h3 className="font-semibold flex items-center gap-2">
-                         <Image className="w-4 h-4" />
-                         إعدادات الشعار
-                       </h3>
-                       <Button 
-                         size="icon" 
-                         variant="ghost" 
-                         className="text-destructive"
-                         onClick={() => {
-                           setLogo(null);
-                           setIsLogoSelected(false);
-                         }}
-                       >
-                         <Trash2 className="w-4 h-4" />
-                       </Button>
-                     </div>
-                     
-                     {/* حجم الشعار */}
-                     <div>
-                       <Label className="text-xs">الحجم: {logo.width}px</Label>
-                       <Slider
-                         value={[logo.width]}
-                         min={30}
-                         max={150}
-                         step={5}
-                         onValueChange={([val]) => setLogo(prev => prev ? { ...prev, width: val, height: val } : null)}
-                         className="mt-2"
-                       />
-                     </div>
-                     
-                     {/* توقيت الشعار */}
-                     <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                       <Label className="text-xs flex items-center gap-1">
-                         <Clock className="w-3 h-3" />
-                         توقيت الظهور
-                       </Label>
-                       <div className="grid grid-cols-2 gap-2">
-                         <div>
-                           <Label className="text-[10px] text-muted-foreground">يبدأ</Label>
-                           <div className="flex items-center gap-1">
-                             <Input
-                               type="number"
-                               value={logo.startTime.toFixed(1)}
-                               onChange={(e) => setLogo(prev => prev ? { ...prev, startTime: parseFloat(e.target.value) || 0 } : null)}
-                               className="h-8 text-xs"
-                               min={0}
-                               max={videoDuration}
-                               step={0.1}
-                             />
-                             <span className="text-xs">ث</span>
-                           </div>
-                         </div>
-                         <div>
-                           <Label className="text-[10px] text-muted-foreground">ينتهي</Label>
-                           <div className="flex items-center gap-1">
-                             <Input
-                               type="number"
-                               value={logo.endTime.toFixed(1)}
-                               onChange={(e) => setLogo(prev => prev ? { ...prev, endTime: parseFloat(e.target.value) || videoDuration } : null)}
-                               className="h-8 text-xs"
-                               min={logo.startTime}
-                               max={videoDuration}
-                               step={0.1}
-                             />
-                             <span className="text-xs">ث</span>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                     
-                     {/* إظهار/إخفاء */}
-                     <Button
-                       variant="outline"
-                       className="w-full gap-2"
-                       onClick={() => setLogo(prev => prev ? { ...prev, visible: !prev.visible } : null)}
-                     >
-                       {logo.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                       {logo.visible ? 'مرئي' : 'مخفي'}
-                     </Button>
-                   </Card>
-                 )}
+                 <Button size="sm" variant={showTimingPanel ? 'default' : 'outline'} className="gap-1" onClick={() => { setShowTimingPanel(!showTimingPanel); setShowColorPicker(false); setShowFontPicker(false); }}>
+                   <Clock className="w-4 h-4" />
+                   التوقيت
+                 </Button>
                  
-                 {/* قائمة النصوص */}
-                 <Card className="p-4">
-                   <h3 className="font-semibold mb-3 flex items-center gap-2">
-                     <GripVertical className="w-4 h-4" />
-                     العناصر ({textOverlays.length})
-                   </h3>
-                   
-                   {textOverlays.length === 0 && !logo ? (
-                     <p className="text-sm text-muted-foreground text-center py-4">
-                       اضغط "إضافة نص" للبدء
-                     </p>
-                   ) : (
-                     <div className="space-y-2">
-                       {textOverlays.map((text, index) => (
-                         <div
-                           key={text.id}
-                           className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                             selectedTextId === text.id 
-                               ? 'border-primary bg-primary/5' 
-                               : 'border-border hover:border-primary/50'
-                           }`}
-                           onClick={() => {
-                             setSelectedTextId(text.id);
-                             setIsLogoSelected(false);
-                             seekTo(text.startTime);
-                           }}
-                         >
-                           <div className="flex items-center gap-2">
-                             <Badge variant="outline" className="text-[10px]">
-                               {index + 1}
-                             </Badge>
-                             <span className="text-sm truncate flex-1">{text.text}</span>
-                             <span className="text-[10px] text-muted-foreground">
-                               {formatTime(text.startTime)} - {formatTime(text.endTime)}
-                             </span>
-                           </div>
-                         </div>
-                       ))}
-                       
-                       {logo && (
-                         <div
-                           className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                             isLogoSelected 
-                               ? 'border-primary bg-primary/5' 
-                               : 'border-border hover:border-primary/50'
-                           }`}
-                           onClick={() => {
-                             setIsLogoSelected(true);
-                             setSelectedTextId(null);
-                           }}
-                         >
-                           <div className="flex items-center gap-2">
-                             <Image className="w-4 h-4 text-muted-foreground" />
-                             <span className="text-sm flex-1">الشعار</span>
-                             <span className="text-[10px] text-muted-foreground">
-                               {formatTime(logo.startTime)} - {formatTime(logo.endTime)}
-                             </span>
-                           </div>
-                         </div>
-                       )}
-                     </div>
-                   )}
-                 </Card>
+                 <div className="flex-1" />
                  
-                 {/* نصائح */}
-                 <Card className="p-4 bg-muted/30">
-                   <h4 className="text-sm font-semibold mb-2">💡 نصائح</h4>
-                   <ul className="text-xs text-muted-foreground space-y-1">
-                     <li>• اسحب النص أو الشعار لتحريكه</li>
-                     <li>• اضغط على عنصر لتحديده وتعديله</li>
-                     <li>• حدد وقت الظهور والاختفاء لكل عنصر</li>
-                     <li>• استخدم الخطوط والألوان المختلفة</li>
-                   </ul>
-                 </Card>
+                 <Button size="sm" variant="destructive" onClick={deleteSelected}>
+                   <Trash2 className="w-4 h-4" />
+                 </Button>
                </div>
-             </ScrollArea>
-           </div>
+               
+               {/* شريط الألوان */}
+               {showColorPicker && selectedText && (
+                 <div className="flex gap-2 flex-wrap p-2 bg-muted/50 rounded-lg animate-scale-in">
+                   {AVAILABLE_COLORS.map(color => (
+                     <button
+                       key={color}
+                       className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${selectedText.color === color ? 'border-primary ring-2 ring-primary/50 scale-110' : 'border-white/30'}`}
+                       style={{ backgroundColor: color }}
+                       onClick={() => updateText(selectedText.id, { color })}
+                     />
+                   ))}
+                 </div>
+               )}
+               
+               {/* اختيار الخط */}
+               {showFontPicker && selectedText && (
+                 <div className="flex gap-2 flex-wrap p-2 bg-muted/50 rounded-lg animate-scale-in">
+                   {AVAILABLE_FONTS.map(font => (
+                     <Button
+                       key={font.id}
+                       size="sm"
+                       variant={selectedText.fontFamily === font.family ? 'default' : 'outline'}
+                       style={{ fontFamily: font.family }}
+                       onClick={() => updateText(selectedText.id, { fontFamily: font.family })}
+                     >
+                       {font.name}
+                     </Button>
+                   ))}
+                 </div>
+               )}
+               
+               {/* لوحة التوقيت */}
+               {showTimingPanel && (
+                 <div className="p-3 bg-muted/50 rounded-lg space-y-3 animate-scale-in">
+                   {selectedText && (
+                     <>
+                       <div className="flex items-center gap-3">
+                         <span className="text-sm min-w-[50px]">البداية:</span>
+                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateText(selectedText.id, { startTime: Math.max(0, selectedText.startTime - 0.5) })}>
+                           <Minus className="w-3 h-3" />
+                         </Button>
+                         <span className="text-sm font-mono min-w-[50px] text-center">{formatTime(selectedText.startTime)}</span>
+                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateText(selectedText.id, { startTime: Math.min(selectedText.endTime - 0.5, selectedText.startTime + 0.5) })}>
+                           <Plus className="w-3 h-3" />
+                         </Button>
+                         <Button size="sm" variant="secondary" onClick={() => updateText(selectedText.id, { startTime: currentTime })}>
+                           الآن
+                         </Button>
+                       </div>
+                       <div className="flex items-center gap-3">
+                         <span className="text-sm min-w-[50px]">النهاية:</span>
+                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateText(selectedText.id, { endTime: Math.max(selectedText.startTime + 0.5, selectedText.endTime - 0.5) })}>
+                           <Minus className="w-3 h-3" />
+                         </Button>
+                         <span className="text-sm font-mono min-w-[50px] text-center">{formatTime(selectedText.endTime)}</span>
+                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateText(selectedText.id, { endTime: Math.min(videoDuration, selectedText.endTime + 0.5) })}>
+                           <Plus className="w-3 h-3" />
+                         </Button>
+                         <Button size="sm" variant="secondary" onClick={() => updateText(selectedText.id, { endTime: currentTime })}>
+                           الآن
+                         </Button>
+                       </div>
+                     </>
+                   )}
+                   
+                   {isLogoSelected && logo && (
+                     <>
+                       <div className="flex items-center gap-3">
+                         <span className="text-sm min-w-[50px]">الحجم:</span>
+                         <Slider
+                           value={[logo.size]}
+                           min={30}
+                           max={120}
+                           step={5}
+                           onValueChange={([val]) => setLogo(prev => prev ? { ...prev, size: val } : null)}
+                           className="flex-1"
+                         />
+                         <span className="text-sm font-mono min-w-[40px]">{logo.size}px</span>
+                       </div>
+                       <div className="flex items-center gap-3">
+                         <span className="text-sm min-w-[50px]">البداية:</span>
+                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setLogo(prev => prev ? { ...prev, startTime: Math.max(0, prev.startTime - 0.5) } : null)}>
+                           <Minus className="w-3 h-3" />
+                         </Button>
+                         <span className="text-sm font-mono min-w-[50px] text-center">{formatTime(logo.startTime)}</span>
+                         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setLogo(prev => prev ? { ...prev, startTime: Math.min(prev.endTime - 0.5, prev.startTime + 0.5) } : null)}>
+                           <Plus className="w-3 h-3" />
+                         </Button>
+                       </div>
+                     </>
+                   )}
+                 </div>
+               )}
+               
+               {/* حجم الخط للنص */}
+               {selectedText && !showTimingPanel && (
+                 <div className="flex items-center gap-3">
+                   <span className="text-sm">حجم الخط:</span>
+                   <Slider
+                     value={[selectedText.fontSize]}
+                     min={16}
+                     max={56}
+                     step={2}
+                     onValueChange={([val]) => updateText(selectedText.id, { fontSize: val })}
+                     className="flex-1"
+                   />
+                   <span className="text-sm font-mono min-w-[40px]">{selectedText.fontSize}px</span>
+                 </div>
+               )}
+             </div>
+           )}
+           
+           {/* ملاحظة الاستخدام */}
+           {!selectedTextId && !isLogoSelected && (
+             <div className="mt-3 text-center text-sm text-muted-foreground">
+               👆 اضغط على نص أو شعار لتعديله، أو اضغط مرتين لتحرير النص
+             </div>
+           )}
          </div>
        )}
      </div>
    );
-}
+ }
