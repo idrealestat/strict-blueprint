@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { SocialPlatform, SOCIAL_PLATFORMS, SocialPlatformId } from './types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Video, Send } from 'lucide-react';
+ import { useEffect } from 'react';
  
 interface SocialContentEditorTabProps {
   connectedPlatforms?: SocialPlatform[];
@@ -20,10 +21,24 @@ export default function SocialContentEditorTab({
 }: SocialContentEditorTabProps) {
   const [activeTab, setActiveTab] = useState('editor');
   const [hasContent, setHasContent] = useState(false);
+   
+   // تحقق من وجود محتوى محفوظ عند التحميل
+   useEffect(() => {
+     const saved = localStorage.getItem('video-editor-autosave');
+     if (saved) {
+       try {
+         const data = JSON.parse(saved);
+         if (data.textOverlays?.length > 0 || data.logo !== null) {
+           setHasContent(true);
+         }
+       } catch (e) {}
+     }
+   }, []);
   
   // تتبع وجود محتوى
   const handleExport = (data: any) => {
-    setHasContent(data.textOverlays?.length > 0 || data.logo !== null);
+     const contentExists = data.textOverlays?.length > 0 || data.logo !== null || data.videoSrc !== null;
+     setHasContent(contentExists);
   };
   
   // معالجة النشر

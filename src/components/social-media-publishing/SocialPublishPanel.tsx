@@ -302,9 +302,10 @@
              onChange={(e) => setDescription(e.target.value)}
              rows={4}
              className="resize-none"
+             maxLength={500}
            />
            <p className="text-xs text-muted-foreground mt-1">
-             {description.length} حرف
+             {description.length}/500 حرف
            </p>
          </CardContent>
        </Card>
