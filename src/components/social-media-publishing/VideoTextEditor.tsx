@@ -7,7 +7,7 @@
   * - اختيار الخطوط والألوان
   */
  
-import { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
  import { Card, CardContent } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ import { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
    onExport?: (data: { textOverlays: TextOverlay[]; logo: LogoOverlay | null }) => void;
  }
  
-const VideoTextEditor = forwardRef<HTMLDivElement, VideoTextEditorProps>(function VideoTextEditor({ onExport }, ref) {
+export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
    // حالة الفيديو
    const [videoFile, setVideoFile] = useState<File | null>(null);
    const [videoUrl, setVideoUrl] = useState('');
@@ -379,7 +379,7 @@ const VideoTextEditor = forwardRef<HTMLDivElement, VideoTextEditorProps>(functio
    };
  
    return (
-    <div ref={ref} className="space-y-4" dir="rtl">
+    <div className="space-y-4" dir="rtl">
        {/* منطقة رفع الفيديو */}
        {!videoUrl && (
          <Card className="border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors">
@@ -937,6 +937,4 @@ const VideoTextEditor = forwardRef<HTMLDivElement, VideoTextEditorProps>(functio
        )}
      </div>
    );
-});
-
-export default VideoTextEditor;
+}
