@@ -89,7 +89,9 @@ async function transcribeAudioWithEdgeFunction(
   getAccessToken: () => Promise<string | null>,
   handleSessionError: () => Promise<void>
 ): Promise<string> {
-  onProgress(10, 'جاري تحضير الصوت للإرسال...');
+  // حساب حجم الملف للعرض
+  const fileSizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+  onProgress(5, `جاري تحضير الصوت (${fileSizeMB} ميجابايت)...`);
   
   // تحويل Blob إلى Base64
   const arrayBuffer = await audioBlob.arrayBuffer();
@@ -100,7 +102,11 @@ async function transcribeAudioWithEdgeFunction(
   }
   const audioData = btoa(binaryString);
   
-  onProgress(30, 'جاري إرسال الصوت للتحويل...');
+  onProgress(15, 'تم تحضير الصوت ✓');
+  
+  // تأخير صغير لإظهار التقدم
+  await new Promise(r => setTimeout(r, 300));
+  onProgress(20, 'جاري رفع الصوت للسيرفر...');
   
   const STT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wasata-speech-to-text`;
   
@@ -110,19 +116,44 @@ async function transcribeAudioWithEdgeFunction(
     throw new Error('يجب تسجيل الدخول للمتابعة');
   }
   
-  onProgress(50, 'جاري تحليل الصوت بالذكاء الاصطناعي...');
+  onProgress(30, 'تم رفع الصوت ✓');
+  await new Promise(r => setTimeout(r, 200));
+  onProgress(35, 'جاري إرسال الطلب للذكاء الاصطناعي...');
   
-  const response = await fetch(STT_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ 
-      audioData, 
-      mimeType: 'audio/wav' 
-    }),
-  });
+  // بدء مؤشر التقدم التقديري أثناء انتظار الرد
+  let estimatedProgress = 35;
+  const progressInterval = setInterval(() => {
+    if (estimatedProgress < 85) {
+      estimatedProgress += 2;
+      const messages = [
+        'جاري تحليل الصوت بالذكاء الاصطناعي...',
+        'جاري التعرف على الكلمات...',
+        'جاري معالجة المحتوى الصوتي...',
+        'جاري استخراج النص...',
+      ];
+      const msgIndex = Math.floor((estimatedProgress - 35) / 15) % messages.length;
+      onProgress(estimatedProgress, messages[msgIndex]);
+    }
+  }, 800);
+  
+  let response: Response;
+  try {
+    response = await fetch(STT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ 
+        audioData, 
+        mimeType: 'audio/wav' 
+      }),
+    });
+  } finally {
+    clearInterval(progressInterval);
+  }
+  
+  onProgress(88, 'تم استلام الرد من السيرفر ✓');
   
   if (response.status === 401) {
     await handleSessionError();
@@ -137,12 +168,12 @@ async function transcribeAudioWithEdgeFunction(
     throw new Error('يرجى إضافة رصيد للاستمرار');
   }
   
-  onProgress(80, 'جاري استلام النتيجة...');
-  
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || 'فشل في تحويل الصوت إلى نص');
   }
+  
+  onProgress(92, 'جاري معالجة النتيجة...');
   
   const result = await response.json();
   
@@ -150,7 +181,7 @@ async function transcribeAudioWithEdgeFunction(
     throw new Error(result.error || 'فشل في تحويل الصوت');
   }
   
-  onProgress(100, 'تم التحويل بنجاح!');
+  onProgress(100, 'تم التحويل بنجاح! ✓');
   
   return result.text || '';
 }
@@ -730,7 +761,11 @@ function ContentPreview({
                             <span className="text-sm font-medium">الخطوة 2: تحويل الصوت إلى نص</span>
                           </div>
                           <Progress value={transcriptionProgress} className="h-3" />
-                          <p className="text-xs text-muted-foreground text-center">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{transcriptionProgress}%</span>
+                            <span>{transcriptionMessage || 'جاري التحويل...'}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground text-center mt-1">
                             {transcriptionMessage || 'جاري التحويل...'}
                           </p>
                         </div>
