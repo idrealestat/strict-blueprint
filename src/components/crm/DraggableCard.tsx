@@ -3,8 +3,8 @@
   * بطاقة قابلة للسحب باستخدام react-dnd
   */
  
- import React, { useRef } from 'react';
- import { useDrag, useDrop, DragPreviewImage } from 'react-dnd';
+import React, { useMemo, useRef } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
  import { GripVertical } from 'lucide-react';
  
  export const ItemTypes = {
@@ -42,9 +42,14 @@
  }) => {
    const cardRef = useRef<HTMLDivElement>(null);
    const dragHandleRef = useRef<HTMLDivElement>(null);
+
+  const isTouch = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }, []);
  
    // إعداد السحب (Drag)
-   const [{ isDragging }, dragRef, preview] = useDrag({
+  const [{ isDragging }, dragRef] = useDrag({
      type: ItemTypes.CARD,
      item: (): DragItem => ({
        id,
@@ -105,10 +110,15 @@
      }),
    });
  
-   // تطبيق refs
-   dragRef(dragHandleRef);
-   dropRef(cardRef);
-   preview(cardRef);
+  // تطبيق refs
+  // على الجوال: السحب من كامل البطاقة (ضغط مطوّل)
+  // على الديسكتوب: السحب من المقبض فقط لتجنب تعارض النقر داخل البطاقة
+  if (isTouch) {
+    dragRef(cardRef);
+  } else {
+    dragRef(dragHandleRef);
+  }
+  dropRef(cardRef);
  
    return (
      <div
@@ -129,7 +139,7 @@
            w-6 h-12 flex items-center justify-center
            bg-gradient-to-l from-muted/90 to-transparent
            rounded-l-lg
-           ${disabled ? 'cursor-not-allowed opacity-30' : 'cursor-grab active:cursor-grabbing hover:bg-muted/90'}
+          ${disabled ? 'cursor-not-allowed opacity-30' : 'cursor-grab active:cursor-grabbing hover:bg-muted/90'}
            touch-none
          `}
          style={{ touchAction: 'none' }}
