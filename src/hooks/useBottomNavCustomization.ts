@@ -18,7 +18,7 @@ export type BottomNavButtonId =
   | 'requests-tab'            // تبويب الطلبات
   | 'market-analytics'        // تحليلات السوق
   | 'team-management'         // إدارة الفريق
-  | 'publishing-platforms';   // النشر على المنصات
+  | 'publishing-platforms';   // التواصل الاجتماعي
 
 export interface BottomNavButton {
   id: BottomNavButtonId;
@@ -41,7 +41,7 @@ export const AVAILABLE_BUTTONS: Omit<BottomNavButton, 'position'>[] = [
   { id: 'requests-tab', label: 'الطلبات', isFixed: false, featureFlagKey: 'offers_requests_enabled' },
   { id: 'market-analytics', label: 'تحليلات السوق', isFixed: false },
   { id: 'team-management', label: 'إدارة الفريق', isFixed: false, featureFlagKey: 'right_slider_team_management_enabled' },
-  { id: 'publishing-platforms', label: 'النشر على المنصات', isFixed: false, featureFlagKey: 'publishing_enabled' },
+  { id: 'publishing-platforms', label: 'التواصل الاجتماعي', isFixed: false, featureFlagKey: 'publishing_enabled' },
 ];
 
 export interface BottomNavConfig {

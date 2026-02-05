@@ -75,8 +75,8 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     id: 'platform-publishing',
     icon: Share2,
-    label: 'النشر على المنصات',
-    description: 'إعدادات نشر العقارات على المنصات الخارجية',
+    label: 'التواصل الاجتماعي',
+    description: 'إعدادات النشر على منصات التواصل الاجتماعي',
     color: '#10b981',
   },
   {
@@ -182,7 +182,7 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
       showInterestLevel: true,
       enableQuickActions: true,
     },
-    // النشر على المنصات
+    // التواصل الاجتماعي
     platformPublishing: {
       autoSync: false,
       defaultPlatforms: ['wasalt', 'aqar'],
