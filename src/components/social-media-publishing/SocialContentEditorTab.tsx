@@ -1,9 +1,9 @@
- /**
+  /**
   * SocialContentEditorTab.tsx
   * محرر المحتوى والفيديو للتواصل الاجتماعي
   */
  
- import { useState } from 'react';
+import { useState, useMemo } from 'react';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@
  import { 
    Video, Type, Palette, Image, Hash, Mic, 
    AlignRight, AlignCenter, AlignLeft, Upload,
-   Play, Pause, Volume2, Check, X, Sparkles
+  Play, Pause, Volume2, Check, X, Sparkles, Eye
  } from 'lucide-react';
  import { 
    VideoSettings, 
@@ -25,6 +25,176 @@
    SUBTITLE_COLORS 
  } from './types';
  
+// مكون المعاينة التفاعلية
+function ContentPreview({
+  contentText,
+  hashtags,
+  videoUrl,
+  extractedText,
+  videoSettings,
+}: {
+  contentText: string;
+  hashtags: string[];
+  videoUrl: string;
+  extractedText: string;
+  videoSettings: VideoSettings;
+}) {
+  const selectedFont = APPROVED_FONTS.find(f => f.id === videoSettings.subtitleFont);
+  const selectedColor = SUBTITLE_COLORS.find(c => c.id === videoSettings.subtitleColor);
+
+  const logoPositionClass = useMemo(() => {
+    switch (videoSettings.logoPosition) {
+      case 'top-right': return 'top-2 right-2';
+      case 'top-center': return 'top-2 left-1/2 -translate-x-1/2';
+      case 'top-left': return 'top-2 left-2';
+      default: return 'top-2 right-2';
+    }
+  }, [videoSettings.logoPosition]);
+
+  return (
+    <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-[#D4AF37]/30">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2 text-white">
+          <Eye className="w-4 h-4 text-[#D4AF37]" />
+          معاينة المحتوى
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* إطار المعاينة - يحاكي شكل المنشور */}
+        <div className="bg-white rounded-xl overflow-hidden shadow-lg">
+          {/* رأس المنشور */}
+          <div className="p-3 border-b flex items-center gap-3" dir="rtl">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#01411C] to-[#D4AF37] flex items-center justify-center">
+              <span className="text-white text-xs font-bold">و</span>
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-gray-900">
+                {videoSettings.showCompanyName && videoSettings.companyName 
+                  ? videoSettings.companyName 
+                  : 'اسم الحساب'}
+              </p>
+              <p className="text-xs text-gray-500">الآن</p>
+            </div>
+          </div>
+
+          {/* منطقة الفيديو أو الصورة */}
+          <div className="relative aspect-video bg-gray-100">
+            {videoUrl ? (
+              <video 
+                src={videoUrl} 
+                className="w-full h-full object-cover"
+                muted
+                loop
+                playsInline
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                <Video className="w-16 h-16 text-gray-400" />
+              </div>
+            )}
+
+            {/* الشعار */}
+            <div className={`absolute ${logoPositionClass} z-10`}>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#01411C] to-[#016630] flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg">W</span>
+              </div>
+            </div>
+
+            {/* الترجمة / النص المستخرج */}
+            {videoSettings.subtitlesEnabled && extractedText && (
+              <div className="absolute bottom-4 left-4 right-4 z-10">
+                <p 
+                  className="text-center py-2 px-4 rounded-lg"
+                  style={{
+                    fontFamily: selectedFont?.id || 'Cairo',
+                    fontSize: `${videoSettings.subtitleFontSize}px`,
+                    color: selectedColor?.color || '#FFD700',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  {extractedText.slice(0, 50)}...
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* المحتوى النصي */}
+          <div className="p-3 space-y-2" dir="rtl">
+            {contentText ? (
+              <p className="text-sm text-gray-800 leading-relaxed">
+                {contentText.slice(0, 150)}
+                {contentText.length > 150 && '...'}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">
+                اكتب محتوى المنشور...
+              </p>
+            )}
+
+            {/* الهاشتاقات */}
+            {hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {hashtags.slice(0, 5).map((tag) => (
+                  <span 
+                    key={tag} 
+                    className="text-xs text-[#01411C] font-medium"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+                {hashtags.length > 5 && (
+                  <span className="text-xs text-gray-400">
+                    +{hashtags.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* أزرار التفاعل */}
+          <div className="px-3 py-2 border-t flex justify-around text-gray-500">
+            <button className="flex items-center gap-1 text-xs hover:text-[#01411C]">
+              ❤️ إعجاب
+            </button>
+            <button className="flex items-center gap-1 text-xs hover:text-[#01411C]">
+              💬 تعليق
+            </button>
+            <button className="flex items-center gap-1 text-xs hover:text-[#01411C]">
+              🔄 مشاركة
+            </button>
+          </div>
+        </div>
+
+        {/* ملخص الإعدادات الحالية */}
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div className="bg-gray-800/50 rounded-lg p-2">
+            <p className="text-[10px] text-gray-400">الخط</p>
+            <p className="text-xs text-[#D4AF37] font-medium">
+              {selectedFont?.nameAr || 'Cairo'}
+            </p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-2">
+            <p className="text-[10px] text-gray-400">اللون</p>
+            <div 
+              className="w-4 h-4 rounded-full mx-auto mt-1"
+              style={{ backgroundColor: selectedColor?.color || '#FFD700' }}
+            />
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-2">
+            <p className="text-[10px] text-gray-400">الشعار</p>
+            <p className="text-xs text-[#D4AF37] font-medium">
+              {videoSettings.logoPosition === 'top-right' && 'يمين'}
+              {videoSettings.logoPosition === 'top-center' && 'وسط'}
+              {videoSettings.logoPosition === 'top-left' && 'يسار'}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
  export default function SocialContentEditorTab() {
    // حالة المحتوى النصي
    const [contentText, setContentText] = useState('');
@@ -112,6 +282,15 @@
            <p className="text-purple-100 text-sm">أنشئ محتوى احترافي للتواصل الاجتماعي</p>
          </div>
  
+        {/* منطقة المعاينة - أعلى التبويبات */}
+        <ContentPreview
+          contentText={contentText}
+          hashtags={hashtags}
+          videoUrl={videoUrl}
+          extractedText={extractedText}
+          videoSettings={videoSettings}
+        />
+
          <Tabs defaultValue="text" className="w-full">
            <TabsList className="w-full grid grid-cols-3 mb-4">
              <TabsTrigger value="text" className="gap-1">
