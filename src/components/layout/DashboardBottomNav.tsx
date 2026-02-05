@@ -325,21 +325,31 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
           className="bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-t-2 border-[#D4AF37] shadow-[0_-4px_20px_rgba(0,0,0,0.3)]"
         >
           <div className="container mx-auto px-2">
-            <div className="flex items-center justify-between py-1.5 md:py-1" dir="rtl">
+            <div className="flex items-center justify-around py-1.5 md:py-1" dir="rtl">
               {/* أقصى اليمين - الرئيسية */}
-              {renderButton('right')}
+              <div className="flex-1 flex justify-center">
+                {renderButton('right')}
+              </div>
               
               {/* يمين الوسط - نشر إعلان */}
-              {renderButton('right-center')}
+              <div className="flex-1 flex justify-center">
+                {renderButton('right-center')}
+              </div>
               
               {/* الوسط - الزر الكبير */}
-              {renderButton('center')}
+              <div className="flex-1 flex justify-center">
+                {renderButton('center')}
+              </div>
               
               {/* يسار الوسط - حاسبة سريعة */}
-              {renderButton('left-center')}
+              <div className="flex-1 flex justify-center">
+                {renderButton('left-center')}
+              </div>
               
               {/* أقصى اليسار - الفرص الذكية */}
-              {renderButton('left')}
+              <div className="flex-1 flex justify-center">
+                {renderButton('left')}
+              </div>
             </div>
           </div>
         </div>
