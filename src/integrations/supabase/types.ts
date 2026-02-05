@@ -1824,6 +1824,132 @@ export type Database = {
         }
         Relationships: []
       }
+      property_registry: {
+        Row: {
+          ad_license: string | null
+          ad_license_date: string | null
+          ad_license_expires_at: string | null
+          area: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          broker_fal_license: string | null
+          broker_name: string | null
+          broker_phone: string | null
+          category: string | null
+          city: string | null
+          created_at: string
+          deed_city: string | null
+          deed_date: string | null
+          deed_number: string | null
+          district: string | null
+          google_maps_link: string | null
+          id: string
+          lat: number | null
+          listing_id: string
+          lng: number | null
+          national_address: string | null
+          owner_birth_date: string | null
+          owner_city: string | null
+          owner_district: string | null
+          owner_id_number: string | null
+          owner_name: string | null
+          owner_national_address: string | null
+          owner_phone: string | null
+          plus_code: string | null
+          price: number | null
+          property_title: string | null
+          property_type: string | null
+          published_at: string
+          purpose: string | null
+          slug: string | null
+          street: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ad_license?: string | null
+          ad_license_date?: string | null
+          ad_license_expires_at?: string | null
+          area?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_fal_license?: string | null
+          broker_name?: string | null
+          broker_phone?: string | null
+          category?: string | null
+          city?: string | null
+          created_at?: string
+          deed_city?: string | null
+          deed_date?: string | null
+          deed_number?: string | null
+          district?: string | null
+          google_maps_link?: string | null
+          id?: string
+          lat?: number | null
+          listing_id: string
+          lng?: number | null
+          national_address?: string | null
+          owner_birth_date?: string | null
+          owner_city?: string | null
+          owner_district?: string | null
+          owner_id_number?: string | null
+          owner_name?: string | null
+          owner_national_address?: string | null
+          owner_phone?: string | null
+          plus_code?: string | null
+          price?: number | null
+          property_title?: string | null
+          property_type?: string | null
+          published_at?: string
+          purpose?: string | null
+          slug?: string | null
+          street?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ad_license?: string | null
+          ad_license_date?: string | null
+          ad_license_expires_at?: string | null
+          area?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          broker_fal_license?: string | null
+          broker_name?: string | null
+          broker_phone?: string | null
+          category?: string | null
+          city?: string | null
+          created_at?: string
+          deed_city?: string | null
+          deed_date?: string | null
+          deed_number?: string | null
+          district?: string | null
+          google_maps_link?: string | null
+          id?: string
+          lat?: number | null
+          listing_id?: string
+          lng?: number | null
+          national_address?: string | null
+          owner_birth_date?: string | null
+          owner_city?: string | null
+          owner_district?: string | null
+          owner_id_number?: string | null
+          owner_name?: string | null
+          owner_national_address?: string | null
+          owner_phone?: string | null
+          plus_code?: string | null
+          price?: number | null
+          property_title?: string | null
+          property_type?: string | null
+          published_at?: string
+          purpose?: string | null
+          slug?: string | null
+          street?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       real_estate_roles: {
         Row: {
           created_at: string | null
