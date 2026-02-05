@@ -475,7 +475,7 @@ import { Input } from '@/components/ui/input';
          >
            {!videoUrl ? (
              <div
-                className="w-full max-w-[400px] aspect-[9/16] bg-gradient-to-b from-gray-900 to-black rounded-3xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-all"
+                className="w-full max-w-[450px] aspect-[9/16] bg-gradient-to-b from-gray-900 to-black rounded-3xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-all"
                onClick={() => fileInputRef.current?.click()}
              >
                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
@@ -485,7 +485,7 @@ import { Input } from '@/components/ui/input';
                <p className="text-white/40 text-sm mt-1">MP4, MOV, WebM</p>
              </div>
            ) : (
-              <div className="flex flex-col items-center w-full max-w-[400px]">
+              <div className="flex flex-col items-center w-full max-w-[450px]">
                <div
                  ref={containerRef}
                  className="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
