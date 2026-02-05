@@ -342,9 +342,6 @@ export default function SimpleDashboard({
                         <IconComponent className={`w-8 h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
                       </div>
                       <h3 className="font-bold text-[#01411C] mb-2">{service.title}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {service.description}
-                      </p>
                     </CardContent>
                   </Card>;
             })}
