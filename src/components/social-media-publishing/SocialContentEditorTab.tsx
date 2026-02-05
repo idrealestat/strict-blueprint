@@ -78,7 +78,7 @@ function ContentPreview({
           </div>
 
           {/* منطقة الفيديو أو الصورة */}
-          <div className="relative aspect-video bg-gray-100">
+          <div className="relative bg-gray-100" style={{ aspectRatio: '9/16' }}>
             {videoUrl ? (
               <video 
                 src={videoUrl} 
