@@ -1,6 +1,6 @@
 /**
  * SpecialRequestsAdminPanel.tsx
- * لوحة إدارة الطلبات الخاصة للمالك
+ * لوحة إدارة الطلبات الخاصة للمالك مع نظام بحث متقدم
  */
 
 import { useState, useEffect } from 'react';
@@ -24,7 +24,7 @@ import {
 import {
   Target, Search, MapPin, Building, Clock, CheckCircle, AlertCircle,
   DollarSign, Send, Loader2, RefreshCw, Eye, MessageSquare, User,
-  Phone, Calendar, Zap, Bell
+  Phone, Calendar, Zap, Bell, Database, ExternalLink, Copy, Home
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,21 +50,30 @@ interface SpecialRequest {
   matching_listings: any[];
   created_at: string;
   updated_at: string;
-  // بيانات المستخدم
   user_name?: string;
   user_phone?: string;
   user_email?: string;
 }
 
-interface MatchingListing {
+interface ListingResult {
   id: string;
   title: string;
   city: string;
   district: string;
   price: number;
+  area: number | null;
+  property_type: string;
   broker_name?: string;
   broker_phone?: string;
+  owner_name?: string;
+  owner_phone?: string;
+  national_address?: string;
+  google_maps_link?: string;
+  plus_code?: string;
+  lat?: number;
+  lng?: number;
   created_at: string;
+  status: string;
 }
 
 // أنواع العقارات
@@ -79,19 +88,38 @@ const propertyTypes: Record<string, string> = {
   other: 'أخرى',
 };
 
+// المدن الرئيسية
+const cities = [
+  'الرياض', 'جدة', 'مكة المكرمة', 'المدينة المنورة', 'الدمام',
+  'الخبر', 'الطائف', 'تبوك', 'أبها', 'حائل', 'الجبيل', 'ينبع'
+];
+
 export default function SpecialRequestsAdminPanel() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('requests');
   const [requests, setRequests] = useState<SpecialRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<SpecialRequest | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [searchResults, setSearchResults] = useState<MatchingListing[]>([]);
+  const [searchResults, setSearchResults] = useState<ListingResult[]>([]);
   const [adminResponse, setAdminResponse] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+
+  // حالات البحث المتقدم
+  const [advancedSearchCity, setAdvancedSearchCity] = useState('');
+  const [advancedSearchDistrict, setAdvancedSearchDistrict] = useState('');
+  const [advancedSearchPropertyType, setAdvancedSearchPropertyType] = useState('');
+  const [advancedSearchNationalAddress, setAdvancedSearchNationalAddress] = useState('');
+  const [advancedSearchGoogleLink, setAdvancedSearchGoogleLink] = useState('');
+  const [advancedSearchPlusCode, setAdvancedSearchPlusCode] = useState('');
+  const [advancedSearchResults, setAdvancedSearchResults] = useState<ListingResult[]>([]);
+  const [isAdvancedSearching, setIsAdvancedSearching] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<ListingResult | null>(null);
+  const [showListingDialog, setShowListingDialog] = useState(false);
 
   // تحميل الطلبات
   useEffect(() => {
@@ -114,7 +142,6 @@ export default function SpecialRequestsAdminPanel() {
 
       if (error) throw error;
 
-      // جلب بيانات المستخدمين
       const userIds = [...new Set((data || []).map(r => r.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -139,13 +166,134 @@ export default function SpecialRequestsAdminPanel() {
     }
   };
 
-  // البحث عن عقارات مطابقة
+  // البحث المتقدم في قاعدة البيانات
+  const performAdvancedSearch = async () => {
+    if (!advancedSearchCity && !advancedSearchDistrict && !advancedSearchNationalAddress && 
+        !advancedSearchGoogleLink && !advancedSearchPlusCode && !advancedSearchPropertyType) {
+      toast.error('يرجى إدخال معيار بحث واحد على الأقل');
+      return;
+    }
+
+    setIsAdvancedSearching(true);
+    try {
+      let query = supabase
+        .from('platform_listings')
+        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, created_at, status')
+        .is('deleted_at', null);
+
+      if (advancedSearchCity) {
+        query = query.eq('city', advancedSearchCity);
+      }
+
+      if (advancedSearchDistrict) {
+        query = query.ilike('district', `%${advancedSearchDistrict}%`);
+      }
+
+      if (advancedSearchPropertyType) {
+        query = query.eq('property_type', advancedSearchPropertyType);
+      }
+
+      if (advancedSearchNationalAddress) {
+        query = query.ilike('national_address', `%${advancedSearchNationalAddress}%`);
+      }
+
+      if (advancedSearchPlusCode) {
+        query = query.ilike('plus_code', `%${advancedSearchPlusCode}%`);
+      }
+
+      // البحث برابط قوقل يحتاج معالجة خاصة (استخراج الإحداثيات)
+      if (advancedSearchGoogleLink) {
+        const coords = extractCoordsFromGoogleLink(advancedSearchGoogleLink);
+        if (coords) {
+          // البحث ضمن نطاق 500 متر من الموقع
+          const latRange = 0.005; // تقريباً 500 متر
+          const lngRange = 0.005;
+          query = query
+            .gte('lat', coords.lat - latRange)
+            .lte('lat', coords.lat + latRange)
+            .gte('lng', coords.lng - lngRange)
+            .lte('lng', coords.lng + lngRange);
+        } else {
+          query = query.ilike('google_maps_link', `%${advancedSearchGoogleLink}%`);
+        }
+      }
+
+      const { data, error } = await query.limit(50);
+
+      if (error) throw error;
+
+      // جلب بيانات الوسطاء
+      const userIds = [...new Set((data || []).map(l => l.user_id).filter(Boolean))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone')
+        .in('user_id', userIds);
+
+      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      const results: ListingResult[] = (data || []).map(l => ({
+        id: l.id,
+        title: l.title,
+        city: l.city,
+        district: l.district,
+        price: l.price,
+        area: l.area,
+        property_type: l.property_type,
+        broker_name: profilesMap.get(l.user_id)?.full_name || 'غير معروف',
+        broker_phone: l.broker_phone || profilesMap.get(l.user_id)?.phone || '',
+        owner_name: l.owner_name || undefined,
+        owner_phone: l.owner_phone || undefined,
+        national_address: l.national_address || undefined,
+        google_maps_link: l.google_maps_link || undefined,
+        plus_code: l.plus_code || undefined,
+        lat: l.lat,
+        lng: l.lng,
+        created_at: l.created_at,
+        status: l.status,
+      }));
+
+      setAdvancedSearchResults(results);
+      toast.success(`تم العثور على ${results.length} عقار`);
+    } catch (error) {
+      console.error('Error in advanced search:', error);
+      toast.error('فشل في البحث');
+    } finally {
+      setIsAdvancedSearching(false);
+    }
+  };
+
+  // استخراج الإحداثيات من رابط قوقل
+  const extractCoordsFromGoogleLink = (link: string): { lat: number; lng: number } | null => {
+    try {
+      // محاولة استخراج من رابط مثل: https://maps.google.com/?q=24.7136,46.6753
+      const match1 = link.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      if (match1) {
+        return { lat: parseFloat(match1[1]), lng: parseFloat(match1[2]) };
+      }
+      
+      const match2 = link.match(/q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      if (match2) {
+        return { lat: parseFloat(match2[1]), lng: parseFloat(match2[2]) };
+      }
+
+      const match3 = link.match(/ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      if (match3) {
+        return { lat: parseFloat(match3[1]), lng: parseFloat(match3[2]) };
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // البحث عن عقارات مطابقة للطلب
   const searchMatchingListings = async (request: SpecialRequest) => {
     setIsSearching(true);
     try {
       let query = supabase
         .from('platform_listings')
-        .select('id, title, city, district, price, user_id, created_at, broker_phone')
+        .select('id, title, city, district, price, area, property_type, user_id, broker_phone, owner_name, owner_phone, national_address, google_maps_link, plus_code, lat, lng, created_at, status')
         .eq('city', request.city)
         .is('deleted_at', null);
 
@@ -169,7 +317,6 @@ export default function SpecialRequestsAdminPanel() {
 
       if (error) throw error;
 
-      // جلب أسماء الوسطاء
       const userIds = [...new Set((data || []).map(l => l.user_id).filter(Boolean))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -178,15 +325,25 @@ export default function SpecialRequestsAdminPanel() {
 
       const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
 
-      const results: MatchingListing[] = (data || []).map(l => ({
+      const results: ListingResult[] = (data || []).map(l => ({
         id: l.id,
         title: l.title,
         city: l.city,
         district: l.district,
         price: l.price,
+        area: l.area,
+        property_type: l.property_type,
         broker_name: profilesMap.get(l.user_id)?.full_name || 'غير معروف',
         broker_phone: l.broker_phone || profilesMap.get(l.user_id)?.phone || '',
+        owner_name: l.owner_name || undefined,
+        owner_phone: l.owner_phone || undefined,
+        national_address: l.national_address || undefined,
+        google_maps_link: l.google_maps_link || undefined,
+        plus_code: l.plus_code || undefined,
+        lat: l.lat,
+        lng: l.lng,
         created_at: l.created_at,
+        status: l.status,
       }));
 
       setSearchResults(results);
@@ -230,7 +387,6 @@ export default function SpecialRequestsAdminPanel() {
 
       if (error) throw error;
 
-      // إرسال إشعار للمستخدم
       await supabase.from('special_request_notifications').insert({
         user_id: selectedRequest.user_id,
         request_id: selectedRequest.id,
@@ -248,6 +404,12 @@ export default function SpecialRequestsAdminPanel() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // نسخ للحافظة
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('تم النسخ');
   };
 
   // حالات الطلب
@@ -294,6 +456,22 @@ export default function SpecialRequestsAdminPanel() {
     setShowDetailsDialog(true);
   };
 
+  const openListingDetails = (listing: ListingResult) => {
+    setSelectedListing(listing);
+    setShowListingDialog(true);
+  };
+
+  // مسح نتائج البحث المتقدم
+  const clearAdvancedSearch = () => {
+    setAdvancedSearchCity('');
+    setAdvancedSearchDistrict('');
+    setAdvancedSearchPropertyType('');
+    setAdvancedSearchNationalAddress('');
+    setAdvancedSearchGoogleLink('');
+    setAdvancedSearchPlusCode('');
+    setAdvancedSearchResults([]);
+  };
+
   // إحصائيات
   const stats = {
     total: requests.length,
@@ -305,134 +483,336 @@ export default function SpecialRequestsAdminPanel() {
 
   return (
     <div className="space-y-6">
-      {/* الإحصائيات */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-purple-600">{stats.total}</div>
-            <div className="text-sm text-gray-600">إجمالي الطلبات</div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-amber-200">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-amber-600">{stats.pending}</div>
-            <div className="text-sm text-gray-600">قيد المراجعة</div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-blue-200">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-blue-600">{stats.searching}</div>
-            <div className="text-sm text-gray-600">جاري البحث</div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-green-200">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">{stats.found}</div>
-            <div className="text-sm text-gray-600">تم الإيجاد</div>
-          </CardContent>
-        </Card>
-        <Card className="border-2 border-emerald-200">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-emerald-600">{stats.completed}</div>
-            <div className="text-sm text-gray-600">مكتمل</div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* التبويبات الرئيسية */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            الطلبات الخاصة
+          </TabsTrigger>
+          <TabsTrigger value="database" className="flex items-center gap-2">
+            <Database className="w-4 h-4" />
+            بحث في قاعدة العروض
+          </TabsTrigger>
+        </TabsList>
 
-      {/* الفلترة */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-600" />
-              الطلبات الخاصة
-            </CardTitle>
-            <div className="flex gap-2">
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="pending">قيد المراجعة</SelectItem>
-                  <SelectItem value="searching">جاري البحث</SelectItem>
-                  <SelectItem value="found">تم الإيجاد</SelectItem>
-                  <SelectItem value="paid">تم الدفع</SelectItem>
-                  <SelectItem value="completed">مكتمل</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={loadRequests} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
+        {/* تبويب الطلبات الخاصة */}
+        <TabsContent value="requests" className="space-y-6">
+          {/* الإحصائيات */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-purple-600">{stats.total}</div>
+                <div className="text-sm text-gray-600">إجمالي الطلبات</div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-amber-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-amber-600">{stats.pending}</div>
+                <div className="text-sm text-gray-600">قيد المراجعة</div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-blue-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-blue-600">{stats.searching}</div>
+                <div className="text-sm text-gray-600">جاري البحث</div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-green-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-green-600">{stats.found}</div>
+                <div className="text-sm text-gray-600">تم الإيجاد</div>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-emerald-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-emerald-600">{stats.completed}</div>
+                <div className="text-sm text-gray-600">مكتمل</div>
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-            </div>
-          ) : requests.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Target className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p>لا توجد طلبات</p>
-            </div>
-          ) : (
-            <ScrollArea className="h-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">الوسيط</TableHead>
-                    <TableHead className="text-right">نوع العقار</TableHead>
-                    <TableHead className="text-right">الموقع</TableHead>
-                    <TableHead className="text-right">الاستعجال</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-right">التاريخ</TableHead>
-                    <TableHead className="text-right">إجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {requests.map((request) => (
-                    <TableRow key={request.id} className="cursor-pointer hover:bg-gray-50">
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{request.user_name}</div>
-                          {request.user_phone && (
-                            <div className="text-xs text-gray-500">{request.user_phone}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{propertyTypes[request.property_type] || request.property_type}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-gray-400" />
-                          {request.city}
-                          {request.district && ` - ${request.district}`}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getUrgencyLabel(request.urgency)}</TableCell>
-                      <TableCell>{getStatusBadge(request.status)}</TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {new Date(request.created_at).toLocaleDateString('ar-SA')}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openRequestDetails(request)}
-                        >
-                          <Eye className="w-4 h-4 ml-1" />
-                          عرض
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+
+          {/* الفلترة */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-purple-600" />
+                  الطلبات الخاصة
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="pending">قيد المراجعة</SelectItem>
+                      <SelectItem value="searching">جاري البحث</SelectItem>
+                      <SelectItem value="found">تم الإيجاد</SelectItem>
+                      <SelectItem value="paid">تم الدفع</SelectItem>
+                      <SelectItem value="completed">مكتمل</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={loadRequests} disabled={isLoading}>
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                </div>
+              ) : requests.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Target className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                  <p>لا توجد طلبات</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[500px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">الوسيط</TableHead>
+                        <TableHead className="text-right">نوع العقار</TableHead>
+                        <TableHead className="text-right">الموقع</TableHead>
+                        <TableHead className="text-right">الاستعجال</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                        <TableHead className="text-right">التاريخ</TableHead>
+                        <TableHead className="text-right">إجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {requests.map((request) => (
+                        <TableRow key={request.id} className="cursor-pointer hover:bg-gray-50">
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{request.user_name}</div>
+                              {request.user_phone && (
+                                <div className="text-xs text-gray-500">{request.user_phone}</div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{propertyTypes[request.property_type] || request.property_type}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-gray-400" />
+                              {request.city}
+                              {request.district && ` - ${request.district}`}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getUrgencyLabel(request.urgency)}</TableCell>
+                          <TableCell>{getStatusBadge(request.status)}</TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {new Date(request.created_at).toLocaleDateString('ar-SA')}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openRequestDetails(request)}
+                            >
+                              <Eye className="w-4 h-4 ml-1" />
+                              عرض
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* تبويب البحث في قاعدة العروض */}
+        <TabsContent value="database" className="space-y-6">
+          <Card className="border-2 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-blue-600" />
+                البحث المتقدم في قاعدة العروض
+              </CardTitle>
+              <CardDescription>
+                ابحث عن العقارات المعروضة من الوسطاء باستخدام معايير متعددة
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* معايير البحث */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* المدينة */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    المدينة
+                  </Label>
+                  <Select value={advancedSearchCity} onValueChange={setAdvancedSearchCity}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المدينة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.map(city => (
+                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* الحي */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Home className="w-4 h-4 text-gray-500" />
+                    الحي
+                  </Label>
+                  <Input
+                    value={advancedSearchDistrict}
+                    onChange={(e) => setAdvancedSearchDistrict(e.target.value)}
+                    placeholder="مثال: حي النرجس"
+                  />
+                </div>
+
+                {/* نوع العقار */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Building className="w-4 h-4 text-gray-500" />
+                    نوع العقار
+                  </Label>
+                  <Select value={advancedSearchPropertyType} onValueChange={setAdvancedSearchPropertyType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر النوع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(propertyTypes).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* العنوان الوطني */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-green-600" />
+                    العنوان الوطني
+                  </Label>
+                  <Input
+                    value={advancedSearchNationalAddress}
+                    onChange={(e) => setAdvancedSearchNationalAddress(e.target.value)}
+                    placeholder="مثال: AAAA1234"
+                  />
+                </div>
+
+                {/* رابط قوقل */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <ExternalLink className="w-4 h-4 text-red-500" />
+                    رابط قوقل ماب
+                  </Label>
+                  <Input
+                    value={advancedSearchGoogleLink}
+                    onChange={(e) => setAdvancedSearchGoogleLink(e.target.value)}
+                    placeholder="الصق رابط قوقل ماب هنا"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* Plus Code */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-600" />
+                    Plus Code (OLC)
+                  </Label>
+                  <Input
+                    value={advancedSearchPlusCode}
+                    onChange={(e) => setAdvancedSearchPlusCode(e.target.value)}
+                    placeholder="مثال: 7V69+HQ"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              {/* أزرار البحث */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={performAdvancedSearch}
+                  disabled={isAdvancedSearching}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isAdvancedSearching ? (
+                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  ) : (
+                    <Search className="w-4 h-4 ml-2" />
+                  )}
+                  بحث
+                </Button>
+                <Button variant="outline" onClick={clearAdvancedSearch}>
+                  مسح
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* نتائج البحث */}
+          {advancedSearchResults.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="w-5 h-5" />
+                  نتائج البحث ({advancedSearchResults.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-3">
+                    {advancedSearchResults.map((listing) => (
+                      <Card 
+                        key={listing.id} 
+                        className="border-2 border-gray-200 hover:border-blue-300 cursor-pointer transition-colors"
+                        onClick={() => openListingDetails(listing)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <div className="font-bold text-lg">{listing.title}</div>
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <MapPin className="w-4 h-4" />
+                                {listing.city} - {listing.district}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm">
+                                <Badge variant="outline">{propertyTypes[listing.property_type] || listing.property_type}</Badge>
+                                {listing.area && <span>{listing.area} م²</span>}
+                                <span className="text-green-600 font-bold">{listing.price?.toLocaleString()} ريال</span>
+                              </div>
+                            </div>
+                            <div className="text-left space-y-1">
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4 text-gray-400" />
+                                <span className="font-medium">{listing.broker_name}</span>
+                              </div>
+                              {listing.broker_phone && (
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                  <Phone className="w-3 h-3" />
+                                  <span dir="ltr">{listing.broker_phone}</span>
+                                </div>
+                              )}
+                              <div className="text-xs text-gray-400">
+                                {new Date(listing.created_at).toLocaleDateString('ar-SA')}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* نافذة تفاصيل الطلب */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
@@ -461,6 +841,9 @@ export default function SpecialRequestsAdminPanel() {
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-gray-400" />
                         <span>{selectedRequest.user_phone}</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedRequest.user_phone!)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -525,7 +908,8 @@ export default function SpecialRequestsAdminPanel() {
                       {searchResults.map((listing) => (
                         <div
                           key={listing.id}
-                          className="p-3 border rounded-lg bg-green-50 border-green-200"
+                          className="p-3 border rounded-lg bg-green-50 border-green-200 cursor-pointer hover:bg-green-100"
+                          onClick={() => openListingDetails(listing)}
                         >
                           <div className="flex items-start justify-between">
                             <div>
@@ -624,6 +1008,114 @@ export default function SpecialRequestsAdminPanel() {
                 >
                   إلغاء الطلب
                 </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تفاصيل العقار */}
+      <Dialog open={showListingDialog} onOpenChange={setShowListingDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5 text-blue-600" />
+              تفاصيل العقار
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedListing && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">معلومات العقار</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div><strong>العنوان:</strong> {selectedListing.title}</div>
+                    <div><strong>النوع:</strong> {propertyTypes[selectedListing.property_type] || selectedListing.property_type}</div>
+                    <div><strong>الموقع:</strong> {selectedListing.city} - {selectedListing.district}</div>
+                    {selectedListing.area && <div><strong>المساحة:</strong> {selectedListing.area} م²</div>}
+                    <div><strong>السعر:</strong> <span className="text-green-600 font-bold">{selectedListing.price?.toLocaleString()} ريال</span></div>
+                    {selectedListing.national_address && (
+                      <div className="flex items-center gap-2">
+                        <strong>العنوان الوطني:</strong> 
+                        <span>{selectedListing.national_address}</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.national_address!)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                    {selectedListing.plus_code && (
+                      <div className="flex items-center gap-2">
+                        <strong>Plus Code:</strong> 
+                        <span dir="ltr">{selectedListing.plus_code}</span>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.plus_code!)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                    {selectedListing.google_maps_link && (
+                      <div className="flex items-center gap-2">
+                        <strong>رابط قوقل:</strong>
+                        <a href={selectedListing.google_maps_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          فتح في قوقل ماب
+                        </a>
+                        <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.google_maps_link!)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-green-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-green-700">معلومات التواصل</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <div className="font-bold text-blue-700 mb-1">الوسيط</div>
+                      <div className="flex items-center justify-between">
+                        <span>{selectedListing.broker_name}</span>
+                        {selectedListing.broker_phone && (
+                          <div className="flex items-center gap-1">
+                            <span dir="ltr">{selectedListing.broker_phone}</span>
+                            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.broker_phone!)}>
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {(selectedListing.owner_name || selectedListing.owner_phone) && (
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <div className="font-bold text-green-700 mb-1">المالك</div>
+                        {selectedListing.owner_name && (
+                          <div className="flex items-center justify-between">
+                            <span>{selectedListing.owner_name}</span>
+                            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.owner_name!)}>
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                        {selectedListing.owner_phone && (
+                          <div className="flex items-center justify-between mt-1">
+                            <span dir="ltr">{selectedListing.owner_phone}</span>
+                            <Button size="sm" variant="ghost" onClick={() => copyToClipboard(selectedListing.owner_phone!)}>
+                              <Copy className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="text-xs text-gray-400 text-center">
+                      تاريخ الإعلان: {new Date(selectedListing.created_at).toLocaleDateString('ar-SA')}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}
