@@ -40,12 +40,14 @@ function ContentPreview({
   videoUrl,
   extractedText,
   videoSettings,
+  logoUrl,
 }: {
   contentText: string;
   hashtags: string[];
   videoUrl: string;
   extractedText: string;
   videoSettings: VideoSettings;
+  logoUrl: string;
 }) {
   const selectedFont = APPROVED_FONTS.find(f => f.id === videoSettings.subtitleFont);
   const selectedColor = SUBTITLE_COLORS.find(c => c.id === videoSettings.subtitleColor);
@@ -103,9 +105,15 @@ function ContentPreview({
 
             {/* الشعار */}
             <div className={`absolute ${logoPositionClass} z-10`}>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#01411C] to-[#016630] flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">W</span>
-              </div>
+              {logoUrl ? (
+                <div className="w-12 h-12 rounded-lg overflow-hidden shadow-lg bg-white">
+                  <img src={logoUrl} alt="الشعار" className="w-full h-full object-contain p-1" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#01411C] to-[#016630] flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-lg">W</span>
+                </div>
+              )}
             </div>
 
             {/* الترجمة / النص المستخرج */}
@@ -216,6 +224,8 @@ function ContentPreview({
    const [extractedText, setExtractedText] = useState('');
    const [timedWords, setTimedWords] = useState<TimedWord[]>([]);
    const [editingWordIndex, setEditingWordIndex] = useState<number | null>(null);
+   const [logoFile, setLogoFile] = useState<File | null>(null);
+   const [logoUrl, setLogoUrl] = useState('');
    
    // إعدادات الفيديو
    const [videoSettings, setVideoSettings] = useState<VideoSettings>({
@@ -349,6 +359,35 @@ function ContentPreview({
        toast.success('تم رفع الفيديو');
      }
    };
+
+    // رفع الشعار
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        // التحقق من نوع الملف
+        if (!file.type.startsWith('image/')) {
+          toast.error('يرجى رفع صورة فقط');
+          return;
+        }
+        // التحقق من حجم الملف (أقصى 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+          return;
+        }
+        setLogoFile(file);
+        setLogoUrl(URL.createObjectURL(file));
+        toast.success('تم رفع الشعار');
+      }
+    };
+
+    // حذف الشعار
+    const removeLogo = () => {
+      if (logoUrl) {
+        URL.revokeObjectURL(logoUrl);
+      }
+      setLogoFile(null);
+      setLogoUrl('');
+    };
  
    return (
      <ScrollArea className="h-full">
@@ -366,6 +405,7 @@ function ContentPreview({
           videoUrl={videoUrl}
           extractedText={extractedText}
           videoSettings={videoSettings}
+          logoUrl={logoUrl}
         />
 
          <Tabs defaultValue="text" className="w-full">
@@ -680,6 +720,72 @@ function ContentPreview({
  
            {/* تبويب الهوية */}
            <TabsContent value="branding" className="space-y-4">
+              {/* رفع الشعار */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    رفع الشعار
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {logoUrl ? (
+                    <div className="space-y-3">
+                      {/* معاينة الشعار */}
+                      <div className="relative w-32 h-32 mx-auto rounded-xl overflow-hidden border-2 border-[#D4AF37] bg-gray-50">
+                        <img 
+                          src={logoUrl} 
+                          alt="الشعار"
+                          className="w-full h-full object-contain p-2"
+                        />
+                        <button
+                          onClick={removeLogo}
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      
+                      {/* زر تغيير الشعار */}
+                      <div className="text-center">
+                        <label htmlFor="logo-upload" className="cursor-pointer">
+                          <span className="text-sm text-[#01411C] hover:underline">
+                            تغيير الشعار
+                          </span>
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          id="logo-upload"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#01411C] transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                        id="logo-upload"
+                      />
+                      <label 
+                        htmlFor="logo-upload"
+                        className="cursor-pointer flex flex-col items-center gap-2"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                          <Image className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <span className="text-gray-600">اضغط لرفع الشعار</span>
+                        <span className="text-xs text-gray-400">PNG, JPG, SVG (أقصى 5MB)</span>
+                      </label>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
              <Card>
                <CardHeader className="pb-2">
                  <CardTitle className="text-base flex items-center gap-2">
