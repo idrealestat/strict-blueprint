@@ -1530,6 +1530,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       isLongPressRef.current = true;
       setTouchDragCustomer(customerId);
       setDraggedCustomer(customerId);
+      
+      // تثبيت الشاشة عند بدء السحب - منع التمرير التلقائي
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
 
       // Vibrate for haptic feedback if available
       if (navigator.vibrate) {
@@ -1707,6 +1711,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       clearInterval(autoScrollIntervalRef.current);
       autoScrollIntervalRef.current = null;
     }
+    
+    // إعادة تفعيل التمرير بعد انتهاء السحب
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
     
     // Reset touch state
     setTouchDragCustomer(null);
