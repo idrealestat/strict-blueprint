@@ -1548,6 +1548,7 @@ export type Database = {
           floor_number: string | null
           floors: string | null
           furnishing: string | null
+          google_maps_link: string | null
           has_extra_kitchen: boolean | null
           has_laundry_room: boolean | null
           hashtags: string[] | null
@@ -1560,6 +1561,7 @@ export type Database = {
           lat: number | null
           living_rooms: string | null
           lng: number | null
+          national_address: string | null
           owner_birth_date: string | null
           owner_city: string | null
           owner_district: string | null
@@ -1569,6 +1571,7 @@ export type Database = {
           owner_phone: string | null
           payment_option: string | null
           payment_prices: Json | null
+          plus_code: string | null
           price: number
           property_type: string
           purpose: string | null
@@ -1622,6 +1625,7 @@ export type Database = {
           floor_number?: string | null
           floors?: string | null
           furnishing?: string | null
+          google_maps_link?: string | null
           has_extra_kitchen?: boolean | null
           has_laundry_room?: boolean | null
           hashtags?: string[] | null
@@ -1634,6 +1638,7 @@ export type Database = {
           lat?: number | null
           living_rooms?: string | null
           lng?: number | null
+          national_address?: string | null
           owner_birth_date?: string | null
           owner_city?: string | null
           owner_district?: string | null
@@ -1643,6 +1648,7 @@ export type Database = {
           owner_phone?: string | null
           payment_option?: string | null
           payment_prices?: Json | null
+          plus_code?: string | null
           price?: number
           property_type?: string
           purpose?: string | null
@@ -1696,6 +1702,7 @@ export type Database = {
           floor_number?: string | null
           floors?: string | null
           furnishing?: string | null
+          google_maps_link?: string | null
           has_extra_kitchen?: boolean | null
           has_laundry_room?: boolean | null
           hashtags?: string[] | null
@@ -1708,6 +1715,7 @@ export type Database = {
           lat?: number | null
           living_rooms?: string | null
           lng?: number | null
+          national_address?: string | null
           owner_birth_date?: string | null
           owner_city?: string | null
           owner_district?: string | null
@@ -1717,6 +1725,7 @@ export type Database = {
           owner_phone?: string | null
           payment_option?: string | null
           payment_prices?: Json | null
+          plus_code?: string | null
           price?: number
           property_type?: string
           purpose?: string | null
