@@ -28,6 +28,7 @@ import VideoToTextPage from "./pages/VideoToTextPage";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
 import RentedPropertiesReport from "./components/reports/RentedPropertiesReport";
+import SpecialRequestsPage from "./pages/SpecialRequestsPage";
 import OfficialBusinessCardPage from "./pages/OfficialBusinessCardPage";
 import NotFound from "./pages/NotFound";
 import { DashboardProvider } from "./context/DashboardContext";
@@ -444,6 +445,8 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
       return <><MapSystemDashboard /><AIFloatingButton /></>;
     case "notification-settings":
       return <><NotificationSettings /><AIFloatingButton /></>;
+    case "special-requests":
+      return <><SpecialRequestsPage /><AIFloatingButton /></>;
     case "bottom-nav-customization":
       return <><div className="min-h-screen bg-gray-50 p-4 pb-24"><BottomNavCustomization onBack={handleBack} /></div><AIFloatingButton /></>;
     case "sales":
@@ -591,6 +594,13 @@ const App = () => {
                   
                   {/* نظام تحويل الفيديو إلى نص */}
                   <Route path="/app/video-to-text" element={<VideoToTextPage />} />
+                  
+                  {/* صفحة الطلبات الخاصة */}
+                  <Route path="/app/special-requests" element={
+                    <ProtectedRoute>
+                      <SpecialRequestsPage />
+                    </ProtectedRoute>
+                  } />
                   
                   {/* صفحة الانضمام للفريق */}
                   <Route path="/join/:token" element={<JoinTeamPage />} />
