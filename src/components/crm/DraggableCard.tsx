@@ -4,7 +4,8 @@
   */
  
  import React, { useRef } from 'react';
- import { useDrag, useDrop } from 'react-dnd';
+ import { useDrag, useDrop, DragPreviewImage } from 'react-dnd';
+ import { GripVertical } from 'lucide-react';
  
  export const ItemTypes = {
    CARD: 'card',
@@ -39,10 +40,11 @@
    className = '',
    disabled = false,
  }) => {
-   const ref = useRef<HTMLDivElement>(null);
+   const cardRef = useRef<HTMLDivElement>(null);
+   const dragHandleRef = useRef<HTMLDivElement>(null);
  
    // إعداد السحب (Drag)
-   const [{ isDragging }, dragRef] = useDrag({
+   const [{ isDragging }, dragRef, preview] = useDrag({
      type: ItemTypes.CARD,
      item: (): DragItem => ({
        id,
@@ -60,7 +62,7 @@
    const [{ isOver, canDrop }, dropRef] = useDrop({
      accept: ItemTypes.CARD,
      hover: (item: DragItem, monitor) => {
-       if (!ref.current) return;
+       if (!cardRef.current) return;
        
        const dragId = item.id;
        const hoverId = id;
@@ -69,7 +71,7 @@
        if (dragId === hoverId) return;
        
        // الحصول على أبعاد العنصر
-       const hoverBoundingRect = ref.current.getBoundingClientRect();
+       const hoverBoundingRect = cardRef.current.getBoundingClientRect();
        const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
        const clientOffset = monitor.getClientOffset();
        
@@ -103,23 +105,39 @@
      }),
    });
  
-   // دمج refs
-   dragRef(dropRef(ref));
+   // تطبيق refs
+   dragRef(dragHandleRef);
+   dropRef(cardRef);
+   preview(cardRef);
  
    return (
      <div
-       ref={ref}
+       ref={cardRef}
+       data-card-id={id}
        className={`
-         transition-all duration-200 ease-in-out
+         transition-all duration-200 ease-in-out relative
          ${isDragging ? 'opacity-40 scale-95 shadow-2xl z-50' : ''}
          ${isOver && canDrop ? 'transform -translate-y-1 shadow-lg ring-2 ring-[#D4AF37]' : ''}
-         ${disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
          ${className}
        `}
-       style={{
-         touchAction: 'none',
-       }}
      >
+       {/* مقبض السحب - يظهر دائماً في الجانب */}
+       <div
+         ref={dragHandleRef}
+         className={`
+           absolute right-1 top-1/2 -translate-y-1/2 z-10
+           w-6 h-12 flex items-center justify-center
+           bg-gradient-to-l from-muted/90 to-transparent
+           rounded-l-lg
+           ${disabled ? 'cursor-not-allowed opacity-30' : 'cursor-grab active:cursor-grabbing hover:bg-muted/90'}
+           touch-none
+         `}
+         style={{ touchAction: 'none' }}
+       >
+         <GripVertical className="w-4 h-4 text-muted-foreground" />
+       </div>
+       
+       {/* محتوى البطاقة */}
        {children}
      </div>
    );
