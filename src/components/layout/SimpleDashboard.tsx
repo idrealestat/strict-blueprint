@@ -322,11 +322,11 @@ export default function SimpleDashboard({
                 }
               };
               return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
-                    <CardContent className="p-6 text-center relative h-full min-h-[220px] flex flex-col justify-center">
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
+                    <CardContent className="p-6 text-center relative h-full min-h-[180px] flex flex-col items-center justify-center">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
                         <IconComponent className={`w-8 h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
                       </div>
-                      <h3 className="font-bold text-[#01411C] mb-2">{service.title}</h3>
+                      <h3 className="font-bold text-[#01411C]">{service.title}</h3>
                     </CardContent>
                   </Card>;
             })}
