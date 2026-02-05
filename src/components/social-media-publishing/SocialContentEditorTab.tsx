@@ -78,7 +78,7 @@ function ContentPreview({
           </div>
 
           {/* منطقة الفيديو أو الصورة */}
-          <div className="relative bg-gray-100" style={{ aspectRatio: '9/16' }}>
+          <div className="relative bg-gray-100 max-h-[200px] mx-auto" style={{ aspectRatio: '9/16', maxWidth: '112px' }}>
             {videoUrl ? (
               <video 
                 src={videoUrl} 
@@ -405,13 +405,6 @@ function ContentPreview({
                    </label>
                  </div>
                  
-                 {videoUrl && (
-                   <video 
-                     src={videoUrl} 
-                     controls 
-                     className="w-full rounded-lg"
-                   />
-                 )}
                </CardContent>
              </Card>
  
