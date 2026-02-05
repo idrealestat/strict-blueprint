@@ -5,6 +5,9 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+ import { KanbanDndProvider } from './KanbanDndProvider';
+ import { DraggableCard } from './DraggableCard';
+ import { DroppableColumn } from './DroppableColumn';
 import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
 import { useCRMCustomTags } from "@/hooks/useCRMCustomTags";
 import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
@@ -1494,6 +1497,89 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
 
   // ===================== TOUCH DRAG HANDLERS FOR MOBILE =====================
   
+  // ===================== REACT-DND HANDLERS =====================
+  
+  // دالة نقل البطاقة بين الأعمدة (react-dnd)
+  const handleDndMoveCard = useCallback((cardId: string, sourceColumnId: string, targetColumnId: string, targetIndex: number) => {
+    const statusMap: Record<string, string> = {
+      leads: 'new',
+      contacted: 'active',
+      viewing: 'viewing',
+      negotiation: 'negotiation',
+      closed: 'closed',
+      lost: 'lost',
+    };
+
+    setColumns(prev => {
+      const newColumns = prev.map(col => ({
+        ...col,
+        customerIds: col.customerIds.filter(id => id !== cardId)
+      }));
+      
+      const targetColumn = newColumns.find(col => col.id === targetColumnId);
+      if (targetColumn) {
+        targetColumn.customerIds.splice(targetIndex, 0, cardId);
+      }
+      
+      return newColumns;
+    });
+
+    setCustomers(prev => prev.map(c => 
+      c.id === cardId ? { ...c, columnId: targetColumnId } : c
+    ));
+
+    // حفظ في قاعدة البيانات
+    try {
+      const currentCustomer = customers.find(c => c.id === cardId);
+      const currentMeta = (currentCustomer?.metadata && typeof currentCustomer.metadata === 'object' && !Array.isArray(currentCustomer.metadata))
+        ? (currentCustomer.metadata as Record<string, any>)
+        : {};
+
+      void dbUpdateCustomer(
+        cardId,
+        {
+          status: statusMap[targetColumnId] || (currentCustomer?.status || 'active'),
+          metadata: {
+            ...currentMeta,
+            columnId: targetColumnId,
+          },
+        },
+        { isStatusChange: true }
+      );
+    } catch (e) {
+      console.error('[CRM] Failed to persist dnd move:', e);
+    }
+
+    toast.success('تم نقل العميل بنجاح');
+  }, [customers, dbUpdateCustomer]);
+
+  // دالة إعادة ترتيب البطاقات داخل نفس العمود (react-dnd)
+  const handleDndReorderInColumn = useCallback((columnId: string, dragIndex: number, hoverIndex: number) => {
+    setColumns(prev => {
+      const newColumns = [...prev];
+      const column = newColumns.find(col => col.id === columnId);
+      
+      if (column) {
+        const [movedCard] = column.customerIds.splice(dragIndex, 1);
+        column.customerIds.splice(hoverIndex, 0, movedCard);
+      }
+      
+      return newColumns;
+    });
+  }, []);
+
+  // دالة نقل الأعمدة (react-dnd)
+  const handleDndMoveColumn = useCallback((dragIndex: number, hoverIndex: number) => {
+    setColumns(prev => {
+      const newColumns = [...prev];
+      const [draggedCol] = newColumns.splice(dragIndex, 1);
+      newColumns.splice(hoverIndex, 0, draggedCol);
+      return newColumns;
+    });
+  }, []);
+
+  // ===================== ORIGINAL TOUCH HANDLERS =====================
+  
   // Find which column contains a point
   const findColumnAtPoint = useCallback((x: number, y: number): { columnId: string; position: number } | null => {
     const columnElements = document.querySelectorAll('[data-column-id]');
@@ -1948,6 +2034,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   return (
+    <KanbanDndProvider>
     <div dir="rtl" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-[#01411C] via-[#065f41] to-[#01411C] border-b-2 border-[#D4AF37] shadow-md">
@@ -2584,59 +2671,37 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                   
                   return (
                     <React.Fragment key={column.id}>
-                      <div
-                        draggable
-                        onDragStart={() => handleColumnDragStart(column.id)}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (draggedColumn) {
-                            handleColumnDragOver(e, columnIndex);
-                          }
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (draggedColumn) {
-                            handleColumnDrop(columnIndex);
-                          } else if (draggedCustomer) {
-                            handleDrop(column.id, dropIndicator?.position);
-                          }
-                        }}
-                        className={`w-64 md:w-72 flex-shrink-0 rounded-xl ${colors.bg} ${colors.border} border-2 transition-all ${
-                          draggedColumn === column.id ? 'opacity-50' : ''
-                        }`}
-                      >
-                        {/* Column Header */}
-                        <div className={`p-2 md:p-3 border-b-2 ${colors.border} cursor-move`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <GripVertical className="w-4 h-4 text-gray-400" />
-                              <h3 className={`font-bold ${colors.text}`}>
-                                {column.title}
-                              </h3>
+                      <DroppableColumn
+                        id={column.id}
+                        index={columnIndex}
+                        onDropCard={handleDndMoveCard}
+                        onMoveColumn={handleDndMoveColumn}
+                        cardsCount={columnCustomers.length}
+                        canDragColumn={true}
+                        className={`w-64 md:w-72 flex-shrink-0 rounded-xl ${colors.bg} ${colors.border} border-2 transition-all`}
+                        header={
+                          <div className={`p-2 md:p-3 border-b-2 ${colors.border}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <GripVertical className="w-4 h-4 text-gray-400" />
+                                <h3 className={`font-bold ${colors.text}`}>
+                                  {column.title}
+                                </h3>
+                              </div>
+                              <Badge className={`${colors.bg} ${colors.text} border ${colors.border}`}>
+                                {columnCustomers.length}
+                              </Badge>
                             </div>
-                            <Badge className={`${colors.bg} ${colors.text} border ${colors.border}`}>
-                              {columnCustomers.length}
-                            </Badge>
                           </div>
-                        </div>
+                        }
+                      >
 
                         {/* Column Content */}
                         <div 
                           className="p-2 space-y-0 min-h-[400px] max-h-[600px] overflow-y-auto"
                           data-column-id={column.id}
                           data-column-scroll="true"
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            if (draggedCustomer && columnCustomers.length === 0) {
-                              setDropIndicator({ columnId: column.id, position: 0 });
-                            }
-                          }}
                         >
-                          {/* خط أخضر أول إذا كان العمود فارغ */}
-                          {dropIndicator?.columnId === column.id && dropIndicator.position === 0 && columnCustomers.length === 0 && (
-                            <div className="h-1 bg-green-500 rounded-full animate-pulse my-1" />
-                          )}
                           
                           <AnimatePresence>
                           {columnCustomers.map((customer, customerIndex) => {
@@ -2644,42 +2709,22 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                             const interestColors = INTEREST_LEVEL_COLORS[customer.interestLevel || 'moderate'];
                             
                             return (
-                              <div key={customer.id} className="relative">
-                                {/* خط أخضر مؤشر للإفلات قبل البطاقة - absolute لا يدفع البطاقات */}
-                                {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex && (
-                                  <div className="absolute -top-1 left-0 right-0 h-1.5 bg-green-500 rounded-full animate-pulse z-50 shadow-lg shadow-green-500/50" />
-                                )}
-                                
+                              <DraggableCard
+                                key={customer.id}
+                                id={customer.id}
+                                columnId={column.id}
+                                index={customerIndex}
+                                onMoveCard={handleDndMoveCard}
+                                onReorderInColumn={handleDndReorderInColumn}
+                                className={`
+                                  bg-white rounded-lg shadow-md mb-2 overflow-hidden relative flex flex-col
+                                  hover:shadow-xl
+                                  ${touchDragCustomer === customer.id ? 'opacity-70 scale-105 shadow-2xl z-50 ring-2 ring-[#D4AF37] touch-none' : ''}
+                                  select-none
+                                `}
+                              >
                                 <div
                                   data-customer-id={customer.id}
-                                  draggable
-                                  onDragStart={(e) => {
-                                    e.stopPropagation();
-                                    handleDragStart(customer.id);
-                                  }}
-                                  onDragEnd={handleDragEnd}
-                                  onDragOver={(e) => handleDragOverCard(e, column.id, customerIndex)}
-                                  onDrop={(e) => {
-                                    e.stopPropagation();
-                                    handleDrop(column.id, customerIndex);
-                                  }}
-                                  // Touch handlers for mobile drag and drop
-                                  onTouchStart={(e) => handleTouchStart(e, customer.id)}
-                                  onTouchMove={handleTouchMove}
-                                  onTouchEnd={handleTouchEnd}
-                                  onContextMenu={(e) => {
-                                    // Prevent context menu on long press
-                                    if (touchDragCustomer) {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                  className={`
-                                    bg-white rounded-lg shadow-md cursor-move mb-2 overflow-hidden relative flex flex-col
-                                    hover:shadow-xl transition-shadow duration-200
-                                    ${draggedCustomer === customer.id ? 'opacity-50 scale-95' : ''}
-                                    ${touchDragCustomer === customer.id ? 'opacity-70 scale-105 shadow-2xl z-50 ring-2 ring-[#D4AF37] touch-none' : ''}
-                                    select-none
-                                  `}
                                   style={{
                                     // If being dragged on touch, follow finger
                                     ...(touchDragCustomer === customer.id && touchCurrentPos ? {
@@ -3440,11 +3485,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 />
                                 </div>
                               
-                              {/* خط أخضر مؤشر للإفلات بعد آخر بطاقة - absolute لا يدفع البطاقات */}
-                              {dropIndicator?.columnId === column.id && dropIndicator.position === customerIndex + 1 && customerIndex === columnCustomers.length - 1 && (
-                                <div className="absolute -bottom-1 left-0 right-0 h-1.5 bg-green-500 rounded-full animate-pulse z-50 shadow-lg shadow-green-500/50" />
-                              )}
-                            </div>
+                              </DraggableCard>
                           );
                           })}
                         </AnimatePresence>
@@ -3457,12 +3498,9 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                           </div>
                         )}
                         </div>
-                      </div>
+                      </DroppableColumn>
                       
                       {/* خط أخضر مؤشر للإفلات بين الأعمدة */}
-                      {columnDropIndicator === columnIndex + 1 && (
-                        <div className="w-1 bg-green-500 rounded-full animate-pulse self-stretch" />
-                      )}
                     </React.Fragment>
                   );
                 })}
@@ -4821,5 +4859,6 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       {/* Spacer for bottom bar */}
       <div className="h-24"></div>
     </div>
+    </KanbanDndProvider>
   );
 }
