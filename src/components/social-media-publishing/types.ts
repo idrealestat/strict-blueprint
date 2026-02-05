@@ -141,7 +141,7 @@
  // إعدادات الفيديو
  export interface VideoSettings {
    subtitlesEnabled: boolean;
-   subtitleColor: 'gold' | 'silver' | 'dark' | 'light';
+  subtitleColor: 'gold' | 'silver' | 'dark' | 'light' | 'white' | 'black' | 'wasata-green' | 'red' | 'blue' | 'purple' | 'orange' | 'cyan';
    subtitleFont: string;
    subtitleFontSize: number;
    logoPosition: 'top-right' | 'top-center' | 'top-left';
@@ -162,8 +162,16 @@
  export const SUBTITLE_COLORS = [
    { id: 'gold', name: 'ذهبي', color: '#D4AF37' },
    { id: 'silver', name: 'فضي', color: '#C0C0C0' },
-   { id: 'dark', name: 'داكن', color: '#1a1a1a' },
-   { id: 'light', name: 'فاتح', color: '#ffffff' },
+  { id: 'wasata-green', name: 'أخضر وساطة', color: '#01411C' },
+  { id: 'white', name: 'أبيض', color: '#FFFFFF' },
+  { id: 'black', name: 'أسود', color: '#000000' },
+  { id: 'dark', name: 'رمادي داكن', color: '#333333' },
+  { id: 'light', name: 'رمادي فاتح', color: '#E5E5E5' },
+  { id: 'red', name: 'أحمر', color: '#DC2626' },
+  { id: 'blue', name: 'أزرق', color: '#2563EB' },
+  { id: 'purple', name: 'بنفسجي', color: '#7C3AED' },
+  { id: 'orange', name: 'برتقالي', color: '#EA580C' },
+  { id: 'cyan', name: 'سماوي', color: '#0891B2' },
  ];
  
  // حالة المنشور
