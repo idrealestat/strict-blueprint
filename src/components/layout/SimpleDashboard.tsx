@@ -306,7 +306,7 @@ export default function SimpleDashboard({
             <CardTitle className="text-[#01411C] text-center">الخدمات الرئيسية</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
               {visibleServices.map(service => {
               const IconComponent = service.icon;
               const handleServiceClick = () => {
@@ -322,11 +322,11 @@ export default function SimpleDashboard({
                 }
               };
               return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
-                    <CardContent className="p-6 text-center relative h-full min-h-[180px] flex flex-col items-center justify-center">
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
-                        <IconComponent className={`w-8 h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
+                    <CardContent className="p-4 md:p-6 text-center relative h-full aspect-square flex flex-col items-center justify-center">
+                      <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
+                        <IconComponent className={`w-6 h-6 md:w-8 md:h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
                       </div>
-                      <h3 className="font-bold text-[#01411C]">{service.title}</h3>
+                      <h3 className="font-bold text-[#01411C] text-sm md:text-base">{service.title}</h3>
                     </CardContent>
                   </Card>;
             })}
