@@ -544,24 +544,24 @@
          </Card>
        )}
        
-       {/* زر النشر */}
-       <Button
-         className="w-full h-12 text-lg bg-gradient-to-r from-[#01411C] to-[#065f41] hover:from-[#016630] hover:to-[#01411C]"
-         onClick={handlePublish}
-         disabled={isPublishing || !hasContent || selectedPlatforms.length === 0}
-       >
-         {isPublishing ? (
-           <>
-             <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-             جاري النشر...
-           </>
-         ) : (
-           <>
-             <Send className="w-5 h-5 ml-2" />
-             نشر على {selectedPlatforms.length || 0} منصات
-           </>
-         )}
-       </Button>
+        {/* زر النشر */}
+        <Button
+          className="w-full h-12 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
+          onClick={handlePublish}
+          disabled={isPublishing || !hasContent || selectedPlatforms.length === 0}
+        >
+          {isPublishing ? (
+            <>
+              <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+              جاري النشر...
+            </>
+          ) : (
+            <>
+              <Send className="w-5 h-5 ml-2" />
+              نشر على {selectedPlatforms.length || 0} منصات
+            </>
+          )}
+        </Button>
        
        {/* تنبيه عدم وجود محتوى */}
        {!hasContent && (
