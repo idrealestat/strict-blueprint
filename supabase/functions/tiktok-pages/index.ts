@@ -437,6 +437,60 @@ const privacyPage = `
 </html>
 `;
 
+const dataDeletionPage = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلب حذف بيانات المستخدم - Wasata AI</title>
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">وساطة AI</div>
+      <div class="subtitle">طلب حذف البيانات</div>
+    </div>
+    
+    <div class="card">
+      <h1>طلب حذف بيانات المستخدم</h1>
+      
+      <p>إذا رغبت في حذف بياناتك المرتبطة بتطبيق Wasata AI، يرجى التواصل معنا عبر البريد الإلكتروني التالي:</p>
+      
+      <p style="text-align: center; font-size: 1.3rem; margin: 25px 0;">
+        <a href="mailto:wasata2035@gmail.com" style="color: #D4AF37; text-decoration: none;">wasata2035@gmail.com</a>
+      </p>
+      
+      <p>وسيتم حذف جميع البيانات المرتبطة بحسابك خلال مدة لا تتجاوز 30 يومًا وفقًا لسياسة الخصوصية.</p>
+
+      <div class="english-section">
+        <h1>User Data Deletion Request</h1>
+        
+        <p>If you wish to delete your data associated with Wasata AI, please contact us via the following email:</p>
+        
+        <p style="text-align: center; font-size: 1.3rem; margin: 25px 0;">
+          <a href="mailto:wasata2035@gmail.com" style="color: #D4AF37; text-decoration: none;">wasata2035@gmail.com</a>
+        </p>
+        
+        <p>All data associated with your account will be deleted within 30 days in accordance with our privacy policy.</p>
+      </div>
+    </div>
+    
+    <div class="nav-links">
+      <a href="/">الرئيسية</a>
+      <a href="/privacy">سياسة الخصوصية</a>
+      <a href="/terms">شروط الاستخدام</a>
+    </div>
+    
+    <div class="footer">
+      <p>© 2025 Wasata AI. جميع الحقوق محفوظة.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -452,6 +506,8 @@ serve(async (req) => {
       html = termsPage;
     } else if (path === '/privacy' || path === '/privacy/') {
       html = privacyPage;
+    } else if (path === '/data-deletion' || path === '/data-deletion/') {
+      html = dataDeletionPage;
     } else {
       html = homePage;
     }
