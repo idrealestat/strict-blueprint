@@ -61,6 +61,7 @@ import {
   PatternsPage,
   ChangelogPage,
   PropertyRegistryPage,
+  RegisteredUsersPage,
 } from "./pages/owner-dashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
@@ -668,6 +669,13 @@ const App = () => {
                     <BusinessCardGuard>
                       <RoleGuard allowedRoles={['owner']} showAccessDenied>
                         <PropertyRegistryPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/registered-users" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <RegisteredUsersPage />
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />
