@@ -86,6 +86,7 @@ import { useEntitlementsContext } from "./context/EntitlementsContext";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
+import FacebookCallbackPage from "./pages/FacebookCallbackPage";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -718,6 +719,7 @@ const App = () => {
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
                   <Route path="/tiktok/callback" element={<TikTokCallbackPage />} />
+                  <Route path="/facebook-callback" element={<FacebookCallbackPage />} />
                   
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
