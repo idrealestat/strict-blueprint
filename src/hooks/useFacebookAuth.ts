@@ -93,11 +93,6 @@ export function useFacebookAuth() {
 
       const redirectUri = `${window.location.origin}/facebook-callback`;
       
-      const { data, error } = await supabase.functions.invoke('facebook-auth', {
-        body: null,
-        headers: {},
-      });
-
       // Use query params for this action
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/facebook-auth?action=get_auth_url&redirect_uri=${encodeURIComponent(redirectUri)}`,
