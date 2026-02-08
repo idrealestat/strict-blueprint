@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.tiktok-upload]
 verify_jwt = false
+
+[functions.facebook-token]
+verify_jwt = false
