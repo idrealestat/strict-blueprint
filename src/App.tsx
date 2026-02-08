@@ -86,6 +86,7 @@ import { useAuthContext } from "./context/AuthContext";
 import { useEntitlementsContext } from "./context/EntitlementsContext";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import DataDeletionPage from "./pages/DataDeletionPage";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import FacebookCallbackPage from "./pages/FacebookCallbackPage";
 import { supabase } from "./integrations/supabase/client";
@@ -726,6 +727,7 @@ const App = () => {
                   {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/data-deletion" element={<DataDeletionPage />} />
                   <Route path="/tiktok/callback" element={<TikTokCallbackPage />} />
                   <Route path="/facebook-callback" element={<FacebookCallbackPage />} />
                   
