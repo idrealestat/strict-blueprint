@@ -499,14 +499,16 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const path = url.pathname;
+    const page = url.searchParams.get('page');
 
     let html: string;
     
-    if (path === '/terms' || path === '/terms/') {
+    // Support both path-based and query-based routing
+    if (path === '/terms' || path === '/terms/' || page === 'terms') {
       html = termsPage;
-    } else if (path === '/privacy' || path === '/privacy/') {
+    } else if (path === '/privacy' || path === '/privacy/' || page === 'privacy') {
       html = privacyPage;
-    } else if (path === '/data-deletion' || path === '/data-deletion/') {
+    } else if (path === '/data-deletion' || path === '/data-deletion/' || page === 'data-deletion') {
       html = dataDeletionPage;
     } else {
       html = homePage;

@@ -59,3 +59,15 @@ verify_jwt = false
 
 [functions.facebook-publish]
 verify_jwt = false
+
+[functions.tiktok-pages]
+verify_jwt = false
+
+[functions.tiktok-auth]
+verify_jwt = false
+
+[functions.tiktok-callback]
+verify_jwt = false
+
+[functions.tiktok-upload]
+verify_jwt = false
