@@ -11,7 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Download, RefreshCw, Send, FileText, Loader2, Calendar, Clock, MapPin, Home, Eye, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { useNavigate } from 'react-router-dom';
+import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
+import { generateRequestPDF } from '@/utils/generateRequestPDF';
 
 interface TabData {
   id: string;
@@ -31,6 +34,10 @@ interface BrokerInfo {
   email?: string;
   licenseNumber?: string;
   company?: string;
+  location?: string;
+  profileImage?: string;
+  coverImage?: string;
+  logoImage?: string;
 }
 
 interface TabActionsPanelProps {
@@ -50,241 +57,118 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
   const [includeBrokerInfo, setIncludeBrokerInfo] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Generate PDF
+  // Generate PDF using the rich PDF generators with broker header
   const generatePDF = async () => {
     setIsGenerating(true);
     
     try {
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      // Add Arabic font support (basic)
-      doc.setFont('helvetica');
-      
       const data = tab.data;
-      let yPosition = 20;
-      const lineHeight = 8;
-      const pageWidth = doc.internal.pageSize.getWidth();
-
-      // Header
-      doc.setFontSize(18);
-      doc.setTextColor(1, 65, 28); // Forest green
-      const title = tab.type === 'property_offer' ? 'عرض عقاري' :
-                   tab.type === 'property_request' ? 'طلب عقار' :
-                   tab.type === 'price_quote' ? 'عرض سعر' :
-                   tab.type === 'appointment' ? 'موعد' : 'تفاصيل';
-      doc.text(title, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += lineHeight * 2;
-
-      // Date
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`التاريخ: ${new Date(tab.createdAt).toLocaleDateString('ar-SA')}`, pageWidth - 20, yPosition, { align: 'right' });
-      yPosition += lineHeight * 2;
-
-      // Owner/Client Info
-      if (includeOwnerInfo && data) {
-        doc.setFontSize(14);
-        doc.setTextColor(0);
-        doc.text('معلومات العميل', pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(60);
-        
-        const ownerName = data.ownerName || data.clientName || customerName;
-        const ownerPhone = data.ownerPhone || data.clientPhone || customerPhone;
-        
-        doc.text(`الاسم: ${ownerName}`, pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        doc.text(`الجوال: ${ownerPhone}`, pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        
-        if (data.ownerIdNumber) {
-          doc.text(`رقم الهوية: ${data.ownerIdNumber}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        
-        yPosition += lineHeight;
+      
+      // إعداد بيانات الوسيط للهيدر (مع الصور)
+      const brokerData = brokerInfo ? {
+        name: brokerInfo.name,
+        company: brokerInfo.company,
+        phone: brokerInfo.phone,
+        location: brokerInfo.location || '',
+        licenseNumber: brokerInfo.licenseNumber,
+        profileImage: brokerInfo.profileImage,
+        coverImage: brokerInfo.coverImage,
+        logoImage: brokerInfo.logoImage,
+      } : undefined;
+      
+      if (tab.type === 'property_offer' || tab.type === 'published_ad') {
+        // استخدام generatePropertyPDF مع الهيدر الكامل
+        await generatePropertyPDF(
+          {
+            id: data.id || tab.id,
+            title: data.title || `عرض عقاري - ${data.propertyType || ''}`,
+            propertyType: data.propertyType,
+            category: data.purpose || data.category || 'للبيع',
+            purpose: data.purpose,
+            area: data.area?.toString(),
+            price: data.price?.toString(),
+            locationDetails: {
+              city: data.city || data.locationCity || '',
+              district: data.district || data.locationDistrict || '',
+              street: data.street || data.locationStreet || '',
+            },
+            bedrooms: data.bedrooms?.toString(),
+            bathrooms: data.bathrooms?.toString(),
+            livingRooms: data.livingRooms,
+            councils: data.councils,
+            floors: data.floors,
+            floorNumber: data.floorNumber,
+            streetWidth: data.streetWidth,
+            propertyAge: data.propertyAge,
+            facade: data.facade,
+            furnishing: data.furnishing,
+            entrances: data.entrances,
+            warehouses: data.warehouses,
+            balconies: data.balconies,
+            acUnits: data.acUnits,
+            ownerName: includeOwnerInfo ? (data.ownerName || customerName) : undefined,
+            ownerPhone: includeOwnerInfo ? (data.ownerPhone || customerPhone) : undefined,
+            ownerIdNumber: includeOwnerInfo ? data.ownerIdNumber : undefined,
+            ownerBirthDate: includeOwnerInfo ? data.ownerBirthDate : undefined,
+            ownerCity: includeOwnerInfo ? data.ownerCity : undefined,
+            ownerDistrict: includeOwnerInfo ? data.ownerDistrict : undefined,
+            deedNumber: includeOwnerInfo ? data.deedNumber : undefined,
+            deedDate: includeOwnerInfo ? data.deedDate : undefined,
+            deedCity: includeOwnerInfo ? data.deedCity : undefined,
+            brokerPhone: brokerInfo?.phone,
+            adLicense: data.adLicense,
+            aiDescription: data.description || data.aiDescription,
+            features: data.features || data.customFeatures?.split(',').map((f: string) => f.trim()).filter(Boolean),
+            warranties: data.warranties,
+            tour3dUrl: data.tour3dUrl || data.tour3DUrl,
+            images: data.media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || data.images,
+            image: data.image || data.media?.[0]?.url,
+          },
+          includeOwnerInfo,
+          brokerData
+        );
+      } else if (tab.type === 'property_request') {
+        // استخدام generateRequestPDF مع الهيدر الكامل
+        await generateRequestPDF(
+          {
+            id: data.id || tab.id,
+            ownerName: includeOwnerInfo ? (data.clientName || data.ownerName || customerName) : undefined,
+            ownerPhone: includeOwnerInfo ? (data.clientPhone || data.ownerPhone || customerPhone) : undefined,
+            ownerIdNumber: includeOwnerInfo ? (data.clientIdNumber || data.ownerIdNumber) : undefined,
+            ownerBirthDate: includeOwnerInfo ? data.ownerBirthDate : undefined,
+            ownerCity: includeOwnerInfo ? data.ownerCity : undefined,
+            ownerDistrict: includeOwnerInfo ? data.ownerDistrict : undefined,
+            propertyType: data.propertyType,
+            purpose: data.purpose,
+            preferredCity: data.preferredCity,
+            preferredDistricts: Array.isArray(data.preferredDistricts) ? data.preferredDistricts.join('، ') : data.preferredDistricts,
+            minArea: data.minArea,
+            maxArea: data.maxArea,
+            bedrooms: data.bedrooms,
+            bathrooms: data.bathrooms,
+            livingRooms: data.livingRooms,
+            floors: data.floors,
+            furnishing: data.furnishing,
+            minBudget: data.minBudget,
+            maxBudget: data.maxBudget,
+            paymentPrices: data.paymentPrices,
+            hasPool: data.hasPool,
+            hasGarden: data.hasGarden,
+            hasElevator: data.hasElevator,
+            hasParking: data.hasParking,
+            hasMaidRoom: data.hasMaidRoom,
+            hasDriverRoom: data.hasDriverRoom,
+            additionalRequirements: data.additionalRequirements,
+            urgency: data.urgency,
+            createdAt: tab.createdAt,
+          },
+          includeOwnerInfo,
+          brokerData
+        );
+      } else {
+        // للأنواع الأخرى (price_quote, appointment) - استخدام HTML مع هيدر الوسيط
+        await generateGenericPDFWithHeader(data, brokerData);
       }
-
-      // Broker Info - معلومات الوسيط
-      if (includeBrokerInfo && brokerInfo) {
-        doc.setFontSize(14);
-        doc.setTextColor(1, 65, 28); // Forest green
-        doc.text('معلومات الوسيط', pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(60);
-        
-        if (brokerInfo.name) {
-          doc.text(`الاسم: ${brokerInfo.name}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (brokerInfo.phone) {
-          doc.text(`الجوال: ${brokerInfo.phone}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (brokerInfo.email) {
-          doc.text(`البريد: ${brokerInfo.email}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (brokerInfo.licenseNumber) {
-          doc.text(`رقم الترخيص: ${brokerInfo.licenseNumber}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (brokerInfo.company) {
-          doc.text(`الشركة: ${brokerInfo.company}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        
-        yPosition += lineHeight;
-      }
-
-      if (tab.type === 'property_offer' || tab.type === 'property_request') {
-        doc.setFontSize(14);
-        doc.setTextColor(0);
-        doc.text('معلومات العقار', pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(60);
-        
-        if (data.propertyType) {
-          doc.text(`نوع العقار: ${data.propertyType}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.purpose) {
-          doc.text(`الغرض: ${data.purpose}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.city) {
-          doc.text(`المدينة: ${data.city}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.district) {
-          doc.text(`الحي: ${data.district}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.area) {
-          doc.text(`المساحة: ${data.area} م²`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.price) {
-          doc.text(`السعر: ${Number(data.price).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        
-        // حقول الدفعات للإيجار
-        if (data.purpose === 'للإيجار' && data.paymentPrices) {
-          yPosition += lineHeight;
-          doc.setFontSize(12);
-          doc.setTextColor(1, 65, 28);
-          doc.text('خيارات الدفعات:', pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-          
-          doc.setFontSize(11);
-          doc.setTextColor(60);
-          
-          if (data.paymentPrices.onePayment) {
-            doc.text(`دفعة واحدة: ${Number(data.paymentPrices.onePayment).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
-            yPosition += lineHeight;
-          }
-          if (data.paymentPrices.twoPayments) {
-            doc.text(`دفعتين: ${Number(data.paymentPrices.twoPayments).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
-            yPosition += lineHeight;
-          }
-          if (data.paymentPrices.fourPayments) {
-            doc.text(`أربع دفعات: ${Number(data.paymentPrices.fourPayments).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
-            yPosition += lineHeight;
-          }
-          if (data.paymentPrices.monthly) {
-            doc.text(`شهري: ${Number(data.paymentPrices.monthly).toLocaleString()} ريال`, pageWidth - 20, yPosition, { align: 'right' });
-            yPosition += lineHeight;
-          }
-        }
-        if (data.bedrooms) {
-          doc.text(`غرف النوم: ${data.bedrooms}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.bathrooms) {
-          doc.text(`دورات المياه: ${data.bathrooms}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.description) {
-          yPosition += lineHeight;
-          doc.text('الوصف:', pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-          
-          // Split long description
-          const descLines = doc.splitTextToSize(data.description, pageWidth - 40);
-          descLines.forEach((line: string) => {
-            doc.text(line, pageWidth - 20, yPosition, { align: 'right' });
-            yPosition += lineHeight;
-          });
-        }
-      }
-
-      // Appointment Info
-      if (tab.type === 'appointment') {
-        doc.setFontSize(14);
-        doc.setTextColor(0);
-        doc.text('تفاصيل الموعد', pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(60);
-        
-        if (data.appointmentType) {
-          doc.text(`نوع الموعد: ${data.appointmentType}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.preferredDate) {
-          doc.text(`التاريخ: ${data.preferredDate}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.preferredTime) {
-          doc.text(`الوقت: ${data.preferredTime}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.meetingLocation) {
-          doc.text(`المكان: ${data.meetingLocation}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-      }
-
-      // Price Quote Info
-      if (tab.type === 'price_quote') {
-        doc.setFontSize(14);
-        doc.setTextColor(0);
-        doc.text('تفاصيل عرض السعر', pageWidth - 20, yPosition, { align: 'right' });
-        yPosition += lineHeight;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(60);
-        
-        if (data.quoteType) {
-          doc.text(`نوع الخدمة: ${data.quoteType}`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-        if (data.budget) {
-          doc.text(`الميزانية: ${data.budget} ريال`, pageWidth - 20, yPosition, { align: 'right' });
-          yPosition += lineHeight;
-        }
-      }
-
-      // Footer
-      doc.setFontSize(9);
-      doc.setTextColor(150);
-      doc.text('تم إنشاؤه بواسطة منصة وساطة', pageWidth / 2, 280, { align: 'center' });
-
-      // Save PDF
-      const fileName = `${title}_${customerName}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
       
       toast.success('تم تحميل PDF بنجاح');
       setShowPdfDialog(false);
@@ -293,6 +177,200 @@ export default function TabActionsPanel({ tab, customerName, customerPhone, brok
       toast.error('حدث خطأ أثناء إنشاء PDF');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // دالة إنشاء PDF للأنواع الأخرى (عرض سعر، موعد) مع هيدر الوسيط
+  const generateGenericPDFWithHeader = async (data: any, brokerData?: any) => {
+    const container = document.createElement('div');
+    container.style.cssText = `
+      width: 595px;
+      min-height: 842px;
+      padding: 0;
+      margin: 0;
+      font-family: 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
+      direction: rtl;
+      background: white;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 99999;
+      overflow: hidden;
+    `;
+
+    const brokerProfileImage = brokerData?.profileImage ? encodeURI(brokerData.profileImage) : null;
+    const brokerCoverImage = brokerData?.coverImage ? encodeURI(brokerData.coverImage) : null;
+    const brokerLogoImage = brokerData?.logoImage ? encodeURI(brokerData.logoImage) : null;
+    const safeBrokerName = brokerData?.name || 'الوسيط العقاري';
+    const safeBrokerCompany = brokerData?.company || '';
+    const safeBrokerPhone = brokerData?.phone || '';
+    const safeBrokerLocation = brokerData?.location || '';
+    const safeBrokerLicense = brokerData?.licenseNumber || '';
+
+    const title = tab.type === 'price_quote' ? 'عرض سعر' : tab.type === 'appointment' ? 'تفاصيل الموعد' : 'تفاصيل';
+
+    let contentHtml = '';
+
+    if (tab.type === 'price_quote') {
+      contentHtml = `
+        <div style="padding: 15px;">
+          <div class="no-break" style="margin-bottom: 15px;">
+            <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">💰 تفاصيل عرض السعر</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              ${data.quoteType ? `<tr><td style="padding: 6px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">نوع الخدمة:</td><td style="padding: 6px; background: #fff;">${data.quoteType}</td></tr>` : ''}
+              ${data.budget ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الميزانية:</td><td style="padding: 6px; background: #fff;">${Number(data.budget).toLocaleString()} ريال</td></tr>` : ''}
+              ${data.propertyType ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">نوع العقار:</td><td style="padding: 6px; background: #fff;">${data.propertyType}</td></tr>` : ''}
+              ${data.city ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">المدينة:</td><td style="padding: 6px; background: #fff;">${data.city}</td></tr>` : ''}
+              ${data.district ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الحي:</td><td style="padding: 6px; background: #fff;">${data.district}</td></tr>` : ''}
+              ${data.notes ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">ملاحظات:</td><td style="padding: 6px; background: #fff;">${data.notes}</td></tr>` : ''}
+            </table>
+          </div>
+          ${includeOwnerInfo ? `
+          <div class="no-break" style="margin-bottom: 15px;">
+            <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">👤 معلومات العميل</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <tr><td style="padding: 6px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">الاسم:</td><td style="padding: 6px; background: #fff;">${data.clientName || customerName || '-'}</td></tr>
+              <tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الجوال:</td><td style="padding: 6px; background: #fff; direction: ltr; text-align: right;">${data.clientPhone || customerPhone || '-'}</td></tr>
+            </table>
+          </div>
+          ` : ''}
+        </div>
+      `;
+    } else if (tab.type === 'appointment') {
+      contentHtml = `
+        <div style="padding: 15px;">
+          <div class="no-break" style="margin-bottom: 15px;">
+            <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">📅 تفاصيل الموعد</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              ${data.appointmentType ? `<tr><td style="padding: 6px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">نوع الموعد:</td><td style="padding: 6px; background: #fff;">${data.appointmentType}</td></tr>` : ''}
+              ${data.preferredDate ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">التاريخ:</td><td style="padding: 6px; background: #fff;">${data.preferredDate}</td></tr>` : ''}
+              ${data.preferredTime ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الوقت:</td><td style="padding: 6px; background: #fff;">${data.preferredTime}</td></tr>` : ''}
+              ${data.meetingLocation ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">المكان:</td><td style="padding: 6px; background: #fff;">${data.meetingLocation}</td></tr>` : ''}
+              ${data.propertyTitle ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">العقار:</td><td style="padding: 6px; background: #fff;">${data.propertyTitle}</td></tr>` : ''}
+              ${data.notes ? `<tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">ملاحظات:</td><td style="padding: 6px; background: #fff;">${data.notes}</td></tr>` : ''}
+            </table>
+          </div>
+          ${includeOwnerInfo ? `
+          <div class="no-break" style="margin-bottom: 15px;">
+            <h3 style="color: #01411C; font-size: 14px; border-bottom: 2px solid #D4AF37; padding-bottom: 6px; margin-bottom: 10px;">👤 معلومات العميل</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <tr><td style="padding: 6px; background: #f8f9fa; width: 30%; font-weight: bold; color: #01411C;">الاسم:</td><td style="padding: 6px; background: #fff;">${data.clientName || customerName || '-'}</td></tr>
+              <tr><td style="padding: 6px; background: #f8f9fa; font-weight: bold; color: #01411C;">الجوال:</td><td style="padding: 6px; background: #fff; direction: ltr; text-align: right;">${data.clientPhone || customerPhone || '-'}</td></tr>
+            </table>
+          </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+        * { font-family: 'Cairo', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, Arial, sans-serif !important; }
+        .no-break { page-break-inside: avoid; break-inside: avoid; }
+      </style>
+      
+      <!-- رأس الصفحة مع معلومات الوسيط -->
+      <div style="position: relative; min-height: 120px; overflow: hidden;">
+        ${brokerCoverImage ? `
+        <div style="position: absolute; inset: 0;">
+          <img src="${brokerCoverImage}" alt="غلاف" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" />
+          <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(1,65,28,0.7), rgba(1,65,28,0.6), rgba(1,65,28,0.9));"></div>
+        </div>
+        ` : `
+        <div style="position: absolute; inset: 0; background: linear-gradient(135deg, #01411C 0%, #065f41 100%);"></div>
+        `}
+        
+        <div style="position: relative; padding: 20px; display: flex; align-items: center; gap: 15px;">
+          <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(212,175,55,0.2); border: 3px solid #D4AF37; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+            ${brokerProfileImage ? `
+            <img src="${brokerProfileImage}" alt="${safeBrokerName}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" />
+            ` : `
+            <div style="font-size: 28px; color: #D4AF37;">🏢</div>
+            `}
+          </div>
+          
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h1 style="color: white; font-size: 20px; font-weight: bold; margin: 0;">${safeBrokerName}</h1>
+              <span style="background: #D4AF37; color: #01411C; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold;">✓ موثق</span>
+            </div>
+            ${safeBrokerCompany ? `<p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 4px 0 0 0;">${safeBrokerCompany}</p>` : ''}
+            <div style="display: flex; align-items: center; gap: 15px; margin-top: 6px; flex-wrap: wrap;">
+              ${safeBrokerPhone ? `<span style="color: rgba(255,255,255,0.7); font-size: 11px;">📞 ${safeBrokerPhone}</span>` : ''}
+              ${safeBrokerLocation ? `<span style="color: rgba(255,255,255,0.7); font-size: 11px;">📍 ${safeBrokerLocation}</span>` : ''}
+            </div>
+            ${safeBrokerLicense ? `
+            <div style="margin-top: 6px; color: rgba(255,255,255,0.6); font-size: 10px;">
+              🏆 رخصة فال: ${safeBrokerLicense}
+            </div>
+            ` : ''}
+          </div>
+          
+          ${brokerLogoImage ? `
+          <div style="width: 55px; height: 55px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+            <img src="${brokerLogoImage}" alt="شعار" style="width: 100%; height: 100%; object-fit: contain; padding: 4px;" crossorigin="anonymous" />
+          </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- شريط العنوان -->
+      <div style="background: #D4AF37; padding: 12px; text-align: center;">
+        <h2 style="color: #01411C; font-size: 18px; font-weight: bold; margin: 0;">${title}</h2>
+        <p style="color: #01411C; font-size: 11px; margin: 5px 0 0 0; opacity: 0.7;">
+          التاريخ: ${new Date(tab.createdAt).toLocaleDateString('ar-SA')}
+        </p>
+      </div>
+
+      ${contentHtml}
+
+      <!-- تذييل الصفحة -->
+      <div style="background: linear-gradient(135deg, #01411C 0%, #024a21 100%); padding: 12px 20px; margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; color: rgba(255,255,255,0.6); font-size: 9px;">
+          <span>${safeBrokerName} ${safeBrokerCompany ? `| ${safeBrokerCompany}` : ''}</span>
+          <span>مدعوم من وساطة AI</span>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(container);
+
+    // انتظار تحميل الخطوط والصور
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    try {
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = `${title}_${customerName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+    } finally {
+      document.body.removeChild(container);
     }
   };
 
