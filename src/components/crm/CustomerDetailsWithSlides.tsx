@@ -1327,11 +1327,15 @@ export default function CustomerDetailsWithSlides({
           const cardData = card?.data as Record<string, any> || {};
           
           setBrokerInfo({
-            name: cardData.name || profile?.full_name || '',
+            name: cardData.name || cardData.userName || profile?.full_name || '',
             phone: card?.phone || profile?.phone || '',
             email: card?.email || user.email || '',
             licenseNumber: card?.fal_license_number || profile?.fal_license_number || '',
-            company: cardData.company || profile?.company_name || '',
+            company: cardData.company || cardData.companyName || profile?.company_name || '',
+            profileImage: cardData.profileImage || '',
+            coverImage: cardData.coverImage || '',
+            logoImage: cardData.logoImage || '',
+            location: cardData.city || '',
           });
         }
       } catch (error) {

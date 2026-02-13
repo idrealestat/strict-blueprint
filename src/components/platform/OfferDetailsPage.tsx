@@ -750,6 +750,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   const [copied, setCopied] = useState(false);
   const [historicalViews, setHistoricalViews] = useState(0);
   const [brokerUserId, setBrokerUserId] = useState<string | null>(userId || null);
+  const [brokerFullData, setBrokerFullData] = useState<any>(null);
   
   // Event tracker for CTA tracking
   const { track } = useEventTracker();
@@ -757,32 +758,42 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
   // المشاهدين المباشرين باستخدام Supabase Presence
   const liveViewerCount = useSingleOfferPresence(listing.id);
   
-  // جلب userId للوسيط من platformSlug إذا لم يكن متوفراً
+  // جلب userId وبيانات الوسيط الكاملة من platformSlug
   useEffect(() => {
-    const fetchBrokerUserId = async () => {
-      if (brokerUserId) return;
-      
+    const fetchBrokerData = async () => {
       const slug = platformSlug || window.location.pathname.split('/')[1];
       if (!slug || ['app', 'auth', 'admin'].includes(slug)) return;
       
       try {
         const { data } = await supabase
           .from('business_cards')
-          .select('user_id')
+          .select('user_id, data, phone, fal_license_number')
           .eq('slug', slug)
           .eq('published', true)
           .single();
         
         if (data?.user_id) {
-          setBrokerUserId(data.user_id);
+          if (!brokerUserId) setBrokerUserId(data.user_id);
+          
+          const cardData = data.data as Record<string, any> || {};
+          setBrokerFullData({
+            name: cardData.name || cardData.userName || brokerName || '',
+            company: cardData.company || cardData.companyName || '',
+            phone: data.phone || cardData.phone || brokerPhone || '',
+            location: cardData.city || '',
+            licenseNumber: data.fal_license_number || cardData.falLicenseNumber || cardData.falLicense || '',
+            profileImage: cardData.profileImage || '',
+            coverImage: cardData.coverImage || '',
+            logoImage: cardData.logoImage || '',
+          });
         }
       } catch (e) {
-        console.error('Error fetching broker userId:', e);
+        console.error('Error fetching broker data:', e);
       }
     };
     
-    fetchBrokerUserId();
-  }, [platformSlug, brokerUserId]);
+    fetchBrokerData();
+  }, [platformSlug, brokerUserId, brokerName, brokerPhone]);
   
   // جلب المشاهدات الإجمالية من قاعدة البيانات
   useEffect(() => {
@@ -1398,7 +1409,7 @@ const OfferDetailsPage: React.FC<OfferDetailsPageProps> = ({
                         brokerPhone: brokerPhone,
                         adLicense: listing.adLicense,
                         offerUrl: offerUrl
-                      }, true, {
+                      }, true, brokerFullData || {
                         name: brokerName,
                         phone: brokerPhone
                       });
