@@ -66,7 +66,7 @@ export function useFloatingBubblePermission(): FloatingBubbleState & FloatingBub
 
     const platform = getPlatform();
     const isOwnerEnabled = flags.floating_bubble_enabled ?? true;
-    const isUserEnabled = localStorage.getItem('floating_bubble_user_enabled') === 'true';
+    const isUserEnabled = localStorage.getItem('floating_bubble_user_enabled') !== 'false';
     
     let hasPermission = false;
     let isActive = false;

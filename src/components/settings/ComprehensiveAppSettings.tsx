@@ -261,7 +261,7 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
     },
     // المساعد الذكي
     aiAssistant: {
-      bubbleEnabled: true,
+      bubbleEnabled: localStorage.getItem('floating_bubble_user_enabled') !== 'false',
       autoSpeak: false,
       showOnAllPages: true,
       position: 'bottom-right',
@@ -699,7 +699,12 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
               label="تفعيل الفقاعة العائمة"
               description="إظهار المساعد الذكي كزر عائم"
               checked={settings.aiAssistant.bubbleEnabled}
-              onChange={(v) => updateSetting('aiAssistant', 'bubbleEnabled', v)}
+              onChange={(v) => {
+                updateSetting('aiAssistant', 'bubbleEnabled', v);
+                // Sync with AIFloatingButton's localStorage key
+                localStorage.setItem('floating_bubble_user_enabled', v ? 'true' : 'false');
+                window.dispatchEvent(new CustomEvent('floatingBubbleUserChanged'));
+              }}
             />
             <SettingToggle
               label="النطق التلقائي"
