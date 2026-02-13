@@ -168,18 +168,16 @@ export function AIFloatingButton() {
   };
 
   // 🔴 التحقق من ظهور الزر العائم
-  // - يجب أن تكون الخاصية مفعلة من المالك (floating_bubble_enabled)
-  // - يجب أن يكون المستخدم قد فعّلها (أو لم يعطلها)
-  // - على Android: يظهر كـ floating bubble
-  // - على iOS/Web: يظهر كزر دائري داخل التطبيق
   const shouldShowBubble = () => {
     // إذا الخاصية معطلة من المالك → لا يظهر نهائياً
     if (!flags.floating_bubble_enabled) {
+      console.log('[AIFloatingButton] Hidden: floating_bubble_enabled =', flags.floating_bubble_enabled);
       return false;
     }
     
     // إذا المستخدم عطّلها من إعداداته
     if (!isUserEnabled) {
+      console.log('[AIFloatingButton] Hidden: isUserEnabled =', isUserEnabled, 'localStorage =', localStorage.getItem('floating_bubble_user_enabled'));
       return false;
     }
 
@@ -188,6 +186,7 @@ export function AIFloatingButton() {
 
   // 🔴 إذا الخاصية معطلة → لا يظهر شيء
   if (flagsLoading) {
+    console.log('[AIFloatingButton] Hidden: flagsLoading = true');
     return null;
   }
 
