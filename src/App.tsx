@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import { runHardResetOnce } from "@/utils/hardReset";
@@ -179,8 +179,8 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
   }
 
   const handleBack = () => {
-    // التنقل للواجهة الرئيسية بطريقة موثوقة
-    navigate('/app/dashboard', { replace: true });
+    // التنقل لبطاقة أعمالي الرقمية بعد الحفظ
+    navigate('/app/dashboard?page=business-card-profile', { replace: true });
   };
 
   return (
@@ -194,7 +194,20 @@ const ProtectedBusinessCardEdit = ({ isNewUser }: { isNewUser: boolean }) => {
 
 // Dashboard content component
 const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPage = searchParams.get('page') || 'dashboard';
+  const [currentPage, setCurrentPage] = useState(initialPage);
+
+  // Handle page query param changes
+  useEffect(() => {
+    const pageParam = searchParams.get('page');
+    if (pageParam && pageParam !== currentPage) {
+      setCurrentPage(pageParam);
+      // Clean up the URL
+      searchParams.delete('page');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
   const [linkedCustomerForTask, setLinkedCustomerForTask] = useState<LinkedCustomer | null>(null);
   const [linkedCustomerForAppointment, setLinkedCustomerForAppointment] = useState<LinkedCustomer | null>(null);
   const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<any>(null);
@@ -443,7 +456,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
     case "official-business-card":
       return <><OfficialBusinessCardPage onBack={handleBack} /><AIFloatingButton /></>;
     case "business-card-edit":
-      return <><BusinessCardEdit onBack={handleBack} user={userData} isNewUser={isNewUser} /><AIFloatingButton /></>;
+      return <><BusinessCardEdit onBack={() => setCurrentPage("business-card-profile")} user={userData} isNewUser={isNewUser} /><AIFloatingButton /></>;
     case "reports-analytics":
       return <><ReportsAnalytics onBack={handleBack} /><AIFloatingButton /></>;
     case "digital-card":
