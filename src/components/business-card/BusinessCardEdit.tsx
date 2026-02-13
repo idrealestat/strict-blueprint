@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import BusinessCardOnboardingGuide from "./BusinessCardOnboardingGuide";
 import { z } from "zod";
 import {
   ArrowRight,
@@ -212,6 +213,9 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
   const [showFirstPublishSuccess, setShowFirstPublishSuccess] = useState(false);
   const [firstPublishSlug, setFirstPublishSlug] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+  const [onboardingSaveSuccess, setOnboardingSaveSuccess] = useState(false);
+  const [onboardingSaveError, setOnboardingSaveError] = useState(false);
 
   const STORAGE_KEY = `business_card_${user.id}`;
 
@@ -477,6 +481,17 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     }
   }, [isNewUser]);
 
+  // Show onboarding guide when profile loaded and has empty required fields
+  useEffect(() => {
+    if (!profileLoaded) return;
+    const hasEmptyRequired = !formData.userTitle?.trim() || !formData.primaryPhone?.trim() || !formData.userName?.trim() || !formData.email?.trim() || !formData.falLicense?.trim();
+    if (hasEmptyRequired) {
+      // Small delay so user sees the page first
+      const timer = setTimeout(() => setShowOnboardingGuide(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [profileLoaded]);
+
   // Handle save - حفظ مزدوج للربط مع منصتي + نشر تلقائي للصفحة العامة
   const handleSave = async () => {
     try {
@@ -497,13 +512,14 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
         slug: selectedSlug,
       });
 
-      if (!validationResult.success) {
+        if (!validationResult.success) {
         const errors: Record<string, string> = {};
         validationResult.error.errors.forEach((err) => {
           const field = err.path[0] as string;
           errors[field] = err.message;
         });
         setValidationErrors(errors);
+        setOnboardingSaveError(prev => !prev);
         
         // عرض أول خطأ كـ toast
         const firstError = validationResult.error.errors[0];
@@ -693,6 +709,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       window.dispatchEvent(new CustomEvent('businessCardUpdated'));
 
       setShowSaveSuccess(true);
+      setOnboardingSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000);
 
       // تحديث الـ slug في الـ state
@@ -702,6 +719,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
     } catch (error) {
       console.error('Save error:', error);
       setShowError(true);
+      setOnboardingSaveError(prev => !prev);
       setErrorMessage("حدث خطأ في الحفظ - حاول تصغير حجم الصور");
       toast.error("فشل الحفظ! حاول استخدام صور أصغر");
     }
@@ -1131,6 +1149,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           
           {/* زر الحفظ - مميز */}
           <Button
+            id="onboarding-save-btn"
             onClick={handleSave}
             size="sm"
             className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f] h-8 text-xs font-bold"
@@ -1574,7 +1593,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                 <CardTitle className="text-sm text-[#01411C]">👤 المعلومات الأساسية</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div id="onboarding-name-field">
                   <Label>الاسم الكامل</Label>
                   <Input
                     value={formData.userName}
@@ -1682,14 +1701,16 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                 </div>
                 
                 {/* حقل اختيار النطاق الخاص */}
-                <UserTitleSelector
-                  value={formData.userTitle}
-                  onChange={(value) => handleInputChange("userTitle", value)}
-                  onAvailabilityChange={setIsSlugAvailable}
-                  companyName={formData.companyName}
-                  websiteUrl={formData.websiteUrl}
-                  accountType={formData.accountType}
-                />
+                <div id="onboarding-slug-field">
+                  <UserTitleSelector
+                    value={formData.userTitle}
+                    onChange={(value) => handleInputChange("userTitle", value)}
+                    onAvailabilityChange={setIsSlugAvailable}
+                    companyName={formData.companyName}
+                    websiteUrl={formData.websiteUrl}
+                    accountType={formData.accountType}
+                  />
+                </div>
                 <div>
                   <Label>نبذة عني (500 حرف كحد أقصى)</Label>
                   <Textarea
@@ -1710,7 +1731,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div id="onboarding-fal-field">
                     <Label>رقم رخصة فال</Label>
                     <Input
                       value={formData.falLicense}
@@ -1849,7 +1870,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                 <CardTitle className="text-sm text-[#01411C]">📞 معلومات التواصل</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div id="onboarding-phone-field">
                   <Label>رقم الجوال الأساسي</Label>
                   <Input
                     value={formData.primaryPhone}
@@ -1858,7 +1879,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
                     dir="ltr"
                   />
                 </div>
-                <div>
+                <div id="onboarding-email-field">
                   <Label>البريد الإلكتروني</Label>
                   <Input
                     type="email"
@@ -2189,6 +2210,23 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Smart Onboarding Guide */}
+      <BusinessCardOnboardingGuide
+        formData={{
+          userName: formData.userName,
+          userTitle: formData.userTitle,
+          primaryPhone: formData.primaryPhone,
+          email: formData.email,
+          falLicense: formData.falLicense,
+        }}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSaveSuccess={onboardingSaveSuccess}
+        onSaveError={onboardingSaveError}
+        isVisible={showOnboardingGuide}
+        onDismiss={() => setShowOnboardingGuide(false)}
+      />
     </div>
   );
 };
