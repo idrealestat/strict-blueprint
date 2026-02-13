@@ -150,6 +150,7 @@ export function useFloatingBubblePermission(): FloatingBubbleState & FloatingBub
       const result = await FloatingBubble.show();
       if (result.success) {
         localStorage.setItem('floating_bubble_user_enabled', 'true');
+        localStorage.removeItem('floating_bubble_user_explicitly_disabled');
         setState(prev => ({ ...prev, isActive: true, isUserEnabled: true }));
         toast.success('تم تفعيل المساعد الذكي العائم');
         return true;
@@ -164,6 +165,7 @@ export function useFloatingBubblePermission(): FloatingBubbleState & FloatingBub
 
     // iOS/Web: تفعيل مباشر
     localStorage.setItem('floating_bubble_user_enabled', 'true');
+    localStorage.removeItem('floating_bubble_user_explicitly_disabled');
     setState(prev => ({ ...prev, isActive: true, isUserEnabled: true }));
     window.dispatchEvent(new CustomEvent('floatingBubbleUserChanged'));
     toast.success('تم تفعيل المساعد الذكي');
@@ -176,7 +178,7 @@ export function useFloatingBubblePermission(): FloatingBubbleState & FloatingBub
       const result = await FloatingBubble.hide();
       if (result.success) {
         localStorage.setItem('floating_bubble_user_enabled', 'false');
-        setState(prev => ({ ...prev, isActive: false, isUserEnabled: false }));
+        localStorage.setItem('floating_bubble_user_explicitly_disabled', 'true');
         toast.success('تم تعطيل المساعد الذكي العائم');
         return true;
       } else {
@@ -187,7 +189,7 @@ export function useFloatingBubblePermission(): FloatingBubbleState & FloatingBub
 
     // iOS/Web
     localStorage.setItem('floating_bubble_user_enabled', 'false');
-    setState(prev => ({ ...prev, isActive: false, isUserEnabled: false }));
+    localStorage.setItem('floating_bubble_user_explicitly_disabled', 'true');
     window.dispatchEvent(new CustomEvent('floatingBubbleUserChanged'));
     toast.success('تم تعطيل المساعد الذكي');
     return true;

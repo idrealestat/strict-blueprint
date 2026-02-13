@@ -55,7 +55,16 @@ export function AIFloatingButton() {
   useEffect(() => {
     const checkUserSetting = () => {
       const userEnabled = localStorage.getItem('floating_bubble_user_enabled');
-      // إذا لم يتم تعيين قيمة، نعتبرها مفعلة افتراضياً
+      const userExplicitlyDisabled = localStorage.getItem('floating_bubble_user_explicitly_disabled');
+      
+      // إذا لم يقم المستخدم بتعطيل الميزة يدوياً بشكل صريح، نعتبرها مفعلة
+      if (userEnabled === 'false' && userExplicitlyDisabled !== 'true') {
+        // إعادة تعيين - القيمة تم تعيينها بالخطأ من كود آخر
+        localStorage.removeItem('floating_bubble_user_enabled');
+        setIsUserEnabled(true);
+        return;
+      }
+      
       setIsUserEnabled(userEnabled !== 'false');
     };
 
