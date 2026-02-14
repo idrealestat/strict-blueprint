@@ -1,7 +1,7 @@
 // src/utils/hardReset.ts
 // تنظيف جذري وشامل لبيانات التطبيق (Clean Slate)
 
-const HARD_RESET_VERSION = 'v2'; // تم تحديث الإصدار لإعادة التنظيف
+const HARD_RESET_VERSION = 'v3'; // تم تحديث الإصدار لإعادة التنظيف وإزالة assistant_silent_mode
 
 /**
  * تنظيف جذري لبيانات التطبيق (Client-side) بدون لمس:
@@ -65,6 +65,9 @@ export async function runHardResetOnce(userId?: string): Promise<boolean> {
     // ======= الرسائل المجدولة =======
     'scheduled_messages',
     'sms_logs',
+    
+    // ======= المساعد الذكي =======
+    'assistant_silent_mode',
   ];
 
   // حذف المفاتيح المحددة

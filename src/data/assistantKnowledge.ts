@@ -571,6 +571,7 @@ export function generateContextualHelp(pagePath: string, context: {
 
 // الصفحات التي تظهر فيها رسالة الترحيب
 export const WELCOME_PAGES = [
+  '/app/dashboard',
   '/app/publish-ad',
   '/app/crm',
   '/app/platform',
