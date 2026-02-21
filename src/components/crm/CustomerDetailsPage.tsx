@@ -38,6 +38,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -1833,52 +1834,115 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             </Button>
                             
                             {/* زر تم البيع أو تم التأجير */}
-                            {!isSold && !isRented && (
-                              <Button 
-                                size="sm"
-                                variant="outline"
-                                className={ad.purpose === 'للإيجار' || ad.purpose === 'rent' 
-                                  ? "border-blue-500 text-blue-600 hover:bg-blue-50" 
-                                  : "border-purple-500 text-purple-600 hover:bg-purple-50"
-                                }
-                                onClick={async () => {
-                                  const newStatus = (ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? 'rented' : 'sold';
-                                  try {
-                                    // تحديث في قاعدة البيانات
-                                    const { error } = await supabase
-                                      .from('platform_listings')
-                                      .update({ status: newStatus })
-                                      .eq('id', ad.id);
-                                    
-                                    if (error) throw error;
-                                    
-                                    // تحديث الحالة محلياً
-                                    setPublishedAds(prev => prev.map(a => 
-                                      a.id === ad.id ? { ...a, status: newStatus } : a
-                                    ));
-                                    
-                                    // تشغيل صوت النجاح
-                                    NotificationSounds.success(0.5);
-                                    
-                                    toast.success(newStatus === 'sold' ? 'تم تسجيل البيع بنجاح' : 'تم تسجيل التأجير بنجاح');
-                                  } catch (e) {
-                                    console.error('Error updating status:', e);
-                                    toast.error('فشل تحديث الحالة');
-                                  }
-                                }}
-                              >
-                                {(ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? (
-                                  <>
-                                    <CheckCircle className="w-4 h-4 ml-1" />
-                                    تم التأجير
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="w-4 h-4 ml-1" />
-                                    تم البيع
-                                  </>
-                                )}
-                              </Button>
+                            {!isSold && !isRented ? (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    className={ad.purpose === 'للإيجار' || ad.purpose === 'rent' 
+                                      ? "border-blue-500 text-blue-600 hover:bg-blue-50" 
+                                      : "border-purple-500 text-purple-600 hover:bg-purple-50"
+                                    }
+                                  >
+                                    {(ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? (
+                                      <>
+                                        <CheckCircle className="w-4 h-4 ml-1" />
+                                        تم التأجير
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="w-4 h-4 ml-1" />
+                                        تم البيع
+                                      </>
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent dir="rtl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      {(ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? 'تأكيد التأجير' : 'تأكيد البيع'}
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      {(ad.purpose === 'للإيجار' || ad.purpose === 'rent') 
+                                        ? 'هل أنت متأكد من تسجيل هذا العقار كـ "تم التأجير"؟' 
+                                        : 'هل أنت متأكد من تسجيل هذا العقار كـ "تم البيع"؟'}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter className="flex-row-reverse gap-2">
+                                    <AlertDialogAction
+                                      className="bg-[#01411C] text-white hover:bg-[#01411C]/90"
+                                      onClick={async () => {
+                                        const newStatus = (ad.purpose === 'للإيجار' || ad.purpose === 'rent') ? 'rented' : 'sold';
+                                        try {
+                                          const { error } = await supabase
+                                            .from('platform_listings')
+                                            .update({ status: newStatus })
+                                            .eq('id', ad.id);
+                                          if (error) throw error;
+                                          setPublishedAds(prev => prev.map(a => 
+                                            a.id === ad.id ? { ...a, status: newStatus } : a
+                                          ));
+                                          NotificationSounds.success(0.5);
+                                          toast.success(newStatus === 'sold' ? 'تم تسجيل البيع بنجاح' : 'تم تسجيل التأجير بنجاح');
+                                        } catch (e) {
+                                          console.error('Error updating status:', e);
+                                          toast.error('فشل تحديث الحالة');
+                                        }
+                                      }}
+                                    >
+                                      تأكيد
+                                    </AlertDialogAction>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-400 text-red-600 hover:bg-red-50"
+                                  >
+                                    <X className="w-4 h-4 ml-1" />
+                                    إلغاء {isSold ? 'البيع' : 'التأجير'}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent dir="rtl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>إلغاء {isSold ? 'البيع' : 'التأجير'}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      هل أنت متأكد من إلغاء حالة "{isSold ? 'تم البيع' : 'تم التأجير'}" وإعادة العقار للحالة النشطة؟
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter className="flex-row-reverse gap-2">
+                                    <AlertDialogAction
+                                      className="bg-red-600 text-white hover:bg-red-700"
+                                      onClick={async () => {
+                                        try {
+                                          const { error } = await supabase
+                                            .from('platform_listings')
+                                            .update({ status: 'active' })
+                                            .eq('id', ad.id);
+                                          if (error) throw error;
+                                          setPublishedAds(prev => prev.map(a => 
+                                            a.id === ad.id ? { ...a, status: 'active' } : a
+                                          ));
+                                          NotificationSounds.success(0.5);
+                                          toast.success('تم إلغاء الحالة وإعادة العقار للنشط');
+                                        } catch (e) {
+                                          console.error('Error resetting status:', e);
+                                          toast.error('فشل إلغاء الحالة');
+                                        }
+                                      }}
+                                    >
+                                      تأكيد الإلغاء
+                                    </AlertDialogAction>
+                                    <AlertDialogCancel>تراجع</AlertDialogCancel>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                           </div>
                         </div>
