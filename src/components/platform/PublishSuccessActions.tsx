@@ -58,9 +58,9 @@ export default function PublishSuccessActions({
   const handleNavigateToOwner = () => {
     if (publishedAd.linkedCustomerId) {
       onNavigateToOwner(publishedAd.linkedCustomerId);
-      // Navigate to CRM with customer selected
-      window.dispatchEvent(new CustomEvent('navigateToCustomer', {
-        detail: { customerId: publishedAd.linkedCustomerId }
+      // Navigate to CRM with customer selected - open published_ads tab
+      window.dispatchEvent(new CustomEvent('openCustomerDetails', {
+        detail: { customerId: publishedAd.linkedCustomerId, activeTab: 'published_ads' }
       }));
     } else {
       toast.error('لم يتم ربط المالك بعد');

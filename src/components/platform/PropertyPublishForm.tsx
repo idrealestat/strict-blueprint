@@ -1129,8 +1129,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
   };
 
   const handleNavigateToOwner = (customerId: string) => {
-    window.dispatchEvent(new CustomEvent('navigateToPage', { 
-      detail: { page: 'crm', customerId } 
+    window.dispatchEvent(new CustomEvent('openCustomerDetails', { 
+      detail: { customerId, activeTab: 'published_ads' } 
     }));
   };
 

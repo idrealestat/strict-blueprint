@@ -49,6 +49,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Listing {
   id: string;
@@ -914,30 +915,74 @@ const OfferEditPage: React.FC<OfferEditPageProps> = ({
               <div className="space-y-5">
                 {/* زر الانتقال الى بطاقة اسم المالك */}
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
                     // فتح بطاقة المالك داخل إدارة الأعمال (CRM)
-                    const customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+                    // البحث في قاعدة البيانات أولاً (المصدر الحقيقي)
+                    let customerId: string | null = null;
                     
-                    // البحث بالهاتف أولاً ثم بالاسم
-                    let matched = null;
-                    
+                    // 1. البحث بـ linkedCustomerId أولاً
                     if (listing.linkedCustomerId) {
-                      matched = customers.find((c: any) => c.id === listing.linkedCustomerId);
+                      customerId = listing.linkedCustomerId;
                     }
                     
-                    if (!matched && formData.ownerMobile) {
-                      const normalizedPhone = formData.ownerMobile.replace(/[\s\-\+]/g, '');
-                      matched = customers.find((c: any) => {
-                        const customerPhone = (c.phone || '').replace(/[\s\-\+]/g, '');
-                        return customerPhone && customerPhone === normalizedPhone;
-                      });
+                    // 2. البحث برقم الجوال في قاعدة البيانات
+                    if (!customerId && formData.ownerMobile) {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          const rawPhone = formData.ownerMobile.replace(/[\s\-\+]/g, '');
+                          // توحيد الرقم: 05 → 966
+                          const digits = rawPhone.startsWith('0') && rawPhone.length === 10
+                            ? `966${rawPhone.slice(1)}`
+                            : rawPhone.startsWith('5') && rawPhone.length === 9
+                              ? `966${rawPhone}`
+                              : rawPhone;
+                          const local = digits.startsWith('966') && digits.length >= 12
+                            ? `0${digits.slice(3)}`
+                            : digits;
+                          const variants = Array.from(new Set([rawPhone, digits, local].filter(Boolean)));
+                          
+                          const orParts: string[] = [];
+                          for (const v of variants) {
+                            const safe = v.replace(/,/g, '');
+                            orParts.push(`phone.eq.${safe}`, `whatsapp.eq.${safe}`);
+                          }
+                          
+                          const { data: dbCustomer } = await supabase
+                            .from('crm_customers')
+                            .select('id')
+                            .eq('user_id', user.id)
+                            .or(orParts.join(','))
+                            .maybeSingle();
+                          
+                          if (dbCustomer) {
+                            customerId = dbCustomer.id;
+                          }
+                        }
+                      } catch (e) {
+                        console.error('[OfferEdit] DB search error:', e);
+                      }
                     }
                     
-                    if (!matched && formData.ownerName) {
-                      matched = customers.find((c: any) => c.name === formData.ownerName);
+                    // 3. البحث بالاسم كاحتياط أخير
+                    if (!customerId && formData.ownerName) {
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          const { data: dbCustomer } = await supabase
+                            .from('crm_customers')
+                            .select('id')
+                            .eq('user_id', user.id)
+                            .eq('name', formData.ownerName)
+                            .maybeSingle();
+                          if (dbCustomer) {
+                            customerId = dbCustomer.id;
+                          }
+                        }
+                      } catch (e) {
+                        console.error('[OfferEdit] DB name search error:', e);
+                      }
                     }
-
-                    const customerId = matched?.id;
 
                     if (!customerId) {
                       toast({ title: '⚠️ لم يتم العثور على بطاقة المالك - تأكد من ربط العقار بعميل في إدارة العملاء', variant: 'destructive' });

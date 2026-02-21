@@ -889,7 +889,7 @@ export default function PlatformPublishForm({ connectedPlatforms, onPublishCompl
 
   // الانتقال لبطاقة المالك
   const handleNavigateToOwner = (customerId: string) => {
-    window.dispatchEvent(new CustomEvent('navigateToCustomer', { detail: { customerId } }));
+    window.dispatchEvent(new CustomEvent('openCustomerDetails', { detail: { customerId, activeTab: 'published_ads' } }));
     onCancel();
   };
 
