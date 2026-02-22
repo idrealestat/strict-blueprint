@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
  import { KanbanDndProvider } from './KanbanDndProvider';
  import { DraggableCard } from './DraggableCard';
+ import { supabase } from "@/integrations/supabase/client";
  import { DroppableColumn } from './DroppableColumn';
 import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
 import { useCRMCustomTags } from "@/hooks/useCRMCustomTags";
@@ -84,6 +85,7 @@ import {
   CheckSquare,
   ArrowRightLeft,
   UserCheck,
+  Camera,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -148,6 +150,9 @@ interface Customer {
   hasUnreadPublishedAd?: boolean;
   hasUnreadOffer?: boolean;
   isNewCard?: boolean;
+  isReported?: boolean;
+  isBroker?: boolean;
+  brokerType?: string; // وسيط عقاري / مكتب عقاري / شركة عقارية
   metadata?: Record<string, any>;
 }
 
@@ -535,6 +540,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       // ✅ نقل بيانات metadata للنقطة النابضة
       hasUnreadOffer: !!metadataObj.hasUnreadOffer,
       isNewCard: !!metadataObj.isNewCard,
+      isReported: !!metadataObj.isReported,
+      isBroker: !!metadataObj.isBroker,
+      brokerType: (metadataObj.brokerType as string) || undefined,
+      image: (metadataObj.customerImage as string) || undefined,
       metadata: metadataObj,
     };
   }, []);
@@ -2066,6 +2075,66 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
       }
     }
 
+    // ✅ البحث عن الوسيط المسجل بناءً على رقم الجوال
+    let brokerMetadata: Record<string, any> = {};
+    const normalizedPhone = newCustomer.phone.replace(/\D/g, '');
+    const phoneVariants = [normalizedPhone];
+    if (normalizedPhone.startsWith('966')) phoneVariants.push('0' + normalizedPhone.slice(3));
+    if (normalizedPhone.startsWith('0')) phoneVariants.push('966' + normalizedPhone.slice(1));
+
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, company_name, account_type, avatar_url, phone')
+        .or(phoneVariants.map(p => `phone.eq.${p}`).join(','))
+        .limit(1)
+        .maybeSingle();
+
+      if (profileData) {
+        const accountTypeMap: Record<string, string> = {
+          'individual': 'وسيط عقاري',
+          'office': 'مكتب عقاري',
+          'company': 'شركة عقارية',
+        };
+        brokerMetadata = {
+          isBroker: true,
+          brokerType: accountTypeMap[profileData.account_type || ''] || 'وسيط عقاري',
+          customerImage: profileData.avatar_url || undefined,
+        };
+        // تعبئة تلقائية للبيانات إذا فارغة
+        if (!newCustomer.name && profileData.full_name) {
+          newCustomer.name = profileData.full_name;
+        }
+        if (!newCustomer.company && profileData.company_name) {
+          newCustomer.company = profileData.company_name;
+        }
+      }
+
+      // أيضاً البحث في business_cards للحصول على الشعار
+      const { data: cardData } = await supabase
+        .from('business_cards')
+        .select('data, phone')
+        .or(phoneVariants.map(p => `phone.eq.${p}`).join(','))
+        .limit(1)
+        .maybeSingle();
+
+      if (cardData && cardData.data) {
+        const cardDataObj = cardData.data as Record<string, any>;
+        if (cardDataObj.logoUrl && !brokerMetadata.customerImage) {
+          brokerMetadata.customerImage = cardDataObj.logoUrl;
+        }
+        if (cardDataObj.profileImageUrl && !brokerMetadata.customerImage) {
+          brokerMetadata.customerImage = cardDataObj.profileImageUrl;
+        }
+        if (!brokerMetadata.isBroker) {
+          brokerMetadata.isBroker = true;
+          brokerMetadata.brokerType = 'وسيط عقاري';
+        }
+      }
+    } catch (e) {
+      console.error('[CRM] Broker lookup failed:', e);
+    }
+
     // ✅ إضافة إلى قاعدة البيانات
     const result = await dbAddCustomer({
       name: newCustomer.name,
@@ -2082,6 +2151,7 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         clientType: newCustomer.type,
         interestLevel: newCustomer.interestLevel,
         columnId: 'leads',
+        ...brokerMetadata,
       },
     });
 
@@ -2101,6 +2171,9 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
         tags: [],
       });
       setShowAddCustomer(false);
+      if (brokerMetadata.isBroker) {
+        toast.success(`تم إضافة ${brokerMetadata.brokerType} - تم جلب معلوماته تلقائياً`);
+      }
     }
   };
 
@@ -2797,9 +2870,10 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                 onMoveCard={handleDndMoveCard}
                                 onReorderInColumn={handleDndReorderInColumn}
                                 className={`
-                                  bg-white rounded-lg shadow-md mb-2 overflow-hidden relative flex flex-col
+                                  rounded-lg shadow-md mb-2 overflow-hidden relative flex flex-col
                                   hover:shadow-xl
                                   ${touchDragCustomer === customer.id ? 'opacity-70 scale-105 shadow-2xl z-50 ring-2 ring-[#D4AF37] touch-none' : ''}
+                                  ${customer.isReported || customer.metadata?.isReported ? 'bg-red-50 ring-2 ring-orange-400' : 'bg-white'}
                                   select-none
                                 `}
                               >
@@ -2823,13 +2897,24 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                        : {}),
                                    }}
                                  >
-                                {/* خط نوع العميل في أعلى البطاقة */}
+                                {/* خط نوع العميل في أعلى البطاقة - برتقالي إذا تم الإبلاغ */}
                                 <div 
                                   className="h-1.5 w-full flex-shrink-0"
                                   style={{ 
-                                    backgroundColor: clientTypes[customer.type as ClientType]?.color || '#9CA3AF'
+                                    backgroundColor: (customer.isReported || customer.metadata?.isReported)
+                                      ? '#F97316'
+                                      : (clientTypes[customer.type as ClientType]?.color || '#9CA3AF')
                                   }}
                                 />
+
+                                {/* رسالة تحذير البلاغ */}
+                                {(customer.isReported || customer.metadata?.isReported) && (
+                                  <div className="px-3 py-1.5 bg-orange-100 border-b border-orange-200">
+                                    <p className="text-[10px] text-orange-700 font-medium leading-tight">
+                                      ⚠️ تم الإبلاغ عن هذا المستخدم من أحد الأفراد - يتم التحقق من البلاغ بالوقت الحالي - التعامل معه تحت مسؤوليتك الخاصة
+                                    </p>
+                                  </div>
+                                )}
 
                                 {/* البطاقة المضغوطة */}
                                   <div 
@@ -2863,20 +2948,48 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         </div>
                                       )}
                                       
-                                      {/* 1.1 الصورة الشخصية */}
-                                      {/* 1.1 الصورة الشخصية */}
-                                      <div className="relative">
+                                      {/* 1.1 الصورة الشخصية مع إمكانية رفع صورة */}
+                                      <div className="relative group">
                                         <Avatar className="w-10 h-10 border-2 border-[#D4AF37]">
-                                          {(customer.image || customer.profileImage) && (
+                                          {(customer.image || customer.profileImage || customer.metadata?.customerImage) && (
                                             <AvatarImage 
-                                              src={customer.image || customer.profileImage} 
+                                              src={customer.image || customer.profileImage || customer.metadata?.customerImage} 
                                               alt={customer.name} 
                                             />
                                           )}
-                                          <AvatarFallback className="bg-gradient-to-br from-[#01411C] to-[#065f41] text-white font-bold">
+                                          <AvatarFallback className="bg-gradient-to-br from-[#01411C] to-[#065f41] text-white font-bold text-sm">
                                             {customer.name.charAt(0)}
                                           </AvatarFallback>
                                         </Avatar>
+                                        
+                                        {/* زر رفع صورة */}
+                                        <label 
+                                          className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Camera className="w-4 h-4 text-white" />
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (!file) return;
+                                              const reader = new FileReader();
+                                              reader.onload = async (ev) => {
+                                                const dataUrl = ev.target?.result as string;
+                                                const currentMeta = (customer.metadata && typeof customer.metadata === 'object' && !Array.isArray(customer.metadata))
+                                                  ? (customer.metadata as Record<string, any>)
+                                                  : {};
+                                                const nextMeta = { ...currentMeta, customerImage: dataUrl };
+                                                setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, image: dataUrl, metadata: nextMeta } : c));
+                                                await dbUpdateCustomer(customer.id, { metadata: nextMeta });
+                                                toast.success('تم تحديث صورة العميل');
+                                              };
+                                              reader.readAsDataURL(file);
+                                            }}
+                                          />
+                                        </label>
                                         
                                         {/* 1.2 مؤشر غير مقروء - النقطة الحمراء النابضة */}
                                         {(isCustomerUnread(customer.id) || isNew('customer', customer.id) || customer.hasUnreadOffer || customer.isNewCard) && (
@@ -2884,28 +2997,38 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                         )}
                                       </div>
                                       
-                                      {/* 1.3 الاسم والشركة + VIP Badge - مع خلفية هادئة لنوع العميل */}
+                                      {/* 1.3 الاسم والشركة + VIP Badge + Broker Badge */}
                                       <div 
                                         className="flex-1 min-w-0 px-2 py-1 rounded-md"
                                         style={{
-                                          backgroundColor: clientTypes[customer.type as ClientType]?.bgColor || '#F9FAFB',
+                                          backgroundColor: (customer.isReported || customer.metadata?.isReported)
+                                            ? '#FEF2F2'
+                                            : (clientTypes[customer.type as ClientType]?.bgColor || '#F9FAFB'),
                                         }}
                                       >
                                         <div className="flex items-center gap-1">
                                           <h3 
-                                            className="font-bold text-[14px] truncate"
+                                            className="font-bold text-[12px] truncate"
                                             style={{
-                                              color: clientTypes[customer.type as ClientType]?.color || '#374151',
+                                              color: (customer.isReported || customer.metadata?.isReported)
+                                                ? '#EA580C'
+                                                : (clientTypes[customer.type as ClientType]?.color || '#374151'),
                                             }}
                                           >
                                             {customer.name}
                                           </h3>
                                           {customer.tags?.includes('VIP') && (
-                                            <span className="text-[#D4AF37] text-sm">⭐</span>
+                                            <span className="text-[#D4AF37] text-xs">⭐</span>
                                           )}
                                         </div>
+                                        {/* شارة الوسيط العقاري */}
+                                        {(customer.isBroker || customer.metadata?.isBroker) && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                            🏢 {customer.brokerType || customer.metadata?.brokerType || 'وسيط عقاري'}
+                                          </span>
+                                        )}
                                         {customer.company && (
-                                          <p className="text-xs text-gray-600 truncate">{customer.company}</p>
+                                          <p className="text-[10px] text-gray-600 truncate">{customer.company}</p>
                                         )}
                                       </div>
                                       
@@ -3268,6 +3391,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                     >
                                       {/* آخر 3 أنشطة */}
                                       <div className="px-3 py-2 border-t border-gray-100">
+                                        {/* رسالة البلاغ في آخر الأنشطة */}
+                                        {(customer.isReported || customer.metadata?.isReported) && (
+                                          <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-200 mb-2">
+                                            <span className="text-sm">⚠️</span>
+                                            <p className="text-[10px] text-orange-700 font-medium leading-tight">
+                                              تم الإبلاغ عن هذا المستخدم من أحد الأفراد - يتم التحقق من البلاغ بالوقت الحالي - التعامل معه تحت مسؤوليتك الخاصة
+                                            </p>
+                                          </div>
+                                        )}
                                         <p className="text-xs text-gray-500 mb-2">🕒 آخر الأنشطة</p>
                                         {(() => {
                                           const activities = getCustomerActivities(customer);
@@ -3562,11 +3694,13 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
                                   )}
                                 </AnimatePresence>
                                 
-                                {/* خط درجة الاهتمام في أسفل البطاقة - ثابت دائماً */}
+                                {/* خط درجة الاهتمام في أسفل البطاقة - برتقالي إذا تم الإبلاغ */}
                                 <div 
                                   className="h-1.5 w-full flex-shrink-0 mt-auto"
                                   style={{ 
-                                    backgroundColor: interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF'
+                                    backgroundColor: (customer.isReported || customer.metadata?.isReported)
+                                      ? '#F97316'
+                                      : (interestLevels[customer.interestLevel as InterestLevel]?.color || '#9CA3AF')
                                   }}
                                 />
                                 </div>
@@ -4746,10 +4880,53 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
             </Button>
             <Button 
               className="bg-orange-600 hover:bg-orange-700"
-              onClick={() => {
+              onClick={async () => {
                 if (!selectedReportCategory || !selectedReportSubCategory) {
                   toast.error('يرجى اختيار فئة ونوع البلاغ');
                   return;
+                }
+                // ✅ حفظ حالة البلاغ في metadata العميل
+                if (reportCustomer) {
+                  const currentMeta = (reportCustomer.metadata && typeof reportCustomer.metadata === 'object' && !Array.isArray(reportCustomer.metadata))
+                    ? (reportCustomer.metadata as Record<string, any>)
+                    : {};
+                  const nextMeta = { 
+                    ...currentMeta, 
+                    isReported: true,
+                    reportCategory: selectedReportCategory,
+                    reportSubCategory: selectedReportSubCategory,
+                    reportedAt: new Date().toISOString(),
+                  };
+                  setCustomers(prev => prev.map(c => 
+                    c.id === reportCustomer.id 
+                      ? { ...c, isReported: true, metadata: nextMeta }
+                      : c
+                  ));
+                  await dbUpdateCustomer(reportCustomer.id, { metadata: nextMeta });
+
+                  // ✅ البحث عن جميع البطاقات بنفس الرقم وتحديثها أيضاً
+                  const reportedPhone = (reportCustomer.phone || '').replace(/\D/g, '');
+                  if (reportedPhone) {
+                    const matchingCustomers = customers.filter(c => {
+                      if (c.id === reportCustomer.id) return false;
+                      const cPhone = (c.phone || '').replace(/\D/g, '');
+                      const cWhatsapp = (c.whatsapp || '').replace(/\D/g, '');
+                      return cPhone === reportedPhone || cWhatsapp === reportedPhone;
+                    });
+                    for (const mc of matchingCustomers) {
+                      const mcMeta = (mc.metadata && typeof mc.metadata === 'object' && !Array.isArray(mc.metadata))
+                        ? (mc.metadata as Record<string, any>)
+                        : {};
+                      await dbUpdateCustomer(mc.id, { metadata: { ...mcMeta, isReported: true, reportedAt: new Date().toISOString() } });
+                    }
+                    if (matchingCustomers.length > 0) {
+                      setCustomers(prev => prev.map(c => {
+                        const cp = (c.phone || '').replace(/\D/g, '');
+                        if (cp === reportedPhone) return { ...c, isReported: true };
+                        return c;
+                      }));
+                    }
+                  }
                 }
                 toast.success('تم إرسال البلاغ بنجاح');
                 setShowReportDialog(false);
