@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import LiveViewerIndicator from '@/components/ui/LiveViewerIndicator';
 import { useSingleOfferLiveViewers } from '@/hooks/useLiveViewers';
 import { generatePropertyPDF } from '@/utils/generatePropertyPDF';
+import { supabase } from '@/integrations/supabase/client';
 interface AdStats {
   views?: number;
   shares?: number;
@@ -99,7 +100,7 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
     return `${window.location.origin}/offers/${ad.id}`;
   };
   
-  const handleShare = (type: string, isPrivate = false) => {
+  const handleShare = async (type: string, isPrivate = false) => {
     const shareLink = generateShareLink(ad);
     
     if (type === 'copy') {
@@ -121,21 +122,30 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
     } else if (type === 'pdf') {
       toast.info('جاري تحميل PDF...');
       
-      // جلب بيانات الوسيط
+      // ✅ جلب بيانات الوسيط من البطاقة الرقمية في قاعدة البيانات
       let brokerData: any = undefined;
       try {
-        const businessCard = JSON.parse(localStorage.getItem('business_card_data') || '{}');
-        if (businessCard) {
-          brokerData = {
-            name: businessCard.userName || businessCard.name,
-            company: businessCard.companyName,
-            phone: businessCard.primaryPhone || businessCard.phone,
-            location: ad.location?.city,
-            licenseNumber: businessCard.falLicense,
-            profileImage: businessCard.profileImage,
-            coverImage: businessCard.coverImage,
-            logoImage: businessCard.logoImage,
-          };
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: businessCard } = await supabase
+            .from('business_cards')
+            .select('data, slug')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (businessCard?.data) {
+            const cardData = businessCard.data as Record<string, any>;
+            brokerData = {
+              name: cardData.userName || cardData.name,
+              company: cardData.companyName,
+              phone: cardData.primaryPhone || cardData.phone,
+              location: ad.location?.city,
+              licenseNumber: cardData.falLicense,
+              profileImage: cardData.profileImage,
+              coverImage: cardData.coverImage,
+              logoImage: cardData.logoImage,
+            };
+          }
         }
       } catch {}
       

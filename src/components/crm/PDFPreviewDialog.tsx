@@ -3,7 +3,8 @@
  * معاينة PDF قبل التحميل مع خيارات اختيار المعلومات
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useBusinessCardData } from "@/hooks/useBusinessCardData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,13 +46,27 @@ interface PDFPreviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   property: any;
+  brokerData?: {
+    name?: string;
+    company?: string;
+    phone?: string;
+    location?: string;
+    licenseNumber?: string;
+    profileImage?: string;
+    coverImage?: string;
+    logoImage?: string;
+  };
 }
 
 export default function PDFPreviewDialog({
   isOpen,
   onClose,
   property,
+  brokerData: externalBrokerData,
 }: PDFPreviewDialogProps) {
+  // ✅ جلب بيانات البطاقة الرقمية كمصدر رئيسي للهيدر
+  const { data: businessCardData } = useBusinessCardData();
+  
   const [sections, setSections] = useState<PDFSection[]>([
     { id: 'basic', label: 'المعلومات الأساسية', description: 'نوع العقار، الغرض، السعر، المساحة', icon: <Home className="w-4 h-4" />, enabled: true },
     { id: 'location', label: 'معلومات الموقع', description: 'المدينة، الحي، الشارع، الرمز البريدي', icon: <MapPin className="w-4 h-4" />, enabled: true },
@@ -117,16 +132,16 @@ export default function PDFPreviewDialog({
       const filteredProperty = getFilteredProperty();
       const includeOwner = sections.find(s => s.id === 'owner')?.enabled ?? true;
       
-      // إضافة معلومات الوسيط ورابط العرض
-      const brokerData = property.broker || {
-        name: property.brokerName,
-        phone: property.brokerPhone,
-        company: property.brokerCompany,
-        location: property.locationDetails?.city,
-        licenseNumber: property.brokerLicense,
-        profileImage: property.brokerProfileImage,
-        coverImage: property.brokerCoverImage,
-        logoImage: property.brokerLogoImage,
+      // ✅ استخدام بيانات البطاقة الرقمية كمصدر رئيسي للهيدر
+      const brokerData = externalBrokerData || {
+        name: businessCardData?.name || property.brokerName,
+        phone: businessCardData?.phone || property.brokerPhone,
+        company: businessCardData?.companyName || property.brokerCompany,
+        location: businessCardData?.city || property.locationDetails?.city,
+        licenseNumber: businessCardData?.falLicense || property.brokerLicense,
+        profileImage: businessCardData?.profileImageUrl || property.brokerProfileImage,
+        coverImage: businessCardData?.coverImageUrl || property.brokerCoverImage,
+        logoImage: businessCardData?.logoUrl || property.brokerLogoImage,
       };
       
       // إنشاء رابط العرض (باستخدام الدومين المنشور)

@@ -5359,6 +5359,16 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
           setSelectedPropertyForPDF(null);
         }}
         property={selectedPropertyForPDF}
+        brokerData={{
+          name: businessCardData.name,
+          company: businessCardData.companyName,
+          phone: businessCardData.phone,
+          location: businessCardData.city,
+          licenseNumber: businessCardData.falLicense,
+          profileImage: businessCardData.profileImageUrl || undefined,
+          coverImage: businessCardData.coverImageUrl || undefined,
+          logoImage: businessCardData.logoUrl || undefined,
+        }}
       />
 
       {/* Dialog عرض العقد */}
