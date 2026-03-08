@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Crown, ChevronLeft, RefreshCw, Brain, Target, Globe, User, 
-  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database, Users
+  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database, Users, Sparkles
 } from "lucide-react";
 
 interface DashboardSection {
