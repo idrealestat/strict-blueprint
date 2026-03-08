@@ -394,7 +394,7 @@ const AcademyIndex = () => {
         <footer className="border-t border-gray-200/60 py-8 bg-white/40 backdrop-blur-lg">
           <div className="container mx-auto px-4 text-center space-y-3">
             <p className="text-gray-600 text-sm">
-              اكسر حاجز المبتدئ © {new Date().getFullYear()}. جميع الحقوق محفوظة.
+              وساطة Wasata AI © {new Date().getFullYear()}. جميع الحقوق محفوظة.
             </p>
             <div className="flex items-center justify-center gap-4 text-gray-500 text-sm">
               <a href="#" className="hover:text-wasata-green transition">
