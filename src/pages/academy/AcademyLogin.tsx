@@ -34,7 +34,7 @@ const AcademyLogin = () => {
         setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
       } else {
         toast.success("تم تسجيل الدخول بنجاح!");
-        navigate("/academy/dashboard");
+        navigate(getAcademyDashboard());
       }
     } catch (err) {
       setError("حدث خطأ، يرجى المحاولة مرة أخرى");
