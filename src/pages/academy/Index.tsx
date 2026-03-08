@@ -173,7 +173,7 @@ const AcademyIndex = () => {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className={`${floatingCard} rounded-3xl p-10 text-center md:text-right space-y-6`}>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-gray-900">
-                اكسر حاجز المبتدئ..
+                وساطة Wasata <span className="text-wasata-gold" style={{ textShadow: '0 0 10px rgba(212,175,55,0.5), 0 0 20px rgba(212,175,55,0.3)' }}>AI</span>..
                 <br />
                 <span className="text-wasata-green">وأتمم صفقتك الأولى بمهارة!</span>
               </h1>
