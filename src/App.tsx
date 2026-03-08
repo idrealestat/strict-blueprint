@@ -758,6 +758,25 @@ const App = () => {
                   <Route path="/academy/course/:id" element={
                     <AcademyProtectedRoute>
                       <AcademyCourse />
+
+                  {/* Academy Routes on training.wasataai.com subdomain - root level */}
+                  {isTrainingSubdomain && (
+                    <>
+                      <Route path="/" element={<AcademyIndex />} />
+                      <Route path="/register" element={<AcademyRegister />} />
+                      <Route path="/login" element={<AcademyLogin />} />
+                      <Route path="/dashboard" element={
+                        <AcademyProtectedRoute>
+                          <AcademyDashboard />
+                        </AcademyProtectedRoute>
+                      } />
+                      <Route path="/course/:id" element={
+                        <AcademyProtectedRoute>
+                          <AcademyCourse />
+                        </AcademyProtectedRoute>
+                      } />
+                    </>
+                  )}
                     </AcademyProtectedRoute>
                   } />
                   
