@@ -311,7 +311,7 @@ END:VCARD`;
       try {
         // جلب المستخدم الحقيقي من auth
         const { data: { user: authUser } } = await supabase.auth.getUser();
-        const actualUserId = authUser?.id || user.id;
+        const actualUserId = authUser?.id || user?.id;
         
         console.log('[BusinessCardProfile] Fetching slug for user:', actualUserId);
         
