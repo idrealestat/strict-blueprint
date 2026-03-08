@@ -28,7 +28,7 @@ const AcademyDashboard = () => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
         return;
       }
 
