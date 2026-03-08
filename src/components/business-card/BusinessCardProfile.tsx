@@ -117,17 +117,17 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   // Default form data
   const defaultFormData: BusinessCardData = {
-    userName: user.name,
-    companyName: user.companyName || "",
+    userName: user?.name ?? '',
+    companyName: user?.companyName || "",
     falLicense: "1234567890",
     falExpiry: "2025-12-31",
     commercialRegistration: "1010123456",
     commercialExpiryDate: "2025-06-30",
-    primaryPhone: user.phone,
-    email: user.email,
+    primaryPhone: user?.phone ?? '',
+    email: user?.email ?? '',
     domain: "https://wasata.ai/broker/ahmed",
     googleMapsLocation: "https://maps.google.com/?q=24.7136,46.6753",
-    location: user.city,
+    location: user?.city ?? '',
     officialPlatform: "wasata.ai",
     bio: "وسيط عقاري معتمد من الهيئة العامة للعقار، متخصص في العقارات السكنية والتجارية في منطقة الرياض. أسعى دائماً لتقديم أفضل الخدمات العقارية لعملائي الكرام مع الالتزام بالشفافية والمصداقية.",
     socialMedia: {
