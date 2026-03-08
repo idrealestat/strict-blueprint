@@ -134,7 +134,7 @@ const AcademyIndex = () => {
             </span>
           </div>
           <div className="flex gap-3">
-            <Link to="/academy/login">
+            <Link to={getAcademyLogin()}>
               <Button variant="ghost" className="text-white hover:bg-white/10">
                 تسجيل دخول
               </Button>
