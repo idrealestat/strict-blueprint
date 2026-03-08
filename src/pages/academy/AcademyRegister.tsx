@@ -97,10 +97,10 @@ const AcademyRegister = () => {
 
         if (signInError) {
           toast.info("تم إنشاء الحساب بنجاح. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول.");
-          navigate("/academy/login");
+          navigate(getAcademyLogin());
         } else {
           toast.success("تم إنشاء حسابك بنجاح! مرحباً بك في أكاديمية وسيط");
-          navigate("/academy/dashboard");
+          navigate(getAcademyDashboard());
         }
       }
     } catch (err) {
