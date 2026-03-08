@@ -131,7 +131,7 @@ const AcademyCourse = () => {
       <div className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#1a2942] flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-xl mb-4">الدورة غير موجودة</p>
-          <Link to="/academy/dashboard">
+          <Link to={getAcademyDashboard()}>
             <Button className="bg-[#D4AF37] text-black">العودة للوحة التحكم</Button>
           </Link>
         </div>
