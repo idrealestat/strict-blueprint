@@ -91,7 +91,7 @@ const AcademyLogin = () => {
 
           <p className="text-center text-gray-400 text-sm">
             ليس لديك حساب؟{" "}
-            <Link to="/academy/register" className="text-[#D4AF37] hover:underline">سجل الآن</Link>
+            <Link to={getAcademyRegister()} className="text-[#D4AF37] hover:underline">سجل الآن</Link>
           </p>
         </form>
       </div>

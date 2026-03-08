@@ -24,7 +24,7 @@ const AcademyProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
       }
     });
 

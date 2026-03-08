@@ -199,7 +199,7 @@ const AcademyCourse = () => {
           )}
 
           {nextCourse ? (
-            <Link to={`/academy/course/${nextCourse.id}`}>
+            <Link to={getAcademyCoursePath(nextCourse.id)}>
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
                 التالي
                 <ChevronLeft className="w-4 h-4" />
