@@ -510,7 +510,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
 
 const App = () => {
   const [isNewUser, setIsNewUser] = useState(false);
-  const isTrainingSubdomain = typeof window !== 'undefined' && window.location.hostname.toLowerCase().startsWith('training.');
+  
 
   // Check for new user flag
   useEffect(() => {
