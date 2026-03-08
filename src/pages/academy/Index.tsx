@@ -98,9 +98,9 @@ const testimonials = [
 
 /* ─── Glass card style ─── */
 const glassCard =
-  "bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]";
+  "bg-white/60 backdrop-blur-xl border-2 border-wasata-gold/40 shadow-[0_8px_32px_rgba(212,175,55,0.08),0_2px_8px_rgba(0,0,0,0.04)]";
 const floatingCard =
-  "bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15),0_8px_20px_-8px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_70px_-10px_rgba(0,0,0,0.2),0_12px_28px_-8px_rgba(0,0,0,0.12)] transition-all duration-300";
+  "bg-white/70 backdrop-blur-xl border-2 border-wasata-gold/40 shadow-[0_20px_60px_-10px_rgba(212,175,55,0.15),0_8px_20px_-8px_rgba(0,0,0,0.08)] hover:shadow-[0_25px_70px_-10px_rgba(212,175,55,0.25),0_12px_28px_-8px_rgba(0,0,0,0.1)] hover:border-wasata-gold/60 transition-all duration-300";
 
 // ═══════════════════════════════════════════════════════
 const AcademyIndex = () => {
