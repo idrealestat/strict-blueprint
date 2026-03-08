@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAcademyLogin, getAcademyCoursePath } from "@/utils/academyPaths";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { GraduationCap, Play, CheckCircle, Shield, LogOut, Loader2 } from "lucide-react";
