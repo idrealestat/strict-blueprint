@@ -337,7 +337,7 @@ END:VCARD`;
     return () => {
       cancelled = true;
     };
-  }, [user.id]);
+  }, [user?.id]);
 
   // Get slug (الأولوية للـ slug من DB)
   const getSlug = () => {
