@@ -267,10 +267,10 @@ const AcademyIndex = () => {
                   ))}
                 </ul>
               </div>
-              {/* العمود الأيسر — أكاديمية اكسر حاجز المبتدئ */}
+              {/* العمود الأيسر — أكاديمية وساطة Wasata AI */}
               <div className={`${floatingCard} rounded-2xl p-8 border-wasata-green/30`}>
                 <h3 className="text-xl font-bold mb-6 text-wasata-green text-center">
-                  أكاديمية اكسر حاجز المبتدئ
+                  أكاديمية وساطة Wasata <span className="text-wasata-gold" style={{ textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>AI</span>
                 </h3>
                 <ul className="space-y-4">
                   {academyPros.map((item, i) => (
