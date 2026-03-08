@@ -818,6 +818,7 @@ const App = () => {
             </DashboardProvider>
           </FeatureFlagsProvider>
           </EntitlementsProvider>
+          </AcademyProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
