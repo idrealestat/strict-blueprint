@@ -24,7 +24,7 @@ import academyHero from "@/assets/academy-hero.jpg";
 import skylineBg from "@/assets/academy-skyline-bg.jpg";
 
 /* ═══════════════════════════════════════════════════════
-   أكاديمية "اكسر حاجز المبتدئ"
+   أكاديمية "وساطة Wasata AI"
    الصفحة الرئيسية — src/pages/academy/Index.tsx
    ═══════════════════════════════════════════════════════ */
 
