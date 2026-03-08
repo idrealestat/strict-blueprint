@@ -747,7 +747,7 @@ const App = () => {
                   <Route path="/join/:token" element={<JoinTeamPage />} />
                   
                   {/* Academy Routes - قسم منفصل تماماً */}
-                  <Route path="/academy" element={<AcademyLanding />} />
+                  <Route path="/academy" element={<AcademyIndex />} />
                   <Route path="/academy/register" element={<AcademyRegister />} />
                   <Route path="/academy/login" element={<AcademyLogin />} />
                   <Route path="/academy/dashboard" element={
