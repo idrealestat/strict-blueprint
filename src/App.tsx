@@ -76,6 +76,7 @@ import SlugAppointmentApprovalCustomer from "./pages/SlugAppointmentApprovalCust
 import ChoosePlanPage from "./pages/ChoosePlanPage";
 import JoinTeamPage from "./pages/JoinTeamPage";
 import { AuthProvider } from "./context/AuthContext";
+import { AcademyProvider } from "./contexts/AcademyContext";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import { EntitlementsProvider } from "./context/EntitlementsContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
