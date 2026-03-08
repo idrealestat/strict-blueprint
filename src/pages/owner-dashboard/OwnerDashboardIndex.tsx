@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Crown, ChevronLeft, RefreshCw, Brain, Target, Globe, User, 
-  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database, Users
+  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database, Users, Sparkles
 } from "lucide-react";
 
 interface DashboardSection {
@@ -151,6 +151,14 @@ const OwnerDashboardIndex: React.FC = () => {
       icon: <Users className="w-8 h-8" />,
       route: "/app/owner-dashboard/registered-users",
       color: "from-pink-500 to-pink-600"
+    },
+    {
+      id: "plan-limits",
+      title: "حدود الباقات",
+      description: "الفرص الذكية وأقسام منصتي",
+      icon: <Sparkles className="w-8 h-8" />,
+      route: "/app/owner-dashboard/plan-limits",
+      color: "from-amber-500 to-amber-600"
     }
   ];
 

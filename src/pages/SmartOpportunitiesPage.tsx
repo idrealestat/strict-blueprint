@@ -1,7 +1,8 @@
 /**
- * ⚠️ ملف محمي - لا تعدل بدون إذن المستخدم ⚠️
  * SmartOpportunitiesPage.tsx
- * صفحة الفرص الذكية مع بطاقات قابلة للسحب وفلاتر متقدمة
+ * صفحة الفرص الذكية مع بطاقات قابلة للسحب وفلاتر متقدمة وحدود يومية
+ * 
+ * الحد اليومي يعتمد على نوع الحساب والباقة وحالة التدريب
  * 
  * الروابط المحمية المرتبطة بهذه الصفحة:
  * - /app/smart-opportunities - صفحة الفرص الذكية
@@ -31,6 +32,8 @@ import { toast } from '@/hooks/use-toast';
 import SwipeableOpportunityCard, { SmartOpportunity } from '@/components/smart-opportunities/SwipeableOpportunityCard';
 import OpportunityFilters, { OpportunityFiltersState, defaultFilters } from '@/components/smart-opportunities/OpportunityFilters';
 import { mockSmartOpportunities } from '@/data/mockSmartOpportunities';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { useAcademy } from '@/contexts/AcademyContext';
 
 const SmartOpportunitiesPage = () => {
   const navigate = useNavigate();
@@ -38,14 +41,19 @@ const SmartOpportunitiesPage = () => {
   const { acceptOpportunity, rejectOpportunity, rejectedKeys } = useSmartOpportunities();
   const { notifyNewOpportunity } = useSmartOpportunityNotifications();
   const { data: businessCardData } = useBusinessCardData();
+  const { limits: planLimits } = usePlanLimits();
+  const { status: academyStatus } = useAcademy();
   const userSlug = businessCardData?.slug;
+  
+  const dailyLimit = planLimits?.dailyOpportunities ?? 5;
   
   const [allOpportunities, setAllOpportunities] = useState<SmartOpportunity[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filters, setFilters] = useState<OpportunityFiltersState>(defaultFilters);
-  const [useMockData, setUseMockData] = useState(false); // لتفعيل البيانات الوهمية
+  const [useMockData, setUseMockData] = useState(false);
+  const [todayAcceptedCount, setTodayAcceptedCount] = useState(0);
   
   // حالة السلايدرز والإشعارات
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
@@ -323,12 +331,41 @@ const SmartOpportunitiesPage = () => {
     fetchSmartOpportunities();
   }, [fetchSmartOpportunities]);
 
+  // جلب عدد القبولات اليوم
+  useEffect(() => {
+    const fetchTodayCount = async () => {
+      if (!user?.id) return;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const { count } = await supabase
+        .from('smart_opportunity_acceptances')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_user_id', user.id)
+        .gte('created_at', todayStart.toISOString());
+      
+      setTodayAcceptedCount(count || 0);
+    };
+    fetchTodayCount();
+  }, [user]);
+
   // إعادة تعيين المؤشر عند تغيير الفلاتر
   useEffect(() => {
     setCurrentIndex(0);
   }, [filters]);
 
+  const hasReachedDailyLimit = todayAcceptedCount >= dailyLimit;
+
   const handleAccept = async (opp: SmartOpportunity) => {
+    if (hasReachedDailyLimit) {
+      toast({
+        title: '⚠️ وصلت للحد اليومي',
+        description: `الحد اليومي ${dailyLimit} فرصة. ${academyStatus?.training_completed ? '' : 'أكمل التدريب لمضاعفة العدد!'}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const result = await acceptOpportunity({
       type: opp.type,
       owner_item_id: opp.owner_item.id,
@@ -341,9 +378,10 @@ const SmartOpportunitiesPage = () => {
     });
 
     if (result) {
+      setTodayAcceptedCount(prev => prev + 1);
       toast({
         title: '✅ تم قبول الفرصة',
-        description: 'يمكنك مشاهدة التفاصيل في صفحة العروض والطلبات',
+        description: `يمكنك مشاهدة التفاصيل في صفحة العروض والطلبات (${todayAcceptedCount + 1}/${dailyLimit})`,
       });
     }
     
@@ -431,6 +469,26 @@ const SmartOpportunitiesPage = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
+
+        {/* شريط الحد اليومي */}
+        <div className={`rounded-lg p-3 flex items-center justify-between ${hasReachedDailyLimit ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'}`}>
+          <div className="flex items-center gap-2">
+            <Sparkles className={`w-5 h-5 ${hasReachedDailyLimit ? 'text-red-500' : 'text-blue-500'}`} />
+            <span className="text-sm font-medium">
+              الفرص المقبولة اليوم: <strong>{todayAcceptedCount}</strong> / <strong>{dailyLimit}</strong>
+            </span>
+          </div>
+          {hasReachedDailyLimit && (
+            <Badge variant="destructive" className="text-xs">
+              وصلت للحد اليومي
+            </Badge>
+          )}
+          {planLimits?.isTrained && (
+            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs">
+              🎓 مُدرَّب
+            </Badge>
+          )}
+        </div>
 
         {/* أزرار التحكم */}
         <div className="flex items-center justify-between flex-wrap gap-3">

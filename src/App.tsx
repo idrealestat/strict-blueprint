@@ -62,6 +62,7 @@ import {
   ChangelogPage,
   PropertyRegistryPage,
   RegisteredUsersPage,
+  PlanLimitsPage,
 } from "./pages/owner-dashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
@@ -92,14 +93,6 @@ import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import FacebookCallbackPage from "./pages/FacebookCallbackPage";
 import { supabase } from "./integrations/supabase/client";
 
-// Academy Pages
-import AcademyLanding from "./pages/academy/AcademyLanding";
-import AcademyIndex from "./pages/academy/Index";
-import AcademyRegister from "./pages/academy/AcademyRegister";
-import AcademyLogin from "./pages/academy/AcademyLogin";
-import AcademyDashboard from "./pages/academy/AcademyDashboard";
-import AcademyCourse from "./pages/academy/AcademyCourse";
-import AcademyProtectedRoute from "./pages/academy/AcademyProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -518,7 +511,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
 
 const App = () => {
   const [isNewUser, setIsNewUser] = useState(false);
-  const isTrainingSubdomain = typeof window !== 'undefined' && window.location.hostname.toLowerCase().startsWith('training.');
+  
 
   // Check for new user flag
   useEffect(() => {
@@ -705,6 +698,13 @@ const App = () => {
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />
+                  <Route path="/app/owner-dashboard/plan-limits" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <PlanLimitsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
                   
                   <Route path="/app/customers" element={
                     <BusinessCardGuard>
@@ -749,39 +749,6 @@ const App = () => {
                   {/* صفحة الانضمام للفريق */}
                   <Route path="/join/:token" element={<JoinTeamPage />} />
                   
-                  {/* Academy Routes - قسم منفصل تماماً */}
-                  <Route path="/academy" element={<AcademyIndex />} />
-                  <Route path="/academy/register" element={<AcademyRegister />} />
-                  <Route path="/academy/login" element={<AcademyLogin />} />
-                  <Route path="/academy/dashboard" element={
-                    <AcademyProtectedRoute>
-                      <AcademyDashboard />
-                    </AcademyProtectedRoute>
-                  } />
-                  <Route path="/academy/course/:id" element={
-                    <AcademyProtectedRoute>
-                      <AcademyCourse />
-                    </AcademyProtectedRoute>
-                  } />
-
-                  {/* Academy Routes on training.wasataai.com subdomain - root level */}
-                  {isTrainingSubdomain && (
-                    <>
-                      <Route path="/" element={<AcademyIndex />} />
-                      <Route path="/register" element={<AcademyRegister />} />
-                      <Route path="/login" element={<AcademyLogin />} />
-                      <Route path="/dashboard" element={
-                        <AcademyProtectedRoute>
-                          <AcademyDashboard />
-                        </AcademyProtectedRoute>
-                      } />
-                      <Route path="/course/:id" element={
-                        <AcademyProtectedRoute>
-                          <AcademyCourse />
-                        </AcademyProtectedRoute>
-                      } />
-                    </>
-                  )}
                   
                   {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />

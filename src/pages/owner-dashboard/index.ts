@@ -17,3 +17,4 @@ export { default as PatternsPage } from './PatternsPage';
 export { default as ChangelogPage } from './ChangelogPage';
 export { default as PropertyRegistryPage } from './PropertyRegistryPage';
 export { default as RegisteredUsersPage } from './RegisteredUsersPage';
+export { default as PlanLimitsPage } from './PlanLimitsPage';
