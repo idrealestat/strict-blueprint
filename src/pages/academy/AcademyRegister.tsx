@@ -5,8 +5,9 @@ import { getAcademyHome, getAcademyLogin, getAcademyDashboard } from "@/utils/ac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import skylineBg from "@/assets/academy-skyline-bg.jpg";
 
 const generateTemporaryPassword = () => {
   return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + 'A1!';
@@ -46,7 +47,6 @@ const AcademyRegister = () => {
     setLoading(true);
 
     try {
-      // تحقق من أن البريد غير مسجل
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("id")
@@ -59,7 +59,6 @@ const AcademyRegister = () => {
         return;
       }
 
-      // إنشاء المستخدم
       const password = generateTemporaryPassword();
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
@@ -80,7 +79,6 @@ const AcademyRegister = () => {
       }
 
       if (signUpData.user) {
-        // تحديث الملف الشخصي
         await supabase.from("profiles").upsert({
           user_id: signUpData.user.id,
           full_name: form.fullName,
@@ -89,7 +87,6 @@ const AcademyRegister = () => {
           office_address: `${form.city} - ${form.district}`,
         });
 
-        // تسجيل الدخول تلقائياً
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: form.email,
           password,
@@ -116,109 +113,92 @@ const AcademyRegister = () => {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
+  const formCardClass = "bg-white/70 backdrop-blur-xl border-2 border-wasata-gold/40 shadow-[0_20px_60px_-10px_rgba(212,175,55,0.15),0_8px_20px_-8px_rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-4";
+  const inputClass = "bg-white/60 border-gray-200 text-gray-800 placeholder:text-gray-400";
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#1a2942] flex items-center justify-center p-4" dir="rtl">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to={getAcademyHome()} className="inline-flex items-center gap-2 text-white mb-4">
-            <GraduationCap className="w-8 h-8 text-[#D4AF37]" />
-            <span className="text-2xl font-bold text-white">أكاديمية وسيط</span>
+    <div className="min-h-screen relative font-[Cairo]" dir="rtl">
+      {/* Background */}
+      <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${skylineBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-gray-100/85 via-gray-50/80 to-white/90 backdrop-blur-sm" />
+
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
+        {/* Back button */}
+        <div className="w-full max-w-md mb-4">
+          <Link to={getAcademyHome()} className="inline-flex items-center gap-2 text-gray-600 hover:text-wasata-green transition">
+            <ArrowRight className="w-5 h-5" />
+            <span>العودة للصفحة الرئيسية</span>
           </Link>
-          <h1 className="text-xl text-gray-300">إنشاء حساب جديد</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
-          <div>
-            <Label className="text-white">الاسم الثلاثي</Label>
-            <Input
-              value={form.fullName}
-              onChange={(e) => updateField("fullName", e.target.value)}
-              placeholder="محمد أحمد العلي"
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
-            />
-            {errors.fullName && <p className="text-red-400 text-xs mt-1">{errors.fullName}</p>}
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to={getAcademyHome()} className="inline-flex items-center gap-2 mb-4">
+              <GraduationCap className="w-8 h-8 text-wasata-green" />
+              <span className="text-2xl font-bold text-gray-800">أكاديمية <span className="text-wasata-gold">وسيط</span></span>
+            </Link>
+            <h1 className="text-xl text-gray-600">إنشاء حساب جديد</h1>
           </div>
 
-          <div>
-            <Label className="text-white">رقم الجوال</Label>
-            <Input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => updateField("phone", e.target.value)}
-              placeholder="05xxxxxxxx"
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
-              dir="ltr"
-            />
-            {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
-          </div>
-
-          <div>
-            <Label className="text-white">البريد الإلكتروني</Label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => updateField("email", e.target.value)}
-              placeholder="example@email.com"
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
-              dir="ltr"
-            />
-            {errors.email && (
-              <p className="text-red-400 text-xs mt-1">
-                {errors.email}{" "}
-                {errors.email.includes("تسجيل الدخول") && (
-                  <Link to={getAcademyLogin()} className="text-[#D4AF37] underline">تسجيل الدخول</Link>
-                )}
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleSubmit} className={formCardClass}>
             <div>
-              <Label className="text-white">المدينة</Label>
-              <Input
-                value={form.city}
-                onChange={(e) => updateField("city", e.target.value)}
-                placeholder="الرياض"
-                className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
-              />
-              {errors.city && <p className="text-red-400 text-xs mt-1">{errors.city}</p>}
+              <Label className="text-gray-700">الاسم الثلاثي</Label>
+              <Input value={form.fullName} onChange={(e) => updateField("fullName", e.target.value)} placeholder="محمد أحمد العلي" className={inputClass} />
+              {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
             </div>
+
             <div>
-              <Label className="text-white">الحي</Label>
-              <Input
-                value={form.district}
-                onChange={(e) => updateField("district", e.target.value)}
-                placeholder="النرجس"
-                className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
-              />
-              {errors.district && <p className="text-red-400 text-xs mt-1">{errors.district}</p>}
+              <Label className="text-gray-700">رقم الجوال</Label>
+              <Input type="tel" value={form.phone} onChange={(e) => updateField("phone", e.target.value)} placeholder="05xxxxxxxx" className={inputClass} dir="ltr" />
+              {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
-          </div>
 
-          <div>
-            <Label className="text-white">رقم الرخصة (فال)</Label>
-            <Input
-              value={form.licenseNumber}
-              onChange={(e) => updateField("licenseNumber", e.target.value)}
-              placeholder="رقم رخصة فال"
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
-            />
-            {errors.licenseNumber && <p className="text-red-400 text-xs mt-1">{errors.licenseNumber}</p>}
-          </div>
+            <div>
+              <Label className="text-gray-700">البريد الإلكتروني</Label>
+              <Input type="email" value={form.email} onChange={(e) => updateField("email", e.target.value)} placeholder="example@email.com" className={inputClass} dir="ltr" />
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.email}{" "}
+                  {errors.email.includes("تسجيل الدخول") && (
+                    <Link to={getAcademyLogin()} className="text-wasata-gold underline">تسجيل الدخول</Link>
+                  )}
+                </p>
+              )}
+            </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#D4AF37] hover:bg-[#c4a030] text-black font-bold py-6"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "إنشاء حساب والبدء"}
-          </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-gray-700">المدينة</Label>
+                <Input value={form.city} onChange={(e) => updateField("city", e.target.value)} placeholder="الرياض" className={inputClass} />
+                {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+              </div>
+              <div>
+                <Label className="text-gray-700">الحي</Label>
+                <Input value={form.district} onChange={(e) => updateField("district", e.target.value)} placeholder="النرجس" className={inputClass} />
+                {errors.district && <p className="text-red-500 text-xs mt-1">{errors.district}</p>}
+              </div>
+            </div>
 
-          <p className="text-center text-gray-400 text-sm">
-            لديك حساب؟{" "}
-            <Link to={getAcademyLogin()} className="text-[#D4AF37] hover:underline">سجل دخول</Link>
-          </p>
-        </form>
+            <div>
+              <Label className="text-gray-700">رقم الرخصة (فال)</Label>
+              <Input value={form.licenseNumber} onChange={(e) => updateField("licenseNumber", e.target.value)} placeholder="رقم رخصة فال" className={inputClass} />
+              {errors.licenseNumber && <p className="text-red-500 text-xs mt-1">{errors.licenseNumber}</p>}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-wasata-green hover:bg-wasata-green-dark text-white font-bold py-6 shadow-lg shadow-wasata-green/20"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "إنشاء حساب والبدء"}
+            </Button>
+
+            <p className="text-center text-gray-500 text-sm">
+              لديك حساب؟{" "}
+              <Link to={getAcademyLogin()} className="text-wasata-gold hover:underline font-bold">سجل دخول</Link>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
