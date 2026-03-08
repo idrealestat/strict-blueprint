@@ -151,6 +151,14 @@ const OwnerDashboardIndex: React.FC = () => {
       icon: <Users className="w-8 h-8" />,
       route: "/app/owner-dashboard/registered-users",
       color: "from-pink-500 to-pink-600"
+    },
+    {
+      id: "plan-limits",
+      title: "حدود الباقات",
+      description: "الفرص الذكية وأقسام منصتي",
+      icon: <Sparkles className="w-8 h-8" />,
+      route: "/app/owner-dashboard/plan-limits",
+      color: "from-amber-500 to-amber-600"
     }
   ];
 

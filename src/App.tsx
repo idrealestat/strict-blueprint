@@ -698,6 +698,13 @@ const App = () => {
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />
+                  <Route path="/app/owner-dashboard/plan-limits" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <PlanLimitsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
                   
                   <Route path="/app/customers" element={
                     <BusinessCardGuard>
