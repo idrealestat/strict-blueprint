@@ -166,6 +166,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   // Load data from database - مصدر الحقيقة الوحيد
   const loadData = React.useCallback(async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
       console.log('[BusinessCardProfile] Loading data from DB for user:', user.id);
@@ -201,7 +202,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
     } finally {
       setIsLoading(false);
     }
-  }, [user.id]);
+  }, [user?.id]);
 
   useEffect(() => {
     // Load immediately on mount
