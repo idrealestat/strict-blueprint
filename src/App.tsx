@@ -91,6 +91,14 @@ import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import FacebookCallbackPage from "./pages/FacebookCallbackPage";
 import { supabase } from "./integrations/supabase/client";
 
+// Academy Pages
+import AcademyLanding from "./pages/academy/AcademyLanding";
+import AcademyRegister from "./pages/academy/AcademyRegister";
+import AcademyLogin from "./pages/academy/AcademyLogin";
+import AcademyDashboard from "./pages/academy/AcademyDashboard";
+import AcademyCourse from "./pages/academy/AcademyCourse";
+import AcademyProtectedRoute from "./pages/academy/AcademyProtectedRoute";
+
 const queryClient = new QueryClient();
 
 // Interface for linked customer
