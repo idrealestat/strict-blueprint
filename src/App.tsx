@@ -517,6 +517,7 @@ const DashboardContent = ({ isNewUser }: { isNewUser: boolean }) => {
 
 const App = () => {
   const [isNewUser, setIsNewUser] = useState(false);
+  const isTrainingSubdomain = typeof window !== 'undefined' && window.location.hostname.toLowerCase().startsWith('training.');
 
   // Check for new user flag
   useEffect(() => {
@@ -760,6 +761,25 @@ const App = () => {
                       <AcademyCourse />
                     </AcademyProtectedRoute>
                   } />
+
+                  {/* Academy Routes on training.wasataai.com subdomain - root level */}
+                  {isTrainingSubdomain && (
+                    <>
+                      <Route path="/" element={<AcademyIndex />} />
+                      <Route path="/register" element={<AcademyRegister />} />
+                      <Route path="/login" element={<AcademyLogin />} />
+                      <Route path="/dashboard" element={
+                        <AcademyProtectedRoute>
+                          <AcademyDashboard />
+                        </AcademyProtectedRoute>
+                      } />
+                      <Route path="/course/:id" element={
+                        <AcademyProtectedRoute>
+                          <AcademyCourse />
+                        </AcademyProtectedRoute>
+                      } />
+                    </>
+                  )}
                   
                   {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />

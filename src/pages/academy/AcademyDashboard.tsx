@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAcademyLogin, getAcademyCoursePath } from "@/utils/academyPaths";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { GraduationCap, Play, CheckCircle, Shield, LogOut, Loader2 } from "lucide-react";
@@ -27,7 +28,7 @@ const AcademyDashboard = () => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
         return;
       }
 
@@ -69,7 +70,7 @@ const AcademyDashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/academy/login");
+    navigate(getAcademyLogin());
   };
 
   const progressPercent = courses.length > 0 ? (completedIds.size / courses.length) * 100 : 0;
@@ -152,7 +153,7 @@ const AcademyDashboard = () => {
                 <div className="p-4">
                   <h3 className="font-bold text-lg mb-2">{course.title}</h3>
                   <p className="text-gray-400 text-sm mb-4">{course.description}</p>
-                  <Link to={`/academy/course/${course.id}`}>
+                  <Link to={getAcademyCoursePath(course.id)}>
                     <Button
                       className={`w-full ${
                         isCompleted

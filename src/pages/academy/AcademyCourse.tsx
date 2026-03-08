@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAcademyLogin, getAcademyDashboard, getAcademyCoursePath } from "@/utils/academyPaths";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ChevronRight, ChevronLeft, CheckCircle, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +29,7 @@ const AcademyCourse = () => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
         return;
       }
       setUserId(user.id);
@@ -104,7 +105,7 @@ const AcademyCourse = () => {
         toast.success("تم إتمام الدورة بنجاح!");
       }
 
-      navigate("/academy/dashboard");
+      navigate(getAcademyDashboard());
     } catch (err) {
       console.error("Complete error:", err);
       toast.error("حدث خطأ، يرجى المحاولة مرة أخرى");
@@ -130,7 +131,7 @@ const AcademyCourse = () => {
       <div className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#1a2942] flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-xl mb-4">الدورة غير موجودة</p>
-          <Link to="/academy/dashboard">
+          <Link to={getAcademyDashboard()}>
             <Button className="bg-[#D4AF37] text-black">العودة للوحة التحكم</Button>
           </Link>
         </div>
@@ -147,7 +148,7 @@ const AcademyCourse = () => {
             <GraduationCap className="w-8 h-8 text-[#D4AF37]" />
             <span className="text-xl font-bold">أكاديمية وسيط</span>
           </div>
-          <Link to="/academy/dashboard">
+          <Link to={getAcademyDashboard()}>
             <Button variant="ghost" className="text-gray-300 hover:text-white gap-2">
               <ArrowRight className="w-4 h-4" />
               العودة
@@ -187,7 +188,7 @@ const AcademyCourse = () => {
         {/* Navigation */}
         <div className="flex items-center justify-between gap-4 mb-8">
           {prevCourse ? (
-            <Link to={`/academy/course/${prevCourse.id}`}>
+            <Link to={getAcademyCoursePath(prevCourse.id)}>
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
                 <ChevronRight className="w-4 h-4" />
                 السابق
@@ -198,7 +199,7 @@ const AcademyCourse = () => {
           )}
 
           {nextCourse ? (
-            <Link to={`/academy/course/${nextCourse.id}`}>
+            <Link to={getAcademyCoursePath(nextCourse.id)}>
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
                 التالي
                 <ChevronLeft className="w-4 h-4" />

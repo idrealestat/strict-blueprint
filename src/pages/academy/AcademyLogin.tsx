@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAcademyHome, getAcademyDashboard, getAcademyRegister } from "@/utils/academyPaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ const AcademyLogin = () => {
         setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
       } else {
         toast.success("تم تسجيل الدخول بنجاح!");
-        navigate("/academy/dashboard");
+        navigate(getAcademyDashboard());
       }
     } catch (err) {
       setError("حدث خطأ، يرجى المحاولة مرة أخرى");
@@ -46,7 +47,7 @@ const AcademyLogin = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#1a2942] flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/academy" className="inline-flex items-center gap-2 text-white mb-4">
+          <Link to={getAcademyHome()} className="inline-flex items-center gap-2 text-white mb-4">
             <GraduationCap className="w-8 h-8 text-[#D4AF37]" />
             <span className="text-2xl font-bold text-white">أكاديمية وسيط</span>
           </Link>
@@ -90,7 +91,7 @@ const AcademyLogin = () => {
 
           <p className="text-center text-gray-400 text-sm">
             ليس لديك حساب؟{" "}
-            <Link to="/academy/register" className="text-[#D4AF37] hover:underline">سجل الآن</Link>
+            <Link to={getAcademyRegister()} className="text-[#D4AF37] hover:underline">سجل الآن</Link>
           </p>
         </form>
       </div>

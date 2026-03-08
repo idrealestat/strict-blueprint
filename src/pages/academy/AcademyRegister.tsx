@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getAcademyHome, getAcademyLogin, getAcademyDashboard } from "@/utils/academyPaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,10 +97,10 @@ const AcademyRegister = () => {
 
         if (signInError) {
           toast.info("تم إنشاء الحساب بنجاح. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول.");
-          navigate("/academy/login");
+          navigate(getAcademyLogin());
         } else {
           toast.success("تم إنشاء حسابك بنجاح! مرحباً بك في أكاديمية وسيط");
-          navigate("/academy/dashboard");
+          navigate(getAcademyDashboard());
         }
       }
     } catch (err) {
@@ -119,7 +120,7 @@ const AcademyRegister = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#1a2942] flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/academy" className="inline-flex items-center gap-2 text-white mb-4">
+          <Link to={getAcademyHome()} className="inline-flex items-center gap-2 text-white mb-4">
             <GraduationCap className="w-8 h-8 text-[#D4AF37]" />
             <span className="text-2xl font-bold text-white">أكاديمية وسيط</span>
           </Link>
@@ -165,7 +166,7 @@ const AcademyRegister = () => {
               <p className="text-red-400 text-xs mt-1">
                 {errors.email}{" "}
                 {errors.email.includes("تسجيل الدخول") && (
-                  <Link to="/academy/login" className="text-[#D4AF37] underline">تسجيل الدخول</Link>
+                  <Link to={getAcademyLogin()} className="text-[#D4AF37] underline">تسجيل الدخول</Link>
                 )}
               </p>
             )}
@@ -215,7 +216,7 @@ const AcademyRegister = () => {
 
           <p className="text-center text-gray-400 text-sm">
             لديك حساب؟{" "}
-            <Link to="/academy/login" className="text-[#D4AF37] hover:underline">سجل دخول</Link>
+            <Link to={getAcademyLogin()} className="text-[#D4AF37] hover:underline">سجل دخول</Link>
           </p>
         </form>
       </div>

@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { getAcademyLogin, getAcademyRegister } from "@/utils/academyPaths";
 import { ArrowRight } from "lucide-react";
 import {
   Shield,
@@ -133,12 +134,12 @@ const AcademyIndex = () => {
             </span>
           </div>
           <div className="flex gap-3">
-            <Link to="/academy/login">
+            <Link to={getAcademyLogin()}>
               <Button variant="ghost" className="text-white hover:bg-white/10">
                 تسجيل دخول
               </Button>
             </Link>
-            <Link to="/academy/register">
+            <Link to={getAcademyRegister()}>
               <Button className="bg-secondary hover:bg-secondary/85 text-primary font-bold">
                 اشترك الآن
               </Button>
@@ -161,7 +162,7 @@ const AcademyIndex = () => {
               الإتقان القانوني والتقني، لتبني مسيرة نجاح واثقة في سوق العقارات
               السعودي.
             </p>
-            <Link to="/academy/register">
+            <Link to={getAcademyRegister()}>
               <Button
                 size="lg"
                 className="bg-secondary hover:bg-secondary/85 text-primary font-bold text-lg px-10 py-6 mt-4"
@@ -359,7 +360,7 @@ const AcademyIndex = () => {
               </div>
               <p className="text-gray-400 text-sm mt-1">مرة واحدة — وصول مدى الحياة</p>
             </div>
-            <Link to="/academy/register">
+            <Link to={getAcademyRegister()}>
               <Button
                 size="lg"
                 className="bg-secondary hover:bg-secondary/85 text-primary font-bold text-xl px-12 py-7 w-full max-w-sm mt-4"

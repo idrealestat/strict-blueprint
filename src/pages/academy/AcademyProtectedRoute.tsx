@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { getAcademyLogin } from "@/utils/academyPaths";
 
 const AcademyProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const [loading, setLoading] = useState(true);
@@ -12,7 +13,7 @@ const AcademyProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
       } else {
         setAuthenticated(true);
       }
@@ -23,7 +24,7 @@ const AcademyProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
       }
     });
 
