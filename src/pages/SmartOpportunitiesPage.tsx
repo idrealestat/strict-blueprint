@@ -32,6 +32,8 @@ import { toast } from '@/hooks/use-toast';
 import SwipeableOpportunityCard, { SmartOpportunity } from '@/components/smart-opportunities/SwipeableOpportunityCard';
 import OpportunityFilters, { OpportunityFiltersState, defaultFilters } from '@/components/smart-opportunities/OpportunityFilters';
 import { mockSmartOpportunities } from '@/data/mockSmartOpportunities';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { useAcademy } from '@/contexts/AcademyContext';
 
 const SmartOpportunitiesPage = () => {
   const navigate = useNavigate();
