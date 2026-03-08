@@ -70,7 +70,7 @@ const AcademyDashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/academy/login");
+    navigate(getAcademyLogin());
   };
 
   const progressPercent = courses.length > 0 ? (completedIds.size / courses.length) * 100 : 0;
