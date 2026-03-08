@@ -166,7 +166,7 @@ const AcademyRegister = () => {
               <p className="text-red-400 text-xs mt-1">
                 {errors.email}{" "}
                 {errors.email.includes("تسجيل الدخول") && (
-                  <Link to="/academy/login" className="text-[#D4AF37] underline">تسجيل الدخول</Link>
+                  <Link to={getAcademyLogin()} className="text-[#D4AF37] underline">تسجيل الدخول</Link>
                 )}
               </p>
             )}
