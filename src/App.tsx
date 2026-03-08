@@ -62,6 +62,7 @@ import {
   ChangelogPage,
   PropertyRegistryPage,
   RegisteredUsersPage,
+  PlanLimitsPage,
 } from "./pages/owner-dashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
