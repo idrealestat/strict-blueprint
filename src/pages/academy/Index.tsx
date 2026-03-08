@@ -162,7 +162,7 @@ const AcademyIndex = () => {
               الإتقان القانوني والتقني، لتبني مسيرة نجاح واثقة في سوق العقارات
               السعودي.
             </p>
-            <Link to="/academy/register">
+            <Link to={getAcademyRegister()}>
               <Button
                 size="lg"
                 className="bg-secondary hover:bg-secondary/85 text-primary font-bold text-lg px-10 py-6 mt-4"
