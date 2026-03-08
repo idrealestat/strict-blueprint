@@ -41,14 +41,19 @@ const SmartOpportunitiesPage = () => {
   const { acceptOpportunity, rejectOpportunity, rejectedKeys } = useSmartOpportunities();
   const { notifyNewOpportunity } = useSmartOpportunityNotifications();
   const { data: businessCardData } = useBusinessCardData();
+  const { limits: planLimits } = usePlanLimits();
+  const { status: academyStatus } = useAcademy();
   const userSlug = businessCardData?.slug;
+  
+  const dailyLimit = planLimits?.dailyOpportunities ?? 5;
   
   const [allOpportunities, setAllOpportunities] = useState<SmartOpportunity[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filters, setFilters] = useState<OpportunityFiltersState>(defaultFilters);
-  const [useMockData, setUseMockData] = useState(false); // لتفعيل البيانات الوهمية
+  const [useMockData, setUseMockData] = useState(false);
+  const [todayAcceptedCount, setTodayAcceptedCount] = useState(0);
   
   // حالة السلايدرز والإشعارات
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
