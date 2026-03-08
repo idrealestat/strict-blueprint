@@ -13,7 +13,7 @@ const AcademyProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate("/academy/login");
+        navigate(getAcademyLogin());
       } else {
         setAuthenticated(true);
       }
