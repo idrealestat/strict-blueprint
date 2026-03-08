@@ -118,14 +118,6 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     flagKey: "right_slider_owner_panel_enabled",
   },
   {
-    id: "course",
-    icon: BookOpen,
-    label: "دورة الوساطة",
-    path: "action:academy",
-    color: "#065f41",
-    flagKey: "right_slider_mediation_course_enabled",
-  },
-  {
     id: "colleagues",
     icon: Users,
     label: "إدارة الفريق",
