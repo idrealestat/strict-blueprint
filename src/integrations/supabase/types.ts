@@ -1557,6 +1557,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_limits: {
+        Row: {
+          account_type: string
+          created_at: string
+          daily_opportunities: number
+          daily_opportunities_trained: number
+          id: string
+          max_cities: number
+          max_cities_trained: number
+          max_districts: number
+          max_districts_trained: number
+          notes: string | null
+          plan_name: string
+          plan_tier: number
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          created_at?: string
+          daily_opportunities?: number
+          daily_opportunities_trained?: number
+          id?: string
+          max_cities?: number
+          max_cities_trained?: number
+          max_districts?: number
+          max_districts_trained?: number
+          notes?: string | null
+          plan_name?: string
+          plan_tier?: number
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          created_at?: string
+          daily_opportunities?: number
+          daily_opportunities_trained?: number
+          id?: string
+          max_cities?: number
+          max_cities_trained?: number
+          max_districts?: number
+          max_districts_trained?: number
+          notes?: string | null
+          plan_name?: string
+          plan_tier?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_listings: {
         Row: {
           ac_units: string | null
