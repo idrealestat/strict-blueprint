@@ -101,7 +101,7 @@ const PlanLimitsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <OwnerDashboardLayout title="حدود الباقات" subtitle="إدارة حدود الفرص والأقسام">
+      <OwnerDashboardLayout title="حدود الباقات" icon={<Sparkles className="w-5 h-5" />}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
