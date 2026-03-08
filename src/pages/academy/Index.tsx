@@ -149,7 +149,7 @@ const AcademyIndex = () => {
               </button>
               <GraduationCap className="w-8 h-8 text-wasata-green" />
               <span className="text-xl font-bold tracking-tight text-gray-800">
-                وساطة <span className="text-wasata-gold drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]">Wasata</span>{" "}
+                وساطة <span className="text-gray-800">Wasata</span>{" "}
                 <span className="text-wasata-gold drop-shadow-[0_0_12px_rgba(212,175,55,0.8)] animate-pulse" style={{ textShadow: '0 0 10px rgba(212,175,55,0.5), 0 0 20px rgba(212,175,55,0.3)' }}>AI</span>
               </span>
             </div>
