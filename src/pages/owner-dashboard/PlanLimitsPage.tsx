@@ -110,7 +110,7 @@ const PlanLimitsPage: React.FC = () => {
   }
 
   return (
-    <OwnerDashboardLayout title="حدود الباقات" subtitle="تحكم في حدود الفرص الذكية وأقسام منصتي لكل باقة">
+    <OwnerDashboardLayout title="حدود الباقات" icon={<Sparkles className="w-5 h-5" />}>
       <div className="space-y-6">
         {/* زر الحفظ */}
         <div className="flex justify-end">
