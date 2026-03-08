@@ -47,7 +47,7 @@ const AcademyLogin = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#0a1628] to-[#1a2942] flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/academy" className="inline-flex items-center gap-2 text-white mb-4">
+          <Link to={getAcademyHome()} className="inline-flex items-center gap-2 text-white mb-4">
             <GraduationCap className="w-8 h-8 text-[#D4AF37]" />
             <span className="text-2xl font-bold text-white">أكاديمية وسيط</span>
           </Link>
