@@ -759,6 +759,8 @@ const App = () => {
                   <Route path="/academy/course/:id" element={
                     <AcademyProtectedRoute>
                       <AcademyCourse />
+                    </AcademyProtectedRoute>
+                  } />
 
                   {/* Academy Routes on training.wasataai.com subdomain - root level */}
                   {isTrainingSubdomain && (
@@ -778,8 +780,6 @@ const App = () => {
                       } />
                     </>
                   )}
-                    </AcademyProtectedRoute>
-                  } />
                   
                   {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />
