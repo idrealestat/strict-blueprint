@@ -148,7 +148,7 @@ const AcademyCourse = () => {
             <GraduationCap className="w-8 h-8 text-[#D4AF37]" />
             <span className="text-xl font-bold">أكاديمية وسيط</span>
           </div>
-          <Link to="/academy/dashboard">
+          <Link to={getAcademyDashboard()}>
             <Button variant="ghost" className="text-gray-300 hover:text-white gap-2">
               <ArrowRight className="w-4 h-4" />
               العودة
