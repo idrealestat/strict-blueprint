@@ -24,7 +24,7 @@ import academyHero from "@/assets/academy-hero.jpg";
 import skylineBg from "@/assets/academy-skyline-bg.jpg";
 
 /* ═══════════════════════════════════════════════════════
-   أكاديمية "اكسر حاجز المبتدئ"
+   أكاديمية "وساطة Wasata AI"
    الصفحة الرئيسية — src/pages/academy/Index.tsx
    ═══════════════════════════════════════════════════════ */
 
@@ -173,7 +173,7 @@ const AcademyIndex = () => {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className={`${floatingCard} rounded-3xl p-10 text-center md:text-right space-y-6`}>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-gray-900">
-                اكسر حاجز المبتدئ..
+                وساطة Wasata <span className="text-wasata-gold" style={{ textShadow: '0 0 10px rgba(212,175,55,0.5), 0 0 20px rgba(212,175,55,0.3)' }}>AI</span>..
                 <br />
                 <span className="text-wasata-green">وأتمم صفقتك الأولى بمهارة!</span>
               </h1>
@@ -267,10 +267,10 @@ const AcademyIndex = () => {
                   ))}
                 </ul>
               </div>
-              {/* العمود الأيسر — أكاديمية اكسر حاجز المبتدئ */}
+              {/* العمود الأيسر — أكاديمية وساطة Wasata AI */}
               <div className={`${floatingCard} rounded-2xl p-8 border-wasata-green/30`}>
                 <h3 className="text-xl font-bold mb-6 text-wasata-green text-center">
-                  أكاديمية اكسر حاجز المبتدئ
+                  أكاديمية وساطة Wasata <span className="text-wasata-gold" style={{ textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>AI</span>
                 </h3>
                 <ul className="space-y-4">
                   {academyPros.map((item, i) => (
@@ -394,7 +394,7 @@ const AcademyIndex = () => {
         <footer className="border-t border-gray-200/60 py-8 bg-white/40 backdrop-blur-lg">
           <div className="container mx-auto px-4 text-center space-y-3">
             <p className="text-gray-600 text-sm">
-              اكسر حاجز المبتدئ © {new Date().getFullYear()}. جميع الحقوق محفوظة.
+              وساطة Wasata AI © {new Date().getFullYear()}. جميع الحقوق محفوظة.
             </p>
             <div className="flex items-center justify-center gap-4 text-gray-500 text-sm">
               <a href="#" className="hover:text-wasata-green transition">
