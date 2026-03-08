@@ -121,7 +121,7 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     id: "course",
     icon: BookOpen,
     label: "دورة الوساطة",
-    path: "/course",
+    path: "action:academy",
     color: "#065f41",
     flagKey: "right_slider_mediation_course_enabled",
   },
@@ -565,6 +565,12 @@ export default function RightSliderComplete({
     // Handle app settings - فتح إعدادات التطبيق الشاملة
     if (item.path === 'action:app-settings') {
       setShowAppSettings(true);
+      return;
+    }
+
+    // Handle academy - فتح أكاديمية الوساطة مع تمرير مصدر الدخول
+    if (item.path === 'action:academy') {
+      window.location.href = '/academy?from=app';
       return;
     }
     

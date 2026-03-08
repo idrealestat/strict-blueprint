@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import {
   Shield,
   TrendingUp,
@@ -95,6 +96,21 @@ const testimonials = [
 
 // ═══════════════════════════════════════════════════════
 const AcademyIndex = () => {
+  const [searchParams] = useSearchParams();
+  const fromApp = searchParams.get('from') === 'app';
+
+  const handleBack = () => {
+    if (fromApp) {
+      // العودة إلى التطبيق
+      window.location.href = '/app/dashboard';
+    } else {
+      // إغلاق الصفحة (الخروج)
+      window.close();
+      // إذا لم يتم الإغلاق (مثلاً لم تُفتح من تبويب جديد)، العودة للخلف
+      window.history.back();
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-gradient-to-b from-[hsl(145,96%,5%)] to-[hsl(145,60%,12%)] text-white font-[Cairo]"
@@ -104,6 +120,13 @@ const AcademyIndex = () => {
       <header className="sticky top-0 z-50 bg-[hsl(145,96%,5%)]/90 backdrop-blur-md border-b border-white/10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 text-white hover:text-secondary transition"
+              title={fromApp ? "العودة للتطبيق" : "إغلاق"}
+            >
+              <ArrowRight className="w-5 h-5" />
+            </button>
             <GraduationCap className="w-8 h-8 text-secondary" />
             <span className="text-xl font-bold tracking-tight">
               أكاديمية <span className="text-secondary">اكسر حاجز المبتدئ</span>
