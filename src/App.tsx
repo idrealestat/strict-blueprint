@@ -531,6 +531,7 @@ const App = () => {
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <AcademyProvider>
           <EntitlementsProvider>
             <FeatureFlagsProvider>
               <DashboardProvider>
