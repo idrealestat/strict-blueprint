@@ -567,6 +567,12 @@ export default function RightSliderComplete({
       setShowAppSettings(true);
       return;
     }
+
+    // Handle academy - فتح أكاديمية الوساطة مع تمرير مصدر الدخول
+    if (item.path === 'action:academy') {
+      window.location.href = '/academy?from=app';
+      return;
+    }
     
     // Normal navigation
     if (item.path.startsWith("/")) {
