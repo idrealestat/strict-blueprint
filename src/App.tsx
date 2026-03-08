@@ -741,39 +741,6 @@ const App = () => {
                   {/* صفحة الانضمام للفريق */}
                   <Route path="/join/:token" element={<JoinTeamPage />} />
                   
-                  {/* Academy Routes - قسم منفصل تماماً */}
-                  <Route path="/academy" element={<AcademyIndex />} />
-                  <Route path="/academy/register" element={<AcademyRegister />} />
-                  <Route path="/academy/login" element={<AcademyLogin />} />
-                  <Route path="/academy/dashboard" element={
-                    <AcademyProtectedRoute>
-                      <AcademyDashboard />
-                    </AcademyProtectedRoute>
-                  } />
-                  <Route path="/academy/course/:id" element={
-                    <AcademyProtectedRoute>
-                      <AcademyCourse />
-                    </AcademyProtectedRoute>
-                  } />
-
-                  {/* Academy Routes on training.wasataai.com subdomain - root level */}
-                  {isTrainingSubdomain && (
-                    <>
-                      <Route path="/" element={<AcademyIndex />} />
-                      <Route path="/register" element={<AcademyRegister />} />
-                      <Route path="/login" element={<AcademyLogin />} />
-                      <Route path="/dashboard" element={
-                        <AcademyProtectedRoute>
-                          <AcademyDashboard />
-                        </AcademyProtectedRoute>
-                      } />
-                      <Route path="/course/:id" element={
-                        <AcademyProtectedRoute>
-                          <AcademyCourse />
-                        </AcademyProtectedRoute>
-                      } />
-                    </>
-                  )}
                   
                   {/* Public Pages - MUST be before dynamic slug routes */}
                   <Route path="/terms" element={<TermsPage />} />
