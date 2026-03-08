@@ -121,7 +121,7 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     id: "course",
     icon: BookOpen,
     label: "دورة الوساطة",
-    path: "/course",
+    path: "action:academy",
     color: "#065f41",
     flagKey: "right_slider_mediation_course_enabled",
   },
