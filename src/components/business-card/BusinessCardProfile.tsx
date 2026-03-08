@@ -100,14 +100,12 @@ interface BusinessCardData {
 }
 
 const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEditClick, user }) => {
-  if (!user) {
-    return <div className="flex items-center justify-center p-8 text-muted-foreground">جاري تحميل بيانات المستخدم...</div>;
-  }
-  const SWAP_KEY = `business_card_swap_${user.id}`;
+  const SWAP_KEY = `business_card_swap_${user?.id ?? 'unknown'}`;
   
   // تحميل حالة التبديل من localStorage (هذا مسموح لأنه حالة عرض فقط وليس بيانات)
   const [showSwappedImage, setShowSwappedImage] = useState(() => {
-    const saved = localStorage.getItem(SWAP_KEY);
+    if (!user?.id) return false;
+    const saved = localStorage.getItem(`business_card_swap_${user.id}`);
     return saved === 'true';
   });
   const [isEditingBio, setIsEditingBio] = useState(false);
