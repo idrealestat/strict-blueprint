@@ -93,6 +93,7 @@ import { supabase } from "./integrations/supabase/client";
 
 // Academy Pages
 import AcademyLanding from "./pages/academy/AcademyLanding";
+import AcademyIndex from "./pages/academy/Index";
 import AcademyRegister from "./pages/academy/AcademyRegister";
 import AcademyLogin from "./pages/academy/AcademyLogin";
 import AcademyDashboard from "./pages/academy/AcademyDashboard";
@@ -746,7 +747,7 @@ const App = () => {
                   <Route path="/join/:token" element={<JoinTeamPage />} />
                   
                   {/* Academy Routes - قسم منفصل تماماً */}
-                  <Route path="/academy" element={<AcademyLanding />} />
+                  <Route path="/academy" element={<AcademyIndex />} />
                   <Route path="/academy/register" element={<AcademyRegister />} />
                   <Route path="/academy/login" element={<AcademyLogin />} />
                   <Route path="/academy/dashboard" element={
