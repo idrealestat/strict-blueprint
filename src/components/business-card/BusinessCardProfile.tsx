@@ -378,6 +378,10 @@ END:VCARD`;
     saturday: "السبت"
   };
 
+  if (!user) {
+    return <div className="flex items-center justify-center p-8 text-muted-foreground">جاري تحميل بيانات المستخدم...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-32" dir="rtl">
       {/* Welcome Message Toast */}
