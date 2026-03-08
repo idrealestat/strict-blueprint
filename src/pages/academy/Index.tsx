@@ -96,6 +96,21 @@ const testimonials = [
 
 // ═══════════════════════════════════════════════════════
 const AcademyIndex = () => {
+  const [searchParams] = useSearchParams();
+  const fromApp = searchParams.get('from') === 'app';
+
+  const handleBack = () => {
+    if (fromApp) {
+      // العودة إلى التطبيق
+      window.location.href = '/app/dashboard';
+    } else {
+      // إغلاق الصفحة (الخروج)
+      window.close();
+      // إذا لم يتم الإغلاق (مثلاً لم تُفتح من تبويب جديد)، العودة للخلف
+      window.history.back();
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-gradient-to-b from-[hsl(145,96%,5%)] to-[hsl(145,60%,12%)] text-white font-[Cairo]"
