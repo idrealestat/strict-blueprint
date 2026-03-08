@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import academyHero from "@/assets/academy-hero.jpg";
+import skylineBg from "@/assets/academy-skyline-bg.jpg";
 
 /* ═══════════════════════════════════════════════════════
    أكاديمية "اكسر حاجز المبتدئ"
@@ -95,6 +96,12 @@ const testimonials = [
   },
 ];
 
+/* ─── Glass card style ─── */
+const glassCard =
+  "bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]";
+const floatingCard =
+  "bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15),0_8px_20px_-8px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_70px_-10px_rgba(0,0,0,0.2),0_12px_28px_-8px_rgba(0,0,0,0.12)] transition-all duration-300";
+
 // ═══════════════════════════════════════════════════════
 const AcademyIndex = () => {
   const [searchParams] = useSearchParams();
@@ -102,297 +109,307 @@ const AcademyIndex = () => {
 
   const handleBack = () => {
     if (fromApp) {
-      // العودة إلى التطبيق
       window.location.href = '/app/dashboard';
     } else {
-      // إغلاق الصفحة (الخروج)
       window.close();
-      // إذا لم يتم الإغلاق (مثلاً لم تُفتح من تبويب جديد)، العودة للخلف
       window.history.back();
     }
   };
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-[hsl(145,96%,5%)] to-[hsl(145,60%,12%)] text-white font-[Cairo]"
+      className="min-h-screen font-[Cairo] text-gray-800 relative"
       dir="rtl"
     >
-      {/* ──────────────────── 1. الشريط العلوي (Header) ──────────────────── */}
-      <header className="sticky top-0 z-50 bg-[hsl(145,96%,5%)]/90 backdrop-blur-md border-b border-white/10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 text-white hover:text-secondary transition"
-              title={fromApp ? "العودة للتطبيق" : "إغلاق"}
-            >
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <GraduationCap className="w-8 h-8 text-secondary" />
-            <span className="text-xl font-bold tracking-tight">
-              أكاديمية <span className="text-secondary">اكسر حاجز المبتدئ</span>
-            </span>
-          </div>
-          <div className="flex gap-3">
-            <Link to={getAcademyLogin()}>
-              <Button variant="ghost" className="text-white hover:bg-white/10">
-                تسجيل دخول
-              </Button>
-            </Link>
-            <Link to={getAcademyRegister()}>
-              <Button className="bg-secondary hover:bg-secondary/85 text-primary font-bold">
-                اشترك الآن
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* ─── Background: fixed skyline image with frosted overlay ─── */}
+      <div
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundImage: `url(${skylineBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}
+      />
+      {/* Frosted glass overlay */}
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-gray-100/85 via-gray-50/80 to-white/90 backdrop-blur-sm" />
 
-      {/* ──────────────────── 2. القسم البطولي (Hero) ──────────────────── */}
-      <section className="container mx-auto px-4 py-20 md:py-28">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="text-center md:text-right space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
-              اكسر حاجز المبتدئ..
-              <br />
-              <span className="text-secondary">وأتمم صفقتك الأولى بمهارة!</span>
-            </h1>
-            <p className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-xl">
-              برنامج تدريبي متكامل للوسطاء العقاريين، من التأسيس الأخلاقي إلى
-              الإتقان القانوني والتقني، لتبني مسيرة نجاح واثقة في سوق العقارات
-              السعودي.
-            </p>
-            <Link to={getAcademyRegister()}>
-              <Button
-                size="lg"
-                className="bg-secondary hover:bg-secondary/85 text-primary font-bold text-lg px-10 py-6 mt-4"
+      {/* ─── Content ─── */}
+      <div className="relative z-10">
+        {/* ──────────────────── 1. الشريط العلوي (Header) ──────────────────── */}
+        <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-2 text-gray-700 hover:text-wasata-green transition"
+                title={fromApp ? "العودة للتطبيق" : "إغلاق"}
               >
-                ابدأ رحلتك الآن
-              </Button>
-            </Link>
-          </div>
-          {/* TODO: استبدال الصورة بصورة رسمية للأكاديمية لاحقاً */}
-          <div className="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-            <img
-              src={academyHero}
-              alt="وسيط عقاري محترف يشرح لعميل"
-              className="w-full h-auto object-cover"
-              loading="eager"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────────── 3. نبذة عن البرنامج ──────────────────── */}
-      <section className="bg-white/5 border-y border-white/10">
-        <div className="container mx-auto px-4 py-16 max-w-4xl text-center space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            أكثر من مجرد دورات.. <span className="text-secondary">إنها وثيقة تمكين</span>
-          </h2>
-          <p className="text-gray-300 text-lg leading-relaxed">
-            هذا البرنامج هو ثمرة رحلة شخصية، جمعت شتات الخبرات بين الخط والرسم
-            والتقنية وفن التعامل، لتردم الفجوة التي يعيشها كثير من الوسطاء الجدد.
-            ليس مجرد معلومات نظرية، بل دليل عملي يدمج بين مهارات البيع والتسويق
-            وأحدث الأنظمة واللوائح الصادرة حتى مطلع عام 2026. هدفنا أن نعبر بك
-            &laquo;حاجز البداية&raquo; بأمان، ونجنبك الوقوع في المخاطر، لتمارس
-            مهنتك بذخيرة معرفية تجعلك خبيراً في عين عملائك منذ الصفقة الأولى.
-          </p>
-        </div>
-      </section>
-
-      {/* ──────────────────── 4. المزايا الحصرية ──────────────────── */}
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-          مزايا لا تقتصر على الشهادة..{" "}
-          <span className="text-secondary">ترافقك في مسيرتك</span>
-        </h2>
-        <p className="text-gray-400 text-center mb-12">
-          ما الذي ستحصل عليه بعد إتمام الدورات؟
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {benefits.map((b, i) => (
-            <div
-              key={i}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 hover:border-secondary/40 transition-all duration-300 group"
-            >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary/15 flex items-center justify-center group-hover:bg-secondary/25 transition">
-                <b.icon className="w-8 h-8 text-secondary" />
-              </div>
-              <h3 className="text-lg font-bold mb-2">{b.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{b.desc}</p>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <GraduationCap className="w-8 h-8 text-wasata-green" />
+              <span className="text-xl font-bold tracking-tight text-gray-800">
+                أكاديمية <span className="text-wasata-gold">اكسر حاجز المبتدئ</span>
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ──────────────────── 5. المقارنة الذكية ──────────────────── */}
-      <section className="bg-white/5 border-y border-white/10">
-        <div className="container mx-auto px-4 py-20">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            لماذا تبدأ رحلتك <span className="text-secondary">معنا؟</span>
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* العمود الأيمن — الدورات التقليدية */}
-            <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-8">
-              <h3 className="text-xl font-bold mb-6 text-red-400 text-center">
-                الدورات التقليدية
-              </h3>
-              <ul className="space-y-4">
-                {traditionalCons.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-400 mt-1 shrink-0" />
-                    <span className="text-gray-300">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* العمود الأيسر — أكاديمية اكسر حاجز المبتدئ */}
-            <div className="bg-emerald-950/20 border border-secondary/30 rounded-2xl p-8">
-              <h3 className="text-xl font-bold mb-6 text-secondary text-center">
-                أكاديمية اكسر حاجز المبتدئ
-              </h3>
-              <ul className="space-y-4">
-                {academyPros.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-secondary mt-1 shrink-0" />
-                    <span className="text-gray-200">{item}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="flex gap-3">
+              <Link to={getAcademyLogin()}>
+                <Button variant="ghost" className="text-gray-700 hover:bg-white/60">
+                  تسجيل دخول
+                </Button>
+              </Link>
+              <Link to={getAcademyRegister()}>
+                <Button className="bg-wasata-green hover:bg-wasata-green-dark text-white font-bold shadow-lg shadow-wasata-green/20">
+                  اشترك الآن
+                </Button>
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </header>
 
-      {/* ──────────────────── 6. محاور رحلتك التدريبية ──────────────────── */}
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-          محاور <span className="text-secondary">رحلتك التدريبية</span>
-        </h2>
-        <div className="max-w-2xl mx-auto space-y-4">
-          {curriculum.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-4 hover:border-secondary/30 transition"
-            >
-              <div className="w-11 h-11 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-                <item.icon className="w-5 h-5 text-secondary" />
-              </div>
-              <span className="text-base md:text-lg">{item.text}</span>
+        {/* ──────────────────── 2. القسم البطولي (Hero) ──────────────────── */}
+        <section className="container mx-auto px-4 py-20 md:py-28">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className={`${floatingCard} rounded-3xl p-10 text-center md:text-right space-y-6`}>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-gray-900">
+                اكسر حاجز المبتدئ..
+                <br />
+                <span className="text-wasata-green">وأتمم صفقتك الأولى بمهارة!</span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-xl">
+                برنامج تدريبي متكامل للوسطاء العقاريين، من التأسيس الأخلاقي إلى
+                الإتقان القانوني والتقني، لتبني مسيرة نجاح واثقة في سوق العقارات
+                السعودي.
+              </p>
+              <Link to={getAcademyRegister()}>
+                <Button
+                  size="lg"
+                  className="bg-wasata-green hover:bg-wasata-green-dark text-white font-bold text-lg px-10 py-6 mt-4 shadow-xl shadow-wasata-green/25"
+                >
+                  ابدأ رحلتك الآن
+                </Button>
+              </Link>
             </div>
-          ))}
-        </div>
-        <p className="text-center text-gray-400 mt-6">وتفاصيل أكثر في الدورات..</p>
-      </section>
+            <div className={`${floatingCard} rounded-3xl overflow-hidden`}>
+              <img
+                src={academyHero}
+                alt="وسيط عقاري محترف يشرح لعميل"
+                className="w-full h-auto object-cover"
+                loading="eager"
+              />
+            </div>
+          </div>
+        </section>
 
-      {/* ──────────────────── 7. قسم الفيديو التعريفي (Placeholder) ──────────────────── */}
-      {/* TODO: استبدال هذا الـ placeholder بفيديو يوتيوب أو فيديو مباشر من مصادر الأكاديمية لاحقاً */}
-      <section className="bg-white/5 border-y border-white/10">
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-12">
-            شاهد بنفسك:{" "}
-            <span className="text-secondary">
-              الفرق الذي ستصنعه هذه الدورات في مسيرتك
-            </span>
-          </h2>
-          <div className="max-w-3xl mx-auto">
-            {/* Video placeholder */}
-            <div className="aspect-video bg-black/40 border-2 border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center gap-4 cursor-default">
-              <div className="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center">
-                <Play className="w-10 h-10 text-secondary" />
-              </div>
-              <p className="text-gray-400 text-lg max-w-md px-4">
-                الفيديو التعريفي قيد الإعداد، تابعونا قريباً لتروا بأنفسكم تجارب
-                حقيقية لوسطاء غيرت مسارهم
+        {/* ──────────────────── 3. نبذة عن البرنامج ──────────────────── */}
+        <section className="py-16">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className={`${floatingCard} rounded-3xl p-10 text-center space-y-6`}>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                أكثر من مجرد دورات.. <span className="text-wasata-gold">إنها وثيقة تمكين</span>
+              </h2>
+              <p className="text-gray-600 text-lg leading-relaxed">
+                هذا البرنامج هو ثمرة رحلة شخصية، جمعت شتات الخبرات بين الخط والرسم
+                والتقنية وفن التعامل، لتردم الفجوة التي يعيشها كثير من الوسطاء الجدد.
+                ليس مجرد معلومات نظرية، بل دليل عملي يدمج بين مهارات البيع والتسويق
+                وأحدث الأنظمة واللوائح الصادرة حتى مطلع عام 2026. هدفنا أن نعبر بك
+                &laquo;حاجز البداية&raquo; بأمان، ونجنبك الوقوع في المخاطر، لتمارس
+                مهنتك بذخيرة معرفية تجعلك خبيراً في عين عملائك منذ الصفقة الأولى.
               </p>
             </div>
-            <p className="text-gray-400 mt-6 max-w-2xl mx-auto text-sm leading-relaxed">
-              سنقوم قريباً بتصوير نماذج تفاعلية وحقيقية لوسطاء ميدانيين يشرحون
-              كيف ساعدتهم هذه المبادئ في تجاوز أصعب العقبات. اشترك الآن لتصلك
-              أولوية المشاهدة.
-            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ──────────────────── 8. شهادات (Testimonials) ──────────────────── */}
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-          ماذا قالوا عن <span className="text-secondary">التجربة؟</span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {testimonials.map((t, i) => (
-            <div
-              key={i}
-              className="bg-white/5 border border-white/10 rounded-2xl p-8 relative"
-            >
-              <Quote className="w-8 h-8 text-secondary/30 absolute top-6 left-6" />
-              <p className="text-gray-300 text-lg leading-relaxed mb-6 italic">
-                &ldquo;{t.text}&rdquo;
+        {/* ──────────────────── 4. المزايا الحصرية ──────────────────── */}
+        <section className="container mx-auto px-4 py-20">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-gray-900">
+            مزايا لا تقتصر على الشهادة..{" "}
+            <span className="text-wasata-gold">ترافقك في مسيرتك</span>
+          </h2>
+          <p className="text-gray-500 text-center mb-12">
+            ما الذي ستحصل عليه بعد إتمام الدورات؟
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {benefits.map((b, i) => (
+              <div
+                key={i}
+                className={`${floatingCard} rounded-2xl p-6 text-center group hover:scale-[1.02]`}
+              >
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-wasata-green/10 flex items-center justify-center group-hover:bg-wasata-green/20 transition">
+                  <b.icon className="w-8 h-8 text-wasata-green" />
+                </div>
+                <h3 className="text-lg font-bold mb-2 text-gray-900">{b.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{b.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ──────────────────── 5. المقارنة الذكية ──────────────────── */}
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
+              لماذا تبدأ رحلتك <span className="text-wasata-green">معنا؟</span>
+            </h2>
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* العمود الأيمن — الدورات التقليدية */}
+              <div className={`${floatingCard} rounded-2xl p-8 border-red-200/50`}>
+                <h3 className="text-xl font-bold mb-6 text-red-500 text-center">
+                  الدورات التقليدية
+                </h3>
+                <ul className="space-y-4">
+                  {traditionalCons.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <XCircle className="w-5 h-5 text-red-400 mt-1 shrink-0" />
+                      <span className="text-gray-600">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {/* العمود الأيسر — أكاديمية اكسر حاجز المبتدئ */}
+              <div className={`${floatingCard} rounded-2xl p-8 border-wasata-green/30`}>
+                <h3 className="text-xl font-bold mb-6 text-wasata-green text-center">
+                  أكاديمية اكسر حاجز المبتدئ
+                </h3>
+                <ul className="space-y-4">
+                  {academyPros.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-wasata-green mt-1 shrink-0" />
+                      <span className="text-gray-700">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ──────────────────── 6. محاور رحلتك التدريبية ──────────────────── */}
+        <section className="container mx-auto px-4 py-20">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
+            محاور <span className="text-wasata-green">رحلتك التدريبية</span>
+          </h2>
+          <div className="max-w-2xl mx-auto space-y-4">
+            {curriculum.map((item, i) => (
+              <div
+                key={i}
+                className={`${floatingCard} flex items-center gap-4 rounded-xl p-4 hover:scale-[1.01]`}
+              >
+                <div className="w-11 h-11 rounded-full bg-wasata-green/15 flex items-center justify-center shrink-0">
+                  <item.icon className="w-5 h-5 text-wasata-green" />
+                </div>
+                <span className="text-base md:text-lg text-gray-800">{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-gray-500 mt-6">وتفاصيل أكثر في الدورات..</p>
+        </section>
+
+        {/* ──────────────────── 7. قسم الفيديو التعريفي ──────────────────── */}
+        <section className="py-20">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-gray-900">
+              شاهد بنفسك:{" "}
+              <span className="text-wasata-green">
+                الفرق الذي ستصنعه هذه الدورات في مسيرتك
+              </span>
+            </h2>
+            <div className="max-w-3xl mx-auto">
+              <div className={`${floatingCard} aspect-video rounded-2xl flex flex-col items-center justify-center gap-4`}>
+                <div className="w-20 h-20 rounded-full bg-wasata-green/15 flex items-center justify-center">
+                  <Play className="w-10 h-10 text-wasata-green" />
+                </div>
+                <p className="text-gray-500 text-lg max-w-md px-4">
+                  الفيديو التعريفي قيد الإعداد، تابعونا قريباً لتروا بأنفسكم تجارب
+                  حقيقية لوسطاء غيرت مسارهم
+                </p>
+              </div>
+              <p className="text-gray-500 mt-6 max-w-2xl mx-auto text-sm leading-relaxed">
+                سنقوم قريباً بتصوير نماذج تفاعلية وحقيقية لوسطاء ميدانيين يشرحون
+                كيف ساعدتهم هذه المبادئ في تجاوز أصعب العقبات. اشترك الآن لتصلك
+                أولوية المشاهدة.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ──────────────────── 8. شهادات (Testimonials) ──────────────────── */}
+        <section className="container mx-auto px-4 py-20">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">
+            ماذا قالوا عن <span className="text-wasata-gold">التجربة؟</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {testimonials.map((t, i) => (
+              <div
+                key={i}
+                className={`${floatingCard} rounded-2xl p-8 relative`}
+              >
+                <Quote className="w-8 h-8 text-wasata-gold/30 absolute top-6 left-6" />
+                <p className="text-gray-600 text-lg leading-relaxed mb-6 italic">
+                  &ldquo;{t.text}&rdquo;
+                </p>
+                <div>
+                  <p className="font-bold text-wasata-green">{t.name}</p>
+                  <p className="text-sm text-gray-500">{t.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ──────────────────── 9. الدعوة للانضمام (CTA) ──────────────────── */}
+        <section className="py-20">
+          <div className="container mx-auto px-4 text-center">
+            <div className={`${floatingCard} rounded-3xl p-12 max-w-2xl mx-auto space-y-6 bg-gradient-to-br from-white/80 to-wasata-gold/5`}>
+              <h2 className="text-3xl md:text-4xl font-bold leading-tight text-gray-900">
+                لا تبدأ رحلتك متعثراً..
+                <br />
+                <span className="text-wasata-green">اكسر الحاجز وانطلق بثقة!</span>
+              </h2>
+              <p className="text-gray-600 max-w-lg mx-auto">
+                الدورة تشمل وصولاً كاملاً لجميع محتويات البرنامج، مع تحديثات
+                مستقبلية مدى الحياة على المحتوى القانوني.
               </p>
               <div>
-                <p className="font-bold text-secondary">{t.name}</p>
-                <p className="text-sm text-gray-400">{t.role}</p>
+                <p className="text-gray-500 text-sm mb-1">باقة الدورة الكاملة</p>
+                <div className="text-5xl font-extrabold text-wasata-green">
+                  299 ريال
+                </div>
+                <p className="text-gray-500 text-sm mt-1">مرة واحدة — وصول مدى الحياة</p>
               </div>
+              <Link to={getAcademyRegister()}>
+                <Button
+                  size="lg"
+                  className="bg-wasata-green hover:bg-wasata-green-dark text-white font-bold text-xl px-12 py-7 w-full max-w-sm mt-4 shadow-xl shadow-wasata-green/25"
+                >
+                  ابدأ رحلتك الآن
+                </Button>
+              </Link>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* ──────────────────── 9. الدعوة للانضمام (CTA) ──────────────────── */}
-      <section className="bg-white/5 border-y border-white/10">
-        <div className="container mx-auto px-4 py-20 text-center">
-          <div className="bg-gradient-to-br from-secondary/20 to-secondary/5 border border-secondary/30 rounded-3xl p-12 max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold leading-tight">
-              لا تبدأ رحلتك متعثراً..
-              <br />
-              <span className="text-secondary">اكسر الحاجز وانطلق بثقة!</span>
-            </h2>
-            <p className="text-gray-300 max-w-lg mx-auto">
-              الدورة تشمل وصولاً كاملاً لجميع محتويات البرنامج، مع تحديثات
-              مستقبلية مدى الحياة على المحتوى القانوني.
+        {/* ──────────────────── 10. التذييل (Footer) ──────────────────── */}
+        <footer className="border-t border-gray-200/60 py-8 bg-white/40 backdrop-blur-lg">
+          <div className="container mx-auto px-4 text-center space-y-3">
+            <p className="text-gray-600 text-sm">
+              اكسر حاجز المبتدئ © {new Date().getFullYear()}. جميع الحقوق محفوظة.
             </p>
-            {/* TODO: تعديل السعر أو جعله مجانياً مؤقتاً حسب الحاجة */}
-            <div>
-              <p className="text-gray-400 text-sm mb-1">باقة الدورة الكاملة</p>
-              <div className="text-5xl font-extrabold text-secondary">
-                299 ريال
-              </div>
-              <p className="text-gray-400 text-sm mt-1">مرة واحدة — وصول مدى الحياة</p>
+            <div className="flex items-center justify-center gap-4 text-gray-500 text-sm">
+              <a href="#" className="hover:text-wasata-green transition">
+                سياسة الخصوصية
+              </a>
+              <span>|</span>
+              <a href="#" className="hover:text-wasata-green transition">
+                الشروط والأحكام
+              </a>
             </div>
-            <Link to={getAcademyRegister()}>
-              <Button
-                size="lg"
-                className="bg-secondary hover:bg-secondary/85 text-primary font-bold text-xl px-12 py-7 w-full max-w-sm mt-4"
-              >
-                ابدأ رحلتك الآن
-              </Button>
-            </Link>
+            <p className="text-gray-400 text-xs">
+              التسجيل في البرنامج يتطلب رقم رخصة فال.
+            </p>
           </div>
-        </div>
-      </section>
-
-      {/* ──────────────────── 10. التذييل (Footer) ──────────────────── */}
-      <footer className="border-t border-white/10 py-8">
-        <div className="container mx-auto px-4 text-center space-y-3">
-          <p className="text-gray-300 text-sm">
-            اكسر حاجز المبتدئ © {new Date().getFullYear()}. جميع الحقوق محفوظة.
-          </p>
-          <div className="flex items-center justify-center gap-4 text-gray-400 text-sm">
-            {/* TODO: ربط صفحات سياسة الخصوصية والشروط لاحقاً */}
-            <a href="#" className="hover:text-secondary transition">
-              سياسة الخصوصية
-            </a>
-            <span>|</span>
-            <a href="#" className="hover:text-secondary transition">
-              الشروط والأحكام
-            </a>
-          </div>
-          <p className="text-gray-500 text-xs">
-            التسجيل في البرنامج يتطلب رقم رخصة فال.
-          </p>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 };
