@@ -331,12 +331,41 @@ const SmartOpportunitiesPage = () => {
     fetchSmartOpportunities();
   }, [fetchSmartOpportunities]);
 
+  // جلب عدد القبولات اليوم
+  useEffect(() => {
+    const fetchTodayCount = async () => {
+      if (!user?.id) return;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const { count } = await supabase
+        .from('smart_opportunity_acceptances')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_user_id', user.id)
+        .gte('created_at', todayStart.toISOString());
+      
+      setTodayAcceptedCount(count || 0);
+    };
+    fetchTodayCount();
+  }, [user]);
+
   // إعادة تعيين المؤشر عند تغيير الفلاتر
   useEffect(() => {
     setCurrentIndex(0);
   }, [filters]);
 
+  const hasReachedDailyLimit = todayAcceptedCount >= dailyLimit;
+
   const handleAccept = async (opp: SmartOpportunity) => {
+    if (hasReachedDailyLimit) {
+      toast({
+        title: '⚠️ وصلت للحد اليومي',
+        description: `الحد اليومي ${dailyLimit} فرصة. ${academyStatus?.training_completed ? '' : 'أكمل التدريب لمضاعفة العدد!'}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const result = await acceptOpportunity({
       type: opp.type,
       owner_item_id: opp.owner_item.id,
@@ -349,9 +378,10 @@ const SmartOpportunitiesPage = () => {
     });
 
     if (result) {
+      setTodayAcceptedCount(prev => prev + 1);
       toast({
         title: '✅ تم قبول الفرصة',
-        description: 'يمكنك مشاهدة التفاصيل في صفحة العروض والطلبات',
+        description: `يمكنك مشاهدة التفاصيل في صفحة العروض والطلبات (${todayAcceptedCount + 1}/${dailyLimit})`,
       });
     }
     
