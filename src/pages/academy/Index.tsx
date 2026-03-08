@@ -138,7 +138,7 @@ const AcademyIndex = () => {
       <div className="relative z-10">
         {/* ──────────────────── 1. الشريط العلوي (Header) ──────────────────── */}
         <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row items-center sm:justify-between gap-2">
             <div className="flex items-center gap-3">
               <button
                 onClick={handleBack}
@@ -149,17 +149,18 @@ const AcademyIndex = () => {
               </button>
               <GraduationCap className="w-8 h-8 text-wasata-green" />
               <span className="text-xl font-bold tracking-tight text-gray-800">
-                أكاديمية <span className="text-wasata-gold">اكسر حاجز المبتدئ</span>
+                وساطة <span className="text-wasata-gold drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]">Wasata</span>{" "}
+                <span className="text-wasata-gold drop-shadow-[0_0_12px_rgba(212,175,55,0.8)] animate-pulse" style={{ textShadow: '0 0 10px rgba(212,175,55,0.5), 0 0 20px rgba(212,175,55,0.3)' }}>AI</span>
               </span>
             </div>
             <div className="flex gap-3">
               <Link to={getAcademyLogin()}>
-                <Button variant="ghost" className="text-gray-700 hover:bg-white/60">
+                <Button variant="ghost" size="sm" className="text-gray-700 hover:bg-white/60">
                   تسجيل دخول
                 </Button>
               </Link>
               <Link to={getAcademyRegister()}>
-                <Button className="bg-wasata-green hover:bg-wasata-green-dark text-white font-bold shadow-lg shadow-wasata-green/20">
+                <Button size="sm" className="bg-wasata-green hover:bg-wasata-green-dark text-white font-bold shadow-lg shadow-wasata-green/20">
                   اشترك الآن
                 </Button>
               </Link>
