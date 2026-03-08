@@ -188,7 +188,7 @@ const AcademyCourse = () => {
         {/* Navigation */}
         <div className="flex items-center justify-between gap-4 mb-8">
           {prevCourse ? (
-            <Link to={`/academy/course/${prevCourse.id}`}>
+            <Link to={getAcademyCoursePath(prevCourse.id)}>
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
                 <ChevronRight className="w-4 h-4" />
                 السابق
