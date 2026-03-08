@@ -247,6 +247,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   // Handle manual save - حفظ في قاعدة البيانات
   const handleManualSave = async () => {
+    if (!user?.id) return;
     try {
       const { error } = await supabase
         .from('business_cards')
