@@ -12,6 +12,16 @@ export interface AcademyUserStatus {
 export async function fetchUserStatus(userId: string): Promise<AcademyUserStatus | null> {
   if (!userId) return null;
 
+  // تم إيقاف جلب البيانات من الدالة الخارجية مؤقتاً لتجنب خطأ 500 الذي يسبب توقف التطبيق (Blank Screen)
+  // TODO: إعادة تفعيل هذا الكود بعد إصلاح الدالة get-user-status في المشروع الخارجي للأكاديمية
+  
+  return {
+    professional_badge: false,
+    daily_opportunities: 0,
+    training_completed: false
+  };
+  
+  /*
   try {
     const response = await fetch(ACADEMY_API_URL, {
       method: 'POST',
@@ -36,4 +46,5 @@ export async function fetchUserStatus(userId: string): Promise<AcademyUserStatus
     console.error('Failed to fetch user status from academy:', error);
     return null;
   }
+  */
 }
