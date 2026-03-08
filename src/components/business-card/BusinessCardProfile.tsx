@@ -100,7 +100,7 @@ interface BusinessCardData {
 }
 
 const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEditClick, user }) => {
-  const SWAP_KEY = `business_card_swap_${user.id}`;
+  const SWAP_KEY = `business_card_swap_${user?.id ?? 'unknown'}`;
   
   // تحميل حالة التبديل من localStorage (هذا مسموح لأنه حالة عرض فقط وليس بيانات)
   const [showSwappedImage, setShowSwappedImage] = useState(() => {
