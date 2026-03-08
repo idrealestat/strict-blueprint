@@ -104,7 +104,8 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
   
   // تحميل حالة التبديل من localStorage (هذا مسموح لأنه حالة عرض فقط وليس بيانات)
   const [showSwappedImage, setShowSwappedImage] = useState(() => {
-    const saved = localStorage.getItem(SWAP_KEY);
+    if (!user?.id) return false;
+    const saved = localStorage.getItem(`business_card_swap_${user.id}`);
     return saved === 'true';
   });
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -116,17 +117,17 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   // Default form data
   const defaultFormData: BusinessCardData = {
-    userName: user.name,
-    companyName: user.companyName || "",
+    userName: user?.name ?? '',
+    companyName: user?.companyName || "",
     falLicense: "1234567890",
     falExpiry: "2025-12-31",
     commercialRegistration: "1010123456",
     commercialExpiryDate: "2025-06-30",
-    primaryPhone: user.phone,
-    email: user.email,
+    primaryPhone: user?.phone ?? '',
+    email: user?.email ?? '',
     domain: "https://wasata.ai/broker/ahmed",
     googleMapsLocation: "https://maps.google.com/?q=24.7136,46.6753",
-    location: user.city,
+    location: user?.city ?? '',
     officialPlatform: "wasata.ai",
     bio: "وسيط عقاري معتمد من الهيئة العامة للعقار، متخصص في العقارات السكنية والتجارية في منطقة الرياض. أسعى دائماً لتقديم أفضل الخدمات العقارية لعملائي الكرام مع الالتزام بالشفافية والمصداقية.",
     socialMedia: {
@@ -165,6 +166,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   // Load data from database - مصدر الحقيقة الوحيد
   const loadData = React.useCallback(async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
       console.log('[BusinessCardProfile] Loading data from DB for user:', user.id);
@@ -200,7 +202,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
     } finally {
       setIsLoading(false);
     }
-  }, [user.id]);
+  }, [user?.id]);
 
   useEffect(() => {
     // Load immediately on mount
@@ -245,6 +247,7 @@ const BusinessCardProfile: React.FC<BusinessCardProfileProps> = ({ onBack, onEdi
 
   // Handle manual save - حفظ في قاعدة البيانات
   const handleManualSave = async () => {
+    if (!user?.id) return;
     try {
       const { error } = await supabase
         .from('business_cards')
@@ -308,7 +311,7 @@ END:VCARD`;
       try {
         // جلب المستخدم الحقيقي من auth
         const { data: { user: authUser } } = await supabase.auth.getUser();
-        const actualUserId = authUser?.id || user.id;
+        const actualUserId = authUser?.id || user?.id;
         
         console.log('[BusinessCardProfile] Fetching slug for user:', actualUserId);
         
@@ -334,7 +337,7 @@ END:VCARD`;
     return () => {
       cancelled = true;
     };
-  }, [user.id]);
+  }, [user?.id]);
 
   // Get slug (الأولوية للـ slug من DB)
   const getSlug = () => {
@@ -374,6 +377,10 @@ END:VCARD`;
     friday: "الجمعة",
     saturday: "السبت"
   };
+
+  if (!user) {
+    return <div className="flex items-center justify-center p-8 text-muted-foreground">جاري تحميل بيانات المستخدم...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32" dir="rtl">
