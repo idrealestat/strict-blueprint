@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { getAcademyLogin, getAcademyRegister } from "@/utils/academyPaths";
 import { ArrowRight } from "lucide-react";
 import {
   Shield,
