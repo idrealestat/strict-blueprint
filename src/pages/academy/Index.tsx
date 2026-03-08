@@ -139,7 +139,7 @@ const AcademyIndex = () => {
                 تسجيل دخول
               </Button>
             </Link>
-            <Link to="/academy/register">
+            <Link to={getAcademyRegister()}>
               <Button className="bg-secondary hover:bg-secondary/85 text-primary font-bold">
                 اشترك الآن
               </Button>
