@@ -360,7 +360,7 @@ const AcademyIndex = () => {
               </div>
               <p className="text-gray-400 text-sm mt-1">مرة واحدة — وصول مدى الحياة</p>
             </div>
-            <Link to="/academy/register">
+            <Link to={getAcademyRegister()}>
               <Button
                 size="lg"
                 className="bg-secondary hover:bg-secondary/85 text-primary font-bold text-xl px-12 py-7 w-full max-w-sm mt-4"
