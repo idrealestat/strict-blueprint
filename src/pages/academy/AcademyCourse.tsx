@@ -105,7 +105,7 @@ const AcademyCourse = () => {
         toast.success("تم إتمام الدورة بنجاح!");
       }
 
-      navigate("/academy/dashboard");
+      navigate(getAcademyDashboard());
     } catch (err) {
       console.error("Complete error:", err);
       toast.error("حدث خطأ، يرجى المحاولة مرة أخرى");
