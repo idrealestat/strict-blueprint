@@ -96,8 +96,8 @@ export default function LandingPage() {
           <h1 className="max-w-3xl text-2xl font-bold leading-relaxed text-primary-foreground sm:text-3xl lg:text-4xl">
             منصتك الذكية التي تجعل عملك العقاري أسرع، أوضح، وأكثر تأثيراً.
           </h1>
-          <p className="max-w-2xl text-lg text-primary-foreground/90">
-            من إدارة العملاء إلى الفرص الذكية وبطاقات الأعمال الرسمية والرقمية — كل ما تحتاجه في منصة واحدة مصممة لتفوز بثقة عميلك.
+          <p className="max-w-2xl text-lg leading-relaxed text-primary-foreground/90">
+            نعلم تمامًا ما تحتاجه كوسيط عقاري — لذلك صمّمنا لك أدوات تخدم عملك اليومي فعلاً، تبني ثقة عميلك من أول تواصل، وتختصر وقتك لتركّز على ما يهم: إتمام الصفقات وتحقيق النتائج.
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">
