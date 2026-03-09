@@ -534,8 +534,8 @@ const App = () => {
                 <Sonner />
                 <BrowserRouter>
                   <Routes>
-                    {/* Root - صفحة تسجيل الدخول */}
-                    <Route path="/" element={<AuthPage />} />
+                    {/* Root - صفحة البداية التعريفية */}
+                    <Route path="/" element={<LandingPage />} />
                     {/* Auth routes */}
                     <Route path="/app/login" element={<AuthPage />} />
                     <Route path="/app/register" element={<AuthPage />} />
