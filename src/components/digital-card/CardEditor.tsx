@@ -16,6 +16,7 @@ import {
   Sparkles, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Template {
   id: string;
@@ -91,15 +92,15 @@ interface CardEditorProps {
 
 export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorProps) {
   const [cardData, setCardData] = useState<CardData>({
-    fullName: initialData?.fullName || 'أحمد محمد',
-    jobTitle: initialData?.jobTitle || 'وسيط عقاري معتمد',
-    company: initialData?.company || 'نوفا العقارية',
-    bio: initialData?.bio || 'وسيط عقاري معتمد من الهيئة العامة للعقار، متخصص في العقارات السكنية والتجارية.',
-    phone: initialData?.phone || '+966501234567',
-    whatsapp: initialData?.whatsapp || '+966501234567',
-    email: initialData?.email || 'ahmed@nova.com',
-    website: initialData?.website || 'nova.com',
-    city: initialData?.city || 'الرياض',
+    fullName: initialData?.fullName || '',
+    jobTitle: initialData?.jobTitle || '',
+    company: initialData?.company || '',
+    bio: initialData?.bio || '',
+    phone: initialData?.phone || '',
+    whatsapp: initialData?.whatsapp || '',
+    email: initialData?.email || '',
+    website: initialData?.website || '',
+    city: initialData?.city || '',
     country: initialData?.country || 'السعودية',
     linkedin: initialData?.linkedin || '',
     instagram: initialData?.instagram || '',
@@ -114,6 +115,62 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+
+  // جلب بيانات بطاقة الأعمال الحقيقية إذا لم يتم تمرير initialData
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) return;
+
+    const loadFromBusinessCard = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('data')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone, company_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (businessCard?.data) {
+          const bc = businessCard.data as Record<string, any>;
+          setCardData(prev => ({
+            ...prev,
+            fullName: bc.userName || profile?.full_name || prev.fullName,
+            jobTitle: bc.userTitle || prev.jobTitle || 'وسيط عقاري معتمد',
+            company: bc.companyName || profile?.company_name || prev.company,
+            bio: bc.bio || prev.bio,
+            phone: bc.primaryPhone || profile?.phone || prev.phone,
+            whatsapp: bc.whatsappPhone || bc.primaryPhone || profile?.phone || prev.whatsapp,
+            email: bc.email || user.email || prev.email,
+            website: bc.websiteUrl || prev.website,
+            city: bc.location || prev.city,
+            linkedin: bc.socialMedia?.linkedin || prev.linkedin,
+            instagram: bc.socialMedia?.instagram || prev.instagram,
+            twitter: bc.socialMedia?.twitter || prev.twitter,
+            profilePhoto: bc.profileImage || prev.profilePhoto,
+            coverPhoto: bc.coverImage || prev.coverPhoto,
+          }));
+        } else if (profile) {
+          setCardData(prev => ({
+            ...prev,
+            fullName: profile.full_name || prev.fullName,
+            company: profile.company_name || prev.company,
+            phone: profile.phone || prev.phone,
+          }));
+        }
+      } catch (err) {
+        console.error('[CardEditor] Error loading business card:', err);
+      }
+    };
+
+    loadFromBusinessCard();
+  }, []);
 
   const updateField = (field: keyof CardData, value: string | null) => {
     setCardData(prev => ({ ...prev, [field]: value }));
