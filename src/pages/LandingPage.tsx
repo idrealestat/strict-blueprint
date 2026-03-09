@@ -93,7 +93,7 @@ export default function LandingPage() {
           <p className="w-fit rounded-full border border-secondary/60 bg-background/10 px-4 py-1 text-sm text-primary-foreground backdrop-blur">
             بكل فخر واعتزاز للوسيط العقاري السعودي
           </p>
-          <h1 className="max-w-3xl text-4xl font-bold leading-tight text-primary-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="max-w-3xl text-2xl font-bold leading-relaxed text-primary-foreground sm:text-3xl lg:text-4xl">
             منصتك الذكية التي تجعل عملك العقاري أسرع، أوضح، وأكثر تأثيراً.
           </h1>
           <p className="max-w-2xl text-lg text-primary-foreground/90">
