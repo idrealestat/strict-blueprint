@@ -89,30 +89,34 @@ export default function LandingPage() {
         />
         <div className="absolute inset-0 bg-[linear-gradient(120deg,hsl(var(--primary)/0.88),hsl(var(--primary)/0.62),hsl(var(--secondary)/0.26))]" />
 
-        <div className="relative mx-auto flex min-h-[85vh] max-w-7xl flex-col justify-start gap-4 px-6 pt-8 lg:px-10 lg:pt-10">
-          <p className="w-fit rounded-full border border-secondary/60 bg-background/10 px-4 py-1 text-sm text-primary-foreground backdrop-blur">
-            بكل فخر واعتزاز للوسيط العقاري السعودي
-          </p>
-          <h1 className="max-w-3xl text-2xl font-bold leading-relaxed text-primary-foreground sm:text-3xl lg:text-4xl">
-            منصتك الذكية التي تجعل عملك العقاري أسرع، أوضح، وأكثر تأثيراً.
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-primary-foreground/90">
-            نعلم تمامًا ما تحتاجه كوسيط عقاري — لذلك صمّمنا لك أدوات تخدم عملك اليومي فعليًا، تبني ثقة عميلك من أول تواصل، وتختصر وقتك لتركّز على ما يهم: إتمام الصفقات وتحقيق النتائج.
-          </p>
+        <div className="relative mx-auto flex min-h-[85vh] max-w-7xl flex-col justify-between px-6 pt-8 pb-12 lg:px-10 lg:pt-10 lg:pb-16">
+          <div className="flex flex-col gap-4">
+            <p className="w-fit rounded-full border border-secondary/60 bg-background/10 px-4 py-1 text-sm text-primary-foreground backdrop-blur">
+              بكل فخر واعتزاز للوسيط العقاري السعودي
+            </p>
+            <h1 className="max-w-3xl text-2xl font-bold leading-relaxed text-primary-foreground sm:text-3xl lg:text-4xl">
+              منصتك الذكية التي تجعل عملك العقاري أسرع، أوضح، وأكثر تأثيراً.
+            </h1>
+          </div>
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link
-              to="/app/register"
-              className="rounded-lg bg-secondary px-6 py-3 text-base font-bold text-secondary-foreground transition hover:opacity-90"
-            >
-              ابدأ الآن
-            </Link>
-            <Link
-              to="/app/login"
-              className="rounded-lg border border-primary-foreground/50 bg-background/10 px-6 py-3 text-base font-bold text-primary-foreground backdrop-blur transition hover:bg-background/20"
-            >
-              تسجيل الدخول
-            </Link>
+          <div className="flex flex-col gap-4">
+            <p className="max-w-2xl text-lg leading-relaxed text-primary-foreground/90">
+              نعلم تمامًا ما تحتاجه كوسيط عقاري — لذلك صمّمنا لك أدوات تخدم عملك اليومي فعليًا، تبني ثقة عميلك من أول تواصل، وتختصر وقتك لتركّز على ما يهم: إتمام الصفقات وتحقيق النتائج.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Link
+                to="/app/register"
+                className="rounded-lg bg-secondary px-6 py-3 text-base font-bold text-secondary-foreground transition hover:opacity-90"
+              >
+                ابدأ الآن
+              </Link>
+              <Link
+                to="/app/login"
+                className="rounded-lg border border-primary-foreground/50 bg-background/10 px-6 py-3 text-base font-bold text-primary-foreground backdrop-blur transition hover:bg-background/20"
+              >
+                تسجيل الدخول
+              </Link>
+            </div>
           </div>
         </div>
       </header>
