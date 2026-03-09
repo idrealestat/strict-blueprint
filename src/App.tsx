@@ -31,6 +31,7 @@ import RentedPropertiesReport from "./components/reports/RentedPropertiesReport"
 import SpecialRequestsPage from "./pages/SpecialRequestsPage";
 import OfficialBusinessCardPage from "./pages/OfficialBusinessCardPage";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
 import PushNotificationPrompt from "./components/notifications/PushNotificationPrompt";
