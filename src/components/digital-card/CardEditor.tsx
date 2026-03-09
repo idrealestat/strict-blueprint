@@ -116,6 +116,62 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
+  // جلب بيانات بطاقة الأعمال الحقيقية إذا لم يتم تمرير initialData
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) return;
+
+    const loadFromBusinessCard = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('data')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone, company_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (businessCard?.data) {
+          const bc = businessCard.data as Record<string, any>;
+          setCardData(prev => ({
+            ...prev,
+            fullName: bc.userName || profile?.full_name || prev.fullName,
+            jobTitle: bc.userTitle || prev.jobTitle || 'وسيط عقاري معتمد',
+            company: bc.companyName || profile?.company_name || prev.company,
+            bio: bc.bio || prev.bio,
+            phone: bc.primaryPhone || profile?.phone || prev.phone,
+            whatsapp: bc.whatsappPhone || bc.primaryPhone || profile?.phone || prev.whatsapp,
+            email: bc.email || user.email || prev.email,
+            website: bc.websiteUrl || prev.website,
+            city: bc.location || prev.city,
+            linkedin: bc.socialMedia?.linkedin || prev.linkedin,
+            instagram: bc.socialMedia?.instagram || prev.instagram,
+            twitter: bc.socialMedia?.twitter || prev.twitter,
+            profilePhoto: bc.profileImage || prev.profilePhoto,
+            coverPhoto: bc.coverImage || prev.coverPhoto,
+          }));
+        } else if (profile) {
+          setCardData(prev => ({
+            ...prev,
+            fullName: profile.full_name || prev.fullName,
+            company: profile.company_name || prev.company,
+            phone: profile.phone || prev.phone,
+          }));
+        }
+      } catch (err) {
+        console.error('[CardEditor] Error loading business card:', err);
+      }
+    };
+
+    loadFromBusinessCard();
+  }, []);
+
   const updateField = (field: keyof CardData, value: string | null) => {
     setCardData(prev => ({ ...prev, [field]: value }));
   };
