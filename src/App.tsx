@@ -31,6 +31,7 @@ import RentedPropertiesReport from "./components/reports/RentedPropertiesReport"
 import SpecialRequestsPage from "./pages/SpecialRequestsPage";
 import OfficialBusinessCardPage from "./pages/OfficialBusinessCardPage";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 import { DashboardProvider } from "./context/DashboardContext";
 import { AIFloatingButton } from "./components/ai-assistant";
 import PushNotificationPrompt from "./components/notifications/PushNotificationPrompt";
@@ -533,8 +534,8 @@ const App = () => {
                 <Sonner />
                 <BrowserRouter>
                   <Routes>
-                    {/* Root - صفحة تسجيل الدخول */}
-                    <Route path="/" element={<AuthPage />} />
+                    {/* Root - صفحة البداية التعريفية */}
+                    <Route path="/" element={<LandingPage />} />
                     {/* Auth routes */}
                     <Route path="/app/login" element={<AuthPage />} />
                     <Route path="/app/register" element={<AuthPage />} />
