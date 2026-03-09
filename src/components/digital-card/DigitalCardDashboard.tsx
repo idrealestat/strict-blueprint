@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, Plus, QrCode, Eye, Share2, TrendingUp, Users, MousePointer, RefreshCw, BarChart3, Palette } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,81 +9,18 @@ import { CreateCardDialog } from './CreateCardDialog';
 import { CardStatsOverview } from './CardStatsOverview';
 import { CardDesigner } from './CardDesigner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock data for cards
-const mockCards = [
-  {
-    id: '1',
-    slug: 'ahmed-broker',
-    fullName: 'أحمد محمد',
-    jobTitle: 'وسيط عقاري معتمد',
-    company: 'نوفا العقارية',
-    email: 'ahmed@nova.com',
-    phone: '+966501234567',
-    whatsapp: '+966501234567',
-    bio: 'وسيط عقاري معتمد من الهيئة العامة للعقار، متخصص في العقارات السكنية والتجارية.',
-    website: 'https://nova.com',
-    city: 'الرياض',
-    country: 'Saudi Arabia',
-    linkedin: 'https://linkedin.com/in/ahmed',
-    instagram: 'https://instagram.com/ahmed',
-    twitter: 'https://twitter.com/ahmed',
-    profilePhoto: null,
-    coverPhoto: null,
-    primaryColor: '#01411C',
-    secondaryColor: '#D4AF37',
-    template: 'modern',
-    layout: 'standard',
-    totalViews: 1250,
-    totalScans: 89,
-    totalClicks: 456,
-    totalSaves: 34,
-    isActive: true,
-    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wasata.ai/cards/ahmed-broker',
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    slug: 'mohammed-realestate',
-    fullName: 'محمد علي',
-    jobTitle: 'مستشار عقاري',
-    company: 'العقارات الذهبية',
-    email: 'mohammed@golden.com',
-    phone: '+966502345678',
-    whatsapp: '+966502345678',
-    bio: 'مستشار عقاري متخصص في التسويق العقاري.',
-    website: 'https://golden.com',
-    city: 'جدة',
-    country: 'Saudi Arabia',
-    linkedin: null,
-    instagram: 'https://instagram.com/mohammed',
-    twitter: null,
-    profilePhoto: null,
-    coverPhoto: null,
-    primaryColor: '#1a1a1a',
-    secondaryColor: '#DAA520',
-    template: 'luxury',
-    layout: 'creative',
-    totalViews: 890,
-    totalScans: 45,
-    totalClicks: 234,
-    totalSaves: 21,
-    isActive: true,
-    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wasata.ai/cards/mohammed-realestate',
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-// Mock stats
+// Mock stats (يمكن استبدالها لاحقاً ببيانات حقيقية)
 const mockStats = {
-  totalCards: 2,
-  totalViews: 2140,
-  totalScans: 134,
-  totalClicks: 690,
-  totalSaves: 55,
-  viewsChange: 15.5,
-  scansChange: 22.3,
-  clicksChange: 8.7,
+  totalCards: 1,
+  totalViews: 0,
+  totalScans: 0,
+  totalClicks: 0,
+  totalSaves: 0,
+  viewsChange: 0,
+  scansChange: 0,
+  clicksChange: 0,
 };
 
 interface DigitalCardDashboardProps {
@@ -91,16 +28,92 @@ interface DigitalCardDashboardProps {
 }
 
 export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
-  const [cards, setCards] = useState(mockCards);
+  const [cards, setCards] = useState<any[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // جلب بيانات البطاقة الحقيقية من business_cards
+  const loadRealCardData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: businessCard, error } = await supabase
+        .from('business_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[DigitalCardDashboard] Error loading card:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, phone, company_name, fal_license_number')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (businessCard?.data) {
+        const cardData = businessCard.data as Record<string, any>;
+        
+        const realCard = {
+          id: businessCard.id,
+          slug: businessCard.slug || 'my-card',
+          fullName: cardData.userName || profile?.full_name || '',
+          jobTitle: cardData.userTitle || 'وسيط عقاري معتمد',
+          company: cardData.companyName || profile?.company_name || '',
+          email: businessCard.email || cardData.email || user.email || '',
+          phone: cardData.primaryPhone || profile?.phone || '',
+          whatsapp: cardData.whatsappPhone || cardData.primaryPhone || profile?.phone || '',
+          bio: cardData.bio || '',
+          website: cardData.websiteUrl || '',
+          city: cardData.location || '',
+          country: 'السعودية',
+          linkedin: cardData.socialMedia?.linkedin || null,
+          instagram: cardData.socialMedia?.instagram || null,
+          twitter: cardData.socialMedia?.twitter || null,
+          profilePhoto: cardData.profileImage || null,
+          coverPhoto: cardData.coverImage || null,
+          primaryColor: '#01411C',
+          secondaryColor: '#D4AF37',
+          template: 'modern',
+          layout: 'standard',
+          totalViews: 0,
+          totalScans: 0,
+          totalClicks: 0,
+          totalSaves: 0,
+          isActive: businessCard.published || false,
+          qrCode: businessCard.slug
+            ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wasataai.com/${businessCard.slug}/card`
+            : '',
+          createdAt: businessCard.created_at,
+        };
+        setCards([realCard]);
+      } else {
+        setCards([]);
+      }
+    } catch (err) {
+      console.error('[DigitalCardDashboard] Unexpected error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRealCardData();
+  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 1000);
+    await loadRealCardData();
+    setIsRefreshing(false);
   };
 
   const handleCreateCard = (data: any) => {
@@ -116,7 +129,7 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
       bio: data.bio || '',
       website: '',
       city: 'الرياض',
-      country: 'Saudi Arabia',
+      country: 'السعودية',
       linkedin: null,
       instagram: null,
       twitter: null,
@@ -131,7 +144,7 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
       totalClicks: 0,
       totalSaves: 0,
       isActive: true,
-      qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wasata.ai/cards/${data.slug}`,
+      qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wasataai.com/cards/${data.slug}`,
       createdAt: new Date().toISOString(),
     };
     setCards([newCard, ...cards]);
@@ -214,12 +227,18 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
           </TabsList>
 
           <TabsContent value="cards" className="mt-6">
-            <CardsGrid 
-              cards={cards} 
-              onDelete={handleDeleteCard}
-              onToggleActive={handleToggleActive}
-              onEdit={(card) => console.log('Edit card:', card)}
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <CardsGrid 
+                cards={cards} 
+                onDelete={handleDeleteCard}
+                onToggleActive={handleToggleActive}
+                onEdit={(card) => console.log('Edit card:', card)}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="designer" className="mt-6">
@@ -239,7 +258,6 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
                     <Eye className="h-4 w-4 text-green-600" />
                   </div>
                   <p className="text-3xl font-bold text-green-800">{mockStats.totalViews.toLocaleString('ar-SA')}</p>
-                  <p className="text-xs text-green-500 mt-1">+{mockStats.viewsChange}% هذا الشهر</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between mb-2">
@@ -247,7 +265,6 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
                     <QrCode className="h-4 w-4 text-blue-600" />
                   </div>
                   <p className="text-3xl font-bold text-blue-800">{mockStats.totalScans.toLocaleString('ar-SA')}</p>
-                  <p className="text-xs text-blue-500 mt-1">+{mockStats.scansChange}% هذا الشهر</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
                   <div className="flex items-center justify-between mb-2">
@@ -255,7 +272,6 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
                     <MousePointer className="h-4 w-4 text-purple-600" />
                   </div>
                   <p className="text-3xl font-bold text-purple-800">{mockStats.totalClicks.toLocaleString('ar-SA')}</p>
-                  <p className="text-xs text-purple-500 mt-1">+{mockStats.clicksChange}% هذا الشهر</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg border border-amber-200">
                   <div className="flex items-center justify-between mb-2">
@@ -263,7 +279,6 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
                     <Users className="h-4 w-4 text-amber-600" />
                   </div>
                   <p className="text-3xl font-bold text-amber-800">{mockStats.totalSaves.toLocaleString('ar-SA')}</p>
-                  <p className="text-xs text-amber-500 mt-1">نسبة التحويل: {((mockStats.totalSaves / mockStats.totalViews) * 100).toFixed(1)}%</p>
                 </div>
               </div>
             </Card>
