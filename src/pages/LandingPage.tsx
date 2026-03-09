@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Building2, Bot, BriefcaseBusiness, CreditCard, LayoutGrid, Sparkles, Star, Users, Workflow } from "lucide-react";
-import heroBroker from "@/assets/landing-broker-saudi.jpg";
+import heroBroker from "@/assets/hero-broker.png";
 import brokerFemale from "@/assets/landing-broker-female.jpg";
 import teamSuccess from "@/assets/landing-team-success.jpg";
 
