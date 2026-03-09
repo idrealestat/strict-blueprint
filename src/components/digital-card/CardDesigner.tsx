@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Palette, Phone, Mail, Globe, MessageCircle, Download, Share2, Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Template {
   id: string;
@@ -56,14 +57,58 @@ export function CardDesigner() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
   const [primaryColor, setPrimaryColor] = useState('#01411C');
   const [secondaryColor, setSecondaryColor] = useState('#D4AF37');
-  const [previewData] = useState({
-    fullName: 'أحمد محمد',
-    jobTitle: 'وسيط عقاري معتمد',
-    company: 'نوفا العقارية',
-    phone: '+966501234567',
-    email: 'ahmed@nova.com',
-    website: 'nova.com',
+  const [previewData, setPreviewData] = useState({
+    fullName: '',
+    jobTitle: '',
+    company: '',
+    phone: '',
+    email: '',
+    website: '',
   });
+
+  // جلب بيانات الوسيط الحقيقية
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: businessCard } = await supabase
+          .from('business_cards')
+          .select('data')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone, company_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (businessCard?.data) {
+          const bc = businessCard.data as Record<string, any>;
+          setPreviewData({
+            fullName: bc.userName || profile?.full_name || '',
+            jobTitle: bc.userTitle || 'وسيط عقاري معتمد',
+            company: bc.companyName || profile?.company_name || '',
+            phone: bc.primaryPhone || profile?.phone || '',
+            email: bc.email || user.email || '',
+            website: bc.websiteUrl || '',
+          });
+        } else if (profile) {
+          setPreviewData(prev => ({
+            ...prev,
+            fullName: profile.full_name || '',
+            company: profile.company_name || '',
+            phone: profile.phone || '',
+          }));
+        }
+      } catch (err) {
+        console.error('[CardDesigner] Error loading data:', err);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleTemplateSelect = (template: Template) => {
     setSelectedTemplate(template.id);
