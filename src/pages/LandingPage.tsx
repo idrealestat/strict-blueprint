@@ -89,7 +89,7 @@ export default function LandingPage() {
         />
         <div className="absolute inset-0 bg-[linear-gradient(120deg,hsl(var(--primary)/0.88),hsl(var(--primary)/0.62),hsl(var(--secondary)/0.26))]" />
 
-        <div className="relative mx-auto flex min-h-[85vh] max-w-7xl flex-col justify-start gap-6 px-6 pt-32 pb-16 lg:px-10 lg:pt-28">
+        <div className="relative mx-auto flex min-h-[85vh] max-w-7xl flex-col justify-end gap-4 px-6 pb-12 lg:px-10 lg:pb-16">
           <p className="w-fit rounded-full border border-secondary/60 bg-background/10 px-4 py-1 text-sm text-primary-foreground backdrop-blur">
             بكل فخر واعتزاز للوسيط العقاري السعودي
           </p>
