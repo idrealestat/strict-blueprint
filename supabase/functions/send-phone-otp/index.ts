@@ -191,64 +191,39 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ===== وضع الإنتاج: استخدم Twilio =====
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-      return new Response(
-        JSON.stringify({ error: "إعدادات Twilio غير مكتملة" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+    // ===== وضع الإنتاج: استخدم WasenderAPI =====
+    const WASENDER_API_KEY = "6f952f1dd7d280eaa0427255cc856f4e7e24b0a8ed18f35ec48970a246ea2230";
     const message = `رمز تفعيل وساطة: ${otp}\nصالح لمدة 10 دقائق`;
 
-    const twilioResponse = await fetch(twilioUrl, {
+    const wasenderResponse = await fetch("https://wasenderapi.com/api/send-message", {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
+        "Authorization": `Bearer ${WASENDER_API_KEY}`,
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams({
-        To: formattedPhone,
-        From: TWILIO_PHONE_NUMBER,
-        Body: message,
+      body: JSON.stringify({
+        to: formattedPhone,
+        text: message,
       }),
     });
 
-    const twilioResult = await twilioResponse.json();
+    const wasenderResult = await wasenderResponse.json();
 
-    if (!twilioResponse.ok) {
-      const twilioCode = twilioResult?.code;
-      const twilioMessage = twilioResult?.message || twilioResult?.error_message || "Twilio error";
-
-      console.error("TWILIO_ERROR", { code: twilioCode, message: twilioMessage, raw: twilioResult });
-
-      // لا نُسقط واجهة المستخدم بـ 500: نُرجع 200 مع success=false ليتم التعامل معها في الواجهة.
-      // Twilio Trial: 21608 = رقم غير مُوثّق
-      if (twilioCode === 21608) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error_code: "TWILIO_UNVERIFIED",
-            error: "تعذر إرسال رمز التفعيل عبر SMS لأن الرقم غير مُوثّق لدى مزود الرسائل (حساب تجريبي).",
-            details: twilioMessage,
-          }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
+    if (!wasenderResponse.ok) {
+      console.error("WASENDER_ERROR", { status: wasenderResponse.status, result: wasenderResult });
 
       return new Response(
         JSON.stringify({
           success: false,
-          error_code: "TWILIO_ERROR",
-          error: "خطأ في إرسال الرسالة النصية. حاول لاحقاً أو فعّل حساب الرسائل.",
-          details: twilioMessage,
+          error_code: "WASENDER_ERROR",
+          error: "خطأ في إرسال الرسالة. حاول لاحقاً.",
+          details: wasenderResult?.message || JSON.stringify(wasenderResult),
         }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log("SMS_SENT", { sid: twilioResult.sid });
+    console.log("SMS_SENT_WASENDER", { result: wasenderResult });
     return new Response(
       JSON.stringify({ success: true, message: "تم إرسال رمز التحقق بنجاح" }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
