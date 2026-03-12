@@ -35,6 +35,7 @@ import { triggerOfferNotification, createNotification } from '@/utils/notificati
 import { markAsNew } from '@/hooks/usePublishedAdsManager';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import PhoneVerificationField from '@/components/PhoneVerificationField';
 
 // Fix Leaflet marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
