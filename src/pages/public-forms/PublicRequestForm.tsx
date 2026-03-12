@@ -168,6 +168,7 @@ export default function PublicRequestForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [broker, setBroker] = useState<BrokerInfo | null>(null);
   const [isLoadingBroker, setIsLoadingBroker] = useState(true);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
 
   // تحميل بيانات الوسيط من قاعدة البيانات
