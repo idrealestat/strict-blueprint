@@ -902,13 +902,12 @@ export default function PublicOfferForm() {
               />
             </div>
             <div>
-              <Label className="text-green-800">رقم الجوال *</Label>
-              <Input
-                value={formData.ownerPhone}
-                onChange={(e) => updateField('ownerPhone', e.target.value)}
-                placeholder="05xxxxxxxx"
-                dir="ltr"
-                className="border-green-200 focus:border-green-400"
+              <PhoneVerificationField
+                phone={formData.ownerPhone}
+                onPhoneChange={(val) => updateField('ownerPhone', val)}
+                onVerified={setPhoneVerified}
+                label="رقم الجوال *"
+                inputClassName="border-green-200 focus:border-green-400"
               />
             </div>
             <div>
