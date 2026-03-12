@@ -207,6 +207,7 @@ export default function PublicOfferForm() {
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [broker, setBroker] = useState<BrokerInfo | null>(null);
   const [isLoadingBroker, setIsLoadingBroker] = useState(true);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   
   // Map states
   const mapContainer = useRef<HTMLDivElement>(null);
