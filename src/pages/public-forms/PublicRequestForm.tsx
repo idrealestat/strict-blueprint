@@ -785,13 +785,12 @@ export default function PublicRequestForm() {
               />
             </div>
             <div>
-              <Label>رقم الجوال *</Label>
-              <Input
-                value={formData.clientPhone}
-                onChange={(e) => updateField('clientPhone', e.target.value)}
-                placeholder="05xxxxxxxx"
-                dir="ltr"
-                className="bg-white"
+              <PhoneVerificationField
+                phone={formData.clientPhone}
+                onPhoneChange={(val) => updateField('clientPhone', val)}
+                onVerified={setPhoneVerified}
+                label="رقم الجوال *"
+                inputClassName="bg-white"
               />
             </div>
             <div>
