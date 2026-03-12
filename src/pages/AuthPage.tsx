@@ -679,6 +679,13 @@ export default function AuthPage() {
               </div>
               {errors.birthDate && <p className="text-sm text-destructive">{errors.birthDate}</p>}
             </div>
+
+            <PhoneVerificationField
+              phone={data.phone}
+              onPhoneChange={(val) => updateData('phone', val)}
+              onVerified={setPhoneVerified}
+              label="رقم الجوال *"
+            />
           </motion.div>
         );
         
