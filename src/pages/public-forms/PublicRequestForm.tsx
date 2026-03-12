@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import PhoneVerificationField from '@/components/PhoneVerificationField';
 
 // Fix Leaflet default marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -167,6 +168,7 @@ export default function PublicRequestForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [broker, setBroker] = useState<BrokerInfo | null>(null);
   const [isLoadingBroker, setIsLoadingBroker] = useState(true);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
 
   // تحميل بيانات الوسيط من قاعدة البيانات
@@ -783,13 +785,12 @@ export default function PublicRequestForm() {
               />
             </div>
             <div>
-              <Label>رقم الجوال *</Label>
-              <Input
-                value={formData.clientPhone}
-                onChange={(e) => updateField('clientPhone', e.target.value)}
-                placeholder="05xxxxxxxx"
-                dir="ltr"
-                className="bg-white"
+              <PhoneVerificationField
+                phone={formData.clientPhone}
+                onPhoneChange={(val) => updateField('clientPhone', val)}
+                onVerified={setPhoneVerified}
+                label="رقم الجوال *"
+                inputClassName="bg-white"
               />
             </div>
             <div>

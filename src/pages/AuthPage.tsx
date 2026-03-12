@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import LocationPickerMap from '@/components/auth/LocationPickerMap';
+import PhoneVerificationField from '@/components/PhoneVerificationField';
 
 const emailSchema = z.string().email('البريد الإلكتروني غير صالح');
 const passwordSchema = z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
@@ -78,6 +79,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
   const REMEMBER_ME_KEY = 'wasata_saved_credentials';
@@ -677,6 +679,13 @@ export default function AuthPage() {
               </div>
               {errors.birthDate && <p className="text-sm text-destructive">{errors.birthDate}</p>}
             </div>
+
+            <PhoneVerificationField
+              phone={data.phone}
+              onPhoneChange={(val) => updateData('phone', val)}
+              onVerified={setPhoneVerified}
+              label="رقم الجوال *"
+            />
           </motion.div>
         );
         
