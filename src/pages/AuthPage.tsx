@@ -79,6 +79,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
   const REMEMBER_ME_KEY = 'wasata_saved_credentials';
