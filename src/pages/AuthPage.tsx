@@ -1108,95 +1108,193 @@ export default function AuthPage() {
                     )}
                   </form>
                 ) : (
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    {/* حقل البريد الإلكتروني */}
-                    <div className="space-y-2">
-                      <Label>البريد الإلكتروني</Label>
-                      <div className="relative">
-                        <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="email"
-                          placeholder="example@email.com"
-                          value={data.email}
-                          onChange={(e) => updateData('email', e.target.value)}
-                          className="pr-10"
-                          dir="ltr"
-                          disabled={isLoading}
-                        />
-                      </div>
-                      {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                    </div>
-                    
-                    {/* حقل كلمة المرور */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>كلمة المرور</Label>
-                        <button
-                          type="button"
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          نسيت كلمة المرور؟
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={data.password}
-                          onChange={(e) => updateData('password', e.target.value)}
-                          className="pr-10 pl-10"
-                          dir="ltr"
-                          disabled={isLoading}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                    </div>
+                  <Tabs value={loginTab} onValueChange={(v) => setLoginTab(v as 'email' | 'phone')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="email" className="gap-2">
+                        <Mail className="h-4 w-4" />
+                        البريد الإلكتروني
+                      </TabsTrigger>
+                      <TabsTrigger value="phone" className="gap-2">
+                        <Phone className="h-4 w-4" />
+                        رقم الجوال
+                      </TabsTrigger>
+                    </TabsList>
 
-                    {/* تذكرني */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="remember"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="rounded border-border"
-                      />
-                      <label htmlFor="remember" className="text-sm text-muted-foreground">
-                        تذكرني
-                      </label>
-                    </div>
-                    
-                    <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                          <span>جاري تسجيل الدخول...</span>
+                    {/* تبويب البريد الإلكتروني */}
+                    <TabsContent value="email">
+                      <form onSubmit={handleLogin} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>البريد الإلكتروني</Label>
+                          <div className="relative">
+                            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="email"
+                              placeholder="example@email.com"
+                              value={data.email}
+                              onChange={(e) => updateData('email', e.target.value)}
+                              className="pr-10"
+                              dir="ltr"
+                              disabled={isLoading}
+                            />
+                          </div>
+                          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                         </div>
-                      ) : (
-                        'تسجيل الدخول'
-                      )}
-                    </Button>
-                    
-                    <p className="text-center text-sm text-muted-foreground">
-                      ليس لديك حساب؟{' '}
-                      <button
-                        type="button"
-                        onClick={() => setIsLogin(false)}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        إنشاء حساب جديد
-                      </button>
-                    </p>
-                  </form>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>كلمة المرور</Label>
+                            <button
+                              type="button"
+                              onClick={() => setShowForgotPassword(true)}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              نسيت كلمة المرور؟
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="••••••••"
+                              value={data.password}
+                              onChange={(e) => updateData('password', e.target.value)}
+                              className="pr-10 pl-10"
+                              dir="ltr"
+                              disabled={isLoading}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="remember"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="rounded border-border"
+                          />
+                          <label htmlFor="remember" className="text-sm text-muted-foreground">
+                            تذكرني
+                          </label>
+                        </div>
+                        
+                        <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                          {isLoading ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                              <span>جاري تسجيل الدخول...</span>
+                            </div>
+                          ) : (
+                            'تسجيل الدخول'
+                          )}
+                        </Button>
+                      </form>
+                    </TabsContent>
+
+                    {/* تبويب رقم الجوال */}
+                    <TabsContent value="phone">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>رقم الجوال</Label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="tel"
+                                placeholder="05xxxxxxxx"
+                                value={loginPhone}
+                                onChange={(e) => {
+                                  setLoginPhone(e.target.value);
+                                  if (showLoginOtp) {
+                                    setShowLoginOtp(false);
+                                    setLoginOtpCode('');
+                                  }
+                                }}
+                                className="pr-10"
+                                dir="ltr"
+                                disabled={isVerifyingLoginOtp}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={sendLoginOtp}
+                              disabled={isSendingLoginOtp || !isValidPhoneLogin(loginPhone) || loginOtpCountdown > 0}
+                              className="whitespace-nowrap text-xs px-3 h-10 border-primary text-primary hover:bg-primary/5"
+                            >
+                              {isSendingLoginOtp ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : loginOtpCountdown > 0 ? (
+                                `إعادة (${loginOtpCountdown})`
+                              ) : showLoginOtp ? (
+                                'إعادة إرسال'
+                              ) : (
+                                <>
+                                  <Shield className="h-3 w-3 ml-1" />
+                                  إرسال رمز
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {showLoginOtp && (
+                          <div className="space-y-2">
+                            <Label>رمز التحقق</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                type="text"
+                                placeholder="أدخل الرمز المكون من 6 أرقام"
+                                value={loginOtpCode}
+                                onChange={(e) => setLoginOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="flex-1 text-center tracking-widest font-mono text-lg"
+                                dir="ltr"
+                                maxLength={6}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {showLoginOtp && (
+                          <Button
+                            type="button"
+                            className="w-full"
+                            size="lg"
+                            onClick={handlePhoneLogin}
+                            disabled={isVerifyingLoginOtp || loginOtpCode.length !== 6}
+                          >
+                            {isVerifyingLoginOtp ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>جاري التحقق...</span>
+                              </div>
+                            ) : (
+                              'تسجيل الدخول'
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <p className="text-center text-sm text-muted-foreground mt-4">
+                    ليس لديك حساب؟{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(false)}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      إنشاء حساب جديد
+                    </button>
+                  </p>
                 )}
               </>
             ) : (
