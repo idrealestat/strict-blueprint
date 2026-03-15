@@ -134,11 +134,13 @@ export default function LandingPage() {
             {features.map((feature) => {
               const Icon = feature.icon;
               return (
-                <article key={feature.title} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-0.5">
-                  <div className="mb-4 inline-flex rounded-xl bg-accent p-3 text-accent-foreground">
-                    <Icon className="h-5 w-5" />
+                <article key={feature.title} className="rounded-2xl border border-secondary bg-card p-5 shadow-sm transition hover:-translate-y-0.5">
+                  <div className="flex items-center gap-3">
+                    <div className="inline-flex rounded-xl bg-accent p-3 text-accent-foreground">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-bold">{feature.title}</h3>
                   </div>
-                  <h3 className="text-lg font-bold">{feature.title}</h3>
                   <p className="mt-2 text-sm leading-7 text-muted-foreground">{feature.text}</p>
                 </article>
               );
