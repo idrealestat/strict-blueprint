@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Mail, Lock, Eye, EyeOff, ArrowLeft,
   IdCard, Calendar, Globe, Building, UserCheck, Briefcase,
-  FileText, CheckCircle, ChevronRight, ChevronLeft
+  FileText, CheckCircle, ChevronRight, ChevronLeft, Phone, Shield, Loader2
 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
