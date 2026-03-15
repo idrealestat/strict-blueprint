@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Mail, Lock, Eye, EyeOff, ArrowLeft,
   IdCard, Calendar, Globe, Building, UserCheck, Briefcase,
-  FileText, CheckCircle, ChevronRight, ChevronLeft
+  FileText, CheckCircle, ChevronRight, ChevronLeft, Phone, Shield, Loader2
 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -80,7 +81,14 @@ export default function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
-
+  const [loginTab, setLoginTab] = useState<'email' | 'phone'>('email');
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginPhoneVerified, setLoginPhoneVerified] = useState(false);
+  const [loginOtpCode, setLoginOtpCode] = useState('');
+  const [showLoginOtp, setShowLoginOtp] = useState(false);
+  const [loginOtpCountdown, setLoginOtpCountdown] = useState(0);
+  const [isSendingLoginOtp, setIsSendingLoginOtp] = useState(false);
+  const [isVerifyingLoginOtp, setIsVerifyingLoginOtp] = useState(false);
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
   const REMEMBER_ME_KEY = 'wasata_saved_credentials';
 
@@ -534,6 +542,13 @@ export default function AuthPage() {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
+  // عداد تنازلي لإعادة إرسال OTP تسجيل الدخول
+  useEffect(() => {
+    if (loginOtpCountdown <= 0) return;
+    const timer = setInterval(() => setLoginOtpCountdown(c => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [loginOtpCountdown]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -857,7 +872,114 @@ export default function AuthPage() {
     }
   };
 
+
+  const isValidPhoneLogin = (p: string) => {
+    const clean = p.replace(/\s/g, '');
+    return /^(05|5|\+966|966)\d{8}$/.test(clean);
+  };
+
+  const sendLoginOtp = async () => {
+    if (!isValidPhoneLogin(loginPhone)) {
+      toast({ title: 'خطأ', description: 'يرجى إدخال رقم جوال صحيح (مثال: 05xxxxxxxx)', variant: 'destructive' });
+      return;
+    }
+    setIsSendingLoginOtp(true);
+    try {
+      const { data: otpData, error } = await supabase.functions.invoke('send-phone-otp', {
+        body: { phone: loginPhone, identifier: loginPhone },
+      });
+      if (error) throw error;
+      if (otpData?.success) {
+        setShowLoginOtp(true);
+        setLoginOtpCountdown(60);
+        toast({ title: 'تم الإرسال', description: 'تم إرسال رمز التحقق إلى جوالك' });
+        if (otpData?.devMode && otpData?.devCode) {
+          setLoginOtpCode(otpData.devCode);
+        }
+      } else {
+        toast({ title: 'خطأ', description: otpData?.error || 'فشل إرسال رمز التحقق', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err?.message || 'خطأ في إرسال رمز التحقق', variant: 'destructive' });
+    } finally {
+      setIsSendingLoginOtp(false);
+    }
+  };
+
+  const handlePhoneLogin = async () => {
+    if (loginOtpCode.length !== 6) {
+      toast({ title: 'خطأ', description: 'يرجى إدخال الرمز المكون من 6 أرقام', variant: 'destructive' });
+      return;
+    }
+    setIsVerifyingLoginOtp(true);
+    try {
+      // 1) تحقق من OTP
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-otp', {
+        body: { identifier: loginPhone, code: loginOtpCode, type: 'phone' },
+      });
+      if (verifyError) throw verifyError;
+      if (!verifyData?.success) {
+        toast({ title: 'خطأ', description: verifyData?.error || 'رمز التحقق غير صحيح', variant: 'destructive' });
+        return;
+      }
+
+      // 2) البحث عن المستخدم بالرقم في profiles
+      const cleanPhone = loginPhone.replace(/\s/g, '');
+      const phoneVariants = [cleanPhone];
+      if (cleanPhone.startsWith('05')) {
+        phoneVariants.push('+966' + cleanPhone.slice(1));
+        phoneVariants.push('966' + cleanPhone.slice(1));
+      } else if (cleanPhone.startsWith('5')) {
+        phoneVariants.push('0' + cleanPhone);
+        phoneVariants.push('+966' + cleanPhone);
+        phoneVariants.push('966' + cleanPhone);
+      } else if (cleanPhone.startsWith('+966')) {
+        phoneVariants.push('0' + cleanPhone.slice(4));
+        phoneVariants.push(cleanPhone.slice(1));
+      } else if (cleanPhone.startsWith('966')) {
+        phoneVariants.push('0' + cleanPhone.slice(3));
+        phoneVariants.push('+' + cleanPhone);
+      }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .in('phone', phoneVariants)
+        .limit(1)
+        .maybeSingle();
+
+      if (!profileData) {
+        toast({ title: 'لا يوجد حساب', description: 'لم يتم العثور على حساب مرتبط بهذا الرقم. يرجى إنشاء حساب جديد أولاً.', variant: 'destructive' });
+        return;
+      }
+
+      // 3) تسجيل الدخول عبر edge function
+      const { data: loginData, error: loginError } = await supabase.functions.invoke('phone-login', {
+        body: { userId: profileData.user_id, phone: loginPhone },
+      });
+
+      if (loginError) throw loginError;
+
+      if (loginData?.access_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: loginData.access_token,
+          refresh_token: loginData.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+        toast({ title: 'مرحباً بك!', description: 'تم تسجيل الدخول بنجاح' });
+        navigate('/app/dashboard');
+      } else {
+        toast({ title: 'خطأ', description: loginData?.error || 'فشل تسجيل الدخول', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err?.message || 'حدث خطأ أثناء تسجيل الدخول', variant: 'destructive' });
+    } finally {
+      setIsVerifyingLoginOtp(false);
+    }
+  };
+
   const isLastStep = currentStep === getTotalSteps();
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4" dir="rtl">
@@ -984,87 +1106,183 @@ export default function AuthPage() {
                         </Button>
                       </>
                     )}
-                  </form>
+                   </form>
                 ) : (
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    {/* حقل البريد الإلكتروني */}
-                    <div className="space-y-2">
-                      <Label>البريد الإلكتروني</Label>
-                      <div className="relative">
-                        <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="email"
-                          placeholder="example@email.com"
-                          value={data.email}
-                          onChange={(e) => updateData('email', e.target.value)}
-                          className="pr-10"
-                          dir="ltr"
-                          disabled={isLoading}
-                        />
-                      </div>
-                      {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                    </div>
-                    
-                    {/* حقل كلمة المرور */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>كلمة المرور</Label>
-                        <button
-                          type="button"
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          نسيت كلمة المرور؟
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={data.password}
-                          onChange={(e) => updateData('password', e.target.value)}
-                          className="pr-10 pl-10"
-                          dir="ltr"
-                          disabled={isLoading}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                    </div>
+                  <div>
+                    <Tabs value={loginTab} onValueChange={(v) => setLoginTab(v as 'email' | 'phone')} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="email" className="gap-2">
+                          <Mail className="h-4 w-4" />
+                          البريد الإلكتروني
+                        </TabsTrigger>
+                        <TabsTrigger value="phone" className="gap-2">
+                          <Phone className="h-4 w-4" />
+                          رقم الجوال
+                        </TabsTrigger>
+                      </TabsList>
 
-                    {/* تذكرني */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="remember"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="rounded border-border"
-                      />
-                      <label htmlFor="remember" className="text-sm text-muted-foreground">
-                        تذكرني
-                      </label>
-                    </div>
-                    
-                    <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                          <span>جاري تسجيل الدخول...</span>
+                      <TabsContent value="email">
+                        <form onSubmit={handleLogin} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>البريد الإلكتروني</Label>
+                            <div className="relative">
+                              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="email"
+                                placeholder="example@email.com"
+                                value={data.email}
+                                onChange={(e) => updateData('email', e.target.value)}
+                                className="pr-10"
+                                dir="ltr"
+                                disabled={isLoading}
+                              />
+                            </div>
+                            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label>كلمة المرور</Label>
+                              <button
+                                type="button"
+                                onClick={() => setShowForgotPassword(true)}
+                                className="text-xs text-primary hover:underline"
+                              >
+                                نسيت كلمة المرور؟
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                value={data.password}
+                                onChange={(e) => updateData('password', e.target.value)}
+                                className="pr-10 pl-10"
+                                dir="ltr"
+                                disabled={isLoading}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="remember"
+                              checked={rememberMe}
+                              onChange={(e) => setRememberMe(e.target.checked)}
+                              className="rounded border-border"
+                            />
+                            <label htmlFor="remember" className="text-sm text-muted-foreground">
+                              تذكرني
+                            </label>
+                          </div>
+                          
+                          <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                            {isLoading ? (
+                              <div className="flex items-center gap-2">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                                <span>جاري تسجيل الدخول...</span>
+                              </div>
+                            ) : (
+                              'تسجيل الدخول'
+                            )}
+                          </Button>
+                        </form>
+                      </TabsContent>
+
+                      <TabsContent value="phone">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>رقم الجوال</Label>
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="tel"
+                                  placeholder="05xxxxxxxx"
+                                  value={loginPhone}
+                                  onChange={(e) => {
+                                    setLoginPhone(e.target.value);
+                                    if (showLoginOtp) {
+                                      setShowLoginOtp(false);
+                                      setLoginOtpCode('');
+                                    }
+                                  }}
+                                  className="pr-10"
+                                  dir="ltr"
+                                  disabled={isVerifyingLoginOtp}
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={sendLoginOtp}
+                                disabled={isSendingLoginOtp || !isValidPhoneLogin(loginPhone) || loginOtpCountdown > 0}
+                                className="whitespace-nowrap text-xs px-3 h-10 border-primary text-primary hover:bg-primary/5"
+                              >
+                                {isSendingLoginOtp ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : loginOtpCountdown > 0 ? (
+                                  `إعادة (${loginOtpCountdown})`
+                                ) : showLoginOtp ? (
+                                  'إعادة إرسال'
+                                ) : (
+                                  <>
+                                    <Shield className="h-3 w-3 ml-1" />
+                                    إرسال رمز
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {showLoginOtp && (
+                            <div className="space-y-2">
+                              <Label>رمز التحقق</Label>
+                              <Input
+                                type="text"
+                                placeholder="أدخل الرمز المكون من 6 أرقام"
+                                value={loginOtpCode}
+                                onChange={(e) => setLoginOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="flex-1 text-center tracking-widest font-mono text-lg"
+                                dir="ltr"
+                                maxLength={6}
+                              />
+                            </div>
+                          )}
+
+                          {showLoginOtp && (
+                            <Button
+                              type="button"
+                              className="w-full"
+                              size="lg"
+                              onClick={handlePhoneLogin}
+                              disabled={isVerifyingLoginOtp || loginOtpCode.length !== 6}
+                            >
+                              {isVerifyingLoginOtp ? (
+                                <div className="flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span>جاري التحقق...</span>
+                                </div>
+                              ) : (
+                                'تسجيل الدخول'
+                              )}
+                            </Button>
+                          )}
                         </div>
-                      ) : (
-                        'تسجيل الدخول'
-                      )}
-                    </Button>
-                    
-                    <p className="text-center text-sm text-muted-foreground">
+                      </TabsContent>
+                    </Tabs>
+
+                    <p className="text-center text-sm text-muted-foreground mt-4">
                       ليس لديك حساب؟{' '}
                       <button
                         type="button"
@@ -1074,7 +1292,7 @@ export default function AuthPage() {
                         إنشاء حساب جديد
                       </button>
                     </p>
-                  </form>
+                  </div>
                 )}
               </>
             ) : (
