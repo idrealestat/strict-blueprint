@@ -872,14 +872,8 @@ export default function AuthPage() {
     }
   };
 
-  // عداد تنازلي لإعادة إرسال OTP تسجيل الدخول
-  useEffect(() => {
-    if (loginOtpCountdown <= 0) return;
-    const timer = setInterval(() => setLoginOtpCountdown(c => c - 1), 1000);
-    return () => clearInterval(timer);
-  }, [loginOtpCountdown]);
 
-  const isValidPhone = (p: string) => {
+  const isValidPhoneLogin = (p: string) => {
     const clean = p.replace(/\s/g, '');
     return /^(05|5|\+966|966)\d{8}$/.test(clean);
   };
