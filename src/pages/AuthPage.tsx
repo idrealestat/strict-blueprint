@@ -865,7 +865,118 @@ export default function AuthPage() {
     }
   };
 
-  const isLastStep = currentStep === getTotalSteps();
+  // عداد تنازلي لإعادة إرسال OTP تسجيل الدخول
+  useEffect(() => {
+    if (loginOtpCountdown <= 0) return;
+    const timer = setInterval(() => setLoginOtpCountdown(c => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [loginOtpCountdown]);
+
+  const isValidPhone = (p: string) => {
+    const clean = p.replace(/\s/g, '');
+    return /^(05|5|\+966|966)\d{8}$/.test(clean);
+  };
+
+  const sendLoginOtp = async () => {
+    if (!isValidPhone(loginPhone)) {
+      toast({ title: 'خطأ', description: 'يرجى إدخال رقم جوال صحيح (مثال: 05xxxxxxxx)', variant: 'destructive' });
+      return;
+    }
+    setIsSendingLoginOtp(true);
+    try {
+      const { data: otpData, error } = await supabase.functions.invoke('send-phone-otp', {
+        body: { phone: loginPhone, identifier: loginPhone },
+      });
+      if (error) throw error;
+      if (otpData?.success) {
+        setShowLoginOtp(true);
+        setLoginOtpCountdown(60);
+        toast({ title: 'تم الإرسال', description: 'تم إرسال رمز التحقق إلى جوالك' });
+        if (otpData?.devMode && otpData?.devCode) {
+          setLoginOtpCode(otpData.devCode);
+        }
+      } else {
+        toast({ title: 'خطأ', description: otpData?.error || 'فشل إرسال رمز التحقق', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err?.message || 'خطأ في إرسال رمز التحقق', variant: 'destructive' });
+    } finally {
+      setIsSendingLoginOtp(false);
+    }
+  };
+
+  const handlePhoneLogin = async () => {
+    if (loginOtpCode.length !== 6) {
+      toast({ title: 'خطأ', description: 'يرجى إدخال الرمز المكون من 6 أرقام', variant: 'destructive' });
+      return;
+    }
+    setIsVerifyingLoginOtp(true);
+    try {
+      // 1) تحقق من OTP
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-otp', {
+        body: { identifier: loginPhone, code: loginOtpCode, type: 'phone' },
+      });
+      if (verifyError) throw verifyError;
+      if (!verifyData?.success) {
+        toast({ title: 'خطأ', description: verifyData?.error || 'رمز التحقق غير صحيح', variant: 'destructive' });
+        return;
+      }
+
+      // 2) البحث عن المستخدم بالرقم في profiles
+      const cleanPhone = loginPhone.replace(/\s/g, '');
+      const phoneVariants = [cleanPhone];
+      if (cleanPhone.startsWith('05')) {
+        phoneVariants.push('+966' + cleanPhone.slice(1));
+        phoneVariants.push('966' + cleanPhone.slice(1));
+      } else if (cleanPhone.startsWith('5')) {
+        phoneVariants.push('0' + cleanPhone);
+        phoneVariants.push('+966' + cleanPhone);
+        phoneVariants.push('966' + cleanPhone);
+      } else if (cleanPhone.startsWith('+966')) {
+        phoneVariants.push('0' + cleanPhone.slice(4));
+        phoneVariants.push(cleanPhone.slice(1));
+      } else if (cleanPhone.startsWith('966')) {
+        phoneVariants.push('0' + cleanPhone.slice(3));
+        phoneVariants.push('+' + cleanPhone);
+      }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .in('phone', phoneVariants)
+        .limit(1)
+        .maybeSingle();
+
+      if (!profileData) {
+        toast({ title: 'لا يوجد حساب', description: 'لم يتم العثور على حساب مرتبط بهذا الرقم. يرجى إنشاء حساب جديد أولاً.', variant: 'destructive' });
+        return;
+      }
+
+      // 3) تسجيل الدخول عبر edge function
+      const { data: loginData, error: loginError } = await supabase.functions.invoke('phone-login', {
+        body: { userId: profileData.user_id, phone: loginPhone },
+      });
+
+      if (loginError) throw loginError;
+
+      if (loginData?.access_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: loginData.access_token,
+          refresh_token: loginData.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+        toast({ title: 'مرحباً بك!', description: 'تم تسجيل الدخول بنجاح' });
+        navigate('/app/dashboard');
+      } else {
+        toast({ title: 'خطأ', description: loginData?.error || 'فشل تسجيل الدخول', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err?.message || 'حدث خطأ أثناء تسجيل الدخول', variant: 'destructive' });
+    } finally {
+      setIsVerifyingLoginOtp(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4" dir="rtl">
