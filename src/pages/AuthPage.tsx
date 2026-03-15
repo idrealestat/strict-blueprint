@@ -542,6 +542,13 @@ export default function AuthPage() {
     setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
+  // عداد تنازلي لإعادة إرسال OTP تسجيل الدخول
+  useEffect(() => {
+    if (loginOtpCountdown <= 0) return;
+    const timer = setInterval(() => setLoginOtpCountdown(c => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [loginOtpCountdown]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
