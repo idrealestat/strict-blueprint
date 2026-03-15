@@ -879,7 +879,7 @@ export default function AuthPage() {
   };
 
   const sendLoginOtp = async () => {
-    if (!isValidPhone(loginPhone)) {
+    if (!isValidPhoneLogin(loginPhone)) {
       toast({ title: 'خطأ', description: 'يرجى إدخال رقم جوال صحيح (مثال: 05xxxxxxxx)', variant: 'destructive' });
       return;
     }
