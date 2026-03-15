@@ -1107,7 +1107,7 @@ export default function AuthPage() {
                       </>
                     )}
                   </form>
-                ) : (
+                  <div>
                   <Tabs value={loginTab} onValueChange={(v) => setLoginTab(v as 'email' | 'phone')} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-4">
                       <TabsTrigger value="email" className="gap-2">
