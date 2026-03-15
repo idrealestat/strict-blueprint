@@ -81,7 +81,14 @@ export default function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
-
+  const [loginTab, setLoginTab] = useState<'email' | 'phone'>('email');
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginPhoneVerified, setLoginPhoneVerified] = useState(false);
+  const [loginOtpCode, setLoginOtpCode] = useState('');
+  const [showLoginOtp, setShowLoginOtp] = useState(false);
+  const [loginOtpCountdown, setLoginOtpCountdown] = useState(0);
+  const [isSendingLoginOtp, setIsSendingLoginOtp] = useState(false);
+  const [isVerifyingLoginOtp, setIsVerifyingLoginOtp] = useState(false);
   const REGISTER_CACHE_KEY = 'wasata_register_cache_v1';
   const REMEMBER_ME_KEY = 'wasata_saved_credentials';
 
