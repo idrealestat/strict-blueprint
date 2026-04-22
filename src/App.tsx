@@ -24,6 +24,7 @@ import { PlatformPublishingSystem } from "./components/platform-publishing";
 import CustomersListPage from "./pages/CustomersListPage";
 import OffersRequestsPage from "./pages/OffersRequestsPage";
 import SmartOpportunitiesPage from "./pages/SmartOpportunitiesPage";
+import AppSettingsPage from "./pages/AppSettingsPage";
 import VideoToTextPage from "./pages/VideoToTextPage";
 import SpatialIntelligenceTest from "./pages/SpatialIntelligenceTest";
 import QuickCalculatorPage from "./pages/QuickCalculatorPage";
@@ -712,6 +713,13 @@ const App = () => {
                   <Route path="/app/customers" element={
                     <BusinessCardGuard>
                       <CustomersListPage />
+                    </BusinessCardGuard>
+                  } />
+
+                  {/* صفحة إعدادات التطبيق الشاملة (بدلاً من النافذة المنبثقة) */}
+                  <Route path="/app/settings" element={
+                    <BusinessCardGuard>
+                      <AppSettingsPage />
                     </BusinessCardGuard>
                   } />
                   
