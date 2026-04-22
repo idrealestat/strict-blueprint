@@ -7,6 +7,7 @@ import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import { useAppointmentReminders } from "@/hooks/useAppointmentReminders";
 import { useAcademy } from "@/contexts/AcademyContext";
 import { Shield } from "lucide-react";
+import { HelpHint } from "@/components/ui/help-hint";
 
 const Dashboard = () => {
   // تفعيل نظام التذكير بالمواعيد
@@ -34,7 +35,13 @@ const Dashboard = () => {
 
         {/* 3. الواجهة الرئيسية - 8 خدمات */}
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-4">الخدمات الرئيسية</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <span>الخدمات الرئيسية</span>
+            <HelpHint
+              title="الخدمات الرئيسية"
+              description="ثمانية أزرار للوصول السريع لأهم خدمات التطبيق: الفرص الذكية، إدارة العملاء، التقارير، العقود، النشر الاجتماعي، الإعدادات والدعم."
+            />
+          </h2>
           <MainServices />
         </div>
 
@@ -46,7 +53,13 @@ const Dashboard = () => {
 
         {/* 6. التحليلات */}
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-4">التحليلات والتقارير</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <span>التحليلات والتقارير</span>
+            <HelpHint
+              title="التحليلات والتقارير"
+              description="رسوم بيانية ومؤشرات تُظهر أداء عقاراتك ومشاهداتك ومعدلات التواصل خلال الفترة المختارة."
+            />
+          </h2>
           <AnalyticsDashboard />
         </div>
 
