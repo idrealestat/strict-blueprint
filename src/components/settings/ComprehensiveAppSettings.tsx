@@ -144,6 +144,13 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
     description: 'إعدادات وساطه AI والفقاعة العائمة',
     color: '#8b5cf6',
   },
+  {
+    id: 'help-hints',
+    icon: Info,
+    label: 'العلامات الدليلية',
+    description: 'دائرة الـ i الزرقاء التي تشرح وظيفة كل زر',
+    color: '#3b82f6',
+  },
 ];
 
 interface ComprehensiveAppSettingsProps {
