@@ -39,8 +39,10 @@ import {
   Building2,
   Home,
   X,
+  Info,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useHelpHints } from '@/context/HelpHintsContext';
 
 interface SettingsSection {
   id: string;
