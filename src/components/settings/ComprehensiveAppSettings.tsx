@@ -743,6 +743,56 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
           </div>
         );
 
+      case 'help-hints':
+        return (
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
+                  <Info className="w-4 h-4" />
+                </div>
+                <div className="flex-1 text-sm">
+                  <p className="font-bold text-blue-900 dark:text-blue-200 mb-1">
+                    ما هي العلامات الدليلية؟
+                  </p>
+                  <p className="text-blue-800/90 dark:text-blue-200/80 leading-relaxed">
+                    دائرة زرقاء صغيرة بداخلها حرف <strong>i</strong> تظهر بجانب كل زر وحقل في التطبيق.
+                    عند التحويم بالماوس (في الكمبيوتر) أو اللمس (في الجوال) تظهر رسالة سحابية
+                    تشرح وظيفة الزر وكيفية استخدامه.
+                  </p>
+                  <p className="text-blue-800/90 dark:text-blue-200/80 leading-relaxed mt-2">
+                    تعمل تلقائياً لمدة <strong>7 أيام</strong> على كل حساب جديد ثم تختفي،
+                    ويصلك إشعار بالجرس يخبرك بإمكانية إعادة تفعيلها من هنا.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <SettingToggle
+              label="تفعيل العلامات الدليلية"
+              description={
+                helpHints.isInTrial
+                  ? `الفترة التجريبية مفعّلة (متبقي ${helpHints.daysRemaining} يوم)`
+                  : helpHints.isEnabled
+                    ? 'مفعّلة يدوياً - تظهر دائرة الـ i بجانب الأزرار'
+                    : 'مغلقة - الأزرار تعمل بدون علامات إرشادية'
+              }
+              checked={helpHints.isEnabled}
+              onChange={(v) => (v ? helpHints.enable() : helpHints.disable())}
+            />
+
+            <div className="p-3 rounded-lg bg-muted/40 text-xs text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  الحالة: {helpHints.isEnabled ? '🟢 مفعّلة' : '🔴 مغلقة'}
+                  {helpHints.isInTrial && ` • الأيام المتبقية: ${helpHints.daysRemaining}`}
+                </span>
+              </p>
+            </div>
+          </div>
+        );
+
       default:
         return <div className="text-center text-muted-foreground">اختر قسماً لعرض إعداداته</div>;
     }
