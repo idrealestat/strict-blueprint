@@ -161,6 +161,7 @@ interface ComprehensiveAppSettingsProps {
 export default function ComprehensiveAppSettings({ isOpen, onClose }: ComprehensiveAppSettingsProps) {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const { toast } = useToast();
+  const helpHints = useHelpHints();
 
   // إعدادات كل قسم
   const [settings, setSettings] = useState({
