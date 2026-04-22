@@ -81,6 +81,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { AcademyProvider } from "./contexts/AcademyContext";
 import { FeatureFlagsProvider } from "./context/FeatureFlagsContext";
 import { EntitlementsProvider } from "./context/EntitlementsContext";
+import { HelpHintsProvider } from "./context/HelpHintsContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
 import RoleGuard from "./components/auth/RoleGuard";
