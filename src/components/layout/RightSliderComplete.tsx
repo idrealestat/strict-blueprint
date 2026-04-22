@@ -556,7 +556,7 @@ export default function RightSliderComplete({
     
     // Handle app settings - فتح إعدادات التطبيق الشاملة
     if (item.path === 'action:app-settings') {
-      onNavigate('settings-page');
+      navigate('/app/settings');
       onClose();
       return;
     }
