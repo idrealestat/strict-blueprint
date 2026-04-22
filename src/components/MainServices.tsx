@@ -6,6 +6,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HelpHint } from '@/components/ui/help-hint';
 
 interface Service {
   id: number;
@@ -159,8 +160,9 @@ const MainServices = () => {
               {isMobile ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-2">
                   <div className="text-4xl">{service.icon}</div>
-                  <h3 className="font-bold text-gray-800 dark:text-white text-sm text-center leading-tight">
-                    {service.title}
+                  <h3 className="font-bold text-gray-800 dark:text-white text-sm text-center leading-tight flex items-center gap-1 justify-center">
+                    <span>{service.title}</span>
+                    <HelpHint size="xs" title={service.title} description={service.description} />
                   </h3>
                 </div>
               ) : (
@@ -169,8 +171,9 @@ const MainServices = () => {
                   <div className="flex items-center gap-4 mb-3">
                     <div className="text-3xl">{service.icon}</div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-800 dark:text-white text-lg mb-1">
-                        {service.title}
+                      <h3 className="font-bold text-gray-800 dark:text-white text-lg mb-1 flex items-center gap-2">
+                        <span>{service.title}</span>
+                        <HelpHint title={service.title} description={service.description} />
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
                         {service.description}

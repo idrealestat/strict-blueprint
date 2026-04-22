@@ -5,6 +5,7 @@ import { useNotificationSystem } from "@/hooks/useNotificationSystem";
 import { useSmartOpportunities } from "@/hooks/useSmartOpportunities";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { HelpHint } from "@/components/ui/help-hint";
 
 interface MainHeaderProps {
   onRightMenuOpen: () => void;
@@ -52,14 +53,24 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
         <div className="flex items-center justify-between">
           {/* Right: Burger Menu */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onRightMenuOpen}
-              className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white h-9 w-9"
-            >
-              <Menu className="w-4 h-4" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onRightMenuOpen}
+                className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white h-9 w-9"
+              >
+                <Menu className="w-4 h-4" />
+              </Button>
+              <div className="absolute -top-1 -left-1">
+                <HelpHint
+                  size="xs"
+                  side="bottom"
+                  title="القائمة الرئيسية"
+                  description="فتح القائمة الجانبية اليمنى للوصول إلى الملف الشخصي، المستندات، المحفظة، الإشعارات، المفضلة، الإحصائيات، المواعيد وغيرها."
+                />
+              </div>
+            </div>
           </div>
 
           {/* Center: Logo + Live Badge */}
@@ -86,30 +97,49 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
           {/* Left: Icons */}
           <div className="flex items-center gap-2">
             {/* Left Sidebar Toggle */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onLeftMenuOpen}
-              className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white h-9 w-9"
-            >
-              <PanelLeft className="w-5 h-5" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onLeftMenuOpen}
+                className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white h-9 w-9"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </Button>
+              <div className="absolute -top-1 -right-1">
+                <HelpHint
+                  size="xs"
+                  side="bottom"
+                  title="إعدادات التطبيق"
+                  description="فتح القائمة اليسرى للوصول إلى إعدادات التطبيق الشامل، تخصيص الواجهة، وإدارة جميع ميزات حسابك."
+                />
+              </div>
+            </div>
 
             {/* Notifications */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onNotificationsOpen}
-              className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white relative h-9 w-9"
-            >
-              <Bell className="w-5 h-5" />
-              {/* Notification Badge - عرض فقط إذا كان هناك إشعارات غير مقروءة */}
-              {totalUnreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1 animate-pulse">
-                  {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                </div>
-              )}
-            </Button>
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onNotificationsOpen}
+                className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white relative h-9 w-9"
+              >
+                <Bell className="w-5 h-5" />
+                {totalUnreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1 animate-pulse">
+                    {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                  </div>
+                )}
+              </Button>
+              <div className="absolute -bottom-1 -right-1">
+                <HelpHint
+                  size="xs"
+                  side="bottom"
+                  title="الإشعارات"
+                  description="عرض جميع إشعارات حسابك: الفرص الذكية الجديدة، تذكيرات المواعيد، رسائل العملاء، تنبيهات النشر، وتحديثات التطبيق."
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
