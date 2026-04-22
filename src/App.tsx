@@ -529,6 +529,7 @@ const App = () => {
           <AcademyProvider>
           <EntitlementsProvider>
             <FeatureFlagsProvider>
+              <HelpHintsProvider>
               <DashboardProvider>
                 <TooltipProvider>
                 <Toaster />
@@ -785,6 +786,7 @@ const App = () => {
               </BrowserRouter>
             </TooltipProvider>
             </DashboardProvider>
+            </HelpHintsProvider>
           </FeatureFlagsProvider>
           </EntitlementsProvider>
           </AcademyProvider>
