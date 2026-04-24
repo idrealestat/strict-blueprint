@@ -579,7 +579,7 @@ const App = () => {
                     } />
                   
                   
-                  <Route path="/app/settings" element={
+                  <Route path="/app/notification-settings" element={
                     <BusinessCardGuard>
                       <RoleGuard allowedRoles={['admin', 'owner']} showAccessDenied>
                         <NotificationSettings />
