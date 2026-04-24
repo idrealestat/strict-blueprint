@@ -154,11 +154,16 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
 ];
 
 interface ComprehensiveAppSettingsProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  variant?: 'modal' | 'page';
 }
 
-export default function ComprehensiveAppSettings({ isOpen, onClose }: ComprehensiveAppSettingsProps) {
+export default function ComprehensiveAppSettings({
+  isOpen = true,
+  onClose = () => {},
+  variant = 'modal',
+}: ComprehensiveAppSettingsProps) {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const { toast } = useToast();
   const helpHints = useHelpHints();
@@ -798,6 +803,107 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
     }
   };
 
+  const settingsContent = (
+    <div className={variant === 'page' ? 'flex h-full min-h-0' : 'flex h-[calc(100%-80px)]'}>
+      <div className="w-72 border-l bg-muted/30">
+        <ScrollArea className="h-full">
+          <div className="p-3 space-y-1">
+            {SETTINGS_SECTIONS.map((section) => {
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg text-right transition-all ${
+                    activeSection === section.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  <div
+                    className={`p-2 rounded-lg ${
+                      activeSection === section.id ? 'bg-white/20' : 'bg-muted'
+                    }`}
+                    style={{ color: activeSection === section.id ? 'white' : section.color }}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{section.label}</p>
+                    <p className={`text-xs truncate ${
+                      activeSection === section.id ? 'text-white/70' : 'text-muted-foreground'
+                    }`}>
+                      {section.description}
+                    </p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 opacity-50" />
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <ScrollArea className="flex-1">
+          <div className="p-6">
+            {activeSection ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 pb-4 border-b">
+                  {(() => {
+                    const section = SETTINGS_SECTIONS.find(s => s.id === activeSection);
+                    if (!section) return null;
+                    const Icon = section.icon;
+                    return (
+                      <>
+                        <div
+                          className="p-3 rounded-xl"
+                          style={{ backgroundColor: `${section.color}15`, color: section.color }}
+                        >
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold">{section.label}</h3>
+                          <p className="text-muted-foreground">{section.description}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+                {renderSectionSettings(activeSection)}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                <Settings className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground">اختر قسماً من القائمة</h3>
+                <p className="text-sm text-muted-foreground/70">لعرض وتعديل إعداداته</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {activeSection && (
+          <div className="p-4 border-t bg-muted/30 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setActiveSection(null)}>
+              إلغاء
+            </Button>
+            <Button onClick={saveSettings} className="bg-[#01411C] hover:bg-[#065f41]">
+              حفظ الإعدادات
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (variant === 'page') {
+    return (
+      <div dir="rtl" className="h-full min-h-0 overflow-hidden bg-background">
+        {settingsContent}
+      </div>
+    );
+  }
+
   if (!isOpen) return null;
 
   return (
@@ -817,7 +923,6 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-[#01411C] to-[#065f41]">
           <div className="flex items-center gap-3">
             <Settings className="w-6 h-6 text-[#D4AF37]" />
@@ -830,101 +935,7 @@ export default function ComprehensiveAppSettings({ isOpen, onClose }: Comprehens
             <X className="w-5 h-5" />
           </Button>
         </div>
-
-        {/* Content */}
-        <div className="flex h-[calc(100%-80px)]">
-          {/* Sidebar - Sections List */}
-          <div className="w-72 border-l bg-muted/30">
-            <ScrollArea className="h-full">
-              <div className="p-3 space-y-1">
-                {SETTINGS_SECTIONS.map((section) => {
-                  const Icon = section.icon;
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg text-right transition-all ${
-                        activeSection === section.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      <div
-                        className={`p-2 rounded-lg ${
-                          activeSection === section.id ? 'bg-white/20' : 'bg-muted'
-                        }`}
-                        style={{ color: activeSection === section.id ? 'white' : section.color }}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{section.label}</p>
-                        <p className={`text-xs truncate ${
-                          activeSection === section.id ? 'text-white/70' : 'text-muted-foreground'
-                        }`}>
-                          {section.description}
-                        </p>
-                      </div>
-                      <ChevronLeft className="w-4 h-4 opacity-50" />
-                    </button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col">
-            <ScrollArea className="flex-1">
-              <div className="p-6">
-                {activeSection ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3 pb-4 border-b">
-                      {(() => {
-                        const section = SETTINGS_SECTIONS.find(s => s.id === activeSection);
-                        if (!section) return null;
-                        const Icon = section.icon;
-                        return (
-                          <>
-                            <div
-                              className="p-3 rounded-xl"
-                              style={{ backgroundColor: `${section.color}15`, color: section.color }}
-                            >
-                              <Icon className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold">{section.label}</h3>
-                              <p className="text-muted-foreground">{section.description}</p>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                    {renderSectionSettings(activeSection)}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-20">
-                    <Settings className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                    <h3 className="text-lg font-medium text-muted-foreground">اختر قسماً من القائمة</h3>
-                    <p className="text-sm text-muted-foreground/70">لعرض وتعديل إعداداته</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Footer */}
-            {activeSection && (
-              <div className="p-4 border-t bg-muted/30 flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setActiveSection(null)}>
-                  إلغاء
-                </Button>
-                <Button onClick={saveSettings} className="bg-[#01411C] hover:bg-[#065f41]">
-                  حفظ الإعدادات
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+        {settingsContent}
       </motion.div>
     </AnimatePresence>
   );
