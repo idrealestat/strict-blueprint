@@ -59,7 +59,6 @@ import { WorkspacePanel } from "@/components/workspace";
 import { TeamManagementPanel } from "@/components/team";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { toast as sonnerToast } from "sonner";
-import ComprehensiveAppSettings from "@/components/settings/ComprehensiveAppSettings";
 import CRMArchivePanel from "@/components/crm/CRMArchivePanel";
 
 interface Broker {
@@ -243,7 +242,6 @@ export default function RightSliderComplete({
   const [showReceiptsPanel, setShowReceiptsPanel] = useState(false);
   const [showWorkspacePanel, setShowWorkspacePanel] = useState(false);
   const [showTeamManagementPanel, setShowTeamManagementPanel] = useState(false);
-  const [showAppSettings, setShowAppSettings] = useState(false);
   const [showCRMArchive, setShowCRMArchive] = useState(false);
   const navigate = useNavigate();
   const { signOut, isAuthenticated, isOwner } = useAuth();
@@ -912,11 +910,6 @@ export default function RightSliderComplete({
           <TeamManagementPanel
             isOpen={showTeamManagementPanel}
             onClose={() => setShowTeamManagementPanel(false)}
-          />
-          {/* إعدادات التطبيق الشاملة */}
-          <ComprehensiveAppSettings
-            isOpen={showAppSettings}
-            onClose={() => setShowAppSettings(false)}
           />
           {/* أرشيف إدارة العملاء */}
           {showCRMArchive && (
