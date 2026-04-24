@@ -106,8 +106,8 @@ export default function AppSettingsPage() {
       </header>
 
       {/* محتوى الإعدادات */}
-      <main className="flex-1 relative">
-        <ComprehensiveAppSettings isOpen={true} onClose={handleClose} />
+      <main className="flex-1 relative min-h-0 overflow-hidden">
+        <ComprehensiveAppSettings variant="page" />
       </main>
     </div>
   );
