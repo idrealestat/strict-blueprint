@@ -39,15 +39,15 @@ export interface HelpHintProps {
 }
 
 const SIZE_MAP = {
-  xs: 'w-3.5 h-3.5',
-  sm: 'w-4 h-4',
-  md: 'w-5 h-5',
+  xs: 'w-5 h-5',
+  sm: 'w-6 h-6',
+  md: 'w-7 h-7',
 } as const;
 
 const ICON_SIZE_MAP = {
-  xs: 10,
-  sm: 12,
-  md: 14,
+  xs: 13,
+  sm: 15,
+  md: 17,
 } as const;
 
 export function HelpHint({
@@ -70,16 +70,15 @@ export function HelpHint({
       onClick={(e) => {
         // منع تنشيط الزر الأصلي عند الضغط على علامة المساعدة
         e.stopPropagation();
-        e.preventDefault();
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
       }}
       className={cn(
         'inline-flex items-center justify-center rounded-full',
-        'bg-blue-500 text-white shadow-sm',
-        'ring-1 ring-blue-400/50 hover:ring-2 hover:ring-blue-300',
-        'cursor-help align-middle shrink-0',
+        'bg-primary text-primary-foreground shadow-lg shadow-primary/30',
+        'ring-2 ring-primary/30 hover:ring-4 hover:ring-primary/25',
+        'cursor-help align-middle shrink-0 z-50',
         'transition-all duration-150',
         SIZE_MAP[size],
         className
