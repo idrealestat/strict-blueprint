@@ -208,9 +208,14 @@ export default function SimpleDashboard({
           <div className="flex items-center justify-between">
             {/* Right: Burger Menu */}
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setRightMenuOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white h-9 w-9">
-                <Menu className="w-4 h-4" />
-              </Button>
+              <div className="relative">
+                <Button variant="outline" size="icon" onClick={() => setRightMenuOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white h-9 w-9">
+                  <Menu className="w-4 h-4" />
+                </Button>
+                <div className="absolute -top-2 -left-2">
+                  <HelpHint size="xs" side="bottom" title="القائمة الرئيسية" description="فتح القائمة الجانبية الرئيسية للتنقل بين أقسام التطبيق والإعدادات." />
+                </div>
+              </div>
             </div>
 
             {/* Center: Logo */}
@@ -225,13 +230,23 @@ export default function SimpleDashboard({
 
             {/* Left: Left Sidebar Icon + Bell - Conditional on left_slider_enabled */}
             <div className="flex items-center gap-2">
-              {flags.left_slider_enabled && <Button variant="outline" size="icon" onClick={() => setLeftSidebarOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white">
-                  <PanelLeft className="w-5 h-5" />
-                </Button>}
-              <Button variant="outline" size="icon" onClick={() => setNotificationsOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all relative bg-white/10 text-white">
-                <Bell className="w-5 h-5" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-              </Button>
+              {flags.left_slider_enabled && <div className="relative">
+                <Button variant="outline" size="icon" onClick={() => setLeftSidebarOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white">
+                    <PanelLeft className="w-5 h-5" />
+                  </Button>
+                  <div className="absolute -top-2 -right-2">
+                    <HelpHint size="xs" side="bottom" title="الأدوات السريعة" description="فتح قائمة الأدوات المختصرة مثل الطلبات الخاصة والحاسبة والتحليلات." />
+                  </div>
+                </div>}
+              <div className="relative">
+                <Button variant="outline" size="icon" onClick={() => setNotificationsOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all relative bg-white/10 text-white">
+                  <Bell className="w-5 h-5" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                </Button>
+                <div className="absolute -bottom-2 -right-2">
+                  <HelpHint size="xs" side="bottom" title="الإشعارات" description="عرض تنبيهات الحساب والفرص والمواعيد والتحديثات المهمة." />
+                </div>
+              </div>
             </div>
           </div>
         </div>
