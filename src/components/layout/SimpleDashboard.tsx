@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Bell, PanelLeft, Building2, Globe, Users, Star, Phone, Calendar, MessageSquare, Component, TrendingUp, Sparkles, Calculator, Layers, LucideIcon, X, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { HelpHint } from "@/components/ui/help-hint";
 
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
 export interface User {
@@ -183,6 +184,19 @@ export default function SimpleDashboard({
       return flags[service.flagKey] === true;
     });
   }, [allServices, flags]);
+
+  const serviceHintDescriptions: Record<string, string> = {
+    platform: "الوصول إلى منصتك العامة وإدارة العروض والطلبات المنشورة.",
+    "spatial-intelligence": "تحليل الموقع والمناطق والفرص العقارية حسب الذكاء المكاني.",
+    publishing: "نشر الإعلانات العقارية وربطها بالمنصات والقنوات المتاحة.",
+    "customer-management": "إدارة العملاء والمتابعات والمهام وسجل التواصل.",
+    "offers-requests": "متابعة العروض والطلبات المقبولة وتنظيمها من مكان واحد.",
+    analytics: "عرض مؤشرات السوق والأداء والإحصاءات العقارية.",
+    "smart-matches": "استعراض الفرص الذكية المطابقة لعروضك وطلباتك.",
+    calendar: "إدارة المواعيد والمعاينات وتذكيرات العملاء.",
+    "quick-calculator": "فتح أدوات الحساب السريعة للتمويل والأسعار.",
+  };
+
   return <div dir="rtl" className="min-h-screen transition-all duration-300" style={{
     background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 25%, #fffef7 100%)"
   }}>
