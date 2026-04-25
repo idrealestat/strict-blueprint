@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { HelpHint } from '@/components/ui/help-hint';
 
 interface DashboardBottomNavProps {
   onNavigate: (page: string) => void;
@@ -291,6 +292,9 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
           className="relative flex items-center justify-center -mt-8"
           whileTap={{ scale: 0.95 }}
         >
+          <div className="absolute -top-1 -left-1 z-20">
+            <HelpHint size="xs" side="top" title={buttonInfo.label} description="فتح الخيارات السريعة مثل إضافة عميل ونسخ روابط الخدمات." />
+          </div>
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8960C] shadow-[0_4px_20px_rgba(212,175,55,0.5)] flex items-center justify-center border-4 border-[#01411C]">
             <Plus className="w-8 h-8 text-[#01411C]" />
           </div>
@@ -302,9 +306,12 @@ export default function DashboardBottomNav({ onNavigate }: DashboardBottomNavPro
       <motion.button
         key={buttonId}
         onClick={() => handleButtonClick(buttonId)}
-        className="flex flex-col items-center gap-0.5 md:gap-0 px-1.5 md:px-2 py-1 md:py-0.5 rounded-lg hover:bg-white/10 transition-all group"
+        className="relative flex flex-col items-center gap-0.5 md:gap-0 px-1.5 md:px-2 py-1 md:py-0.5 rounded-lg hover:bg-white/10 transition-all group"
         whileTap={{ scale: 0.95 }}
       >
+        <div className="absolute -top-2 -left-1 z-20">
+          <HelpHint size="xs" side="top" title={buttonInfo.label} description={`فتح ${buttonInfo.label} من الشريط السفلي.`} />
+        </div>
         <div 
           className="flex items-center justify-center transition-transform group-hover:scale-110 w-8 h-8 md:w-7 md:h-7 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50"
         >
