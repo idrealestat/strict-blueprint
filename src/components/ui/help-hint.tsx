@@ -90,8 +90,8 @@ export function HelpHint({
 
   const content = (
     <div className="text-right" dir="rtl">
-      <div className="font-bold text-amber-300 mb-1">{title}</div>
-      <div className="text-xs text-white/95 leading-relaxed">{description}</div>
+      <div className="font-bold text-primary mb-1">{title}</div>
+      <div className="text-xs text-popover-foreground leading-relaxed">{description}</div>
     </div>
   );
 
@@ -103,7 +103,7 @@ export function HelpHint({
         <PopoverContent
           side={side}
           align="center"
-          className="bg-gradient-to-br from-emerald-700 to-emerald-800 text-white border-2 border-amber-500 max-w-[260px] p-3 z-[100]"
+          className="bg-popover text-popover-foreground border-2 border-primary max-w-[260px] p-3 z-[100] shadow-lg"
         >
           {content}
         </PopoverContent>
@@ -118,7 +118,7 @@ export function HelpHint({
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
         <TooltipContent
           side={side}
-          className="bg-gradient-to-br from-emerald-700 to-emerald-800 text-white border-2 border-amber-500 max-w-[260px] p-3 z-[100]"
+          className="bg-popover text-popover-foreground border-2 border-primary max-w-[260px] p-3 z-[100] shadow-lg"
         >
           {content}
         </TooltipContent>
