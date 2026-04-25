@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Bell, PanelLeft, Building2, Globe, Users, Star, Phone, Calendar, MessageSquare, Component, TrendingUp, Sparkles, Calculator, Layers, LucideIcon, X, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { HelpHint } from "@/components/ui/help-hint";
 
 export type UserType = "individual" | "team" | "office" | "company" | "owner-buyer";
 export interface User {
@@ -183,6 +184,19 @@ export default function SimpleDashboard({
       return flags[service.flagKey] === true;
     });
   }, [allServices, flags]);
+
+  const serviceHintDescriptions: Record<string, string> = {
+    platform: "الوصول إلى منصتك العامة وإدارة العروض والطلبات المنشورة.",
+    "spatial-intelligence": "تحليل الموقع والمناطق والفرص العقارية حسب الذكاء المكاني.",
+    publishing: "نشر الإعلانات العقارية وربطها بالمنصات والقنوات المتاحة.",
+    "customer-management": "إدارة العملاء والمتابعات والمهام وسجل التواصل.",
+    "offers-requests": "متابعة العروض والطلبات المقبولة وتنظيمها من مكان واحد.",
+    analytics: "عرض مؤشرات السوق والأداء والإحصاءات العقارية.",
+    "smart-matches": "استعراض الفرص الذكية المطابقة لعروضك وطلباتك.",
+    calendar: "إدارة المواعيد والمعاينات وتذكيرات العملاء.",
+    "quick-calculator": "فتح أدوات الحساب السريعة للتمويل والأسعار.",
+  };
+
   return <div dir="rtl" className="min-h-screen transition-all duration-300" style={{
     background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 25%, #fffef7 100%)"
   }}>
@@ -194,9 +208,14 @@ export default function SimpleDashboard({
           <div className="flex items-center justify-between">
             {/* Right: Burger Menu */}
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setRightMenuOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white h-9 w-9">
-                <Menu className="w-4 h-4" />
-              </Button>
+              <div className="relative">
+                <Button variant="outline" size="icon" onClick={() => setRightMenuOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white h-9 w-9">
+                  <Menu className="w-4 h-4" />
+                </Button>
+                <div className="absolute -top-2 -left-2">
+                  <HelpHint size="xs" side="bottom" title="القائمة الرئيسية" description="فتح القائمة الجانبية الرئيسية للتنقل بين أقسام التطبيق والإعدادات." />
+                </div>
+              </div>
             </div>
 
             {/* Center: Logo */}
@@ -211,13 +230,23 @@ export default function SimpleDashboard({
 
             {/* Left: Left Sidebar Icon + Bell - Conditional on left_slider_enabled */}
             <div className="flex items-center gap-2">
-              {flags.left_slider_enabled && <Button variant="outline" size="icon" onClick={() => setLeftSidebarOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white">
-                  <PanelLeft className="w-5 h-5" />
-                </Button>}
-              <Button variant="outline" size="icon" onClick={() => setNotificationsOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all relative bg-white/10 text-white">
-                <Bell className="w-5 h-5" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-              </Button>
+              {flags.left_slider_enabled && <div className="relative">
+                <Button variant="outline" size="icon" onClick={() => setLeftSidebarOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all bg-white/10 text-white">
+                    <PanelLeft className="w-5 h-5" />
+                  </Button>
+                  <div className="absolute -top-2 -right-2">
+                    <HelpHint size="xs" side="bottom" title="الأدوات السريعة" description="فتح قائمة الأدوات المختصرة مثل الطلبات الخاصة والحاسبة والتحليلات." />
+                  </div>
+                </div>}
+              <div className="relative">
+                <Button variant="outline" size="icon" onClick={() => setNotificationsOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all relative bg-white/10 text-white">
+                  <Bell className="w-5 h-5" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                </Button>
+                <div className="absolute -bottom-2 -right-2">
+                  <HelpHint size="xs" side="bottom" title="الإشعارات" description="عرض تنبيهات الحساب والفرص والمواعيد والتحديثات المهمة." />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -321,7 +350,10 @@ export default function SimpleDashboard({
                   onNavigate(service.navigateTo);
                 }
               };
-              return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
+              return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full relative">
+                    <div className="absolute top-2 left-2 z-20">
+                      <HelpHint size="sm" side="bottom" title={service.title} description={serviceHintDescriptions[service.id] || "فتح هذا القسم من لوحة التحكم."} />
+                    </div>
                     <CardContent className="p-4 md:p-6 text-center relative h-full aspect-square flex flex-col items-center justify-center">
                       <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
                         <IconComponent className={`w-6 h-6 md:w-8 md:h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
@@ -358,19 +390,22 @@ export default function SimpleDashboard({
             </div>
 
             <div className="flex items-center justify-center gap-8">
-              <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+              <div className="relative flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+                <div className="absolute -top-1 -left-1"><HelpHint size="xs" title="اتصال" description="بدء اتصال سريع مع العميل أو جهة التواصل." /></div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#01411C]">
                   <Phone className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#01411C]">اتصال</span>
               </div>
-              <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+              <div className="relative flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+                <div className="absolute -top-1 -left-1"><HelpHint size="xs" title="رسالة" description="إرسال رسالة أو متابعة سريعة للعميل." /></div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#01411C]">
                   <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#01411C]">رسالة</span>
               </div>
-              <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors" onClick={() => onNavigate("calendar")}>
+              <div className="relative flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors" onClick={() => onNavigate("calendar")}>
+                <div className="absolute -top-1 -left-1"><HelpHint size="xs" title="موعد" description="فتح التقويم لإنشاء أو متابعة موعد معاينة." /></div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#01411C] hover:bg-[#065f41] transition-colors">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>

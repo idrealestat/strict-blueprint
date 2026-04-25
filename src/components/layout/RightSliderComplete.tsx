@@ -60,6 +60,7 @@ import { TeamManagementPanel } from "@/components/team";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { toast as sonnerToast } from "sonner";
 import CRMArchivePanel from "@/components/crm/CRMArchivePanel";
+import { HelpHint } from "@/components/ui/help-hint";
 
 interface Broker {
   id: number;
@@ -707,6 +708,12 @@ export default function RightSliderComplete({
                     <span className="font-medium text-gray-900 group-hover:text-[#01411C] transition-colors">
                       {item.label}
                     </span>
+                    <HelpHint
+                      size="xs"
+                      side="left"
+                      title={item.label}
+                      description={(item as any).description || `فتح قسم ${item.label} من القائمة الرئيسية.`}
+                    />
                     {(item as any).badge && (
                       <span className="text-sm">{(item as any).badge}</span>
                     )}

@@ -43,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { HelpHint } from "@/components/ui/help-hint";
 
 interface LeftSliderCompleteProps {
   isOpen: boolean;
@@ -205,8 +206,11 @@ export function LeftSliderComplete({
   }) => (
     <button
       onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-[#D4AF37] hover:bg-[#01411C] hover:text-white transition text-center group"
+      className="relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-[#D4AF37] hover:bg-[#01411C] hover:text-white transition text-center group"
     >
+      <div className="absolute top-2 left-2">
+        <HelpHint size="xs" title={label} description={`فتح أداة ${label}.`} />
+      </div>
       <div className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-50 group-hover:bg-white">
         {icon}
       </div>
@@ -242,6 +246,7 @@ export function LeftSliderComplete({
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">{item.title}</span>
+                    <HelpHint size="xs" side="left" title={item.title} description={item.description} />
                     {item.badge && (
                       <Badge className="text-xs bg-[#D4AF37] text-[#01411C]">
                         {item.badge}
@@ -316,6 +321,7 @@ export function LeftSliderComplete({
                   <span className="font-medium text-gray-900 block text-right">
                     {item.title}
                   </span>
+                  <HelpHint size="xs" side="left" title={item.title} description={item.description} />
                   <p className="text-sm text-gray-500 text-right">{item.description}</p>
                 </div>
               </div>
