@@ -350,7 +350,10 @@ export default function SimpleDashboard({
                   onNavigate(service.navigateTo);
                 }
               };
-              return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full">
+              return <Card key={service.id} onClick={handleServiceClick} className="border-2 border-[#D4AF37] bg-gradient-to-br from-[#fffef7] to-white hover:border-[#01411C] transition-all hover:shadow-xl cursor-pointer group h-full relative">
+                    <div className="absolute top-2 left-2 z-20">
+                      <HelpHint size="sm" side="bottom" title={service.title} description={serviceHintDescriptions[service.id] || "فتح هذا القسم من لوحة التحكم."} />
+                    </div>
                     <CardContent className="p-4 md:p-6 text-center relative h-full aspect-square flex flex-col items-center justify-center">
                       <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform ${service.iconBgClass || "bg-gradient-to-r from-[#01411C] to-[#065f41]"} shadow-lg`}>
                         <IconComponent className={`w-6 h-6 md:w-8 md:h-8 ${service.iconBgClass?.includes("from-[#D4AF37]") ? "text-[#01411C]" : service.iconBgClass?.includes("blue") ? "text-white" : "text-[#D4AF37]"}`} />
@@ -387,19 +390,22 @@ export default function SimpleDashboard({
             </div>
 
             <div className="flex items-center justify-center gap-8">
-              <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+              <div className="relative flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+                <div className="absolute -top-1 -left-1"><HelpHint size="xs" title="اتصال" description="بدء اتصال سريع مع العميل أو جهة التواصل." /></div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#01411C]">
                   <Phone className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#01411C]">اتصال</span>
               </div>
-              <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+              <div className="relative flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors">
+                <div className="absolute -top-1 -left-1"><HelpHint size="xs" title="رسالة" description="إرسال رسالة أو متابعة سريعة للعميل." /></div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#01411C]">
                   <MessageSquare className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#01411C]">رسالة</span>
               </div>
-              <div className="flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors" onClick={() => onNavigate("calendar")}>
+              <div className="relative flex flex-col items-center gap-2 cursor-pointer hover:bg-white rounded-lg p-3 transition-colors" onClick={() => onNavigate("calendar")}>
+                <div className="absolute -top-1 -left-1"><HelpHint size="xs" title="موعد" description="فتح التقويم لإنشاء أو متابعة موعد معاينة." /></div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#01411C] hover:bg-[#065f41] transition-colors">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
