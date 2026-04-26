@@ -36,6 +36,13 @@ export interface HelpHintProps {
   className?: string;
   /** جانب ظهور الفقاعة */
   side?: 'top' | 'right' | 'bottom' | 'left';
+  /**
+   * المرجع/المصدر الداخلي لمحتوى التلميح.
+   * إجباري لمنع عرض أي معلومة بدون توثيق. استخدم 'TODO: <ملاحظة>' عند عدم
+   * توفر مصدر بعد. يُعرض في وضع التطوير فقط داخل الفقاعة، ويُحفظ دائماً
+   * في DOM عبر السمة data-help-source للتدقيق.
+   */
+  source: string;
 }
 
 const SIZE_MAP = {
@@ -56,17 +63,26 @@ export function HelpHint({
   size = 'sm',
   className,
   side = 'top',
+  source,
 }: HelpHintProps) {
   const { isEnabled } = useHelpHints();
   const isMobile = useIsMobile();
 
   if (!isEnabled) return null;
 
+  // تحذير في وضع التطوير عند غياب المصدر — لا يمنع التشغيل
+  if (import.meta.env.DEV && (!source || !source.trim())) {
+    console.warn(
+      `[HelpHint] Missing 'source' for hint "${title}". Use 'TODO: ...' if no source is available yet.`
+    );
+  }
+
   const trigger = (
     <span
       role="button"
       tabIndex={0}
       aria-label={`مساعدة: ${title}`}
+      data-help-source={source || 'TODO: no-source'}
       onClick={(e) => {
         // منع تنشيط الزر الأصلي عند الضغط على علامة المساعدة
         e.stopPropagation();
@@ -92,6 +108,11 @@ export function HelpHint({
     <div className="text-right" dir="rtl">
       <div className="font-bold text-primary mb-1">{title}</div>
       <div className="text-xs text-popover-foreground leading-relaxed">{description}</div>
+      {import.meta.env.DEV && (
+        <div className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
+          <span className="font-semibold">المصدر:</span> {source || 'TODO: no-source'}
+        </div>
+      )}
     </div>
   );
 
