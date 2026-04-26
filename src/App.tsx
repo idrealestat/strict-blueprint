@@ -65,6 +65,7 @@ import {
   PropertyRegistryPage,
   RegisteredUsersPage,
   PlanLimitsPage,
+  AIAssistantSettingsPage,
 } from "./pages/owner-dashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
