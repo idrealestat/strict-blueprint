@@ -65,6 +65,7 @@ import {
   PropertyRegistryPage,
   RegisteredUsersPage,
   PlanLimitsPage,
+  AIAssistantSettingsPage,
 } from "./pages/owner-dashboard";
 import SlugPlatformPage from "./pages/SlugPlatformPage";
 import SlugDistrictPage from "./pages/SlugDistrictPage";
@@ -706,6 +707,13 @@ const App = () => {
                     <BusinessCardGuard>
                       <RoleGuard allowedRoles={['owner']} showAccessDenied>
                         <PlanLimitsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
+                  <Route path="/app/owner-dashboard/ai-assistant" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <AIAssistantSettingsPage />
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />

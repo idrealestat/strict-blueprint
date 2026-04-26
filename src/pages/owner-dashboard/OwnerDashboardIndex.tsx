@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Crown, ChevronLeft, RefreshCw, Brain, Target, Globe, User, 
-  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database, Users, Sparkles
+  Building2, Clock, Layers, Ban, FileWarning, History, Shield, Database, Users, Sparkles, Bot
 } from "lucide-react";
 
 interface DashboardSection {
@@ -159,6 +159,14 @@ const OwnerDashboardIndex: React.FC = () => {
       icon: <Sparkles className="w-8 h-8" />,
       route: "/app/owner-dashboard/plan-limits",
       color: "from-amber-500 to-amber-600"
+    },
+    {
+      id: "ai-assistant",
+      title: "إعدادات المساعد الذكي",
+      description: "القواعد الذهبية الخمس لوساطه AI",
+      icon: <Bot className="w-8 h-8" />,
+      route: "/app/owner-dashboard/ai-assistant",
+      color: "from-emerald-700 to-emerald-800"
     }
   ];
 
