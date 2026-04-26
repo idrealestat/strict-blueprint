@@ -68,6 +68,7 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
                   side="bottom"
                   title="القائمة الرئيسية"
                   description="فتح القائمة الجانبية اليمنى للوصول إلى الملف الشخصي، المستندات، المحفظة، الإشعارات، المفضلة، الإحصائيات، المواعيد وغيرها."
+                  source="Internal: src/components/layout/RightSliderComplete.tsx — يضم بنود القائمة اليمنى الفعلية"
                 />
               </div>
             </div>
@@ -112,6 +113,7 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
                   side="bottom"
                   title="إعدادات التطبيق"
                   description="فتح القائمة اليسرى للوصول إلى إعدادات التطبيق الشامل، تخصيص الواجهة، وإدارة جميع ميزات حسابك."
+                  source="Internal: src/components/layout/LeftSliderComplete.tsx + src/components/settings/ComprehensiveAppSettings.tsx"
                 />
               </div>
             </div>
@@ -137,6 +139,7 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
                   side="bottom"
                   title="الإشعارات"
                   description="عرض جميع إشعارات حسابك: الفرص الذكية الجديدة، تذكيرات المواعيد، رسائل العملاء، تنبيهات النشر، وتحديثات التطبيق."
+                  source="Internal: src/hooks/useNotificationSystem.ts + جدول notifications في قاعدة البيانات"
                 />
               </div>
             </div>
