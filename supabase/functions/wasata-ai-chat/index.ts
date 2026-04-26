@@ -483,26 +483,126 @@ serve(async (req) => {
 
     // جلب العقارات من قاعدة البيانات
     let properties: PropertyListing[] = [];
+    let customers: CRMCustomer[] = [];
+    let specialRequests: SpecialRequest[] = [];
+    let appointments: CalendarAppointment[] = [];
+    let tasks: CRMTask[] = [];
+    let analytics: AnalyticsContext | null = null;
     try {
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? supabaseAnon;
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      
-      const { data: listings, error: listingsError } = await adminClient
-        .from('platform_listings')
-        .select('id, title, city, district, price, bedrooms, living_rooms, purpose, property_type, status, area')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (!listingsError && listings) {
-        properties = listings as PropertyListing[];
-        console.log(`Found ${properties.length} properties for user ${userId}`);
+
+      const nowIso = new Date().toISOString();
+      const thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [
+        listingsRes,
+        customersRes,
+        requestsRes,
+        appointmentsRes,
+        tasksRes,
+        viewsRes,
+        recentViewsRes,
+      ] = await Promise.all([
+        adminClient
+          .from('platform_listings')
+          .select('id, title, city, district, price, bedrooms, living_rooms, purpose, property_type, status, area, views')
+          .eq('user_id', userId)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        adminClient
+          .from('crm_customers')
+          .select('id, name, phone, email, status, priority, source, budget, property_type, location, next_follow_up, last_contact, notes, tags')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(50),
+        adminClient
+          .from('special_requests')
+          .select('id, property_type, city, district, min_area, max_area, description, urgency, status, found_count, created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(30),
+        adminClient
+          .from('calendar_appointments')
+          .select('id, title, customer_name, customer_phone, appointment_date, appointment_time, appointment_type, status, location, property_title, notes')
+          .eq('user_id', userId)
+          .gte('appointment_date', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+          .order('appointment_date', { ascending: true })
+          .limit(30),
+        adminClient
+          .from('crm_tasks')
+          .select('id, title, description, priority, status, due_date, customer_id')
+          .eq('user_id', userId)
+          .neq('status', 'completed')
+          .order('due_date', { ascending: true, nullsFirst: false })
+          .limit(30),
+        adminClient
+          .from('offer_views_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+        adminClient
+          .from('offer_views_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', thirtyDaysAgoIso),
+      ]);
+
+      if (!listingsRes.error && listingsRes.data) properties = listingsRes.data as PropertyListing[];
+      if (!customersRes.error && customersRes.data) customers = customersRes.data as CRMCustomer[];
+      if (!requestsRes.error && requestsRes.data) specialRequests = requestsRes.data as SpecialRequest[];
+      if (!appointmentsRes.error && appointmentsRes.data) appointments = appointmentsRes.data as CalendarAppointment[];
+      if (!tasksRes.error && tasksRes.data) tasks = tasksRes.data as CRMTask[];
+
+      // حساب التحليلات
+      const cityCounts: Record<string, number> = {};
+      const districtCounts: Record<string, number> = {};
+      let priceSum = 0;
+      let priceCount = 0;
+      let publishedCount = 0;
+      for (const p of properties) {
+        if (p.city) cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
+        if (p.district) districtCounts[p.district] = (districtCounts[p.district] || 0) + 1;
+        if (typeof p.price === 'number' && p.price > 0) { priceSum += p.price; priceCount++; }
+        if (p.status === 'published') publishedCount++;
       }
+      const customersByStatus: Record<string, number> = {};
+      for (const c of customers) {
+        const k = c.status || 'unknown';
+        customersByStatus[k] = (customersByStatus[k] || 0) + 1;
+      }
+      const topCities = Object.entries(cityCounts)
+        .sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([city, count]) => ({ city, count }));
+      const topDistricts = Object.entries(districtCounts)
+        .sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([district, count]) => ({ district, count }));
+
+      const upcomingAppointments = appointments.filter(a => a.appointment_date >= nowIso && a.status !== 'cancelled').length;
+      const pendingTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled').length;
+      const pendingSpecialRequests = specialRequests.filter(r => r.status === 'pending').length;
+
+      analytics = {
+        totalListings: properties.length,
+        publishedListings: publishedCount,
+        totalViews: viewsRes.count ?? 0,
+        viewsLast30Days: recentViewsRes.count ?? 0,
+        topCities,
+        topDistricts,
+        avgPrice: priceCount > 0 ? Math.round(priceSum / priceCount) : null,
+        totalCustomers: customers.length,
+        customersByStatus,
+        pendingTasks,
+        upcomingAppointments,
+        pendingSpecialRequests,
+      };
+
+      console.log(`Context for ${userId}: ${properties.length} props, ${customers.length} customers, ${specialRequests.length} requests, ${appointments.length} appts, ${tasks.length} tasks`);
     } catch (dbError) {
       console.error('Error fetching properties:', dbError);
     }
 
-    const systemPrompt = getSystemPrompt(userName, properties);
+    const systemPrompt = getSystemPrompt(userName, properties, customers, specialRequests, appointments, tasks, analytics);
 
     console.log("Processing chat request for:", userName);
     console.log("Messages count:", messages.length);
