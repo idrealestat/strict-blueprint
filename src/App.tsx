@@ -710,6 +710,13 @@ const App = () => {
                       </RoleGuard>
                     </BusinessCardGuard>
                   } />
+                  <Route path="/app/owner-dashboard/ai-assistant" element={
+                    <BusinessCardGuard>
+                      <RoleGuard allowedRoles={['owner']} showAccessDenied>
+                        <AIAssistantSettingsPage />
+                      </RoleGuard>
+                    </BusinessCardGuard>
+                  } />
                   
                   <Route path="/app/customers" element={
                     <BusinessCardGuard>
