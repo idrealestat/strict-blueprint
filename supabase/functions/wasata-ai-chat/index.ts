@@ -52,8 +52,86 @@ interface PropertyListing {
   area?: number;
 }
 
+interface CRMCustomer {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  source?: string | null;
+  budget?: string | null;
+  property_type?: string | null;
+  location?: string | null;
+  next_follow_up?: string | null;
+  last_contact?: string | null;
+  notes?: string | null;
+  tags?: string[] | null;
+}
+
+interface SpecialRequest {
+  id: string;
+  property_type: string;
+  city: string;
+  district?: string | null;
+  min_area?: number | null;
+  max_area?: number | null;
+  description?: string | null;
+  urgency?: string | null;
+  status?: string | null;
+  found_count?: number | null;
+  created_at: string;
+}
+
+interface CalendarAppointment {
+  id: string;
+  title: string;
+  customer_name: string;
+  customer_phone?: string | null;
+  appointment_date: string;
+  appointment_time: string;
+  appointment_type: string;
+  status: string;
+  location?: string | null;
+  property_title?: string | null;
+  notes?: string | null;
+}
+
+interface CRMTask {
+  id: string;
+  title: string;
+  description?: string | null;
+  priority: string;
+  status: string;
+  due_date?: string | null;
+  customer_id?: string | null;
+}
+
+interface AnalyticsContext {
+  totalListings: number;
+  publishedListings: number;
+  totalViews: number;
+  viewsLast30Days: number;
+  topCities: { city: string; count: number }[];
+  topDistricts: { district: string; count: number }[];
+  avgPrice: number | null;
+  totalCustomers: number;
+  customersByStatus: Record<string, number>;
+  pendingTasks: number;
+  upcomingAppointments: number;
+  pendingSpecialRequests: number;
+}
+
 // البرومبت المحدث لـ Wasata AI - المساعد العقاري السعودي المتخصص
-const getSystemPrompt = (userName: string, properties: PropertyListing[] = []) => {
+const getSystemPrompt = (
+  userName: string,
+  properties: PropertyListing[] = [],
+  customers: CRMCustomer[] = [],
+  specialRequests: SpecialRequest[] = [],
+  appointments: CalendarAppointment[] = [],
+  tasks: CRMTask[] = [],
+  analytics: AnalyticsContext | null = null,
+) => {
   // بناء سياق العقارات
   let propertiesContext = '';
   if (properties.length > 0) {
@@ -86,6 +164,90 @@ ${properties.map((p, i) => {
 `;
   }
 
+  // سياق العملاء
+  let customersContext = '';
+  if (customers.length > 0) {
+    customersContext = `
+
+## 👥 عملاؤك في إدارة العملاء (${customers.length} عميل):
+${customers.map((c, i) => `${i + 1}. **${c.name}** [ID: ${c.id}]
+   - الجوال: ${c.phone || 'غير متوفر'} | البريد: ${c.email || 'غير متوفر'}
+   - الحالة: ${c.status || 'غير محددة'} | الأولوية: ${c.priority || 'عادية'}
+   - الميزانية: ${c.budget || 'غير محددة'} | نوع العقار المطلوب: ${c.property_type || 'غير محدد'}
+   - الموقع المفضل: ${c.location || 'غير محدد'}
+   - المصدر: ${c.source || 'غير محدد'} | الوسوم: ${(c.tags || []).join(', ') || 'لا يوجد'}
+   - آخر تواصل: ${c.last_contact || 'لا يوجد'} | المتابعة القادمة: ${c.next_follow_up || 'لا توجد'}
+   - ملاحظات: ${c.notes ? c.notes.substring(0, 150) : 'لا توجد'}`).join('\n')}
+
+للانتقال إلى عميل: [ACTION:VIEW_CUSTOMER:معرف_العميل:اسم_العميل]
+`;
+  }
+
+  // سياق الطلبات (Special Requests / تبويب الطلبات)
+  let requestsContext = '';
+  if (specialRequests.length > 0) {
+    requestsContext = `
+
+## 📨 الطلبات (تبويب الطلبات في منصتي) — ${specialRequests.length} طلب:
+${specialRequests.map((r, i) => `${i + 1}. [ID: ${r.id}] ${r.property_type} في ${r.city}${r.district ? ` - ${r.district}` : ''}
+   - المساحة: ${r.min_area || '?'} → ${r.max_area || '?'} م² | الأولوية: ${r.urgency || 'عادية'}
+   - الحالة: ${r.status || 'pending'} | عدد المطابقات: ${r.found_count ?? 0}
+   - الوصف: ${r.description ? r.description.substring(0, 150) : 'لا يوجد'}`).join('\n')}
+`;
+  }
+
+  // سياق المواعيد
+  let appointmentsContext = '';
+  if (appointments.length > 0) {
+    appointmentsContext = `
+
+## 📅 المواعيد القادمة (${appointments.length} موعد):
+${appointments.map((a, i) => `${i + 1}. **${a.title}** [ID: ${a.id}]
+   - العميل: ${a.customer_name} ${a.customer_phone ? `(${a.customer_phone})` : ''}
+   - التاريخ: ${a.appointment_date} الساعة ${a.appointment_time}
+   - النوع: ${a.appointment_type} | الحالة: ${a.status}
+   - الموقع: ${a.location || 'غير محدد'} | العقار: ${a.property_title || 'غير محدد'}
+   - ملاحظات: ${a.notes ? a.notes.substring(0, 100) : 'لا يوجد'}`).join('\n')}
+`;
+  }
+
+  // سياق المهام
+  let tasksContext = '';
+  if (tasks.length > 0) {
+    tasksContext = `
+
+## ✅ المهام (${tasks.length} مهمة):
+${tasks.map((t, i) => `${i + 1}. **${t.title}** [ID: ${t.id}]
+   - الأولوية: ${t.priority} | الحالة: ${t.status}
+   - تاريخ الاستحقاق: ${t.due_date || 'بدون'}
+   - الوصف: ${t.description ? t.description.substring(0, 120) : 'لا يوجد'}`).join('\n')}
+`;
+  }
+
+  // سياق التحليلات
+  let analyticsContext = '';
+  if (analytics) {
+    analyticsContext = `
+
+## 📊 تحليلات تطبيقك (بياناتك الفعلية):
+- إجمالي الإعلانات: ${analytics.totalListings} (منشور: ${analytics.publishedListings})
+- إجمالي المشاهدات على عروضك: ${analytics.totalViews} (آخر 30 يوم: ${analytics.viewsLast30Days})
+- متوسط سعر عقاراتك: ${analytics.avgPrice ? analytics.avgPrice.toLocaleString() + ' ريال' : 'غير متاح'}
+- أكثر المدن نشاطاً لديك: ${analytics.topCities.map(c => `${c.city} (${c.count})`).join('، ') || 'لا يوجد'}
+- أكثر الأحياء نشاطاً لديك: ${analytics.topDistricts.map(d => `${d.district} (${d.count})`).join('، ') || 'لا يوجد'}
+- إجمالي العملاء: ${analytics.totalCustomers} | حسب الحالة: ${Object.entries(analytics.customersByStatus).map(([k,v]) => `${k}:${v}`).join('، ') || 'لا يوجد'}
+- المهام المعلّقة: ${analytics.pendingTasks}
+- المواعيد القادمة: ${analytics.upcomingAppointments}
+- الطلبات قيد المعالجة: ${analytics.pendingSpecialRequests}
+
+## 📈 تحليلات السوق المرجعية (مصادر رسمية):
+- المؤشرات العقارية الرسمية: rega.gov.sa/indicators
+- موقع عقار: sa.aqar.fm | عقار ساس: aqarsas.sa
+- منصة سكني: sakani.sa | منصة إيجار: ejar.sa
+(لا تذكر أرقام سوق دون مصدر صريح وفق القاعدة الذهبية #3)
+`;
+  }
+
   return `
 # 🏠 Wasata AI - المساعد العقاري السعودي المتخصص
 
@@ -104,7 +266,7 @@ ${properties.map((p, i) => {
 **اسم المستخدم:** ${userName} - هذا اسم العميل الذي أتحدث معه، وليس اسمي أنا!
 
 ⚠️ **تنبيه حاسم:** اسمي الوحيد هو "Wasata AI" أو "وساطه AI". لا أستخدم أبداً اسم المستخدم كاسم لي!
-${propertiesContext}
+${propertiesContext}${customersContext}${requestsContext}${appointmentsContext}${tasksContext}${analyticsContext}
 
 ## 🎯 التخصص العقاري السعودي
 
