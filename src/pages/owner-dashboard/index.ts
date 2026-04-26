@@ -18,3 +18,4 @@ export { default as ChangelogPage } from './ChangelogPage';
 export { default as PropertyRegistryPage } from './PropertyRegistryPage';
 export { default as RegisteredUsersPage } from './RegisteredUsersPage';
 export { default as PlanLimitsPage } from './PlanLimitsPage';
+export { default as AIAssistantSettingsPage } from './AIAssistantSettingsPage';
