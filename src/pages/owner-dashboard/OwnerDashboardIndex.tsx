@@ -166,7 +166,7 @@ const OwnerDashboardIndex: React.FC = () => {
       description: "القواعد الذهبية الخمس لوساطه AI",
       icon: <Bot className="w-8 h-8" />,
       route: "/app/owner-dashboard/ai-assistant",
-      color: "from-[#01411C] to-[#065f41]"
+      color: "from-emerald-700 to-emerald-800"
     }
   ];
 
