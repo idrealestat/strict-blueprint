@@ -1051,19 +1051,30 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                         {message.content}
                       </p>
                       
-                      {/* زر تشغيل الصوت لرسائل المساعد - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
-                      {voiceFeaturesEnabled && message.role === "assistant" && message.content.length > 10 && (
-                        <button
-                          onClick={() => speakMessage(message.content)}
-                          className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
-                          title="تشغيل الرسالة صوتياً"
-                        >
-                          {isSpeaking ? (
-                            <VolumeX className="w-3 h-3 text-[#01411C]" />
-                          ) : (
-                            <Volume2 className="w-3 h-3 text-[#01411C]" />
+                      {/* أزرار أدوات الرسالة (نسخ + صوت) - تظهر لرسائل المساعد فقط */}
+                      {message.role === "assistant" && message.content.length > 10 && (
+                        <div className="absolute top-2 left-2 flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => copyToClipboard(message.content)}
+                            className="p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
+                            title="نسخ الرد"
+                          >
+                            <Copy className="w-3 h-3 text-[#01411C]" />
+                          </button>
+                          {voiceFeaturesEnabled && (
+                            <button
+                              onClick={() => speakMessage(message.content)}
+                              className="p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
+                              title="تشغيل الرسالة صوتياً"
+                            >
+                              {isSpeaking ? (
+                                <VolumeX className="w-3 h-3 text-[#01411C]" />
+                              ) : (
+                                <Volume2 className="w-3 h-3 text-[#01411C]" />
+                              )}
+                            </button>
                           )}
-                        </button>
+                        </div>
                       )}
                     </div>
                     
