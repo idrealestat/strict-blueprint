@@ -429,6 +429,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     setTimeout(() => handleSend(actionText), 100);
   };
 
+  // إزالة رموز [ACTION:...] من النص الظاهر للمستخدم
+  const stripActionTokens = (text: string): string => {
+    return text
+      .replace(/\[ACTION:[A-Z_]+:[^\]]+\]/g, '')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
   // Extract context-aware actions from AI response
   const extractActions = (content: string, userInput: string): ActionButton[] => {
     const actions: ActionButton[] = [];
@@ -448,6 +457,32 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       });
     }
 
+    // استخراج أزرار العملاء [ACTION:VIEW_CUSTOMER:id:name]
+    const customerActionRegex = /\[ACTION:VIEW_CUSTOMER:([^:]+):([^\]]+)\]/g;
+    while ((match = customerActionRegex.exec(content)) !== null) {
+      const [, customerId, customerName] = match;
+      actions.push({
+        icon: '👤',
+        text: `بطاقة: ${customerName}`,
+        action: `customer:${customerId}`,
+        type: 'action',
+        data: { id: customerId, name: customerName }
+      });
+    }
+
+    // استخراج أزرار الاتصال [ACTION:CALL:phone:name]
+    const callActionRegex = /\[ACTION:CALL:([^:]+):([^\]]+)\]/g;
+    while ((match = callActionRegex.exec(content)) !== null) {
+      const [, phone, name] = match;
+      actions.push({
+        icon: '📞',
+        text: `اتصال بـ ${name}`,
+        action: `call:${phone}`,
+        type: 'call',
+        data: { phone, name }
+      });
+    }
+
     // استخراج أزرار المقارنة
     const compareActionRegex = /\[ACTION:COMPARE_PROPERTIES:([^:]+):([^\]]+)\]/g;
     while ((match = compareActionRegex.exec(content)) !== null) {
@@ -459,43 +494,6 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         type: 'navigate',
         data: { ids: propertyIds.split(',') }
       });
-    }
-
-    if (userInputLower.includes('عملاء') || userInputLower.includes('كانبان')) {
-      actions.push({ icon: '👥', text: 'فتح الكانبان', action: 'navigate:crm', type: 'navigate' });
-      if (customers.length > 0) {
-        actions.push({
-          icon: '📞',
-          text: `اتصال بـ ${customers[0].name}`,
-          action: 'call:customer',
-          type: 'call',
-          data: { phone: customers[0].phone, name: customers[0].name }
-        });
-      }
-    }
-
-    if (userInputLower.includes('عروض') || userInputLower.includes('منصة') || userInputLower.includes('عقار')) {
-      actions.push({ icon: '🏠', text: 'فتح منصتي', action: 'navigate:platform', type: 'navigate' });
-    }
-
-    if (userInputLower.includes('موعد') || userInputLower.includes('تقويم')) {
-      actions.push({ icon: '📅', text: 'فتح التقويم', action: 'navigate:calendar', type: 'navigate' });
-    }
-
-    if (userInputLower.includes('تقارير') || userInputLower.includes('إحصائيات')) {
-      actions.push({ icon: '📊', text: 'التقارير', action: 'navigate:reports', type: 'navigate' });
-    }
-
-    if (userInputLower.includes('حاسبة') || userInputLower.includes('تمويل')) {
-      actions.push({ icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' });
-    }
-
-    // Default actions if none found
-    if (actions.length === 0) {
-      actions.push(
-        { icon: '👥', text: 'العملاء', action: 'navigate:crm', type: 'navigate' },
-        { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' }
-      );
     }
 
     return actions;
