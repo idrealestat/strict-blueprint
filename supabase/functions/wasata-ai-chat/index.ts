@@ -577,6 +577,36 @@ serve(async (req) => {
       if (!appointmentsRes.error && appointmentsRes.data) appointments = appointmentsRes.data as CalendarAppointment[];
       if (!tasksRes.error && tasksRes.data) tasks = tasksRes.data as CRMTask[];
 
+      // ربط العملاء بالعروض: حساب linked_listings_count لكل عميل
+      // المطابقة تتم بمقارنة phone (أو owner_phone في العقار) بشكل مرن
+      try {
+        const { data: linkRows } = await adminClient
+          .from('platform_listings')
+          .select('owner_phone, owner_id_number, linked_customer_id')
+          .eq('user_id', userId)
+          .is('deleted_at', null);
+        const phoneCounts: Record<string, number> = {};
+        const idCounts: Record<string, number> = {};
+        const custIdCounts: Record<string, number> = {};
+        const norm = (p?: string | null) => (p || '').replace(/\D/g, '').replace(/^966/, '').replace(/^0/, '');
+        for (const l of (linkRows || [])) {
+          const ph = norm((l as any).owner_phone);
+          if (ph) phoneCounts[ph] = (phoneCounts[ph] || 0) + 1;
+          const idn = (l as any).owner_id_number;
+          if (idn) idCounts[idn] = (idCounts[idn] || 0) + 1;
+          const cid = (l as any).linked_customer_id;
+          if (cid) custIdCounts[cid] = (custIdCounts[cid] || 0) + 1;
+        }
+        for (const c of customers) {
+          const ph = norm(c.phone);
+          c.linked_listings_count =
+            (custIdCounts[c.id] || 0) +
+            (ph ? (phoneCounts[ph] || 0) : 0);
+        }
+      } catch (linkErr) {
+        console.error('linked_listings_count error:', linkErr);
+      }
+
       // حساب التحليلات
       const cityCounts: Record<string, number> = {};
       const districtCounts: Record<string, number> = {};
