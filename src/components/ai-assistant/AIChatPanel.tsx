@@ -96,6 +96,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const { isTranscribing, transcribe } = useSpeechToText();
   const { isSpeaking, isLoading: ttsLoading, speak, stop: stopSpeaking } = useTextToSpeech();
   const { conversationId, createConversation, loadConversation, saveMessage, clearHistory } = useChatHistory();
+  const { copyToClipboard } = useClipboard();
   
   // إعدادات الصوت - تحميل من localStorage
   // إعدادات الصوت - تحميل من localStorage (الإعدادات الجديدة)
