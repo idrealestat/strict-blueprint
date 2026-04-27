@@ -682,8 +682,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         }
       }
 
-      // تشغيل الرد الصوتي
-      await speakResponse(assistantContent);
+      // تشغيل الرد الصوتي بالنص النظيف
+      await speakResponse(cleanedContent);
 
     } catch (error) {
       console.error("Error:", error);
