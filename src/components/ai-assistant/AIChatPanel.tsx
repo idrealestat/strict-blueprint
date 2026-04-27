@@ -652,16 +652,17 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         ));
       });
 
-      // Add actions to the final message
+      // Add actions to the final message + clean ACTION tokens from displayed text
       const actions = extractActions(assistantContent, textToSend);
+      const cleanedContent = stripActionTokens(assistantContent);
       setMessages(prev => prev.map(m => 
         m.id === assistantMessageId 
-          ? { ...m, actions }
+          ? { ...m, content: cleanedContent, actions }
           : m
       ));
 
-      // حفظ رد المساعد
-      saveMessage('assistant', assistantContent, actions);
+      // حفظ رد المساعد بالنص النظيف
+      saveMessage('assistant', cleanedContent, actions);
 
       // 3️⃣ التحقق من طلب إنشاء موعد وتنفيذه
       const inputLower = textToSend.toLowerCase();
