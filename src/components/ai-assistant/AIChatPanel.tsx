@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
-import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2, Trash2, History } from "lucide-react";
+import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2, Trash2, History, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useWasataAI } from "@/hooks/useWasataAI";
@@ -8,6 +8,7 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { useChatHistory } from "@/hooks/useChatHistory";
+import { useClipboard } from "@/hooks/useClipboard";
 import { processLocalCommand } from "@/utils/wasataLocalCommands";
 import { triggerNotification } from "@/hooks/useNotificationSystem";
 import { AudioProcessingOverlay } from "./AudioProcessingOverlay";
@@ -95,6 +96,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const { isTranscribing, transcribe } = useSpeechToText();
   const { isSpeaking, isLoading: ttsLoading, speak, stop: stopSpeaking } = useTextToSpeech();
   const { conversationId, createConversation, loadConversation, saveMessage, clearHistory } = useChatHistory();
+  const { copyToClipboard } = useClipboard();
   
   // إعدادات الصوت - تحميل من localStorage
   // إعدادات الصوت - تحميل من localStorage (الإعدادات الجديدة)
@@ -429,6 +431,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
     setTimeout(() => handleSend(actionText), 100);
   };
 
+  // إزالة رموز [ACTION:...] من النص الظاهر للمستخدم
+  const stripActionTokens = (text: string): string => {
+    return text
+      .replace(/\[ACTION:[A-Z_]+:[^\]]+\]/g, '')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
   // Extract context-aware actions from AI response
   const extractActions = (content: string, userInput: string): ActionButton[] => {
     const actions: ActionButton[] = [];
@@ -448,6 +459,32 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       });
     }
 
+    // استخراج أزرار العملاء [ACTION:VIEW_CUSTOMER:id:name]
+    const customerActionRegex = /\[ACTION:VIEW_CUSTOMER:([^:]+):([^\]]+)\]/g;
+    while ((match = customerActionRegex.exec(content)) !== null) {
+      const [, customerId, customerName] = match;
+      actions.push({
+        icon: '👤',
+        text: `بطاقة: ${customerName}`,
+        action: `customer:${customerId}`,
+        type: 'action',
+        data: { id: customerId, name: customerName }
+      });
+    }
+
+    // استخراج أزرار الاتصال [ACTION:CALL:phone:name]
+    const callActionRegex = /\[ACTION:CALL:([^:]+):([^\]]+)\]/g;
+    while ((match = callActionRegex.exec(content)) !== null) {
+      const [, phone, name] = match;
+      actions.push({
+        icon: '📞',
+        text: `اتصال بـ ${name}`,
+        action: `call:${phone}`,
+        type: 'call',
+        data: { phone, name }
+      });
+    }
+
     // استخراج أزرار المقارنة
     const compareActionRegex = /\[ACTION:COMPARE_PROPERTIES:([^:]+):([^\]]+)\]/g;
     while ((match = compareActionRegex.exec(content)) !== null) {
@@ -459,43 +496,6 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         type: 'navigate',
         data: { ids: propertyIds.split(',') }
       });
-    }
-
-    if (userInputLower.includes('عملاء') || userInputLower.includes('كانبان')) {
-      actions.push({ icon: '👥', text: 'فتح الكانبان', action: 'navigate:crm', type: 'navigate' });
-      if (customers.length > 0) {
-        actions.push({
-          icon: '📞',
-          text: `اتصال بـ ${customers[0].name}`,
-          action: 'call:customer',
-          type: 'call',
-          data: { phone: customers[0].phone, name: customers[0].name }
-        });
-      }
-    }
-
-    if (userInputLower.includes('عروض') || userInputLower.includes('منصة') || userInputLower.includes('عقار')) {
-      actions.push({ icon: '🏠', text: 'فتح منصتي', action: 'navigate:platform', type: 'navigate' });
-    }
-
-    if (userInputLower.includes('موعد') || userInputLower.includes('تقويم')) {
-      actions.push({ icon: '📅', text: 'فتح التقويم', action: 'navigate:calendar', type: 'navigate' });
-    }
-
-    if (userInputLower.includes('تقارير') || userInputLower.includes('إحصائيات')) {
-      actions.push({ icon: '📊', text: 'التقارير', action: 'navigate:reports', type: 'navigate' });
-    }
-
-    if (userInputLower.includes('حاسبة') || userInputLower.includes('تمويل')) {
-      actions.push({ icon: '🧮', text: 'الحاسبة', action: 'navigate:calculator', type: 'navigate' });
-    }
-
-    // Default actions if none found
-    if (actions.length === 0) {
-      actions.push(
-        { icon: '👥', text: 'العملاء', action: 'navigate:crm', type: 'navigate' },
-        { icon: '🏠', text: 'منصتي', action: 'navigate:platform', type: 'navigate' }
-      );
     }
 
     return actions;
@@ -654,16 +654,17 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         ));
       });
 
-      // Add actions to the final message
+      // Add actions to the final message + clean ACTION tokens from displayed text
       const actions = extractActions(assistantContent, textToSend);
+      const cleanedContent = stripActionTokens(assistantContent);
       setMessages(prev => prev.map(m => 
         m.id === assistantMessageId 
-          ? { ...m, actions }
+          ? { ...m, content: cleanedContent, actions }
           : m
       ));
 
-      // حفظ رد المساعد
-      saveMessage('assistant', assistantContent, actions);
+      // حفظ رد المساعد بالنص النظيف
+      saveMessage('assistant', cleanedContent, actions);
 
       // 3️⃣ التحقق من طلب إنشاء موعد وتنفيذه
       const inputLower = textToSend.toLowerCase();
@@ -683,8 +684,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         }
       }
 
-      // تشغيل الرد الصوتي
-      await speakResponse(assistantContent);
+      // تشغيل الرد الصوتي بالنص النظيف
+      await speakResponse(cleanedContent);
 
     } catch (error) {
       console.error("Error:", error);
@@ -1050,19 +1051,30 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
                         {message.content}
                       </p>
                       
-                      {/* زر تشغيل الصوت لرسائل المساعد - يظهر فقط إذا كانت ميزات الصوت مفعلة */}
-                      {voiceFeaturesEnabled && message.role === "assistant" && message.content.length > 10 && (
-                        <button
-                          onClick={() => speakMessage(message.content)}
-                          className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
-                          title="تشغيل الرسالة صوتياً"
-                        >
-                          {isSpeaking ? (
-                            <VolumeX className="w-3 h-3 text-[#01411C]" />
-                          ) : (
-                            <Volume2 className="w-3 h-3 text-[#01411C]" />
+                      {/* أزرار أدوات الرسالة (نسخ + صوت) - تظهر لرسائل المساعد فقط */}
+                      {message.role === "assistant" && message.content.length > 10 && (
+                        <div className="absolute top-2 left-2 flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => copyToClipboard(message.content)}
+                            className="p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
+                            title="نسخ الرد"
+                          >
+                            <Copy className="w-3 h-3 text-[#01411C]" />
+                          </button>
+                          {voiceFeaturesEnabled && (
+                            <button
+                              onClick={() => speakMessage(message.content)}
+                              className="p-1 rounded-full bg-[#01411C]/10 hover:bg-[#01411C]/20"
+                              title="تشغيل الرسالة صوتياً"
+                            >
+                              {isSpeaking ? (
+                                <VolumeX className="w-3 h-3 text-[#01411C]" />
+                              ) : (
+                                <Volume2 className="w-3 h-3 text-[#01411C]" />
+                              )}
+                            </button>
                           )}
-                        </button>
+                        </div>
                       )}
                     </div>
                     
