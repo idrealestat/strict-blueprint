@@ -8,6 +8,7 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { useChatHistory } from "@/hooks/useChatHistory";
+import { useClipboard } from "@/hooks/useClipboard";
 import { processLocalCommand } from "@/utils/wasataLocalCommands";
 import { triggerNotification } from "@/hooks/useNotificationSystem";
 import { AudioProcessingOverlay } from "./AudioProcessingOverlay";
