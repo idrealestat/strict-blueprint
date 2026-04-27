@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
-import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2, Trash2, History } from "lucide-react";
+import { X, Send, User, Sparkles, ChevronLeft, Calendar, Users, Building2, FileText, LayoutGrid, Tag, DollarSign, Phone, MessageCircle, MapPin, Clock, Plus, Mic, MicOff, Volume2, VolumeX, Loader2, Trash2, History, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useWasataAI } from "@/hooks/useWasataAI";
