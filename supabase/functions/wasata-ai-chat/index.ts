@@ -67,6 +67,7 @@ interface CRMCustomer {
   last_contact?: string | null;
   notes?: string | null;
   tags?: string[] | null;
+  linked_listings_count?: number;
 }
 
 interface SpecialRequest {
