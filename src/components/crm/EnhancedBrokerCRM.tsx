@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HelpHint } from "@/components/ui/help-hint";
 import {
   Dialog,
   DialogContent,
@@ -2441,10 +2442,22 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
               <TabsTrigger value="kanban" className="flex items-center gap-2">
                 <LayoutGrid className="w-4 h-4" />
                 كانبان
+                <HelpHint
+                  size="xs"
+                  title="عرض كانبان"
+                  description="عرض العملاء كبطاقات موزّعة على أعمدة حسب المرحلة، مع إمكانية السحب والإفلات بين الأعمدة."
+                  source="TODO: spec/crm-views.md#kanban"
+                />
               </TabsTrigger>
               <TabsTrigger value="list" className="flex items-center gap-2">
                 <List className="w-4 h-4" />
                 قائمة
+                <HelpHint
+                  size="xs"
+                  title="عرض القائمة"
+                  description="عرض جميع العملاء في جدول قابل للفرز والبحث مع تفاصيل سريعة لكل عميل."
+                  source="TODO: spec/crm-views.md#list"
+                />
               </TabsTrigger>
             </TabsList>
             
