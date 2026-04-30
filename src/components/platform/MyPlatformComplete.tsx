@@ -86,6 +86,7 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { syncPlatformCompleteFromPublishedAds } from "@/utils/platformStorage";
 import { OffersStatsPDFReport } from "@/components/analytics";
 import { usePlatformListings } from "@/hooks/usePlatformListings";
+import { HelpHint } from "@/components/ui/help-hint";
 
 // ===================== Types =====================
 
@@ -1964,6 +1965,13 @@ export default function MyPlatformComplete({
             >
               <Globe className="w-4 h-4 ml-2" />
               المنصه
+              <HelpHint
+                size="xs"
+                className="mr-1"
+                title="المنصة"
+                description="عرض منصتك العامة كما يراها العملاء — بطاقتك التعريفية، عروضك، ومعلومات التواصل."
+                source="TODO: spec/platform-tabs.md#platform"
+              />
             </TabsTrigger>
             <TabsTrigger 
               value="offers" 
@@ -1971,6 +1979,13 @@ export default function MyPlatformComplete({
             >
               <Building className="w-4 h-4 ml-2" />
               العروض ({stats.total})
+              <HelpHint
+                size="xs"
+                className="mr-1"
+                title="العروض"
+                description="إدارة جميع عروضك العقارية المنشورة: تعديل، حذف، مشاركة، وتتبع المشاهدات."
+                source="TODO: spec/platform-tabs.md#offers"
+              />
             </TabsTrigger>
             <TabsTrigger 
               value="requests" 
@@ -1978,6 +1993,13 @@ export default function MyPlatformComplete({
             >
               <FileText className="w-4 h-4 ml-2" />
               الطلبات ({requests.length})
+              <HelpHint
+                size="xs"
+                className="mr-1"
+                title="الطلبات"
+                description="طلبات العملاء العقارية الواردة (شراء/إيجار) لمطابقتها مع عروضك المتاحة."
+                source="TODO: spec/platform-tabs.md#requests"
+              />
             </TabsTrigger>
           </TabsList>
 
