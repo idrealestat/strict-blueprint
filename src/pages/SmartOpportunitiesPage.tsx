@@ -34,6 +34,7 @@ import OpportunityFilters, { OpportunityFiltersState, defaultFilters } from '@/c
 import { mockSmartOpportunities } from '@/data/mockSmartOpportunities';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { useAcademy } from '@/contexts/AcademyContext';
+import { HelpHint } from '@/components/ui/help-hint';
 
 const SmartOpportunitiesPage = () => {
   const navigate = useNavigate();
@@ -428,6 +429,12 @@ const SmartOpportunitiesPage = () => {
             <div className="flex items-center justify-center gap-2">
               <Sparkles className="w-5 h-5 text-[#D4AF37]" />
               <span className="font-bold text-white text-lg">الفرص الذكية</span>
+              <HelpHint
+                size="xs"
+                title="الفرص الذكية"
+                description="بطاقات مطابقة آلية بين عروضك وطلبات/عروض الآخرين. اسحب يميناً للقبول ويساراً للرفض."
+                source="TODO: spec/smart-opportunities.md#overview"
+              />
             </div>
             
             {/* الأزرار في سطر منفصل */}
@@ -477,6 +484,12 @@ const SmartOpportunitiesPage = () => {
             <span className="text-sm font-medium">
               الفرص المقبولة اليوم: <strong>{todayAcceptedCount}</strong> / <strong>{dailyLimit}</strong>
             </span>
+            <HelpHint
+              size="xs"
+              title="الحد اليومي"
+              description="يحدد عدد الفرص التي يمكنك قبولها يومياً وفقاً لباقتك. الوسيط المحترف المعتمد يحصل على حد أعلى."
+              source="TODO: spec/smart-opportunities.md#daily-limit"
+            />
           </div>
           {hasReachedDailyLimit && (
             <Badge variant="destructive" className="text-xs">
@@ -498,7 +511,13 @@ const SmartOpportunitiesPage = () => {
                 {remainingCount} فرصة متبقية
               </Badge>
             )}
-            
+            <HelpHint
+              size="xs"
+              title="الفرص المتبقية"
+              description="عدد البطاقات المتاحة في الجلسة الحالية بعد تطبيق الفلاتر واستبعاد المرفوضات."
+              source="TODO: spec/smart-opportunities.md#remaining"
+            />
+
             <OpportunityFilters
               filters={filters}
               onFiltersChange={setFilters}
@@ -517,7 +536,13 @@ const SmartOpportunitiesPage = () => {
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               تحديث
             </Button>
-            
+            <HelpHint
+              size="xs"
+              title="تحديث الفرص"
+              description="يعيد جلب الفرص الذكية من قاعدة البيانات وتطبيق آخر الفلاتر."
+              source="TODO: spec/smart-opportunities.md#refresh"
+            />
+
             {/* زر تحميل البيانات الوهمية للتجربة */}
             <Button 
               variant={useMockData ? "default" : "outline"} 
@@ -540,6 +565,12 @@ const SmartOpportunitiesPage = () => {
               <TestTube className="w-4 h-4" />
               {useMockData ? 'إيقاف التجربة' : 'تجربة'}
             </Button>
+            <HelpHint
+              size="xs"
+              title="وضع التجربة"
+              description="يحمّل 5 فرص وهمية لتجربة سحب البطاقات دون التأثير على بياناتك الحقيقية."
+              source="TODO: spec/smart-opportunities.md#test-mode"
+            />
           </div>
         </div>
 
