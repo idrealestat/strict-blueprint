@@ -4,7 +4,6 @@ import { Building2, Bot, BriefcaseBusiness, CreditCard, LayoutGrid, Sparkles, St
 import heroBroker from "@/assets/hero-broker.png";
 import brokerFemale from "@/assets/landing-broker-female.jpg";
 import teamSuccess from "@/assets/landing-team-success.jpg";
-import HeroPortalSection from "./public-portal/HeroPortalSection";
 
 const features = [
   {
@@ -81,7 +80,14 @@ export default function LandingPage() {
         <link rel="canonical" href="/" />
       </Helmet>
 
-      <HeroPortalSection />
+      <div className="flex justify-center py-4 px-4" dir="rtl">
+        <Link
+          to="/huna-waseetak"
+          className="inline-block bg-[#D4AF37] text-[#1a1a1a] font-cairo font-bold text-sm md:text-base rounded-lg px-5 py-2.5 shadow-md hover:bg-[#c19f2c] transition-colors"
+        >
+          🤝 هنا وسيطك
+        </Link>
+      </div>
 
       <header className="relative min-h-[85vh] overflow-hidden">
         <img
