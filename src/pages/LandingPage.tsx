@@ -4,6 +4,7 @@ import { Building2, Bot, BriefcaseBusiness, CreditCard, LayoutGrid, Sparkles, St
 import heroBroker from "@/assets/hero-broker.png";
 import brokerFemale from "@/assets/landing-broker-female.jpg";
 import teamSuccess from "@/assets/landing-team-success.jpg";
+import HeroPortalSection from "./public-portal/HeroPortalSection";
 
 const features = [
   {
@@ -79,6 +80,8 @@ export default function LandingPage() {
         />
         <link rel="canonical" href="/" />
       </Helmet>
+
+      <HeroPortalSection />
 
       <header className="relative min-h-[85vh] overflow-hidden">
         <img
