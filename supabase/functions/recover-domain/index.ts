@@ -109,8 +109,20 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Verification check error:", verifyError);
     }
 
-    // ملاحظة: نسمح بالمتابعة حتى لو لم نجد سجل verified (لأنه قد يكون تم حذفه)
-    // الأهم هو التحقق من الهوية وبيانات التواصل
+    // التحقق من رمز OTP إجباري لمنع اختطاف البطاقات
+    if (!verificationRecord) {
+      return new Response(
+        JSON.stringify({ success: false, error: "يجب التحقق من رمز OTP أولاً" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (verificationRecord.expires_at && new Date(verificationRecord.expires_at) < new Date()) {
+      return new Response(
+        JSON.stringify({ success: false, error: "انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // 5. البحث عن مستخدم موجود بنفس البريد/الجوال أو إنشاء رابط استرداد
     let targetUserId: string | null = null;

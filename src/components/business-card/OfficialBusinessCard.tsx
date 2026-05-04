@@ -13,6 +13,7 @@ import { getIdentityImage, getAvatarFallback, generateVCard, defaultDisplayOptio
 import { useQRCode } from '@/hooks/useQRCode';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import DOMPurify from 'dompurify';
 import saudiWatermark from '@/assets/saudi-handshake-watermark.png';
 
 // Wasata AI Logo as SVG watermark - positioned lower and bigger
@@ -244,28 +245,32 @@ export default function OfficialBusinessCard({ onEdit }: OfficialBusinessCardPro
       return;
     }
 
-    const frontHtml = frontRef.current?.outerHTML || '';
-    const backHtml = backRef.current?.outerHTML || '';
+    // Sanitize all HTML/text injected into the print window to prevent XSS.
+    const safeName = DOMPurify.sanitize(data.name || '', { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    const frontHtml = DOMPurify.sanitize(frontRef.current?.outerHTML || '', {
+      ALLOWED_TAGS: ['div', 'span', 'img', 'p', 'h1', 'h2', 'h3', 'h4', 'svg', 'path', 'g', 'text', 'a', 'br', 'strong', 'em', 'small', 'ul', 'li'],
+      ALLOWED_ATTR: ['class', 'style', 'src', 'alt', 'width', 'height', 'viewBox', 'd', 'fill', 'stroke', 'href', 'dir'],
+    });
+    const backHtml = DOMPurify.sanitize(backRef.current?.outerHTML || '', {
+      ALLOWED_TAGS: ['div', 'span', 'img', 'p', 'h1', 'h2', 'h3', 'h4', 'svg', 'path', 'g', 'text', 'a', 'br', 'strong', 'em', 'small', 'ul', 'li'],
+      ALLOWED_ATTR: ['class', 'style', 'src', 'alt', 'width', 'height', 'viewBox', 'd', 'fill', 'stroke', 'href', 'dir'],
+    });
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html dir="rtl">
-      <head>
-        <title>بطاقة الأعمال - ${data.name}</title>
-        <style>
-          @page { size: 90mm 55mm; margin: 0; }
-          body { margin: 0; padding: 0; }
-          .card { width: 90mm; height: 55mm; page-break-after: always; }
-          .card:last-child { page-break-after: auto; }
-        </style>
-      </head>
-      <body>
-        <div class="card">${frontHtml}</div>
-        <div class="card">${backHtml}</div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    const doc = printWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html dir="rtl"><head><title></title><style>
+      @page { size: 90mm 55mm; margin: 0; }
+      body { margin: 0; padding: 0; }
+      .card { width: 90mm; height: 55mm; page-break-after: always; }
+      .card:last-child { page-break-after: auto; }
+    </style></head><body><div class="card" id="__front"></div><div class="card" id="__back"></div></body></html>`);
+    doc.close();
+    // Set title via textContent and inject sanitized HTML safely.
+    doc.title = `بطاقة الأعمال - ${safeName}`;
+    const frontEl = doc.getElementById('__front');
+    const backEl = doc.getElementById('__back');
+    if (frontEl) frontEl.innerHTML = frontHtml;
+    if (backEl) backEl.innerHTML = backHtml;
     printWindow.print();
   };
 
