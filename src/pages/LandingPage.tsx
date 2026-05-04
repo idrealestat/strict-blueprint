@@ -80,15 +80,6 @@ export default function LandingPage() {
         <link rel="canonical" href="/" />
       </Helmet>
 
-      <div className="flex justify-center py-4 px-4" dir="rtl">
-        <Link
-          to="/huna-waseetak"
-          className="inline-block bg-[#D4AF37] text-[#1a1a1a] font-cairo font-bold text-sm md:text-base rounded-lg px-5 py-2.5 shadow-md hover:bg-[#c19f2c] transition-colors"
-        >
-          🤝 هنا وسيطك
-        </Link>
-      </div>
-
       <header className="relative min-h-[85vh] overflow-hidden">
         <img
           src={heroBroker}
@@ -112,18 +103,26 @@ export default function LandingPage() {
             <p className="max-w-2xl text-lg leading-relaxed text-primary-foreground/90">
               نعلم تمامًا ما تحتاجه كوسيط عقاري — لذلك صمّمنا لك أدوات تخدم عملك اليومي فعليًا، تبني ثقة عميلك من أول تواصل، وتختصر وقتك لتركّز على ما يهم: إتمام الصفقات وتحقيق النتائج.
             </p>
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-col gap-3 pt-2" dir="rtl">
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  to="/app/register"
+                  className="rounded-lg bg-secondary px-6 py-3 text-base font-bold text-secondary-foreground transition hover:opacity-90"
+                >
+                  ابدأ الآن
+                </Link>
+                <Link
+                  to="/app/login"
+                  className="rounded-lg border border-primary-foreground/50 bg-background/10 px-6 py-3 text-base font-bold text-primary-foreground backdrop-blur transition hover:bg-background/20"
+                >
+                  تسجيل الدخول
+                </Link>
+              </div>
               <Link
-                to="/app/register"
-                className="rounded-lg bg-secondary px-6 py-3 text-base font-bold text-secondary-foreground transition hover:opacity-90"
+                to="/huna-waseetak"
+                className="block w-full text-center rounded-lg bg-[#D4AF37] border-2 border-[#01411C] text-[#01411C] font-cairo font-bold text-base px-6 py-3 shadow-md hover:bg-[#c19f2c] transition-colors"
               >
-                ابدأ الآن
-              </Link>
-              <Link
-                to="/app/login"
-                className="rounded-lg border border-primary-foreground/50 bg-background/10 px-6 py-3 text-base font-bold text-primary-foreground backdrop-blur transition hover:bg-background/20"
-              >
-                تسجيل الدخول
+                🤝 هنا وسيطك
               </Link>
             </div>
           </div>
