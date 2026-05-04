@@ -72,9 +72,10 @@ import { Input } from '@/components/ui/input';
  
  interface VideoTextEditorProps {
    onExport?: (data: { textOverlays: TextOverlay[]; logo: LogoOverlay | null; stickers: StickerOverlay[]; videoSrc: string | null }) => void;
+  initialVideoUrl?: string;
  }
  
- export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
+export default function VideoTextEditor({ onExport, initialVideoUrl }: VideoTextEditorProps) {
    const [videoUrl, setVideoUrl] = useState('');
    const [isPlaying, setIsPlaying] = useState(false);
    const [isMuted, setIsMuted] = useState(false);
