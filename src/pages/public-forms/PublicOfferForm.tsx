@@ -94,6 +94,7 @@ interface FormData {
   purpose: string;
   area: string;
   price: string;
+  priceJustification: string;
   
   // بيانات الموقع من الخريطة
   locationLat: string;
@@ -303,6 +304,7 @@ export default function PublicOfferForm() {
       purpose: '',
       area: '',
       price: '',
+      priceJustification: '',
       locationLat: '',
       locationLng: '',
       locationCity: '',
@@ -514,14 +516,14 @@ export default function PublicOfferForm() {
     );
   };
 
-  // Smart Price Generator
-  const generateSmartPrices = async () => {
+  // Smart Price Generator (يدعم وضع صامت للتقييم التلقائي)
+  const generateSmartPrices = async (silent: boolean = false) => {
     if (!formData.propertyType || !formData.locationCity || !formData.area) {
-      toast.error('يرجى تحديد نوع العقار والمدينة والمساحة أولاً');
+      if (!silent) toast.error('يرجى تحديد نوع العقار والمدينة والمساحة أولاً');
       return;
     }
 
-    setIsGeneratingPrices(true);
+    if (!silent) setIsGeneratingPrices(true);
     try {
       // الدالة في backend تتطلب body يحتوي propertyData (حرفياً)
       const response = await fetch(
@@ -583,14 +585,46 @@ export default function PublicOfferForm() {
         });
       }
 
-      toast.success('تم توليد الأسعار المقترحة بنجاح');
+      if (!silent) toast.success('تم توليد الأسعار المقترحة بنجاح');
     } catch (error) {
       console.error('Error generating prices:', error);
-      toast.error('حدث خطأ أثناء توليد الأسعار');
+      if (!silent) toast.error('حدث خطأ أثناء توليد الأسعار');
     } finally {
-      setIsGeneratingPrices(false);
+      if (!silent) setIsGeneratingPrices(false);
     }
   };
+
+  // جلب أسعار السوق تلقائياً بصمت عند توفر الحقول الأساسية
+  useEffect(() => {
+    if (!formData.propertyType || !formData.locationCity || !formData.area) return;
+    const timer = setTimeout(() => {
+      generateSmartPrices(true);
+    }, 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.propertyType, formData.locationCity, formData.area, formData.purpose, formData.bedrooms, formData.furnishing]);
+
+  // تقييم تلقائي للسعر فور تغييره مقابل أسعار السوق
+  useEffect(() => {
+    const priceNum = Number(formData.price);
+    if (!Number.isFinite(priceNum) || priceNum <= 0 || !suggestedPrices) {
+      return;
+    }
+    const { min, max, average } = suggestedPrices;
+    let status: 'low' | 'fair' | 'high';
+    let message: string;
+    if (priceNum < min) {
+      status = 'low';
+      message = `السعر أقل من متوسط السوق (${average.toLocaleString()} ريال)`;
+    } else if (priceNum > max) {
+      status = 'high';
+      message = `السعر أعلى من متوسط السوق (${average.toLocaleString()} ريال) — يرجى توضيح السبب`;
+    } else {
+      status = 'fair';
+      message = `السعر ضمن نطاق السوق (${min.toLocaleString()} - ${max.toLocaleString()} ريال)`;
+    }
+    setPriceEvaluation({ status, message });
+  }, [formData.price, suggestedPrices]);
 
   const updateField = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -725,6 +759,10 @@ export default function PublicOfferForm() {
       toast.error('يرجى الموافقة على الشروط والأحكام');
       return;
     }
+    if (priceEvaluation?.status === 'high' && !formData.priceJustification.trim()) {
+      toast.error('السعر أعلى من متوسط السوق — يرجى توضيح سبب السعر المرتفع');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -750,6 +788,7 @@ export default function PublicOfferForm() {
         purpose: formData.purpose,
         area: formData.area,
         price: formData.price,
+        priceJustification: formData.priceJustification,
         locationLat: formData.locationLat,
         locationLng: formData.locationLng,
         locationCity: formData.locationCity,
@@ -1253,10 +1292,49 @@ export default function PublicOfferForm() {
               />
             </div>
 
+            {/* تقييم تلقائي فوري للسعر */}
+            {priceEvaluation && formData.price && (
+              <div className={`rounded-lg border-2 p-3 flex items-center gap-2 text-sm ${
+                priceEvaluation.status === 'low' ? 'border-green-300 bg-green-50 text-green-800' :
+                priceEvaluation.status === 'fair' ? 'border-blue-300 bg-blue-50 text-blue-800' :
+                'border-red-300 bg-red-50 text-red-800'
+              }`}>
+                <Badge className={`${
+                  priceEvaluation.status === 'low' ? 'bg-green-500' :
+                  priceEvaluation.status === 'fair' ? 'bg-blue-500' :
+                  'bg-red-500'
+                } text-white shrink-0`}>
+                  {priceEvaluation.status === 'low' ? 'أقل من السوق' :
+                   priceEvaluation.status === 'fair' ? 'مناسب' :
+                   'مبالغ فيه'}
+                </Badge>
+                <span>{priceEvaluation.message}</span>
+              </div>
+            )}
+
+            {/* حقل توضيح إلزامي عند المبالغة في السعر */}
+            {priceEvaluation?.status === 'high' && formData.price && (
+              <div className="rounded-lg border-2 border-red-300 bg-red-50/50 p-3 space-y-2">
+                <Label className="text-red-800 font-bold flex items-center gap-1">
+                  سبب السعر المرتفع <span className="text-red-600">*</span>
+                </Label>
+                <p className="text-xs text-red-700">
+                  يرجى توضيح سبب وضع سعر أعلى من متوسط السوق (مثل: مفروش بالكامل، تشطيبات فاخرة، موقع مميز، إطلالة...)
+                </p>
+                <Textarea
+                  value={formData.priceJustification}
+                  onChange={(e) => updateField('priceJustification', e.target.value)}
+                  placeholder="اذكر سبب السعر المرتفع بشكل واضح..."
+                  className="border-red-200 focus:border-red-400 min-h-[80px] bg-white"
+                  required
+                />
+              </div>
+            )}
+
             {/* زر مولد الأسعار الذكي */}
             <Button
               type="button"
-              onClick={generateSmartPrices}
+              onClick={() => generateSmartPrices(false)}
               disabled={isGeneratingPrices || !formData.propertyType || !formData.locationCity || !formData.area}
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
             >
