@@ -72,9 +72,10 @@ import { Input } from '@/components/ui/input';
  
  interface VideoTextEditorProps {
    onExport?: (data: { textOverlays: TextOverlay[]; logo: LogoOverlay | null; stickers: StickerOverlay[]; videoSrc: string | null }) => void;
+  initialVideoUrl?: string;
  }
  
- export default function VideoTextEditor({ onExport }: VideoTextEditorProps) {
+export default function VideoTextEditor({ onExport, initialVideoUrl }: VideoTextEditorProps) {
    const [videoUrl, setVideoUrl] = useState('');
    const [isPlaying, setIsPlaying] = useState(false);
    const [isMuted, setIsMuted] = useState(false);
@@ -117,6 +118,14 @@ import { Input } from '@/components/ui/input';
      }
      onExport?.({ textOverlays, logo, stickers, videoSrc: videoUrl || null });
    }, [textOverlays, logo, stickers, videoUrl, onExport]);
+
+  // تحميل فيديو ابتدائي من خارج المحرر (مثلاً من بطاقة العميل)
+  useEffect(() => {
+    if (initialVideoUrl && !videoUrl) {
+      setVideoUrl(initialVideoUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialVideoUrl]);
  
    const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];

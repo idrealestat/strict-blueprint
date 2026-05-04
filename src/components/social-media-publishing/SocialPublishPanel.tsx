@@ -41,16 +41,20 @@
      hashtags: string[];
      selectedPlatforms: SocialPlatformId[];
    }) => Promise<void>;
+  initialDescription?: string;
+  initialHashtags?: string[];
  }
  
  export default function SocialPublishPanel({
    connectedPlatforms,
    hasContent,
-   onPublish
+  onPublish,
+  initialDescription = '',
+  initialHashtags = [],
  }: SocialPublishPanelProps) {
    // الوصف والهاشتاقات
-   const [description, setDescription] = useState('');
-   const [hashtags, setHashtags] = useState<string[]>([]);
+  const [description, setDescription] = useState(initialDescription);
+  const [hashtags, setHashtags] = useState<string[]>(initialHashtags);
    const [customHashtag, setCustomHashtag] = useState('');
    
    // المنصات المحددة

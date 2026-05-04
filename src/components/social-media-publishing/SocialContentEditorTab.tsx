@@ -6,6 +6,7 @@
  import VideoTextEditor from './VideoTextEditor';
 import SocialPublishPanel from './SocialPublishPanel';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { SocialPlatform, SOCIAL_PLATFORMS, SocialPlatformId } from './types';
 import { 
   Accordion, 
@@ -25,6 +26,9 @@ export default function SocialContentEditorTab({
 }: SocialContentEditorTabProps) {
   const [openSection, setOpenSection] = useState<string>('editor');
   const [hasContent, setHasContent] = useState(false);
+  const [prefillDescription, setPrefillDescription] = useState<string>('');
+  const [prefillHashtags, setPrefillHashtags] = useState<string[]>([]);
+  const [prefillVideoUrl, setPrefillVideoUrl] = useState<string>('');
    
    // تحقق من وجود محتوى محفوظ عند التحميل
    useEffect(() => {
@@ -38,6 +42,26 @@ export default function SocialContentEditorTab({
        } catch (e) {}
      }
    }, []);
+
+  // قراءة بيانات التعبئة المسبقة من تبويب CRM
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('wasata_social_prefill');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data?.description) setPrefillDescription(String(data.description));
+      if (Array.isArray(data?.hashtags)) setPrefillHashtags(data.hashtags);
+      if (data?.videoUrl) {
+        setPrefillVideoUrl(String(data.videoUrl));
+        setHasContent(true);
+        setOpenSection('publish');
+      }
+      localStorage.removeItem('wasata_social_prefill');
+      toast.success('تم تحميل بيانات العرض من بطاقة العميل');
+    } catch (e) {
+      console.warn('Failed to load social prefill', e);
+    }
+  }, []);
   
   // تتبع وجود محتوى
   const handleExport = (data: any) => {
@@ -106,7 +130,7 @@ export default function SocialContentEditorTab({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <VideoTextEditor onExport={handleExport} />
+              <VideoTextEditor onExport={handleExport} initialVideoUrl={prefillVideoUrl} />
             </AccordionContent>
           </AccordionItem>
           
@@ -140,6 +164,8 @@ export default function SocialContentEditorTab({
                 connectedPlatforms={connectedPlatforms}
                 hasContent={hasContent}
                 onPublish={handlePublish}
+                initialDescription={prefillDescription}
+                initialHashtags={prefillHashtags}
               />
             </AccordionContent>
           </AccordionItem>
