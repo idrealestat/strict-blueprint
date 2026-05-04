@@ -88,6 +88,7 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { useDeviceContacts } from "@/hooks/useDeviceContacts";
 import { supabase } from "@/integrations/supabase/client";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
 import { useCustomerInteractions } from "@/hooks/useCustomerInteractions";
 import { useCustomerInvoices } from "@/hooks/useCustomerInvoices";
@@ -292,6 +293,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // استخدام التبويب من بيانات العميل إذا تم تحديده (مثلاً من المساعد الذكي)
   const initialTab = (customer as any).activeTab || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const { flags: featureFlags } = useFeatureFlags();
+  const socialPublishingEnabled = featureFlags.publishing_enabled;
   const [isEditing, setIsEditing] = useState(false);
   const [editedCustomer, setEditedCustomer] = useState<Customer>(customer);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(mockActivityLogs);
@@ -4393,19 +4396,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             </Button>
                             
                             {/* زر نشر إعلان */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  className="bg-[#01411C] hover:bg-[#065f41]"
-                                >
-                                  <Share2 className="w-4 h-4 ml-1" />
-                                  نشر إعلان
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="z-[60]">
-                                <DropdownMenuItem
-                                  onClick={() => {
+                            {(() => {
+                              const handlePublishToMyPlatform = () => {
                                 // جلب رقم جوال الوسيط من بطاقة أعمالي
                                 let brokerPhoneFromCard = '';
                                 try {
@@ -4524,13 +4516,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 window.setTimeout(() => {
                                   window.dispatchEvent(new Event('wasata:openPublishAd'));
                                 }, 250);
-                                  }}
-                                >
-                                  <Share2 className="w-4 h-4 ml-2" />
-                                  النشر على منصتي
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
+                              };
+                              const handlePublishToSocial = () => {
                                     // بناء وصف جاهز
                                     const parts: string[] = [];
                                     if (offer.propertyType) parts.push(offer.propertyType);
@@ -4581,13 +4568,45 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                     toast.success('تم تحميل بيانات العرض في النشر على المنصات');
                                     navigate('/app/dashboard');
                                     window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'advertising' } }));
-                                  }}
-                                >
-                                  <Share2 className="w-4 h-4 ml-2" />
-                                  النشر على المنصات
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              };
+
+                              if (!socialPublishingEnabled) {
+                                return (
+                                  <Button
+                                    size="sm"
+                                    className="bg-[#01411C] hover:bg-[#065f41]"
+                                    onClick={handlePublishToMyPlatform}
+                                  >
+                                    <Share2 className="w-4 h-4 ml-1" />
+                                    نشر إعلان
+                                  </Button>
+                                );
+                              }
+
+                              return (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      className="bg-[#01411C] hover:bg-[#065f41]"
+                                    >
+                                      <Share2 className="w-4 h-4 ml-1" />
+                                      نشر إعلان
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="z-[60]">
+                                    <DropdownMenuItem onClick={handlePublishToMyPlatform}>
+                                      <Share2 className="w-4 h-4 ml-2" />
+                                      النشر على منصتي
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handlePublishToSocial}>
+                                      <Share2 className="w-4 h-4 ml-2" />
+                                      النشر على المنصات
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })()}
                             
                             {/* زر تم البيع/التأجير */}
                             <Button
