@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { authenticateUser, corsHeaders as guardCors } from "../_shared/entitlementsGuard.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const corsHeaders = guardCors;
 
 // ============================================
 // معرّفات مجموعات البيانات الرسمية (REGA/data.gov.sa)
@@ -309,6 +307,15 @@ function calculateFinalPrice(
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Require authenticated user — this endpoint performs computation and
+  // calls external data.gov.sa APIs, so leaving it open allows abuse.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? '';
+  const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
+  const authResult = await authenticateUser(req, supabaseUrl, supabaseAnon);
+  if ('error' in authResult) {
+    return authResult.error;
   }
 
   try {
