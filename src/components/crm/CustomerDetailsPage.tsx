@@ -88,6 +88,7 @@ import { generatePropertyPDF } from "@/utils/generatePropertyPDF";
 import { useCRMTasks } from "@/hooks/useCRMTasks";
 import { useDeviceContacts } from "@/hooks/useDeviceContacts";
 import { supabase } from "@/integrations/supabase/client";
+import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 import { useCustomerTransactions } from "@/hooks/useCustomerTransactions";
 import { useCustomerInteractions } from "@/hooks/useCustomerInteractions";
 import { useCustomerInvoices } from "@/hooks/useCustomerInvoices";
