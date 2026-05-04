@@ -293,6 +293,8 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
   // استخدام التبويب من بيانات العميل إذا تم تحديده (مثلاً من المساعد الذكي)
   const initialTab = (customer as any).activeTab || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const { flags: featureFlags } = useFeatureFlags();
+  const socialPublishingEnabled = featureFlags.publishing_enabled;
   const [isEditing, setIsEditing] = useState(false);
   const [editedCustomer, setEditedCustomer] = useState<Customer>(customer);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(mockActivityLogs);
