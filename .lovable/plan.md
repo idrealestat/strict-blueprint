@@ -1,51 +1,129 @@
-## الهدف
-استبدال زر "نشر إعلان" المفرد في تبويب العروض داخل صفحة تفاصيل العميل بقائمة فيها خياران:
-1. **النشر على منصتي** — السلوك الحالي تماماً (يعبّئ نموذج نشر الإعلان في "منصتي").
-2. **النشر على المنصات** — يعبّئ تلقائياً محرر "النشر على منصات التواصل" بنفس بيانات العرض (الوصف، الفيديو/الصور، الهاشتاقات).
+# خطة بناء بوابة العملاء العامة (الإصدار النهائي المدمج)
 
-## نطاق التغيير
-ملف واحد رئيسي + ربط بسيط في ملفين آخرين:
+## 0. القرارات المعمارية
+- **الصفحة الرئيسية `/`**: دمج Hero جديد فوق المحتوى التسويقي الحالي في `LandingPage.tsx`.
+- **المصادقة الموحدة**:
+  - `/register`: تسجيل أول مرة عبر **رقم الجوال + OTP واتساب** (نستفيد من `send-phone-otp` و `verify-otp` و `phone-login` الموجودة).
+  - `/login`: حقل ذكي واحد يقبل **بريد إلكتروني (+ كلمة مرور)** أو **رقم جوال (+ OTP واتساب)**.
+- **البريد الإلكتروني**: اختياري في التسجيل. إن تُرك فارغًا يُولَّد تلقائيًا بصيغة `{phone}@owners.wasataai.com`.
 
-### 1) `src/components/crm/CustomerDetailsPage.tsx`
-- في زر "نشر إعلان" داخل تبويب العروض (السطر ~4389) نلفّه بـ `DropdownMenu` (موجود في `@/components/ui/dropdown-menu`) بزر رئيسي بنفس الشكل (أخضر + أيقونة Share2 + نص "نشر إعلان") وبداخله عنصران:
-  - **النشر على منصتي** → نفس منطق `republishData` و`localStorage.setItem('wasata_republish_data', ...)` ثم `navigateFromAssistant` + `wasata:openPublishAd` (السلوك الحالي بدون تغيير).
-  - **النشر على المنصات** → يُهيّئ كائن `socialPrefill` ويحفظه في `localStorage` ثم ينتقل لصفحة "النشر على المنصات".
+> ملاحظة: هذه الصفحات الجديدة منفصلة عن `/app/login` (الخاص بالوسطاء) ولن تمس تدفق الوسطاء الحالي.
 
-#### تركيبة `socialPrefill` (مفتاح: `wasata_social_prefill`):
-```ts
-{
-  description: <نص جاهز يُولَّد من بيانات العرض: نوع العقار + الغرض + المدينة/الحي + المساحة + السعر + المميزات>,
-  hashtags: ['#عقارات', '#السعودية', `#${city}`, `#${propertyType}`, ...] ,
-  media: offer.media || [],          // صور وفيديوهات
-  videoUrl: <أول عنصر media من نوع video إن وُجد>,
-  source: 'crm_offer',
-  originalOfferId: offer.id,
-}
+---
+
+## 1. تعديلات قاعدة البيانات (Migration)
+
+### جدول `owner_profiles`
+| العمود | النوع | ملاحظات |
+|---|---|---|
+| `user_id` | uuid PK | FK → `auth.users.id` ON DELETE CASCADE |
+| `full_name` | text NOT NULL | الاسم الرباعي |
+| `national_id` | text | الهوية الوطنية |
+| `date_of_birth` | date | |
+| `phone` | text UNIQUE NOT NULL | الجوال السعودي المفعل |
+| `email` | text UNIQUE | اختياري |
+| `city` | text | |
+| `neighborhood` | text | |
+| `created_at`, `updated_at` | timestamptz | |
+
+RLS: المالك يقرأ/يحدّث ملفه فقط. الوسطاء (دور `member`/`admin`) يمكنهم القراءة عند ربط العرض.
+
+### جدول `public_property_offers`
+| العمود | النوع | ملاحظات |
+|---|---|---|
+| `id` | uuid PK | |
+| `owner_user_id` | uuid | FK → `auth.users` |
+| `offer_kind` | text | `sale` / `rent` |
+| `property_type` | text | شقة، فيلا... |
+| `area_sqm` | numeric | |
+| `price_sar` | numeric | |
+| `city`, `neighborhood` | text | |
+| `description` | text | |
+| `photos` | text[] | روابط Storage |
+| `status` | text | `pending_review` / `published` / `accepted` / `rejected` |
+| `created_at`, `updated_at` | timestamptz | |
+
+RLS: المالك يدير عروضه فقط. الوسطاء يقرؤون `published`.
+
+### Storage Bucket
+- `property-offer-photos` (public read، write للمالك المسجَّل).
+
+---
+
+## 2. الصفحات والمسارات الجديدة
+
+```text
+src/pages/public-portal/
+├── HunaWaseetakPage.tsx          /huna-waseetak (تبويبا العروض/الطلبات)
+├── OfferSaleFormPage.tsx          /huna-waseetak/offer-sale (5 خطوات)
+├── OfferSubmitPage.tsx            /huna-waseetak/offer-sale/submit (بوابة الرفع)
+├── OfferSuccessPage.tsx           /huna-waseetak/offer-sale/success
+├── OwnerRegisterPage.tsx          /register
+├── OwnerLoginPage.tsx             /login
+├── SearchPlaceholderPage.tsx      /search
+└── OfferPropertyRedirect.tsx      /offer-property → /huna-waseetak/offer-sale
 ```
-ثم:
-```ts
-navigate('/app/dashboard');
-window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'advertising' } }));
-```
-(الحالة `advertising` في `App.tsx` تفتح بالفعل `SocialMediaPublishingSystem`.)
 
-### 2) `src/components/social-media-publishing/SocialContentEditorTab.tsx`
-- إضافة `useEffect` يقرأ `localStorage.getItem('wasata_social_prefill')` مرة واحدة عند التحميل، فإن وُجد:
-  - يفتح قسم `publish` بدل `editor` إن وُجد فيديو جاهز، وإلا يفتح `editor` ويمرّر `videoUrl` لـ `VideoTextEditor` كـ prop ابتدائي (سنضيف prop اختياري `initialVideoUrl`).
-  - يحفظ الوصف والهاشتاقات في state ويمرّرها لـ `SocialPublishPanel` عبر props جديدة `initialDescription` و`initialHashtags`.
-  - يمسح المفتاح من `localStorage` بعد القراءة لمنع التكرار.
-  - يطلق toast: "تم تحميل بيانات العرض من بطاقة العميل".
+تحديثات:
+- `LandingPage.tsx`: إضافة Hero + 3 بطاقات إجراء أعلى الصفحة.
+- `App.tsx`: إضافة المسارات الجديدة (عامة، خارج `/app`).
 
-### 3) `src/components/social-media-publishing/SocialPublishPanel.tsx`
-- إضافة props اختيارية: `initialDescription?: string` و`initialHashtags?: string[]`.
-- في `useState(...)` نستخدمها كقيم افتراضية.
-- لا تغيير في منطق النشر.
+---
 
-### 4) `src/components/social-media-publishing/VideoTextEditor.tsx`
-- إضافة prop اختياري `initialVideoUrl?: string` يُحمَّل في `useEffect` لاستدعاء نفس مسار رفع الفيديو الحالي (تعيين `videoUrl` و`videoSrc`).
+## 3. تدفق العمل
 
-## ملاحظات
-- لا تعديل على قاعدة البيانات أو الـ Edge Functions.
-- لا تأثير على السلوك الحالي للنشر على منصتي — فقط أُضيف خيار جانبي.
-- بيانات العرض المنقولة هي نفسها المتوفرة بالفعل في `offer` داخل تبويب العروض.
-- مفتاح `wasata_social_prefill` يُستهلك مرة واحدة ثم يُحذف لتفادي إعادة التعبئة عند الزيارات اللاحقة.
+### Hero في الصفحة الرئيسية
+- عنوان: **"بوابتك الذكية للعقار"**
+- عنوان فرعي: "من التيه... إلى التمكن"
+- 3 بطاقات: 🔍 ابحث | 🏠 اعرض عقارك | 🤝 هنا وسيطك (بارزة بالذهبي #D4AF37)
+
+### نموذج عرض البيع
+- 5 خطوات: نوع العقار → التفاصيل → الوصف → الصور → المراجعة.
+- حفظ مؤقت في `sessionStorage["wasata_pending_offer"]`.
+- زر "نشر" → إن لم يكن مسجَّلًا، يفتح Modal بخيارَي:
+  - "إنشاء حساب" → `/register?redirect=/huna-waseetak/offer-sale/submit`
+  - "تسجيل الدخول" → `/login?redirect=/huna-waseetak/offer-sale/submit`
+
+### `/register` (مالك عقار)
+- الحقول: جوال (إلزامي 9665XXXXXXXX) | بريد (اختياري) | كلمة مرور + تأكيد | اسم رباعي | هوية | تاريخ ميلاد | مدينة | حي | موافقة على الشروط والخصوصية (إلزامية).
+- الإرسال:
+  1. توليد `email` إن كان فارغًا: `${phone}@owners.wasataai.com`.
+  2. `supabase.auth.signUp({ email, password, options: { data: { phone, full_name } } })`.
+  3. استدعاء `send-phone-otp` → عرض حقل OTP.
+  4. `verify-otp` → عند النجاح، إدراج `owner_profiles`.
+  5. تسجيل دخول تلقائي + التوجيه إلى `redirect` أو `/`.
+
+### `/login` الذكي
+- حقل واحد: "رقم الجوال أو البريد الإلكتروني".
+- اكتشاف:
+  - يحتوي `@` → بريد ← إظهار كلمة المرور ← `signInWithPassword`.
+  - يبدأ بأرقام (سعودي) → جوال ← `send-phone-otp` ← OTP ← `phone-login`.
+- بعد النجاح، التوجيه للـ `redirect`.
+
+### `/huna-waseetak/offer-sale/submit`
+- يقرأ `sessionStorage`.
+- يرفع الصور إلى bucket `property-offer-photos`.
+- يُدرج صفًا في `public_property_offers` بحالة `pending_review`.
+- يمسح `sessionStorage`.
+- Toast: "تم! عرضك يُرسل للوسطاء المناسبين في [المدينة]."
+- Navigate → `/huna-waseetak/offer-sale/success`.
+
+### `/huna-waseetak/offer-sale/success`
+- أيقونة CheckCircle ذهبية + رسالة + زر "العودة للرئيسية" → `/`.
+
+---
+
+## 4. التفاصيل الفنية
+
+- **Validation**: zod schemas لكل نموذج (جوال سعودي regex `^9665\d{8}$`، الهوية 10 أرقام).
+- **OTP**: نعيد استخدام Edge Functions القائمة `send-phone-otp` / `verify-otp` / `phone-login`.
+- **RTL + Cairo**: التزام كامل بهوية وساطة AI (#D4AF37 ذهبي، #1a5c2e أخضر).
+- **حماية القراءة**: لن نمس مكونات الوسطاء (CRM/Publishing/Platform) — هذه إضافة منفصلة فقط.
+- **AuthContext**: لا تغيير في الواجهة العامة، فقط استخدامها كما هي.
+
+---
+
+## 5. ما خارج النطاق (لاحقًا)
+- صفحات `/search`, نماذج "طلب شراء/استئجار" (Placeholders فقط الآن).
+- لوحة الوسيط لاستقبال هذه العروض (تتطلب قرارًا مستقلاً).
+- ربط مع `crm_customers` تلقائيًا عند قبول وسيط.

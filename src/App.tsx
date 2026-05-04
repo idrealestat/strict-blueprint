@@ -96,6 +96,14 @@ import DataDeletionPage from "./pages/DataDeletionPage";
 import TikTokCallbackPage from "./pages/TikTokCallbackPage";
 import FacebookCallbackPage from "./pages/FacebookCallbackPage";
 import { supabase } from "./integrations/supabase/client";
+import HunaWaseetakPage from "./pages/public-portal/HunaWaseetakPage";
+import OfferSaleFormPage from "./pages/public-portal/OfferSaleFormPage";
+import OfferSubmitPage from "./pages/public-portal/OfferSubmitPage";
+import OfferSuccessPage from "./pages/public-portal/OfferSuccessPage";
+import SearchPlaceholderPage from "./pages/public-portal/SearchPlaceholderPage";
+import OwnerRegisterPage from "./pages/public-portal/OwnerRegisterPage";
+import OwnerLoginPage from "./pages/public-portal/OwnerLoginPage";
+import { Navigate as RRNavigate } from "react-router-dom";
 
 
 const queryClient = new QueryClient();
@@ -775,7 +783,17 @@ const App = () => {
                   <Route path="/data-deletion" element={<DataDeletionPage />} />
                   <Route path="/tiktok/callback" element={<TikTokCallbackPage />} />
                   <Route path="/facebook-callback" element={<FacebookCallbackPage />} />
-                  
+
+                  {/* بوابة العملاء العامة */}
+                  <Route path="/register" element={<OwnerRegisterPage />} />
+                  <Route path="/login" element={<OwnerLoginPage />} />
+                  <Route path="/search" element={<SearchPlaceholderPage />} />
+                  <Route path="/offer-property" element={<RRNavigate to="/huna-waseetak/offer-sale" replace />} />
+                  <Route path="/huna-waseetak" element={<HunaWaseetakPage />} />
+                  <Route path="/huna-waseetak/offer-sale" element={<OfferSaleFormPage />} />
+                  <Route path="/huna-waseetak/offer-sale/submit" element={<OfferSubmitPage />} />
+                  <Route path="/huna-waseetak/offer-sale/success" element={<OfferSuccessPage />} />
+
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
                   <Route path="/:slug/card" element={<SlugBusinessCardPage />} />

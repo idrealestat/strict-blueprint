@@ -1557,6 +1557,45 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_profiles: {
+        Row: {
+          city: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          national_id: string | null
+          neighborhood: string | null
+          phone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          national_id?: string | null
+          neighborhood?: string | null
+          phone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          national_id?: string | null
+          neighborhood?: string | null
+          phone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_limits: {
         Row: {
           account_type: string
@@ -2040,6 +2079,54 @@ export type Database = {
           street?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      public_property_offers: {
+        Row: {
+          area_sqm: number | null
+          city: string | null
+          created_at: string
+          description: string | null
+          id: string
+          neighborhood: string | null
+          offer_kind: string
+          owner_user_id: string
+          photos: string[] | null
+          price_sar: number | null
+          property_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          area_sqm?: number | null
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          neighborhood?: string | null
+          offer_kind: string
+          owner_user_id: string
+          photos?: string[] | null
+          price_sar?: number | null
+          property_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          area_sqm?: number | null
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          neighborhood?: string | null
+          offer_kind?: string
+          owner_user_id?: string
+          photos?: string[] | null
+          price_sar?: number | null
+          property_type?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
