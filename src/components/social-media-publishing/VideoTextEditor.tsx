@@ -118,6 +118,14 @@ export default function VideoTextEditor({ onExport, initialVideoUrl }: VideoText
      }
      onExport?.({ textOverlays, logo, stickers, videoSrc: videoUrl || null });
    }, [textOverlays, logo, stickers, videoUrl, onExport]);
+
+  // تحميل فيديو ابتدائي من خارج المحرر (مثلاً من بطاقة العميل)
+  useEffect(() => {
+    if (initialVideoUrl && !videoUrl) {
+      setVideoUrl(initialVideoUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialVideoUrl]);
  
    const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];
