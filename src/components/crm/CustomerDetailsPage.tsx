@@ -4393,10 +4393,19 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                             </Button>
                             
                             {/* زر نشر إعلان */}
-                            <Button
-                              size="sm"
-                              className="bg-[#01411C] hover:bg-[#065f41]"
-                              onClick={() => {
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  className="bg-[#01411C] hover:bg-[#065f41]"
+                                >
+                                  <Share2 className="w-4 h-4 ml-1" />
+                                  نشر إعلان
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="z-[60]">
+                                <DropdownMenuItem
+                                  onClick={() => {
                                 // جلب رقم جوال الوسيط من بطاقة أعمالي
                                 let brokerPhoneFromCard = '';
                                 try {
@@ -4515,11 +4524,70 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                 window.setTimeout(() => {
                                   window.dispatchEvent(new Event('wasata:openPublishAd'));
                                 }, 250);
-                              }}
-                            >
-                              <Share2 className="w-4 h-4 ml-1" />
-                              نشر إعلان
-                            </Button>
+                                  }}
+                                >
+                                  <Share2 className="w-4 h-4 ml-2" />
+                                  النشر على منصتي
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    // بناء وصف جاهز
+                                    const parts: string[] = [];
+                                    if (offer.propertyType) parts.push(offer.propertyType);
+                                    if (offer.purpose) parts.push(`لل${offer.purpose}`);
+                                    const cityVal = offer.locationCity || offer.city;
+                                    const districtVal = offer.locationDistrict || offer.district;
+                                    if (districtVal) parts.push(`بحي ${districtVal}`);
+                                    if (cityVal) parts.push(`- ${cityVal}`);
+                                    const details: string[] = [];
+                                    if (offer.area) details.push(`المساحة: ${offer.area} م²`);
+                                    if (offer.bedrooms) details.push(`${offer.bedrooms} غرف نوم`);
+                                    if (offer.bathrooms) details.push(`${offer.bathrooms} حمام`);
+                                    if (offer.price) details.push(`السعر: ${offer.price} ريال`);
+                                    const features: string[] = [];
+                                    if (offer.hasPool) features.push('مسبح');
+                                    if (offer.hasGarden) features.push('حديقة');
+                                    if (offer.hasElevator) features.push('مصعد');
+                                    if (offer.hasParking) features.push('موقف');
+                                    const description = [
+                                      parts.join(' '),
+                                      details.join(' • '),
+                                      features.length ? `المميزات: ${features.join('، ')}` : '',
+                                      offer.description || '',
+                                    ].filter(Boolean).join('\n');
+
+                                    const baseTags = ['#عقارات', '#السعودية'];
+                                    if (cityVal) baseTags.push(`#${String(cityVal).replace(/\s+/g, '_')}`);
+                                    if (offer.propertyType) baseTags.push(`#${String(offer.propertyType).replace(/\s+/g, '_')}`);
+                                    if (offer.purpose) baseTags.push(`#${String(offer.purpose).replace(/\s+/g, '_')}`);
+
+                                    const media = Array.isArray(offer.media) ? offer.media : [];
+                                    const videoItem = media.find((m: any) => {
+                                      const t = (m?.type || m?.mimeType || '').toString().toLowerCase();
+                                      const u = (m?.url || m?.src || '').toString().toLowerCase();
+                                      return t.includes('video') || /\.(mp4|mov|webm|m4v)$/i.test(u);
+                                    });
+                                    const videoUrl = videoItem?.url || videoItem?.src || '';
+
+                                    const socialPrefill = {
+                                      description,
+                                      hashtags: baseTags,
+                                      media,
+                                      videoUrl,
+                                      source: 'crm_offer',
+                                      originalOfferId: offer.id,
+                                    };
+                                    localStorage.setItem('wasata_social_prefill', JSON.stringify(socialPrefill));
+                                    toast.success('تم تحميل بيانات العرض في النشر على المنصات');
+                                    navigate('/app/dashboard');
+                                    window.dispatchEvent(new CustomEvent('navigateFromAssistant', { detail: { page: 'advertising' } }));
+                                  }}
+                                >
+                                  <Share2 className="w-4 h-4 ml-2" />
+                                  النشر على المنصات
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                             
                             {/* زر تم البيع/التأجير */}
                             <Button
