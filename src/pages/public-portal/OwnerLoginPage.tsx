@@ -80,19 +80,19 @@ export default function OwnerLoginPage() {
       });
       if (vErr || !vData?.success) throw new Error(vData?.error || "رمز خاطئ");
 
-      const { data: prof } = await supabase
-        .from("owner_profiles")
-        .select("user_id")
-        .eq("phone", phoneFmt)
-        .maybeSingle();
-      if (!prof) {
+      // استخدم check-account-exists للتعرف على الحساب بأي صيغة رقم محفوظة
+      const { data: chk } = await supabase.functions.invoke("check-account-exists", {
+        body: { phone: phoneFmt },
+      });
+      if (!chk?.exists || !chk?.user_id) {
         toast.error("لست مسجلاً كمالك بعد. أكمل التسجيل لإضافة دور المالك.");
         navigate(`/register?redirect=${encodeURIComponent(redirect)}`, { replace: true });
         return;
       }
+      const userId = chk.user_id;
 
       const { data: lData, error: lErr } = await supabase.functions.invoke("phone-login", {
-        body: { userId: prof.user_id, phone: phoneFmt },
+        body: { userId, phone: phoneFmt },
       });
       if (lErr || !lData?.success) throw new Error(lData?.error || "فشل تسجيل الدخول");
 
