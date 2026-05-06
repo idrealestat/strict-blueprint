@@ -187,6 +187,16 @@ export default function ChoosePlanPage() {
                     ))}
                   </ul>
 
+                  {plan.code === 'OFFICE' && (
+                    <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/40 rounded-lg p-3 text-sm space-y-2">
+                      <p className="font-bold text-[#01411C]">للمالك مع الباقة المطورة:</p>
+                      <p>📊 تستطيع متابعة عقارك بشكل مباشر من خلال الوسيط</p>
+                      <p>👁️ ترى كم عميلاً مهتماً بعقارك وكم تواصل وكم شاهد إعلانك</p>
+                      <p>💬 تحليلات وبيانات تجعلك على اطلاع مباشر أولاً بأول</p>
+                      <p>🧑‍💼 تحفظ معلومات الوسطاء الذين تعاملت معهم</p>
+                    </div>
+                  )}
+
                   {/* زر الاختيار */}
                   <Button
                     onClick={() => handleSelectPlan(plan.code)}

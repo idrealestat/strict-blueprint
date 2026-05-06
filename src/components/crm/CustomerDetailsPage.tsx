@@ -3833,7 +3833,14 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">المصدر</Label>
-                      <div className="p-3 bg-gray-50 rounded-lg mt-1">{customer.source || 'غير محدد'}</div>
+                      <div className="p-3 bg-gray-50 rounded-lg mt-1 flex items-center gap-2">
+                        {customer.source === 'هنا وسيطك' && (
+                          <span className="bg-[#D4AF37] text-[#01411C] text-xs font-bold px-2 py-1 rounded">
+                            🏠 هنا وسيطك
+                          </span>
+                        )}
+                        <span>{customer.source || 'غير محدد'}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

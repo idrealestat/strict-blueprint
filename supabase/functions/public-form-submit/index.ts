@@ -220,6 +220,7 @@ serve(async (req) => {
           status: 'جديد',
           priority: 'عالي',
           source:
+            (typeof (data as any).source === 'string' && (data as any).source) ? (data as any).source :
             formType === 'offer'
               ? 'نموذج عرض عقاري'
               : formType === 'request'
