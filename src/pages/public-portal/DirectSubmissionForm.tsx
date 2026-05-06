@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 type Kind = "offer" | "request";
 type Purpose = "sale" | "rent" | "buy" | "lease";
@@ -73,31 +72,10 @@ export default function DirectSubmissionForm({ kind, defaultPurpose }: Props) {
     if (err) { toast.error(err); return; }
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       const payload = { kind, purpose, data: form };
-
-      if (!user) {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        toast.success("أحسنت! لإيجاد وسيطك يتطلب التسجيل");
-        navigate(`/register?redirect=${encodeURIComponent("/owner/home?from=submission")}`);
-        return;
-      }
-
-      // Logged-in: save directly as draft
-      const { data: row, error } = await supabase.from("owner_submissions").insert({
-        owner_user_id: user.id,
-        submission_type: kind,
-        purpose,
-        status: "draft",
-        source: "direct",
-        city: form.city,
-        district: form.district,
-        data: form,
-      }).select("id").single();
-      if (error) throw error;
-      sessionStorage.removeItem(STORAGE_KEY);
-      toast.success("تم حفظ المسودة. راجعها ثم أكّد الإرسال.");
-      navigate(`/owner/submission/${row.id}/review`);
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      toast.success("أحسنت! لإيجاد وسيطك يتطلب التسجيل");
+      navigate(`/register?redirect=${encodeURIComponent("/choose-plan")}`);
     } catch (e: any) {
       toast.error(e.message || "حدث خطأ");
     } finally {

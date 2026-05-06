@@ -119,7 +119,7 @@ export default function OwnerRegisterPage() {
         // Save the pending submission as draft if any
         if (pendingSubmission) {
           try {
-            const { data: row } = await supabase.from("owner_submissions").insert({
+            await supabase.from("owner_submissions").insert({
               owner_user_id: userId,
               submission_type: pendingSubmission.kind,
               purpose: pendingSubmission.purpose,
@@ -130,11 +130,10 @@ export default function OwnerRegisterPage() {
               data: pendingSubmission.data || {},
             }).select("id").single();
             sessionStorage.removeItem("huna_waseetak_pending");
-            if (row?.id) {
-              toast.success("تم إنشاء حسابك وحفظ مسودة طلبك");
-              navigate(`/owner/submission/${row.id}/review`, { replace: true });
-              return;
-            }
+            sessionStorage.setItem("owner_post_register", "1");
+            toast.success("تم إنشاء حسابك وحفظ مسودة طلبك. اختر باقتك للمتابعة.");
+            navigate("/choose-plan", { replace: true });
+            return;
           } catch (err) {
             console.warn("Failed to save pending submission", err);
           }
