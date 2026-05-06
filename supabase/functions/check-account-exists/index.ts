@@ -63,6 +63,27 @@ serve(async (req) => {
       admin.from("business_cards").select("user_id", { count: "exact", head: true }).eq("user_id", userId),
     ]);
 
+    let broker_data: any = null;
+    if ((cardCount ?? 0) > 0) {
+      const { data: card } = await admin
+        .from("business_cards")
+        .select("data, phone, email, national_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (card) {
+        const d: any = card.data || {};
+        broker_data = {
+          full_name: d.name || d.userName || d.fullName || null,
+          national_id: card.national_id || d.nationalId || null,
+          date_of_birth: d.birthDate || d.dateOfBirth || null,
+          phone: card.phone || d.phone || null,
+          email: card.email || d.email || foundEmail,
+          city: d.city || null,
+          neighborhood: d.district || d.neighborhood || null,
+        };
+      }
+    }
+
     return json({
       success: true,
       exists: true,
@@ -70,6 +91,7 @@ serve(async (req) => {
       email: foundEmail,
       has_owner_profile: (ownerCount ?? 0) > 0,
       has_business_card: (cardCount ?? 0) > 0,
+      broker_data,
     });
   } catch (e: any) {
     console.error("check-account-exists error:", e);
