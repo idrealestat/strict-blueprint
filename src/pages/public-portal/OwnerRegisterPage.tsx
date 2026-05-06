@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PhoneVerificationField from "@/components/PhoneVerificationField";
-import { Lock, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Lock, CheckCircle2, AlertCircle, Info, ArrowRight } from "lucide-react";
 
 const phoneRe = /^(05|5|\+?966)\d{8,9}$/;
 const baseSchema = z.object({
@@ -268,6 +268,14 @@ export default function OwnerRegisterPage() {
     <div dir="rtl" className="min-h-screen bg-background font-cairo py-8 px-4">
       <Helmet><title>إنشاء حساب مالك عقار | وساطة AI</title></Helmet>
       <div className="max-w-xl mx-auto bg-card rounded-2xl border p-6 shadow-sm">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="mb-4 inline-flex items-center gap-1 text-sm text-[#01411C] hover:text-[#065f41] font-bold"
+        >
+          <ArrowRight className="h-4 w-4" />
+          العودة لتعبئة الطلب
+        </button>
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-[#01411C]">إنشاء حساب مالك عقار</h1>
           <p className="text-sm text-muted-foreground mt-1">
