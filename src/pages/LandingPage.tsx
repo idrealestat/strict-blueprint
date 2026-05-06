@@ -103,7 +103,7 @@ export default function LandingPage() {
             <p className="max-w-md text-lg leading-relaxed text-primary-foreground/90">
               نعلم تمامًا ما تحتاجه كوسيط عقاري — لذلك صمّمنا لك أدوات تخدم عملك اليومي فعليًا، تبني ثقة عميلك من أول تواصل، وتختصر وقتك لتركّز على ما يهم: إتمام الصفقات وتحقيق النتائج.
             </p>
-            <div className="inline-flex w-fit flex-col gap-3 pt-2" dir="rtl">
+            <div className="inline-flex w-fit shrink-0 flex-col gap-3 pt-2" dir="rtl">
               <div className="flex gap-3">
                 <Link
                   to="/app/register"
