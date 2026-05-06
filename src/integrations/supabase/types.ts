@@ -1557,6 +1557,50 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_broker_proposals: {
+        Row: {
+          broker_slug: string | null
+          broker_user_id: string
+          commission_percent: number | null
+          created_at: string
+          id: string
+          services: Json
+          status: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          broker_slug?: string | null
+          broker_user_id: string
+          commission_percent?: number | null
+          created_at?: string
+          id?: string
+          services?: Json
+          status?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          broker_slug?: string | null
+          broker_user_id?: string
+          commission_percent?: number | null
+          created_at?: string
+          id?: string
+          services?: Json
+          status?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_broker_proposals_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "owner_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owner_profiles: {
         Row: {
           city: string | null
@@ -1593,6 +1637,57 @@ export type Database = {
           phone?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      owner_submissions: {
+        Row: {
+          assigned_broker_slug: string | null
+          assigned_broker_user_id: string | null
+          city: string | null
+          created_at: string
+          data: Json
+          district: string | null
+          id: string
+          media: Json
+          owner_user_id: string
+          purpose: string
+          source: string
+          status: string
+          submission_type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_broker_slug?: string | null
+          assigned_broker_user_id?: string | null
+          city?: string | null
+          created_at?: string
+          data?: Json
+          district?: string | null
+          id?: string
+          media?: Json
+          owner_user_id: string
+          purpose: string
+          source?: string
+          status?: string
+          submission_type: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_broker_slug?: string | null
+          assigned_broker_user_id?: string | null
+          city?: string | null
+          created_at?: string
+          data?: Json
+          district?: string | null
+          id?: string
+          media?: Json
+          owner_user_id?: string
+          purpose?: string
+          source?: string
+          status?: string
+          submission_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
