@@ -133,12 +133,16 @@ export default function OwnerRegisterPage() {
   };
 
   const submit = async () => {
-    const parsed = baseSchema.safeParse(form);
+    if (!phoneVerified) { toast.error("يرجى التحقق من رقم الجوال أولاً"); return; }
+    const skipPwd = !!(accountCheck?.exists && accountCheck.has_business_card && !accountCheck.has_owner_profile);
+    const schema = skipPwd
+      ? baseSchema._def.schema.omit({ password: true, passwordConfirm: true } as any)
+      : baseSchema;
+    const parsed = (schema as any).safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message || "بيانات غير صحيحة");
       return;
     }
-    if (!phoneVerified) { toast.error("يرجى التحقق من رقم الجوال أولاً"); return; }
 
     setLoading(true);
     try {
