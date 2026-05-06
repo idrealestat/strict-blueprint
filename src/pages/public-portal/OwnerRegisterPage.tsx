@@ -100,8 +100,8 @@ export default function OwnerRegisterPage() {
       const result = data as AccountCheck;
       setAccountCheck(result);
 
-      // تعبئة تلقائية من بيانات الوسيط
-      if (result?.exists && result.has_business_card && !result.has_owner_profile && result.broker_data) {
+      // تعبئة تلقائية من بيانات الحساب الموجود (وسيط أو ملف عام)
+      if (result?.exists && !result.has_owner_profile && result.broker_data) {
         const b = result.broker_data;
         setForm((f) => ({
           ...f,
@@ -260,7 +260,7 @@ export default function OwnerRegisterPage() {
     }
   };
 
-  const isExistingBroker = accountCheck?.exists && accountCheck.has_business_card && !accountCheck.has_owner_profile;
+  const isExistingBroker = !!(accountCheck?.exists && !accountCheck.has_owner_profile && accountCheck.broker_data);
   const isExistingOwner = accountCheck?.exists && accountCheck.has_owner_profile;
   const lockedClass = "bg-muted text-muted-foreground cursor-not-allowed";
 
