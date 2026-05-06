@@ -37,7 +37,7 @@ type AccountCheck = {
 export default function OwnerRegisterPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-      // (no-op)
+      const redirect = params.get("redirect") || "/app/choose-plan";
 
   const [form, setForm] = useState({
     phone: "", email: "", password: "", passwordConfirm: "",
