@@ -1611,6 +1611,7 @@ export type Database = {
           national_id: string | null
           neighborhood: string | null
           phone: string
+          plan_tier: string
           updated_at: string
           user_id: string
         }
@@ -1623,6 +1624,7 @@ export type Database = {
           national_id?: string | null
           neighborhood?: string | null
           phone: string
+          plan_tier?: string
           updated_at?: string
           user_id: string
         }
@@ -1635,6 +1637,7 @@ export type Database = {
           national_id?: string | null
           neighborhood?: string | null
           phone?: string
+          plan_tier?: string
           updated_at?: string
           user_id?: string
         }
