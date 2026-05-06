@@ -99,8 +99,8 @@ export default function LandingPage() {
             </h1>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <p className="max-w-2xl text-lg leading-relaxed text-primary-foreground/90">
+          <div className="flex flex-row-reverse items-end gap-6">
+            <p className="max-w-md text-lg leading-relaxed text-primary-foreground/90">
               نعلم تمامًا ما تحتاجه كوسيط عقاري — لذلك صمّمنا لك أدوات تخدم عملك اليومي فعليًا، تبني ثقة عميلك من أول تواصل، وتختصر وقتك لتركّز على ما يهم: إتمام الصفقات وتحقيق النتائج.
             </p>
             <div className="inline-flex w-fit flex-col gap-3 pt-2" dir="rtl">
