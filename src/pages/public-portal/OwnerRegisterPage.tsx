@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -33,9 +33,28 @@ export default function OwnerRegisterPage() {
     full_name: "", national_id: "", date_of_birth: "",
     city: "", neighborhood: "", agree: false,
   });
+  const [pendingSubmission, setPendingSubmission] = useState<any>(null);
   const [stage, setStage] = useState<"form" | "otp">("form");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Pre-fill from sessionStorage if user came from "هنا وسيطك"
+  useEffect(() => {
+    const raw = sessionStorage.getItem("huna_waseetak_pending");
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        setPendingSubmission(p);
+        setForm((f) => ({
+          ...f,
+          full_name: p.data?.ownerName || f.full_name,
+          phone: (p.data?.ownerPhone || "").replace(/\D/g, "") || f.phone,
+          city: p.data?.city || f.city,
+          neighborhood: p.data?.district || f.neighborhood,
+        }));
+      } catch {}
+    }
+  }, []);
 
   const update = (k: string, v: any) => setForm({ ...form, [k]: v });
 
@@ -96,6 +115,30 @@ export default function OwnerRegisterPage() {
           city: form.city,
           neighborhood: form.neighborhood,
         });
+
+        // Save the pending submission as draft if any
+        if (pendingSubmission) {
+          try {
+            const { data: row } = await supabase.from("owner_submissions").insert({
+              owner_user_id: userId,
+              submission_type: pendingSubmission.kind,
+              purpose: pendingSubmission.purpose,
+              status: "draft",
+              source: "direct",
+              city: pendingSubmission.data?.city || form.city,
+              district: pendingSubmission.data?.district || form.neighborhood,
+              data: pendingSubmission.data || {},
+            }).select("id").single();
+            sessionStorage.removeItem("huna_waseetak_pending");
+            if (row?.id) {
+              toast.success("تم إنشاء حسابك وحفظ مسودة طلبك");
+              navigate(`/owner/submission/${row.id}/review`, { replace: true });
+              return;
+            }
+          } catch (err) {
+            console.warn("Failed to save pending submission", err);
+          }
+        }
       }
 
       toast.success("تم إنشاء حسابك بنجاح!");
