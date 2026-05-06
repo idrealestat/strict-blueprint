@@ -7,11 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import PhoneVerificationField from "@/components/PhoneVerificationField";
 
-const phoneRe = /^9665\d{8}$/;
+const phoneRe = /^(05|5|\+?966)\d{8,9}$/;
 const schema = z.object({
-  phone: z.string().regex(phoneRe, "رقم الجوال يجب أن يبدأ بـ 9665 ويتكون من 12 رقمًا"),
+  phone: z.string().regex(phoneRe, "رقم جوال غير صحيح"),
   email: z.string().email("بريد غير صالح").optional().or(z.literal("")),
   password: z.string().min(8, "كلمة المرور 8 حروف على الأقل"),
   passwordConfirm: z.string(),
@@ -34,8 +34,7 @@ export default function OwnerRegisterPage() {
     city: "", neighborhood: "", agree: false,
   });
   const [pendingSubmission, setPendingSubmission] = useState<any>(null);
-  const [stage, setStage] = useState<"form" | "otp">("form");
-  const [otp, setOtp] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Pre-fill from sessionStorage if user came from "هنا وسيطك"
@@ -58,39 +57,29 @@ export default function OwnerRegisterPage() {
 
   const update = (k: string, v: any) => setForm({ ...form, [k]: v });
 
+  const normalizePhone = (p: string) => {
+    const clean = p.replace(/\s|\+/g, "");
+    if (clean.startsWith("966")) return "+" + clean;
+    if (clean.startsWith("05")) return "+966" + clean.slice(1);
+    if (clean.startsWith("5")) return "+966" + clean;
+    return "+" + clean;
+  };
+
   const submit = async () => {
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message || "بيانات غير صحيحة");
       return;
     }
-    setLoading(true);
-    try {
-      const phoneFmt = "+" + form.phone;
-      const { data, error } = await supabase.functions.invoke("send-phone-otp", {
-        body: { phone: phoneFmt, identifier: phoneFmt },
-      });
-      if (error || !data?.success) throw new Error(data?.error || "فشل إرسال الرمز");
-      toast.success("تم إرسال رمز التحقق عبر واتساب");
-      setStage("otp");
-    } catch (e: any) {
-      toast.error(e.message || "خطأ");
-    } finally {
-      setLoading(false);
+    if (!phoneVerified) {
+      toast.error("يرجى التحقق من رقم الجوال أولاً");
+      return;
     }
-  };
-
-  const verifyAndCreate = async () => {
-    if (otp.length !== 6) return;
     setLoading(true);
     try {
-      const phoneFmt = "+" + form.phone;
-      const { data: vData, error: vErr } = await supabase.functions.invoke("verify-otp", {
-        body: { identifier: phoneFmt, code: otp, type: "phone" },
-      });
-      if (vErr || !vData?.success) throw new Error(vData?.error || "رمز التحقق غير صحيح");
-
-      const email = form.email?.trim() || `${form.phone}@owners.wasataai.com`;
+      const phoneFmt = normalizePhone(form.phone);
+      const phoneDigits = phoneFmt.replace(/\D/g, "");
+      const email = form.email?.trim() || `${phoneDigits}@owners.wasataai.com`;
       const redirectUrl = `${window.location.origin}${redirect}`;
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email,
@@ -160,10 +149,13 @@ export default function OwnerRegisterPage() {
           </p>
         </div>
 
-        {stage === "form" ? (
-          <div className="space-y-4">
-            <div><Label>رقم الجوال (مثال: 966512345678)</Label>
-              <Input value={form.phone} onChange={(e) => update("phone", e.target.value.replace(/\D/g, ""))} dir="ltr" /></div>
+        <div className="space-y-4">
+            <PhoneVerificationField
+              phone={form.phone}
+              onPhoneChange={(v) => update("phone", v)}
+              onVerified={setPhoneVerified}
+              label="رقم الجوال *"
+            />
             <div><Label>البريد الإلكتروني (اختياري)</Label>
               <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} dir="ltr" /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -190,26 +182,10 @@ export default function OwnerRegisterPage() {
               <input type="checkbox" checked={form.agree} onChange={(e) => update("agree", e.target.checked)} />
               <span>أوافق على <Link to="/terms" className="text-[#D4AF37]">الشروط</Link> و<Link to="/privacy" className="text-[#D4AF37]">سياسة الخصوصية</Link></span>
             </label>
-            <Button onClick={submit} disabled={loading} className="w-full bg-[#01411C] hover:bg-[#065f41]">
-              {loading ? "..." : "إرسال رمز التحقق"}
+            <Button onClick={submit} disabled={loading || !phoneVerified} className="w-full bg-[#01411C] hover:bg-[#065f41]">
+              {loading ? "..." : "إنشاء الحساب"}
             </Button>
           </div>
-        ) : (
-          <div className="space-y-4 text-center">
-            <p>أدخل الرمز المُرسَل إلى واتساب على الرقم {form.phone}</p>
-            <div className="flex justify-center" dir="ltr">
-              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                <InputOTPGroup>
-                  {[0,1,2,3,4,5].map((i) => <InputOTPSlot key={i} index={i} />)}
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            <Button onClick={verifyAndCreate} disabled={loading || otp.length !== 6} className="w-full bg-[#D4AF37] text-[#01411C] hover:bg-[#c19f2c]">
-              {loading ? "..." : "تأكيد وإنشاء الحساب"}
-            </Button>
-            <button onClick={() => setStage("form")} className="text-sm text-muted-foreground">تعديل البيانات</button>
-          </div>
-        )}
       </div>
     </div>
   );
