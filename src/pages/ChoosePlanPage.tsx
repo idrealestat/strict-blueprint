@@ -59,6 +59,8 @@ export default function ChoosePlanPage() {
   useEffect(() => {
     if (!isLoading) {
       const ownerFlow = sessionStorage.getItem("owner_post_register") === "1";
+      // إذا المالك دخل لاختيار/ترقية باقة، اسمح له بالبقاء في الصفحة
+      if (ownerFlow) return;
       // المستخدم أكمل الإعداد بالفعل
       if (onboardingCompleted) {
         console.log('[ChoosePlanPage] User already completed onboarding, redirecting to dashboard');
