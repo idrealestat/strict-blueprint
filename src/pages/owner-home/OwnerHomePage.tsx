@@ -4,6 +4,13 @@ import { Helmet } from "react-helmet-async";
 import { Bell, Menu, FileText, Inbox, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function OwnerHomePage() {
   const navigate = useNavigate();
@@ -55,7 +62,23 @@ export default function OwnerHomePage() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button className="text-white"><Bell className="w-6 h-6" /></button>
           <h1 className="text-lg md:text-xl font-bold">مرحبًا{name ? `، ${name}` : ""}</h1>
-          <button onClick={logout} className="text-white"><Menu className="w-6 h-6" /></button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-white"><Menu className="w-6 h-6" /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="font-cairo">
+              <DropdownMenuItem onClick={() => navigate("/owner/home")}>
+                الصفحة الرئيسية
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/owner/performance")}>
+                الأداء — الباقة المطورة
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout}>
+                تسجيل الخروج
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -102,11 +125,10 @@ export default function OwnerHomePage() {
             </div>
           </div>
           <Link
-            to="/app/choose-plan"
-            onClick={() => sessionStorage.setItem("owner_post_register", "1")}
+            to="/owner/performance"
             className="bg-[#D4AF37] text-[#01411C] font-bold px-4 py-2 rounded-lg"
           >
-            عرض الباقات
+            عرض الأداء
           </Link>
         </div>
       </main>

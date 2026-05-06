@@ -58,19 +58,16 @@ export default function ChoosePlanPage() {
   // إذا المستخدم أكمل الـ onboarding أو لديه باقة أو في فترة تجربة نشطة، أعده للداشبورد
   useEffect(() => {
     if (!isLoading) {
-      const ownerFlow = sessionStorage.getItem("owner_post_register") === "1";
-      // إذا المالك دخل لاختيار/ترقية باقة، اسمح له بالبقاء في الصفحة
-      if (ownerFlow) return;
       // المستخدم أكمل الإعداد بالفعل
       if (onboardingCompleted) {
         console.log('[ChoosePlanPage] User already completed onboarding, redirecting to dashboard');
-        navigate(ownerFlow ? '/owner/home' : '/app/dashboard', { replace: true });
+        navigate('/app/dashboard', { replace: true });
         return;
       }
       // المستخدم لديه باقة مختارة
       if (planCode) {
         console.log('[ChoosePlanPage] User already has plan, redirecting to dashboard');
-        navigate(ownerFlow ? '/owner/home' : '/app/dashboard', { replace: true });
+        navigate('/app/dashboard', { replace: true });
         return;
       }
     }
@@ -98,13 +95,7 @@ export default function ChoosePlanPage() {
           title: 'تم اختيار الباقة بنجاح!',
           description: `مرحباً بك في ${selectedPlanCode === 'INDIVIDUAL' ? 'باقة الأفراد' : 'باقة المكتب'}`,
         });
-        const ownerFlow = sessionStorage.getItem("owner_post_register") === "1";
-        if (ownerFlow) {
-          sessionStorage.removeItem("owner_post_register");
-          navigate('/owner/home');
-        } else {
-          navigate('/app/businesscard/edit');
-        }
+        navigate('/app/businesscard/edit');
       } else {
         throw new Error('فشل في تحديث الباقة');
       }
