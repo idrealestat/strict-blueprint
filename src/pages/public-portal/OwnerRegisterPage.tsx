@@ -37,7 +37,7 @@ type AccountCheck = {
 export default function OwnerRegisterPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const redirect = params.get("redirect") || "/choose-plan";
+      // (no-op)
 
   const [form, setForm] = useState({
     phone: "", email: "", password: "", passwordConfirm: "",
@@ -203,7 +203,7 @@ export default function OwnerRegisterPage() {
       await insertOwnerProfile(userId, phoneFmt);
 
       toast.success("تم إعداد حسابك. اختر باقتك للمتابعة.");
-      navigate("/choose-plan", { replace: true });
+      navigate("/app/choose-plan", { replace: true });
     } catch (e: any) {
       toast.error(e.message || "خطأ في التسجيل");
     } finally {
