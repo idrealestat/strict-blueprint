@@ -84,6 +84,46 @@ serve(async (req) => {
       }
     }
 
+    // مصدر احتياطي: جدول profiles (مستخدم لديه حساب لكن لا توجد بطاقة عمل)
+    if (!broker_data) {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("full_name, national_id, birth_date, phone")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (prof && (prof.full_name || prof.national_id || prof.phone)) {
+        broker_data = {
+          full_name: prof.full_name || null,
+          national_id: prof.national_id || null,
+          date_of_birth: prof.birth_date || null,
+          phone: prof.phone || null,
+          email: foundEmail,
+          city: null,
+          neighborhood: null,
+        };
+      }
+    }
+
+    // مصدر احتياطي ثاني: owner_profiles (إن وُجد)
+    if (!broker_data && (ownerCount ?? 0) > 0) {
+      const { data: own } = await admin
+        .from("owner_profiles")
+        .select("full_name, national_id, date_of_birth, phone, email, city, neighborhood")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (own) {
+        broker_data = {
+          full_name: own.full_name || null,
+          national_id: own.national_id || null,
+          date_of_birth: own.date_of_birth || null,
+          phone: own.phone || null,
+          email: own.email || foundEmail,
+          city: own.city || null,
+          neighborhood: own.neighborhood || null,
+        };
+      }
+    }
+
     return json({
       success: true,
       exists: true,
