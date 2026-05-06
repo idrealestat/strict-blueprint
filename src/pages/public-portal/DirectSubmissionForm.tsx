@@ -107,7 +107,7 @@ export default function DirectSubmissionForm({ kind, defaultPurpose }: Props) {
         <div><Label>الاسم</Label>
           <Input value={form.ownerName} onChange={(e) => update("ownerName", e.target.value)} /></div>
         <div><Label>رقم الجوال</Label>
-          <Input value={form.ownerPhone} onChange={(e) => update("ownerPhone", e.target.value.replace(/\D/g, ""))} dir="ltr" placeholder="9665xxxxxxxx" /></div>
+          <Input value={form.ownerPhone} onChange={(e) => update("ownerPhone", e.target.value.replace(/\D/g, ""))} dir="ltr" placeholder="05xxxxxxxx" maxLength={10} /></div>
 
         <div><Label>نوع العقار</Label>
           <Select value={form.propertyType} onValueChange={(v) => update("propertyType", v)}>
