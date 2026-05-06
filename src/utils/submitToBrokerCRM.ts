@@ -26,7 +26,7 @@ export async function submitToBrokerCRM(params: {
   const submissionData = {
     id: `owner_${sub.id}`,
     type: formType === "offer" ? "property_offer" : "property_request",
-    source: "huna_waseetak",
+    source: "هنا وسيطك",
     ownerName: d.ownerName,
     ownerPhone: d.ownerPhone,
     propertyType: d.propertyType,
