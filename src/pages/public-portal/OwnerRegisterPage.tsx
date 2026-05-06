@@ -254,7 +254,7 @@ export default function OwnerRegisterPage() {
       toast.success("تم إعداد حسابك. اختر باقتك للمتابعة.");
       // إجبار التحويل إلى لوحة المالك بعد ربط الدور (تجاوز أي Guards توجّه للبطاقة)
       sessionStorage.setItem("force_owner_redirect", "1");
-      window.location.replace("/owner-home");
+      window.location.replace("/owner/home");
     } catch (e: any) {
       toast.error(e.message || "خطأ في التسجيل");
     } finally {
