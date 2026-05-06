@@ -88,6 +88,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BusinessCardGuard from "./components/auth/BusinessCardGuard";
 import RoleGuard from "./components/auth/RoleGuard";
 import { OnboardingGuard } from "./components/auth/OnboardingGuard";
+import OwnerRouteGuard from "./components/auth/OwnerRouteGuard";
 import { useAuthContext } from "./context/AuthContext";
 import { useEntitlementsContext } from "./context/EntitlementsContext";
 import TermsPage from "./pages/TermsPage";
@@ -802,12 +803,12 @@ const App = () => {
                   <Route path="/huna-waseetak/offer-sale/success" element={<OfferSuccessPage />} />
 
                   {/* لوحة المالك (هنا وسيطك) */}
-                  <Route path="/owner/home" element={<OwnerHomePage />} />
-                  <Route path="/owner/submissions" element={<SubmissionsListPage />} />
-                  <Route path="/owner/submission/:id/review" element={<SubmissionReviewPage />} />
-                  <Route path="/owner/submission/:id/proposals" element={<SubmissionProposalsPage />} />
-                  <Route path="/owner/accepted" element={<AcceptedListPage />} />
-                  <Route path="/owner/performance" element={<OwnerPerformancePage />} />
+                  <Route path="/owner/home" element={<OwnerRouteGuard><OwnerHomePage /></OwnerRouteGuard>} />
+                  <Route path="/owner/submissions" element={<OwnerRouteGuard><SubmissionsListPage /></OwnerRouteGuard>} />
+                  <Route path="/owner/submission/:id/review" element={<OwnerRouteGuard><SubmissionReviewPage /></OwnerRouteGuard>} />
+                  <Route path="/owner/submission/:id/proposals" element={<OwnerRouteGuard><SubmissionProposalsPage /></OwnerRouteGuard>} />
+                  <Route path="/owner/accepted" element={<OwnerRouteGuard><AcceptedListPage /></OwnerRouteGuard>} />
+                  <Route path="/owner/performance" element={<OwnerRouteGuard><OwnerPerformancePage /></OwnerRouteGuard>} />
                   <Route path="/app/owner-inbox" element={<BrokerOwnerInboxPage />} />
 
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
