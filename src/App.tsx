@@ -107,6 +107,8 @@ import OwnerHomePage from "./pages/owner-home/OwnerHomePage";
 import SubmissionsListPage from "./pages/owner-home/SubmissionsListPage";
 import SubmissionReviewPage from "./pages/owner-home/SubmissionReviewPage";
 import AcceptedListPage from "./pages/owner-home/AcceptedListPage";
+import SubmissionProposalsPage from "./pages/owner-home/SubmissionProposalsPage";
+import BrokerOwnerInboxPage from "./pages/broker/BrokerOwnerInboxPage";
 import { Navigate as RRNavigate } from "react-router-dom";
 
 
@@ -802,7 +804,9 @@ const App = () => {
                   <Route path="/owner/home" element={<OwnerHomePage />} />
                   <Route path="/owner/submissions" element={<SubmissionsListPage />} />
                   <Route path="/owner/submission/:id/review" element={<SubmissionReviewPage />} />
+                  <Route path="/owner/submission/:id/proposals" element={<SubmissionProposalsPage />} />
                   <Route path="/owner/accepted" element={<AcceptedListPage />} />
+                  <Route path="/app/owner-inbox" element={<BrokerOwnerInboxPage />} />
 
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />

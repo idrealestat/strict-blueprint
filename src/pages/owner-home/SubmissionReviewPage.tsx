@@ -98,8 +98,16 @@ export default function SubmissionReviewPage() {
             {submitting ? "..." : "تأكيد الإرسال إلى وسطاء المدينة"}
           </Button>
         ) : (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-center font-bold">
-            تم الإرسال — في انتظار رد الوسطاء
+          <div className="space-y-3">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-center font-bold">
+              تم الإرسال — في انتظار رد الوسطاء
+            </div>
+            <Button
+              onClick={() => navigate(`/owner/submission/${row.id}/proposals`)}
+              className="w-full bg-[#D4AF37] hover:bg-[#b8951f] text-[#01411C] py-5 font-bold"
+            >
+              عرض ردود الوسطاء
+            </Button>
           </div>
         )}
       </main>

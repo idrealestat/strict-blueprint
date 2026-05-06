@@ -51,7 +51,7 @@ export default function AcceptedListPage() {
               {rows.map((r) => {
                 const st = STATUS_LABEL[r.status] || { text: r.status, cls: "bg-muted" };
                 return (
-                  <Link key={r.id} to={`/owner/submission/${r.id}/review`} className="block bg-card border rounded-2xl p-4 hover:shadow-md">
+                  <Link key={r.id} to={`/owner/submission/${r.id}/proposals`} className="block bg-card border rounded-2xl p-4 hover:shadow-md">
                     <div className="flex justify-between mb-2">
                       <span className="bg-[#D4AF37]/20 text-[#01411C] font-bold px-2 py-1 rounded text-sm">
                         {r.submission_type === "offer" ? "عرض" : "طلب"} {PURPOSE_LABEL[r.purpose]}
