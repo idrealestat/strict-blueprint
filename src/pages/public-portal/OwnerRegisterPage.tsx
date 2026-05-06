@@ -86,7 +86,15 @@ export default function OwnerRegisterPage() {
         password: form.password,
         options: { emailRedirectTo: redirectUrl, data: { full_name: form.full_name, phone: phoneFmt } },
       });
-      if (authErr) throw authErr;
+      if (authErr) {
+        const msg = (authErr.message || "").toLowerCase();
+        if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+          toast.error("هذا البريد/الجوال مسجّل مسبقًا. سجّل الدخول بدلاً من ذلك.");
+          navigate(`/login?redirect=${encodeURIComponent(redirect)}`);
+          return;
+        }
+        throw authErr;
+      }
       const userId = authData.user?.id;
 
       if (!authData.session) {
