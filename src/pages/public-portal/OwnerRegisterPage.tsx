@@ -79,7 +79,11 @@ export default function OwnerRegisterPage() {
     try {
       const phoneFmt = normalizePhone(form.phone);
       const phoneDigits = phoneFmt.replace(/\D/g, "");
-      const email = form.email?.trim() || `${phoneDigits}@owners.wasataai.com`;
+      // قسم "اطلب وسيطك" منفصل تمامًا عن حساب الوسيط العقاري.
+      // لذلك نستخدم دائمًا بريدًا اصطناعيًا في نطاق owners.wasataai.com
+      // حتى يستطيع نفس الشخص امتلاك حسابين مختلفين (وسيط + مالك/باحث)
+      // بدون تعارض في جدول auth.users. البريد الحقيقي يُحفظ في owner_profiles.
+      const email = `${phoneDigits}@owners.wasataai.com`;
       const redirectUrl = `${window.location.origin}${redirect}`;
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email,
