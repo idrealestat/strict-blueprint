@@ -565,7 +565,6 @@ const App = () => {
                     
                     {/* Legacy auth routes */}
                     <Route path="/auth" element={<Navigate to="/app/login" replace />} />
-                    <Route path="/login" element={<Navigate to="/app/login" replace />} />
                     
                     {/* Redirect legacy owner route */}
                     <Route path="/owner" element={<Navigate to="/app/owner" replace />} />
