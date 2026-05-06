@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DirectSubmissionForm from "@/pages/public-portal/DirectSubmissionForm";
 
 interface Row {
   id: string;
@@ -31,6 +32,7 @@ export default function SubmissionsListPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"offer" | "request">("offer");
 
   useEffect(() => {
     (async () => {
@@ -61,11 +63,30 @@ export default function SubmissionsListPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex gap-3 mb-6">
-          <Link to="/huna-waseetak" className="flex-1 bg-[#01411C] hover:bg-[#065f41] text-white text-center font-bold py-3 rounded-lg flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> إنشاء عرض/طلب جديد
-          </Link>
+        <div className="flex gap-2 mb-6 bg-muted p-1 rounded-lg">
+          <button
+            onClick={() => setTab("offer")}
+            className={`flex-1 py-3 rounded-md font-bold transition ${tab === "offer" ? "bg-[#01411C] text-white" : "text-foreground"}`}
+          >
+            ارسال عرض
+          </button>
+          <button
+            onClick={() => setTab("request")}
+            className={`flex-1 py-3 rounded-md font-bold transition ${tab === "request" ? "bg-[#01411C] text-white" : "text-foreground"}`}
+          >
+            ارسال طلب
+          </button>
         </div>
+
+        <div className="mb-8">
+          {tab === "offer" ? (
+            <DirectSubmissionForm kind="offer" defaultPurpose="sale" />
+          ) : (
+            <DirectSubmissionForm kind="request" defaultPurpose="buy" />
+          )}
+        </div>
+
+        <h2 className="font-bold text-lg mb-3 text-[#01411C]">إرسالاتك السابقة</h2>
 
         {loading ? (
           <p className="text-center text-muted-foreground">جاري التحميل...</p>
