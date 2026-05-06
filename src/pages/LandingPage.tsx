@@ -107,7 +107,7 @@ export default function LandingPage() {
               <div className="flex gap-3">
                 <Link
                   to="/app/register"
-                  className="rounded-lg bg-secondary px-6 py-3 text-base font-bold text-secondary-foreground transition hover:opacity-90"
+                  className="rounded-lg bg-[#01411C] border-2 border-[#D4AF37] px-6 py-3 text-base font-bold text-white transition hover:opacity-90"
                 >
                   ابدأ الآن
                 </Link>
