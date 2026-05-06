@@ -60,8 +60,10 @@ export default function OwnerLoginPage() {
     setPhoneFmt(fmt);
     setLoading(true);
     try {
+      // الدالة تتوقع صيغة 05xxxxxxxx
+      const localPhone = phone.replace(/\D/g, "").replace(/^966/, "0").replace(/^(?!0)5/, "05");
       const { data, error } = await supabase.functions.invoke("send-phone-otp", {
-        body: { phone: fmt, identifier: fmt },
+        body: { phone: localPhone, identifier: fmt },
       });
       if (error || !data?.success) throw new Error(data?.error || "فشل إرسال الرمز");
       toast.success("تم إرسال الرمز عبر واتساب");
