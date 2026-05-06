@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Home, Key, ShoppingCart, Search } from "lucide-react";
+import { LogIn } from "lucide-react";
+import DirectSubmissionForm from "./DirectSubmissionForm";
 
 export default function HunaWaseetakPage() {
   const [tab, setTab] = useState<"offers" | "requests">("offers");
@@ -10,55 +11,51 @@ export default function HunaWaseetakPage() {
     <div dir="rtl" className="min-h-screen bg-background font-cairo">
       <Helmet><title>هنا وسيطك | وساطة AI</title></Helmet>
 
-      <header className="bg-[#01411C] text-white py-6 px-4">
+      <header className="bg-[#01411C] text-white border-b-4 border-[#D4AF37] py-5 px-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-[#D4AF37] font-bold">← الرئيسية</Link>
-          <h1 className="text-xl font-bold">هنا وسيطك</h1>
+          <h1 className="text-xl md:text-2xl font-bold">هنا وسيطك</h1>
+          <Link
+            to="/login?redirect=/owner/home"
+            className="flex items-center gap-1 bg-[#D4AF37] text-[#01411C] px-3 py-2 rounded-lg font-bold text-sm"
+          >
+            <LogIn className="w-4 h-4" />
+            تسجيل دخول
+          </Link>
         </div>
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex gap-2 mb-8 bg-muted p-1 rounded-lg">
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-[#01411C] mb-2">
+          أرسل عرضك أو طلبك للوسطاء
+        </h2>
+        <p className="text-center text-muted-foreground mb-6">
+          سجّل وسيطك المفضّل أو دع وسطاء مدينتك يتنافسون لخدمتك
+        </p>
+
+        <div className="flex gap-2 mb-6 bg-muted p-1 rounded-lg">
           <button
             onClick={() => setTab("offers")}
-            className={`flex-1 py-3 rounded-md font-bold transition ${tab === "offers" ? "bg-[#01411C] text-white" : "text-foreground"}`}
+            className={`flex-1 py-3 rounded-md font-bold transition ${
+              tab === "offers" ? "bg-[#01411C] text-white" : "text-foreground"
+            }`}
           >
             العروض
           </button>
           <button
             onClick={() => setTab("requests")}
-            className={`flex-1 py-3 rounded-md font-bold transition ${tab === "requests" ? "bg-[#01411C] text-white" : "text-foreground"}`}
+            className={`flex-1 py-3 rounded-md font-bold transition ${
+              tab === "requests" ? "bg-[#01411C] text-white" : "text-foreground"
+            }`}
           >
             الطلبات
           </button>
         </div>
 
         {tab === "offers" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link to="/huna-waseetak/offer-sale" className="bg-card border-2 border-[#D4AF37] rounded-2xl p-8 text-center hover:shadow-xl transition">
-              <Home className="w-12 h-12 mx-auto mb-3 text-[#01411C]" />
-              <h3 className="text-xl font-bold mb-2">عرض بيع</h3>
-              <p className="text-sm text-muted-foreground">اعرض عقارك للبيع للوسطاء</p>
-            </Link>
-            <Link to="/huna-waseetak/offer-rent" className="bg-card border-2 border-muted rounded-2xl p-8 text-center hover:shadow-xl transition opacity-70">
-              <Key className="w-12 h-12 mx-auto mb-3 text-[#01411C]" />
-              <h3 className="text-xl font-bold mb-2">عرض تأجير</h3>
-              <p className="text-sm text-muted-foreground">قريبًا</p>
-            </Link>
-          </div>
+          <DirectSubmissionForm kind="offer" defaultPurpose="sale" />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-card border-2 border-muted rounded-2xl p-8 text-center opacity-70">
-              <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-[#01411C]" />
-              <h3 className="text-xl font-bold mb-2">طلب شراء</h3>
-              <p className="text-sm text-muted-foreground">قريبًا</p>
-            </div>
-            <div className="bg-card border-2 border-muted rounded-2xl p-8 text-center opacity-70">
-              <Search className="w-12 h-12 mx-auto mb-3 text-[#01411C]" />
-              <h3 className="text-xl font-bold mb-2">طلب استئجار</h3>
-              <p className="text-sm text-muted-foreground">قريبًا</p>
-            </div>
-          </div>
+          <DirectSubmissionForm kind="request" defaultPurpose="buy" />
         )}
       </div>
     </div>

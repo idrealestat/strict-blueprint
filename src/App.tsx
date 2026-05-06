@@ -103,6 +103,10 @@ import OfferSuccessPage from "./pages/public-portal/OfferSuccessPage";
 import SearchPlaceholderPage from "./pages/public-portal/SearchPlaceholderPage";
 import OwnerRegisterPage from "./pages/public-portal/OwnerRegisterPage";
 import OwnerLoginPage from "./pages/public-portal/OwnerLoginPage";
+import OwnerHomePage from "./pages/owner-home/OwnerHomePage";
+import SubmissionsListPage from "./pages/owner-home/SubmissionsListPage";
+import SubmissionReviewPage from "./pages/owner-home/SubmissionReviewPage";
+import AcceptedListPage from "./pages/owner-home/AcceptedListPage";
 import { Navigate as RRNavigate } from "react-router-dom";
 
 
@@ -793,6 +797,12 @@ const App = () => {
                   <Route path="/huna-waseetak/offer-sale" element={<OfferSaleFormPage />} />
                   <Route path="/huna-waseetak/offer-sale/submit" element={<OfferSubmitPage />} />
                   <Route path="/huna-waseetak/offer-sale/success" element={<OfferSuccessPage />} />
+
+                  {/* لوحة المالك (هنا وسيطك) */}
+                  <Route path="/owner/home" element={<OwnerHomePage />} />
+                  <Route path="/owner/submissions" element={<SubmissionsListPage />} />
+                  <Route path="/owner/submission/:id/review" element={<SubmissionReviewPage />} />
+                  <Route path="/owner/accepted" element={<AcceptedListPage />} />
 
                   {/* PUBLIC ROUTES - Dynamic Slug Pattern (Hierarchical) */}
                   <Route path="/:slug" element={<SlugPlatformPage />} />
