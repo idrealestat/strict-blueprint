@@ -72,7 +72,11 @@ export default function OwnerLoginPage() {
         .select("user_id")
         .eq("phone", phoneFmt)
         .maybeSingle();
-      if (!prof) throw new Error("لا يوجد حساب بهذا الرقم. سجّل أولاً.");
+      if (!prof) {
+        toast.error("لست مسجلاً كمالك بعد. أكمل التسجيل لإضافة دور المالك.");
+        navigate(`/register?redirect=${encodeURIComponent(redirect)}`, { replace: true });
+        return;
+      }
 
       const { data: lData, error: lErr } = await supabase.functions.invoke("phone-login", {
         body: { userId: prof.user_id, phone: phoneFmt },
