@@ -101,7 +101,11 @@ export default function OwnerHomePage() {
               <p className="text-sm text-muted-foreground">تابع أداء عقاراتك وأعلى الوسطاء أداءً</p>
             </div>
           </div>
-          <Link to="/app/choose-plan" className="bg-[#D4AF37] text-[#01411C] font-bold px-4 py-2 rounded-lg">
+          <Link
+            to="/app/choose-plan"
+            onClick={() => sessionStorage.setItem("owner_post_register", "1")}
+            className="bg-[#D4AF37] text-[#01411C] font-bold px-4 py-2 rounded-lg"
+          >
             عرض الباقات
           </Link>
         </div>
