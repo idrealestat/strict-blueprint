@@ -54,24 +54,28 @@ export default function ChoosePlanPage() {
   const { toast } = useToast();
   const { updatePlan, daysRemaining, planCode, isLoading, onboardingCompleted, status } = useEntitlementsContext();
   const [isSubmitting, setIsSubmitting] = useState<PlanCode | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
-  // إذا المستخدم أكمل الـ onboarding أو لديه باقة أو في فترة تجربة نشطة، أعده للداشبورد
   useEffect(() => {
-    if (!isLoading) {
-      // المستخدم أكمل الإعداد بالفعل
-      if (onboardingCompleted) {
-        console.log('[ChoosePlanPage] User already completed onboarding, redirecting to dashboard');
-        navigate('/app/dashboard', { replace: true });
-        return;
-      }
-      // المستخدم لديه باقة مختارة
-      if (planCode) {
-        console.log('[ChoosePlanPage] User already has plan, redirecting to dashboard');
-        navigate('/app/dashboard', { replace: true });
-        return;
-      }
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("owner_profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setIsOwner(!!data);
+    })();
+  }, []);
+
+  // إذا المستخدم أكمل الـ onboarding أو لديه باقة، أعده للوجهة المناسبة (المالك → /owner/home)
+  useEffect(() => {
+    if (isLoading) return;
+    if (onboardingCompleted || planCode) {
+      navigate(isOwner ? "/owner/home" : "/app/dashboard", { replace: true });
     }
-  }, [planCode, isLoading, onboardingCompleted, navigate]);
+  }, [planCode, isLoading, onboardingCompleted, navigate, isOwner]);
 
   const handleSelectPlan = async (selectedPlanCode: PlanCode) => {
     setIsSubmitting(selectedPlanCode);
@@ -80,17 +84,29 @@ export default function ChoosePlanPage() {
       const success = await updatePlan(selectedPlanCode);
       
       if (success) {
-        // إذا اختار باقة المكتب، نحدث نوع الحساب إلى office
-        if (selectedPlanCode === 'OFFICE') {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from('profiles')
-              .update({ account_type: 'office' })
-              .eq('user_id', user.id);
-          }
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user && isOwner) {
+          // مسار المالك: تحديث plan_tier ثم العودة لصفحة المالك
+          const tier = selectedPlanCode === 'OFFICE' ? 'developed' : 'basic';
+          await supabase
+            .from('owner_profiles')
+            .update({ plan_tier: tier })
+            .eq('user_id', user.id);
+          toast({
+            title: 'تم تحديث الباقة',
+            description: tier === 'developed' ? 'تم تفعيل الباقة المطورة' : 'تم تفعيل الباقة العادية',
+          });
+          navigate('/owner/home', { replace: true });
+          return;
         }
-        
+
+        if (selectedPlanCode === 'OFFICE' && user) {
+          await supabase
+            .from('profiles')
+            .update({ account_type: 'office' })
+            .eq('user_id', user.id);
+        }
         toast({
           title: 'تم اختيار الباقة بنجاح!',
           description: `مرحباً بك في ${selectedPlanCode === 'INDIVIDUAL' ? 'باقة الأفراد' : 'باقة المكتب'}`,
