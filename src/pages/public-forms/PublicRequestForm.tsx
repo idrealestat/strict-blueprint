@@ -1569,6 +1569,6 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
           )}
         </Button>
       </div>
-    </PublicFormLayout>
+    </Wrapper>
   );
 }
