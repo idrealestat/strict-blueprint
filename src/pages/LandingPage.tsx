@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Building2, Bot, BriefcaseBusiness, CreditCard, LayoutGrid, Sparkles, Star, Users, Workflow } from "lucide-react";
 import heroBroker from "@/assets/hero-broker.png";
 import brokerFemale from "@/assets/landing-broker-female.jpg";
@@ -69,6 +70,21 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+  const [showHuna, setShowHuna] = useState<boolean>(true);
+  useEffect(() => {
+    const read = () => {
+      const v = localStorage.getItem("owner_show_huna_waseetak");
+      setShowHuna(v === null ? true : v === "1");
+    };
+    read();
+    const handler = (e: any) => setShowHuna(!!e.detail);
+    window.addEventListener("owner:huna-visibility", handler);
+    window.addEventListener("storage", read);
+    return () => {
+      window.removeEventListener("owner:huna-visibility", handler);
+      window.removeEventListener("storage", read);
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
@@ -118,12 +134,14 @@ export default function LandingPage() {
                   تسجيل الدخول
                 </Link>
               </div>
-              <Link
-                to="/huna-waseetak"
-                className="block w-full text-center rounded-lg bg-[#D4AF37] border-2 border-[#01411C] text-[#01411C] font-cairo font-bold text-base px-6 py-3 shadow-md hover:bg-[#c19f2c] transition-colors"
-              >
-                🤝 هنا وسيطك
-              </Link>
+              {showHuna && (
+                <Link
+                  to="/huna-waseetak"
+                  className="block w-full text-center rounded-lg bg-[#D4AF37] border-2 border-[#01411C] text-[#01411C] font-cairo font-bold text-base px-6 py-3 shadow-md hover:bg-[#c19f2c] transition-colors"
+                >
+                  🤝 هنا وسيطك
+                </Link>
+              )}
             </div>
           </div>
         </div>
