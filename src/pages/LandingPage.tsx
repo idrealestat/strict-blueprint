@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Building2, Bot, BriefcaseBusiness, CreditCard, LayoutGrid, Sparkles, Star, Users, Workflow } from "lucide-react";
 import heroBroker from "@/assets/hero-broker.png";
 import brokerFemale from "@/assets/landing-broker-female.jpg";
