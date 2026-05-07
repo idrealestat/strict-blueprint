@@ -784,9 +784,16 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
     );
   }
 
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    ownerMode ? (
+      <div className="bg-white rounded-2xl border" dir="rtl">{children}</div>
+    ) : (
+      <PublicFormLayout broker={broker!} title="إرسال طلب عقار">{children}</PublicFormLayout>
+    );
+
   if (isSubmitted) {
     return (
-      <PublicFormLayout broker={broker} title="إرسال طلب عقار">
+      <Wrapper>
         <div className="p-8 text-center">
           <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-10 h-10 text-green-600" />
@@ -795,19 +802,21 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
           <p className="text-gray-600 mb-6">
             شكراً لك، تم استلام طلبك وسيتواصل معك الوسيط قريباً بالعروض المناسبة
           </p>
-          <Button
-            onClick={() => window.close()}
-            className="bg-[#01411C] hover:bg-[#065f41] text-white"
-          >
-            إغلاق الصفحة
-          </Button>
+          {!ownerMode && (
+            <Button
+              onClick={() => window.close()}
+              className="bg-[#01411C] hover:bg-[#065f41] text-white"
+            >
+              إغلاق الصفحة
+            </Button>
+          )}
         </div>
-      </PublicFormLayout>
+      </Wrapper>
     );
   }
 
   return (
-    <PublicFormLayout broker={broker} title="إرسال طلب عقار">
+    <Wrapper>
       <div className="p-6 space-y-6">
         {/* عنوان المستند */}
         <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
