@@ -55,27 +55,31 @@ export default function ChoosePlanPage() {
   const { updatePlan, daysRemaining, planCode, isLoading, onboardingCompleted, status } = useEntitlementsContext();
   const [isSubmitting, setIsSubmitting] = useState<PlanCode | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [ownerChecked, setOwnerChecked] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { setOwnerChecked(true); return; }
       const { data } = await supabase
         .from("owner_profiles")
         .select("user_id")
         .eq("user_id", user.id)
         .maybeSingle();
       setIsOwner(!!data);
+      setOwnerChecked(true);
     })();
   }, []);
 
   // إذا المستخدم أكمل الـ onboarding أو لديه باقة، أعده للوجهة المناسبة (المالك → /owner/home)
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !ownerChecked) return;
+    // المالك: لا نطرده من صفحة اختيار الباقة حتى لو كان لديه باقة سابقة، حتى يستطيع الترقية
+    if (isOwner) return;
     if (onboardingCompleted || planCode) {
       navigate(isOwner ? "/owner/home" : "/app/dashboard", { replace: true });
     }
-  }, [planCode, isLoading, onboardingCompleted, navigate, isOwner]);
+  }, [planCode, isLoading, onboardingCompleted, navigate, isOwner, ownerChecked]);
 
   const handleSelectPlan = async (selectedPlanCode: PlanCode) => {
     setIsSubmitting(selectedPlanCode);
