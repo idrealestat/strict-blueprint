@@ -180,6 +180,21 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
   // تحميل بيانات الوسيط من قاعدة البيانات
   useEffect(() => {
     const loadBrokerData = async () => {
+      if (ownerMode) {
+        setBroker({
+          id: 'owner-mode',
+          name: 'إرسال من المالك',
+          company: '',
+          phone: '',
+          email: '',
+          location: '',
+          licenseNumber: '',
+          rating: 0,
+          verified: false,
+        });
+        setIsLoadingBroker(false);
+        return;
+      }
       if (!brokerSlug) {
         setIsLoadingBroker(false);
         return;
