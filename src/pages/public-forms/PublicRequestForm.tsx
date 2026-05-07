@@ -159,10 +159,16 @@ interface SuggestedPrice {
   url?: string;
 }
 
-export default function PublicRequestForm() {
+interface PublicRequestFormProps {
+  ownerMode?: boolean;
+  ownerUserId?: string;
+  onOwnerSubmitted?: (submissionId: string) => void;
+}
+
+export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOwnerSubmitted }: PublicRequestFormProps = {}) {
   // دعم كلا المعاملين: slug (من الصفحة العامة) و brokerId (قديم)
   const { slug, brokerId } = useParams<{ slug?: string; brokerId?: string }>();
-  const brokerSlug = slug || brokerId;
+  const brokerSlug = ownerMode ? `owner_${ownerUserId || 'self'}` : (slug || brokerId);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -174,6 +180,21 @@ export default function PublicRequestForm() {
   // تحميل بيانات الوسيط من قاعدة البيانات
   useEffect(() => {
     const loadBrokerData = async () => {
+      if (ownerMode) {
+        setBroker({
+          id: 'owner-mode',
+          name: 'إرسال من المالك',
+          company: '',
+          phone: '',
+          email: '',
+          location: '',
+          licenseNumber: '',
+          rating: 0,
+          verified: false,
+        });
+        setIsLoadingBroker(false);
+        return;
+      }
       if (!brokerSlug) {
         setIsLoadingBroker(false);
         return;
@@ -629,23 +650,46 @@ export default function PublicRequestForm() {
         isViewed: false,
       };
 
-      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
-      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
-        body: {
-          slug: brokerSlug,
-          formType: 'request',
-          data: submissionData,
-        },
-      });
+      let customerId: string | undefined;
+      if (ownerMode) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('يجب تسجيل الدخول');
+        const purposeNorm = formData.purpose === 'للشراء' ? 'buy' : formData.purpose === 'للاستئجار' ? 'lease' : formData.purpose;
+        const { data: inserted, error: insErr } = await supabase
+          .from('owner_submissions')
+          .insert({
+            owner_user_id: user.id,
+            submission_type: 'request',
+            purpose: purposeNorm,
+            status: 'pending_acceptance',
+            source: 'owner_portal',
+            city: formData.preferredCity || null,
+            district: formData.preferredDistricts || null,
+            data: submissionData as any,
+            media: [] as any,
+          })
+          .select('id')
+          .maybeSingle();
+        if (insErr) throw insErr;
+        onOwnerSubmitted?.(inserted?.id || '');
+      } else {
+        const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
+          body: {
+            slug: brokerSlug,
+            formType: 'request',
+            data: submissionData,
+          },
+        });
 
-      if (submitError) {
-        console.error('Public request submit error:', submitError);
-        toast.error('حدث خطأ أثناء الإرسال');
-        setIsSubmitting(false);
-        return;
+        if (submitError) {
+          console.error('Public request submit error:', submitError);
+          toast.error('حدث خطأ أثناء الإرسال');
+          setIsSubmitting(false);
+          return;
+        }
+
+        customerId = (submitResult as any)?.customerId as string | undefined;
       }
-
-      const customerId = (submitResult as any)?.customerId as string | undefined;
 
       // حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
@@ -740,9 +784,16 @@ export default function PublicRequestForm() {
     );
   }
 
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    ownerMode ? (
+      <div className="bg-white rounded-2xl border" dir="rtl">{children}</div>
+    ) : (
+      <PublicFormLayout broker={broker!} title="إرسال طلب عقار">{children}</PublicFormLayout>
+    );
+
   if (isSubmitted) {
     return (
-      <PublicFormLayout broker={broker} title="إرسال طلب عقار">
+      <Wrapper>
         <div className="p-8 text-center">
           <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-10 h-10 text-green-600" />
@@ -751,19 +802,21 @@ export default function PublicRequestForm() {
           <p className="text-gray-600 mb-6">
             شكراً لك، تم استلام طلبك وسيتواصل معك الوسيط قريباً بالعروض المناسبة
           </p>
-          <Button
-            onClick={() => window.close()}
-            className="bg-[#01411C] hover:bg-[#065f41] text-white"
-          >
-            إغلاق الصفحة
-          </Button>
+          {!ownerMode && (
+            <Button
+              onClick={() => window.close()}
+              className="bg-[#01411C] hover:bg-[#065f41] text-white"
+            >
+              إغلاق الصفحة
+            </Button>
+          )}
         </div>
-      </PublicFormLayout>
+      </Wrapper>
     );
   }
 
   return (
-    <PublicFormLayout broker={broker} title="إرسال طلب عقار">
+    <Wrapper>
       <div className="p-6 space-y-6">
         {/* عنوان المستند */}
         <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
@@ -1516,6 +1569,6 @@ export default function PublicRequestForm() {
           )}
         </Button>
       </div>
-    </PublicFormLayout>
+    </Wrapper>
   );
 }

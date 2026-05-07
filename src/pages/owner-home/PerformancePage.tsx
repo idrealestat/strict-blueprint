@@ -17,7 +17,7 @@ export default function PerformancePage() {
 
       const { data: subs } = await supabase
         .from("owner_submissions")
-        .select("id, status, data, city, district, assigned_broker_slug, created_at")
+        .select("id, status, data, city, district, assigned_broker_slug, assigned_broker_user_id, created_at")
         .eq("owner_user_id", user.id);
 
       const ids = (subs || []).map((s: any) => s.id);
@@ -30,14 +30,24 @@ export default function PerformancePage() {
         proposalsCount = count || 0;
       }
 
-      // مشاهدات للعروض المرسلة لوسطاء (إن وجدت)
+      // مشاهدات حقيقية: مفلترة بـ offer_id = "owner_<sub.id>" (نفس الـ id الذي يمرّره submitToBrokerCRM)
+      // وبـ user_id IN (assigned_broker_user_ids) كتأكيد إضافي.
       let totalViews = 0;
-      const slugs = (subs || []).map((s: any) => s.assigned_broker_slug).filter(Boolean);
-      if (slugs.length) {
-        const { count } = await supabase
+      const viewsBySub: Record<string, number> = {};
+      const assignedSubs = (subs || []).filter((s: any) => s.assigned_broker_user_id);
+      const offerIds = assignedSubs.map((s: any) => `owner_${s.id}`);
+      const brokerUserIds = Array.from(new Set(assignedSubs.map((s: any) => s.assigned_broker_user_id)));
+      if (offerIds.length) {
+        const { data: views } = await supabase
           .from("offer_views_log")
-          .select("id", { count: "exact", head: true });
-        totalViews = count || 0;
+          .select("offer_id, user_id")
+          .in("offer_id", offerIds)
+          .in("user_id", brokerUserIds);
+        (views || []).forEach((v: any) => {
+          const subId = String(v.offer_id).replace(/^owner_/, "");
+          viewsBySub[subId] = (viewsBySub[subId] || 0) + 1;
+        });
+        totalViews = views?.length || 0;
       }
 
       setStats({
@@ -46,7 +56,7 @@ export default function PerformancePage() {
         accepted: (subs || []).filter((s: any) => s.status === "broker_assigned" || s.status === "completed").length,
         views: totalViews,
       });
-      setItems(subs || []);
+      setItems((subs || []).map((s: any) => ({ ...s, _views: viewsBySub[s.id] || 0 })));
       setLoading(false);
     })();
   }, [navigate]);
@@ -84,7 +94,10 @@ export default function PerformancePage() {
                     <Link key={s.id} to={`/owner/submission/${s.id}/proposals`}
                       className="flex justify-between items-center p-3 bg-muted/30 rounded-lg hover:bg-muted/50">
                       <span className="text-sm">{s.data?.propertyType || "عقار"} • {s.city}</span>
-                      <span className="text-xs text-muted-foreground">{s.assigned_broker_slug || "—"}</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{s._views || 0}</span>
+                        <span>{s.assigned_broker_slug || "—"}</span>
+                      </span>
                     </Link>
                   ))}
                 </div>
