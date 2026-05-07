@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import DirectSubmissionForm from "@/pages/public-portal/DirectSubmissionForm";
+import PublicOfferForm from "@/pages/public-forms/PublicOfferForm";
+import PublicRequestForm from "@/pages/public-forms/PublicRequestForm";
 
 interface Row {
   id: string;
@@ -33,11 +34,14 @@ export default function SubmissionsListPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"offer" | "request">("offer");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login?redirect=/owner/submissions", { replace: true }); return; }
+      setUserId(user.id);
       const { data } = await supabase
         .from("owner_submissions")
         .select("id, submission_type, purpose, status, city, district, created_at, data")
@@ -46,7 +50,7 @@ export default function SubmissionsListPage() {
       setRows((data as Row[]) || []);
       setLoading(false);
     })();
-  }, [navigate]);
+  }, [navigate, reloadKey]);
 
   return (
     <div dir="rtl" className="min-h-screen bg-background font-cairo">
@@ -79,11 +83,11 @@ export default function SubmissionsListPage() {
         </div>
 
         <div className="mb-8">
-          {tab === "offer" ? (
-            <DirectSubmissionForm kind="offer" defaultPurpose="sale" />
+          {userId && (tab === "offer" ? (
+            <PublicOfferForm ownerMode ownerUserId={userId} onOwnerSubmitted={() => setReloadKey(k => k + 1)} />
           ) : (
-            <DirectSubmissionForm kind="request" defaultPurpose="buy" />
-          )}
+            <PublicRequestForm ownerMode ownerUserId={userId} onOwnerSubmitted={() => setReloadKey(k => k + 1)} />
+          ))}
         </div>
 
         <h2 className="font-bold text-lg mb-3 text-[#01411C]">إرسالاتك السابقة</h2>
