@@ -860,26 +860,50 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
         suggestedPrices: suggestedPrices,
       };
 
-      // استخدام Edge Function لإرسال البيانات (تتجاوز RLS)
-      const { data: response, error: functionError } = await supabase.functions.invoke('public-form-submit', {
-        body: {
-          slug: brokerSlug,
-          formType: 'offer',
-          data: submissionData,
-        },
-      });
+      if (ownerMode) {
+        // وضع المالك: احفظ مباشرةً في owner_submissions بدون ربط وسيط
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('يجب تسجيل الدخول');
+        const purposeNorm = formData.purpose === 'للبيع' ? 'sale' : formData.purpose === 'للإيجار' ? 'rent' : formData.purpose;
+        const { data: inserted, error: insErr } = await supabase
+          .from('owner_submissions')
+          .insert({
+            owner_user_id: user.id,
+            submission_type: 'offer',
+            purpose: purposeNorm,
+            status: 'pending_acceptance',
+            source: 'owner_portal',
+            city: formData.locationCity || null,
+            district: formData.locationDistrict || null,
+            data: submissionData as any,
+            media: media as any,
+          })
+          .select('id')
+          .maybeSingle();
+        if (insErr) throw insErr;
+        onOwnerSubmitted?.(inserted?.id || '');
+      } else {
+        // استخدام Edge Function لإرسال البيانات (تتجاوز RLS)
+        const { data: response, error: functionError } = await supabase.functions.invoke('public-form-submit', {
+          body: {
+            slug: brokerSlug,
+            formType: 'offer',
+            data: submissionData,
+          },
+        });
 
-      if (functionError) {
-        console.error('Edge function error:', functionError);
-        throw new Error(functionError.message || 'فشل في إرسال العرض');
+        if (functionError) {
+          console.error('Edge function error:', functionError);
+          throw new Error(functionError.message || 'فشل في إرسال العرض');
+        }
+
+        if (!response?.success) {
+          console.error('Submission failed:', response?.error);
+          throw new Error(response?.error || 'فشل في إرسال العرض');
+        }
+
+        console.log('[PublicOfferForm] Submission successful:', response);
       }
-
-      if (!response?.success) {
-        console.error('Submission failed:', response?.error);
-        throw new Error(response?.error || 'فشل في إرسال العرض');
-      }
-
-      console.log('[PublicOfferForm] Submission successful:', response);
 
       // مسح البيانات المحفوظة بعد الإرسال الناجح
       try {
