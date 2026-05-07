@@ -1,84 +1,72 @@
-
 ## الهدف
+استبدال `DirectSubmissionForm` في تبويبَي `/owner/submissions` بنفس نماذج البطاقة الرقمية حرفياً عبر استخراج جسم النموذج إلى مكوّن مشترك (الخيار 2)، وإصلاح صفحة الأداء لتعرض مشاهدات حقيقية من `offer_views_log` المرتبطة بإرسالات المالك.
 
-تصحيح صفحتَي المالك (الباقة العادية والمطورة) لتطابق وصفك حرفياً، بدون أي إضافات. الفرق بين الباقتين يُحدَّد من حقل جديد `plan_tier` على `owner_profiles`.
+---
 
-## 1) قاعدة البيانات (إضافة فقط، بدون كسر)
+## ١) استخراج جسم النموذج المشترك (بدون أي تعديل سلوكي على النماذج العامة)
 
-إضافة عمود إلى `owner_profiles`:
-- `plan_tier text not null default 'basic'` (القيم: `basic` أو `developed`).
+### مكوّنات جديدة
+- `src/components/forms/OfferFormBody.tsx` — يحتوي **حرفياً** على نفس JSX، نفس الحقول، نفس أقسام الألوان، نفس التحقق، نفس مكوّن الخريطة/الرفع، الموجود حالياً في `PublicOfferForm.tsx`.
+- `src/components/forms/RequestFormBody.tsx` — مثلها لـ `PublicRequestForm.tsx`.
 
-تحديثه:
-- عند تسجيل المالك الجديد: يُكتب `basic` افتراضياً.
-- عند اختيار "الباقة المطورة" من `ChoosePlanPage` (مسار المالك فقط): يُحدَّث إلى `developed`.
+### Props للمكوّن المشترك
+```ts
+type Mode =
+  | { kind: "broker"; brokerSlug: string; broker: BrokerInfo }   // الاستخدام العام wasataai.com/:slug/offer
+  | { kind: "owner"; ownerUserId: string };                       // الاستخدام داخل /owner/submissions
+```
+- في `kind: "broker"`: السلوك الحالي حرفياً — يستدعي Edge Function `public-form-submit` بـ `{ slug, formType, data }`.
+- في `kind: "owner"`: عند الإرسال يُحفظ السجل في `owner_submissions` بحالة `pending_acceptance` (نفس البيانات في عمود `data` jsonb + `media`)، ولا يُربط بأي وسيط بعد. اختيار الوسيط لاحقاً يبقى عبر شاشة `SubmissionProposalsPage` التي تستدعي `submitToBrokerCRM` (دون تغيير).
 
-## 2) `OwnerHomePage` — التفريع حسب الباقة
+### تحديث النماذج العامة لتستهلك الجسم المشترك
+- `src/pages/public-forms/PublicOfferForm.tsx` يصبح غلافاً رقيقاً: يجلب `broker` بالـ `slug` كما يفعل اليوم، ثم يعرض `<OfferFormBody mode={{kind:"broker", brokerSlug, broker}} />`. لا تغيير سلوكي.
+- `src/pages/public-forms/PublicRequestForm.tsx` بنفس النمط مع `<RequestFormBody />`.
+- لا تغيير على Edge Function، ولا على `PublicFormLayout`، ولا على `submitToBrokerCRM`.
 
-يقرأ `plan_tier` من `owner_profiles`. ثم يعرض إما تخطيط الباقة العادية أو المطورة (نفس الملف، فرعان).
+### استخدام الجسم المشترك في صفحة المالك
+- `src/pages/owner-home/SubmissionsListPage.tsx`:
+  - حذف استيراد `DirectSubmissionForm`.
+  - تبويب "ارسال عرض" → `<OfferFormBody mode={{kind:"owner", ownerUserId}} />`
+  - تبويب "ارسال طلب" → `<RequestFormBody mode={{kind:"owner", ownerUserId}} />`
+  - يبقى الرأس الأخضر وعنوان الصفحة وقسم "إرسالاتك السابقة" كما هو.
 
-### الباقة العادية (`basic`) — حرفياً
-- هيدر أخضر مطابق لهيدر الوسطاء:
-  - يمين: زر برقر مينيو يفتح **الرايت سلايدر للباقة العادية**.
-  - وسط: "مرحبًا، {الاسم}".
-  - يسار: جرس الإشعارات.
-  - بالإضافة إلى زر "ترقية الباقة" داخل الهيدر (كما طلبت).
-- محتوى الصفحة: زرّان فقط:
-  1. **إرسال العروض والطلبات** → `/owner/submissions`.
-  2. **العروض والطلبات المقبولة** → `/owner/accepted`.
-- لا يوجد بطاقة "باقة مطورة" ولا "عرض الأداء".
+### القيود الواجبة
+- لا تغيير في الحقول، الترتيب، الألوان، الفونت، RTL، رسائل التحقق، أو نصوص الموافقة القانونية.
+- نفس آلية الحفظ المؤقت في `sessionStorage`/`localStorage` تُنقل كما هي إلى المكوّن المشترك.
 
-### الباقة المطورة (`developed`) — حرفياً
-- نفس الهيدر الأخضر (برقر يميناً يفتح **الرايت سلايدر للباقة المطورة**، جرس يساراً، بدون زر ترقية).
-- محتوى الصفحة: أربعة أزرار:
-  1. **إدارة العملاء** → `/owner/clients` (صفحة جديدة بسيطة تعرض بطاقات أسماء الوسطاء ومعلوماتهم المرتبطين بإرسالاته — تُشتَق من `owner_submissions.assigned_broker_slug` و`owner_broker_proposals`).
-  2. **إرسال العروض والطلبات** → `/owner/submissions` (نفس صفحة العادية — كما طلبت "نفس ما في الزرين تماماً").
-  3. **العروض والطلبات المقبولة** → `/owner/accepted`.
-  4. **أداء عقاراتي وطلباتي** → `/owner/performance` (الصفحة القائمة بدون تغيير).
+---
 
-## 3) صفحة "إرسال العروض والطلبات" — تبويبان (للباقتين)
+## ٢) إصلاح صفحة الأداء `/owner/performance`
 
-تعديل `SubmissionsListPage` لتعرض تبويبين أعلى القائمة (كما طلبت حرفياً):
-- **ارسال عرض** → نفس مكوّن "إرسال عرض" المستخدم في بطاقة الأعمال الرقمية للوسيط، بنفس الحقول وبنفس آلية الربط (يذهب إلى تبويب "العروض" لدى الوسيط في إدارة العملاء).
-- **ارسال طلب** → نفس مكوّن "إرسال طلب" بنفس الحقول وبنفس آلية الربط (يذهب إلى تبويب "الطلبات" لدى الوسيط).
+### المنطق الجديد
+1. جلب إرسالات المالك مع: `id, status, data, city, district, assigned_broker_slug, assigned_broker_user_id, created_at`.
+2. تجميع `assigned_broker_user_id` (أصحاب البطاقات المنشورة الذين قبلوا).
+3. استعلام `offer_views_log` مفلتر بـ:
+   - `user_id IN (assigned_broker_user_ids)` (لأن سجل المشاهدات مرتبط بالوسيط الناشر)
+   - **و** `offer_id IN (submission_ids)` أو `offer_id IN (source_property_ids)` المُسجّلة عند الإنشاء عبر `submitToBrokerCRM` (المُمرَّر `id: "owner_<sub.id>"`).
+4. حساب: عدد المشاهدات الإجمالي + التجزئة لكل عقار للمالك.
 
-أسفل التبويبين تبقى قائمة المسودات/المرسَلات الحالية كما هي.
+### التغييرات في الكود
+- `src/pages/owner-home/PerformancePage.tsx`:
+  - استبدال استعلام `offer_views_log` العام بفلترة دقيقة عبر `offer_id` (ومجال `user_id` لتأكيد).
+  - إظهار عمود "مشاهدات" لكل سطر في "تفاصيل عقاراتك" بدل سلسلة slug فقط.
+  - الحفاظ على البطاقات الإحصائية الأربع كما هي شكلاً، مع قيم حقيقية.
 
-## 4) الرايت سلايدر — مكوّن مستقل للمالك
+### ملاحظة بخصوص ربط المشاهدات
+- `submitToBrokerCRM` يمرّر اليوم `id: "owner_<sub.id>"` إلى `public-form-submit`. يجب التأكد أن هذا المعرف يُسجَّل لاحقاً في `offer_views_log.offer_id` عند فتح الإعلان على `wasataai.com/{slug}/...`. إذا لم يكن كذلك، نُضيف خطوة بسيطة في `PerformancePage` لاستخراج المشاهدات عبر `metadata->>source_owner_submission_id` كحل احتياطي. (لن يُلمس المسار العام؛ فقط القراءة في صفحة الأداء.)
 
-ملف جديد `src/components/owner/OwnerRightSlider.tsx` يأخذ `tier` ويعرض المحتوى حرفياً:
+---
 
-### `tier = basic`
-- بطاقة الأعمال الرقمية → `/app/businesscard/edit` (نفس البطاقة الحالية).
-- خدمة العملاء.
-- الإعدادات.
-- تسجيل الخروج.
+## ٣) ملفات ستتغير
+- جديد: `src/components/forms/OfferFormBody.tsx`, `src/components/forms/RequestFormBody.tsx`.
+- معدّل (غلاف رقيق): `src/pages/public-forms/PublicOfferForm.tsx`, `src/pages/public-forms/PublicRequestForm.tsx`.
+- معدّل: `src/pages/owner-home/SubmissionsListPage.tsx` (استبدال النماذج).
+- معدّل: `src/pages/owner-home/PerformancePage.tsx` (فلترة المشاهدات الحقيقية).
 
-### `tier = developed`
-- بطاقة الأعمال الرقمية للمالك.
-- المقيمين.
-- المكاتب الهندسية.
-- المقاولين.
-- خدمة العملاء.
-- الإعدادات.
-- تسجيل الخروج.
+## ٤) ما لن يُلمس
+- `submitToBrokerCRM.ts`، Edge Function `public-form-submit`، `OwnerHomePage`، `OwnerRightSlider`، `ChoosePlanPage`، `SubmissionProposalsPage`، البطاقة الرقمية، الألوان، الخطوط، RTL.
 
-(الأزرار التي لا تملك صفحات بعد تكون أزرار واجهة فقط بدون تنفيذ — كما هو وصفك حرفياً.)
-
-## 5) `ChoosePlanPage` — مسار المالك
-
-عند اختيار "المطورة" والمستخدم له `owner_profiles`:
-- `update owner_profiles set plan_tier = 'developed' where user_id = auth.uid()`.
-- ثم التحويل إلى `/owner/home` (وليس إلى بطاقة الأعمال).
-عند اختيار العادية:
-- يبقى `plan_tier = 'basic'` ويُحوَّل إلى `/owner/home`.
-
-## ملاحظات الالتزام
-
-- لا تغيير في الألوان أو الخطوط أو منطق الوسطاء.
-- لا تعديل على `PerformancePage` أو `AcceptedListPage` أو `HunaWaseetakPage` أو تدفقات تسجيل الدخول/التسجيل التي ضبطناها سابقاً.
-- لا إضافات من عندي خارج النص الحرفي لوصفك.
-
-## الملفات المتأثرة
-
-- إضافة: migration لإضافة `plan_tier`، `src/components/owner/OwnerRightSlider.tsx`، `src/pages/owner-home/OwnerClientsPage.tsx`، مسار `/owner/clients` في `App.tsx`.
-- تعديل: `src/pages/owner-home/OwnerHomePage.tsx`، `src/pages/owner-home/SubmissionsListPage.tsx`، `src/pages/ChoosePlanPage.tsx`.
+## ٥) معايير القبول
+- فتح `/owner/submissions` يعرض في كل تبويب نفس النموذج المرئي حرفياً كما في `wasataai.com/{slug}/offer` و `/request` (نفس الأقسام، نفس الألوان، نفس الموافقة القانونية).
+- إرسال من تبويب المالك يحفظ في `owner_submissions` بحالة `pending_acceptance` ويظهر في "إرسالاتك السابقة" فوراً.
+- `/owner/performance` يعرض رقم مشاهدات يساوي صفراً عندما لا يوجد إرسال مرتبط بوسيط، ويزداد فعلياً عند فتح الإعلان من المنصة العامة.
