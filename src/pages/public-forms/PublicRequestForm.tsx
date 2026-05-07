@@ -159,10 +159,16 @@ interface SuggestedPrice {
   url?: string;
 }
 
-export default function PublicRequestForm() {
+interface PublicRequestFormProps {
+  ownerMode?: boolean;
+  ownerUserId?: string;
+  onOwnerSubmitted?: (submissionId: string) => void;
+}
+
+export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOwnerSubmitted }: PublicRequestFormProps = {}) {
   // دعم كلا المعاملين: slug (من الصفحة العامة) و brokerId (قديم)
   const { slug, brokerId } = useParams<{ slug?: string; brokerId?: string }>();
-  const brokerSlug = slug || brokerId;
+  const brokerSlug = ownerMode ? `owner_${ownerUserId || 'self'}` : (slug || brokerId);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
