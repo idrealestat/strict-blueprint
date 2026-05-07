@@ -650,23 +650,46 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
         isViewed: false,
       };
 
-      // إرسال البيانات للخلفية (يعمل حتى لو العميل غير مسجل دخول)
-      const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
-        body: {
-          slug: brokerSlug,
-          formType: 'request',
-          data: submissionData,
-        },
-      });
+      let customerId: string | undefined;
+      if (ownerMode) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('يجب تسجيل الدخول');
+        const purposeNorm = formData.purpose === 'للشراء' ? 'buy' : formData.purpose === 'للاستئجار' ? 'lease' : formData.purpose;
+        const { data: inserted, error: insErr } = await supabase
+          .from('owner_submissions')
+          .insert({
+            owner_user_id: user.id,
+            submission_type: 'request',
+            purpose: purposeNorm,
+            status: 'pending_acceptance',
+            source: 'owner_portal',
+            city: formData.preferredCity || null,
+            district: formData.preferredDistricts || null,
+            data: submissionData as any,
+            media: [] as any,
+          })
+          .select('id')
+          .maybeSingle();
+        if (insErr) throw insErr;
+        onOwnerSubmitted?.(inserted?.id || '');
+      } else {
+        const { data: submitResult, error: submitError } = await supabase.functions.invoke('public-form-submit', {
+          body: {
+            slug: brokerSlug,
+            formType: 'request',
+            data: submissionData,
+          },
+        });
 
-      if (submitError) {
-        console.error('Public request submit error:', submitError);
-        toast.error('حدث خطأ أثناء الإرسال');
-        setIsSubmitting(false);
-        return;
+        if (submitError) {
+          console.error('Public request submit error:', submitError);
+          toast.error('حدث خطأ أثناء الإرسال');
+          setIsSubmitting(false);
+          return;
+        }
+
+        customerId = (submitResult as any)?.customerId as string | undefined;
       }
-
-      const customerId = (submitResult as any)?.customerId as string | undefined;
 
       // حفظ نسخة محلية احتياطية
       const existingSubmissions = JSON.parse(localStorage.getItem('client_submissions') || '[]');
