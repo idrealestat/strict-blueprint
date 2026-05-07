@@ -195,9 +195,15 @@ const Section: React.FC<SectionProps> = ({ title, icon, color, children }) => {
   );
 };
 
-export default function PublicOfferForm() {
+interface PublicOfferFormProps {
+  ownerMode?: boolean;
+  ownerUserId?: string;
+  onOwnerSubmitted?: (submissionId: string) => void;
+}
+
+export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwnerSubmitted }: PublicOfferFormProps = {}) {
   const { brokerId, slug } = useParams<{ brokerId?: string; slug?: string }>();
-  const brokerSlug = slug || brokerId;
+  const brokerSlug = ownerMode ? `owner_${ownerUserId || 'self'}` : (slug || brokerId);
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
