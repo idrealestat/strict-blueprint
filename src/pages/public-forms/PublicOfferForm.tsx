@@ -235,6 +235,22 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
   // تحميل بيانات الوسيط مع الصور من قاعدة البيانات
   useEffect(() => {
     const loadBrokerData = async () => {
+      if (ownerMode) {
+        // وضع المالك: لا نجلب وسيطًا — نضع بطاقة محايدة لاستيفاء واجهة Layout فقط
+        setBroker({
+          id: 'owner-mode',
+          name: 'إرسال من المالك',
+          company: '',
+          phone: '',
+          email: '',
+          location: '',
+          licenseNumber: '',
+          rating: 0,
+          verified: false,
+        });
+        setIsLoadingBroker(false);
+        return;
+      }
       if (!brokerSlug) {
         setIsLoadingBroker(false);
         return;
