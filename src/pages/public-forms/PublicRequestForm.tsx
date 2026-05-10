@@ -290,6 +290,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const districtLayerRef = useRef<L.GeoJSON | null>(null);
   const streetLayerRef = useRef<L.TileLayer | null>(null);
   const satelliteLayerRef = useRef<L.TileLayer | null>(null);
   const [mapLayer, setMapLayer] = useState<'satellite' | 'street'>('satellite');
@@ -326,7 +327,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
     setIsLoadingLocation(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&polygon_geojson=1&addressdetails=1&accept-language=ar`
       );
       const data = await response.json();
 
@@ -363,13 +364,34 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
           ...prev,
           preferredCity: rawCity || prev.preferredCity,
           preferredDistricts: cleanDistrict || prev.preferredDistricts,
-          street: addr.road || addr.street || '',
-          buildingNumber: addr.house_number || '',
-          postalCode: addr.postcode || '',
           lat,
           lng,
         }));
-        toast.success('تم تحديد الموقع بنجاح');
+
+        // رسم حدود الحي بلون أحمر شفاف على الخريطة
+        if (mapRef.current) {
+          if (districtLayerRef.current) {
+            mapRef.current.removeLayer(districtLayerRef.current);
+            districtLayerRef.current = null;
+          }
+          if (data.geojson) {
+            districtLayerRef.current = L.geoJSON(data.geojson, {
+              style: {
+                color: '#dc2626',
+                weight: 3,
+                opacity: 1,
+                fillColor: '#dc2626',
+                fillOpacity: 0.25,
+              },
+            }).addTo(mapRef.current);
+            try {
+              const bounds = districtLayerRef.current.getBounds();
+              if (bounds.isValid()) mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+            } catch {}
+          }
+        }
+
+        toast.success(cleanDistrict ? `تم تحديد حي ${cleanDistrict}` : 'تم تحديد الموقع');
       }
     } catch (error) {
       console.error('Error fetching address:', error);
@@ -413,18 +435,6 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
     // إضافة حدث النقر على الخريطة
     mapRef.current.on('click', (e) => {
       const { lat, lng } = e.latlng;
-      
-      if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lng]);
-      } else if (mapRef.current) {
-        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-        
-        markerRef.current.on('dragend', (ev) => {
-          const position = ev.target.getLatLng();
-          fetchAddressFromCoordinates(position.lat, position.lng);
-        });
-      }
-      
       fetchAddressFromCoordinates(lat, lng);
     });
 
@@ -434,6 +444,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
         mapRef.current = null;
       }
       markerRef.current = null;
+      districtLayerRef.current = null;
       streetLayerRef.current = null;
       satelliteLayerRef.current = null;
     };
@@ -463,18 +474,6 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
           
           if (mapRef.current) {
             mapRef.current.setView([latitude, longitude], 15);
-            
-            if (markerRef.current) {
-              markerRef.current.setLatLng([latitude, longitude]);
-            } else {
-              markerRef.current = L.marker([latitude, longitude], { draggable: true }).addTo(mapRef.current);
-              
-              markerRef.current.on('dragend', (e) => {
-                const pos = e.target.getLatLng();
-                fetchAddressFromCoordinates(pos.lat, pos.lng);
-              });
-            }
-            
             fetchAddressFromCoordinates(latitude, longitude);
           }
         },
@@ -998,41 +997,16 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
               )}
             </div>
 
-            {/* معلومات الموقع المستخرجة */}
-            {(formData.street || formData.buildingNumber || formData.postalCode) && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div>
-                  <Label className="text-xs text-blue-600">اسم الشارع</Label>
-                  <Input
-                    value={formData.street}
-                    onChange={(e) => updateField('street', e.target.value)}
-                    placeholder="الشارع"
-                    className="bg-white text-sm h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-blue-600">رقم المبنى</Label>
-                  <Input
-                    value={formData.buildingNumber}
-                    onChange={(e) => updateField('buildingNumber', e.target.value)}
-                    placeholder="رقم المبنى"
-                    className="bg-white text-sm h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-blue-600">الرمز البريدي</Label>
-                  <Input
-                    value={formData.postalCode}
-                    onChange={(e) => updateField('postalCode', e.target.value)}
-                    placeholder="الرمز البريدي"
-                    className="bg-white text-sm h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-blue-600">المدينة / الحي</Label>
-                  <div className="text-sm font-medium text-blue-800 mt-1">
-                    {formData.preferredCity} - {formData.preferredDistricts}
-                  </div>
+            {/* المدينة والحي المختار */}
+            {(formData.preferredCity || formData.preferredDistricts) && (
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-red-600" />
+                <div className="text-sm">
+                  <span className="text-red-600">الحي المحدد:</span>{' '}
+                  <span className="font-semibold text-red-800">
+                    {formData.preferredCity}
+                    {formData.preferredDistricts ? ` - ${formData.preferredDistricts}` : ''}
+                  </span>
                 </div>
               </div>
             )}
