@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { authenticateUser, corsHeaders as guardCors } from "../_shared/entitlementsGuard.ts";
+import { corsHeaders as guardCors } from "../_shared/entitlementsGuard.ts";
 
 const corsHeaders = guardCors;
 
@@ -309,14 +309,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Require authenticated user — this endpoint performs computation and
-  // calls external data.gov.sa APIs, so leaving it open allows abuse.
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? '';
-  const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? '';
-  const authResult = await authenticateUser(req, supabaseUrl, supabaseAnon);
-  if ('error' in authResult) {
-    return authResult.error;
-  }
+  // Public endpoint — used by anonymous visitors on the broker's public
+  // digital business card (PublicOfferForm / PublicRequestForm) to get
+  // suggested market prices. Computes from public datasets only; no PII.
 
   try {
     const contentType = req.headers.get('content-type');
