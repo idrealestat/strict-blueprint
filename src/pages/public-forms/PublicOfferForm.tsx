@@ -818,6 +818,7 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
         locationStreet: formData.locationStreet,
         locationBuilding: formData.locationBuilding,
         locationPostalCode: formData.locationPostalCode,
+        googleMapsUrl: formData.googleMapsUrl,
         paymentPrices: formData.paymentPrices,
         floors: formData.floors,
         floorNumber: formData.floorNumber,
