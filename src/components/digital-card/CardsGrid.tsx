@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { HelpHint } from '@/components/ui/help-hint';
 
 interface DigitalCard {
   id: string;
@@ -211,6 +212,13 @@ export function CardsGrid({ cards, onDelete, onToggleActive, onEdit }: Props) {
                 >
                   <Eye className="h-4 w-4 ml-1" />
                   معاينة
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="معاينة"
+                    description="فتح بطاقتك الرقمية في نافذة جديدة كما يراها العملاء."
+                    source="TODO: spec/digital-card-grid.md#preview"
+                  />
                 </Button>
                 <Button 
                   variant="outline" 
@@ -220,6 +228,13 @@ export function CardsGrid({ cards, onDelete, onToggleActive, onEdit }: Props) {
                 >
                   <Share2 className="h-4 w-4 ml-1" />
                   مشاركة
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="مشاركة"
+                    description="مشاركة رابط بطاقتك الرقمية عبر الواتساب أو وسائل التواصل."
+                    source="TODO: spec/digital-card-grid.md#share"
+                  />
                 </Button>
                 <Button 
                   variant="outline" 
@@ -227,6 +242,13 @@ export function CardsGrid({ cards, onDelete, onToggleActive, onEdit }: Props) {
                   onClick={() => onEdit(card)}
                 >
                   <Edit className="h-4 w-4" />
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="تحرير"
+                    description="تعديل بيانات وألوان وقالب البطاقة."
+                    source="TODO: spec/digital-card-grid.md#edit"
+                  />
                 </Button>
                 <Button 
                   variant="outline" 
@@ -235,6 +257,13 @@ export function CardsGrid({ cards, onDelete, onToggleActive, onEdit }: Props) {
                   onClick={() => handleDelete(card.id)}
                 >
                   <Trash2 className="h-4 w-4" />
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="حذف"
+                    description="حذف هذه البطاقة الرقمية نهائياً (يتطلب تأكيد)."
+                    source="TODO: spec/digital-card-grid.md#delete"
+                  />
                 </Button>
               </div>
             </div>
