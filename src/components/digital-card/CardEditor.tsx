@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { HelpHint } from '@/components/ui/help-hint';
 
 interface Template {
   id: string;
@@ -277,6 +278,13 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
                 >
                   <Eye className="h-3 w-3 ml-1" />
                   معاينة
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="معاينة"
+                    description="عرض البطاقة كما ستظهر للعملاء قبل الحفظ."
+                    source="TODO: spec/digital-card-editor.md#preview"
+                  />
                 </Button>
                 <Button
                   onClick={handleSave}
@@ -286,6 +294,13 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
                 >
                   <Save className="h-3 w-3 ml-1" />
                   {isSaving ? 'جاري...' : 'حفظ'}
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="حفظ"
+                    description="حفظ جميع تعديلاتك على بطاقتك الرقمية."
+                    source="TODO: spec/digital-card-editor.md#save"
+                  />
                 </Button>
               </div>
             </div>
@@ -302,18 +317,46 @@ export function CardEditor({ cardId, initialData, onSave, onBack }: CardEditorPr
                 <TabsTrigger value="info" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white text-xs sm:text-sm">
                   <User className="h-4 w-4 ml-1" />
                   المعلومات
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="المعلومات"
+                    description="الاسم والمسمى الوظيفي والشركة والنبذة والموقع والصور."
+                    source="TODO: spec/digital-card-editor.md#tab-info"
+                  />
                 </TabsTrigger>
                 <TabsTrigger value="contact" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white text-xs sm:text-sm">
                   <Phone className="h-4 w-4 ml-1" />
                   التواصل
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="التواصل"
+                    description="هاتف، واتساب، بريد إلكتروني، وموقع إلكتروني للظهور على البطاقة."
+                    source="TODO: spec/digital-card-editor.md#tab-contact"
+                  />
                 </TabsTrigger>
                 <TabsTrigger value="social" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white text-xs sm:text-sm">
                   <Link className="h-4 w-4 ml-1" />
                   الروابط
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="الروابط"
+                    description="روابط حساباتك على LinkedIn و Instagram و Twitter/X."
+                    source="TODO: spec/digital-card-editor.md#tab-social"
+                  />
                 </TabsTrigger>
                 <TabsTrigger value="design" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white text-xs sm:text-sm">
                   <Palette className="h-4 w-4 ml-1" />
                   التصميم
+                  <HelpHint
+                    size="xs"
+                    className="mr-1"
+                    title="التصميم"
+                    description="اختيار القالب وتخصيص الألوان الرئيسية والثانوية."
+                    source="TODO: spec/digital-card-editor.md#tab-design"
+                  />
                 </TabsTrigger>
               </TabsList>
 
