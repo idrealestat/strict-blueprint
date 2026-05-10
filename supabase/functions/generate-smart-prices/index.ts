@@ -170,13 +170,20 @@ async function fetchRegionalPriceData(
     try {
       // محاولة الوصول لـ API البيانات المفتوحة
       const apiUrl = `https://api.data.gov.sa/api/3/action/datastore_search?resource_id=${datasetId}&limit=100`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+
+      // حماية من تعليق الطلب: نلغي بعد 4 ثوانٍ ونعتمد على fallback
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      let response: Response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       
       if (!response.ok) {
         throw new Error(`API returned ${response.status}`);
