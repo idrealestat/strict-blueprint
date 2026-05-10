@@ -290,6 +290,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const districtLayerRef = useRef<L.GeoJSON | null>(null);
   const streetLayerRef = useRef<L.TileLayer | null>(null);
   const satelliteLayerRef = useRef<L.TileLayer | null>(null);
   const [mapLayer, setMapLayer] = useState<'satellite' | 'street'>('satellite');
