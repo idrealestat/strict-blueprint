@@ -327,7 +327,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
     setIsLoadingLocation(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=ar`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&polygon_geojson=1&addressdetails=1&accept-language=ar`
       );
       const data = await response.json();
 
@@ -364,13 +364,34 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
           ...prev,
           preferredCity: rawCity || prev.preferredCity,
           preferredDistricts: cleanDistrict || prev.preferredDistricts,
-          street: addr.road || addr.street || '',
-          buildingNumber: addr.house_number || '',
-          postalCode: addr.postcode || '',
           lat,
           lng,
         }));
-        toast.success('تم تحديد الموقع بنجاح');
+
+        // رسم حدود الحي بلون أحمر شفاف على الخريطة
+        if (mapRef.current) {
+          if (districtLayerRef.current) {
+            mapRef.current.removeLayer(districtLayerRef.current);
+            districtLayerRef.current = null;
+          }
+          if (data.geojson) {
+            districtLayerRef.current = L.geoJSON(data.geojson, {
+              style: {
+                color: '#dc2626',
+                weight: 3,
+                opacity: 1,
+                fillColor: '#dc2626',
+                fillOpacity: 0.25,
+              },
+            }).addTo(mapRef.current);
+            try {
+              const bounds = districtLayerRef.current.getBounds();
+              if (bounds.isValid()) mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+            } catch {}
+          }
+        }
+
+        toast.success(cleanDistrict ? `تم تحديد حي ${cleanDistrict}` : 'تم تحديد الموقع');
       }
     } catch (error) {
       console.error('Error fetching address:', error);
