@@ -1972,6 +1972,6 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
           )}
         </Button>
       </div>
-    </Wrapper>
+    );
   );
 }
