@@ -947,7 +947,9 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
     );
   }
 
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+  // لا نعرّف Wrapper كمكوّن داخل الصفحة حتى لا يتغير مرجعه مع كل كتابة
+  // في الحقول؛ هذا يمنع إعادة تركيب شجرة النموذج وعنصر الخريطة.
+  const wrap = (children: React.ReactNode) =>
     ownerMode ? (
       <div className="bg-white rounded-2xl border" dir="rtl">{children}</div>
     ) : (
@@ -955,8 +957,7 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
     );
 
   if (isSubmitted) {
-    return (
-      <Wrapper>
+    return wrap(
         <div className="p-8 text-center">
           <div className="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-10 h-10 text-green-600" />
@@ -969,12 +970,10 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
             </Button>
           )}
         </div>
-      </Wrapper>
     );
   }
 
-  return (
-    <Wrapper>
+  return wrap(
       <div className="p-4 space-y-4">
         {/* عنوان المستند */}
         <div className="text-center py-3 bg-gradient-to-r from-[#fffef7] to-[#f0fdf4] rounded-lg border border-[#D4AF37]">
