@@ -435,18 +435,6 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
     // إضافة حدث النقر على الخريطة
     mapRef.current.on('click', (e) => {
       const { lat, lng } = e.latlng;
-      
-      if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lng]);
-      } else if (mapRef.current) {
-        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-        
-        markerRef.current.on('dragend', (ev) => {
-          const position = ev.target.getLatLng();
-          fetchAddressFromCoordinates(position.lat, position.lng);
-        });
-      }
-      
       fetchAddressFromCoordinates(lat, lng);
     });
 
@@ -456,6 +444,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
         mapRef.current = null;
       }
       markerRef.current = null;
+      districtLayerRef.current = null;
       streetLayerRef.current = null;
       satelliteLayerRef.current = null;
     };
