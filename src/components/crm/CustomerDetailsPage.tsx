@@ -4868,6 +4868,96 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   {request.furnishing && <Badge variant="outline" className="text-xs">🪑 {request.furnishing}</Badge>}
                                 </div>
                               )}
+
+                              {/* تقييم السعر المطلوب */}
+                              {request.priceEvaluation && (
+                                <div className={`mt-3 p-3 rounded-lg border-2 text-xs ${
+                                  request.priceEvaluation.status === 'high' ? 'bg-blue-50 border-blue-300' :
+                                  request.priceEvaluation.status === 'low' ? 'bg-red-50 border-red-300' :
+                                  'bg-green-50 border-green-300'
+                                }`}>
+                                  <div className="font-bold mb-1">
+                                    {request.priceEvaluation.status === 'high' ? '🔵 أكثر من سعر السوق' :
+                                     request.priceEvaluation.status === 'low' ? '🔴 أقل من السوق وغير منطقي' :
+                                     '🟢 مناسب — ضمن النطاق'}
+                                  </div>
+                                  {request.priceEvaluation.message && (
+                                    <div className="text-gray-700">{request.priceEvaluation.message}</div>
+                                  )}
+                                  {request.requestedPrice && (
+                                    <div className="mt-1 text-gray-600">السعر المطلوب: <strong>{Number(request.requestedPrice).toLocaleString()} ريال</strong></div>
+                                  )}
+                                  {request.marketAverage && (
+                                    <div className="text-gray-600">متوسط السوق: <strong>{Number(request.marketAverage).toLocaleString()} ريال</strong></div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* الميزانية */}
+                              {(request.minBudget || request.maxBudget) && (
+                                <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded text-xs">
+                                  <span className="text-gray-500">الميزانية:</span> <strong>{request.minBudget || '-'} — {request.maxBudget || '-'} ريال</strong>
+                                </div>
+                              )}
+
+                              {/* خيارات الدفع المفضلة */}
+                              {request.paymentPrices && (request.paymentPrices.onePayment || request.paymentPrices.twoPayments || request.paymentPrices.fourPayments || request.paymentPrices.monthly) && (
+                                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                  {request.paymentPrices.onePayment && <div className="p-2 bg-emerald-50 border border-emerald-200 rounded"><span className="text-gray-500">دفعة واحدة:</span> <strong>{request.paymentPrices.onePayment}</strong></div>}
+                                  {request.paymentPrices.twoPayments && <div className="p-2 bg-emerald-50 border border-emerald-200 rounded"><span className="text-gray-500">دفعتين:</span> <strong>{request.paymentPrices.twoPayments}</strong></div>}
+                                  {request.paymentPrices.fourPayments && <div className="p-2 bg-emerald-50 border border-emerald-200 rounded"><span className="text-gray-500">٤ دفعات:</span> <strong>{request.paymentPrices.fourPayments}</strong></div>}
+                                  {request.paymentPrices.monthly && <div className="p-2 bg-emerald-50 border border-emerald-200 rounded"><span className="text-gray-500">شهري:</span> <strong>{request.paymentPrices.monthly}</strong></div>}
+                                </div>
+                              )}
+
+                              {/* المميزات المطلوبة */}
+                              {(request.hasPool || request.hasGarden || request.hasElevator || request.hasParking || request.hasMaidRoom || request.hasDriverRoom) && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {request.hasPool && <Badge variant="outline" className="text-xs">🏊 مسبح</Badge>}
+                                  {request.hasGarden && <Badge variant="outline" className="text-xs">🌳 حديقة</Badge>}
+                                  {request.hasElevator && <Badge variant="outline" className="text-xs">🛗 مصعد</Badge>}
+                                  {request.hasParking && <Badge variant="outline" className="text-xs">🅿️ موقف</Badge>}
+                                  {request.hasMaidRoom && <Badge variant="outline" className="text-xs">🧹 غرفة خادمة</Badge>}
+                                  {request.hasDriverRoom && <Badge variant="outline" className="text-xs">🚗 غرفة سائق</Badge>}
+                                </div>
+                              )}
+
+                              {/* الموقع المفضل من الخريطة */}
+                              {(request.lat || request.lng || request.street || request.buildingNumber || request.postalCode) && (
+                                <div className="mt-3 p-3 rounded-lg bg-sky-50 border border-sky-200 text-xs space-y-2">
+                                  <div className="font-bold text-sky-900">📍 الموقع المفضل</div>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {request.street && <div><span className="text-gray-500">الشارع:</span> <strong>{request.street}</strong></div>}
+                                    {request.buildingNumber && <div><span className="text-gray-500">رقم المبنى:</span> <strong>{request.buildingNumber}</strong></div>}
+                                    {request.postalCode && <div><span className="text-gray-500">الرمز البريدي:</span> <strong>{request.postalCode}</strong></div>}
+                                  </div>
+                                  {(request.lat && request.lng) && (
+                                    <a
+                                      href={`https://www.google.com/maps?q=${request.lat},${request.lng}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
+                                    >
+                                      🗺️ فتح على خرائط Google
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* درجة الإلحاح */}
+                              {request.urgency && (
+                                <div className="mt-2 inline-block px-2 py-1 rounded bg-orange-50 border border-orange-200 text-xs">
+                                  <span className="text-gray-500">الإلحاح:</span> <strong className="text-orange-700">{request.urgency}</strong>
+                                </div>
+                              )}
+
+                              {/* متطلبات إضافية */}
+                              {request.additionalRequirements && (
+                                <div className="mt-2 p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs">
+                                  <div className="font-bold text-gray-900 mb-1">📝 متطلبات إضافية</div>
+                                  <div className="text-gray-700 whitespace-pre-wrap">{request.additionalRequirements}</div>
+                                </div>
+                              )}
                             </div>
                             <Badge className={
                               isFulfilled ? 'bg-red-500 text-white' :
