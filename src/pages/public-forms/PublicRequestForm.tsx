@@ -997,41 +997,16 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
               )}
             </div>
 
-            {/* معلومات الموقع المستخرجة */}
-            {(formData.street || formData.buildingNumber || formData.postalCode) && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div>
-                  <Label className="text-xs text-blue-600">اسم الشارع</Label>
-                  <Input
-                    value={formData.street}
-                    onChange={(e) => updateField('street', e.target.value)}
-                    placeholder="الشارع"
-                    className="bg-white text-sm h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-blue-600">رقم المبنى</Label>
-                  <Input
-                    value={formData.buildingNumber}
-                    onChange={(e) => updateField('buildingNumber', e.target.value)}
-                    placeholder="رقم المبنى"
-                    className="bg-white text-sm h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-blue-600">الرمز البريدي</Label>
-                  <Input
-                    value={formData.postalCode}
-                    onChange={(e) => updateField('postalCode', e.target.value)}
-                    placeholder="الرمز البريدي"
-                    className="bg-white text-sm h-8"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-blue-600">المدينة / الحي</Label>
-                  <div className="text-sm font-medium text-blue-800 mt-1">
-                    {formData.preferredCity} - {formData.preferredDistricts}
-                  </div>
+            {/* المدينة والحي المختار */}
+            {(formData.preferredCity || formData.preferredDistricts) && (
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-red-600" />
+                <div className="text-sm">
+                  <span className="text-red-600">الحي المحدد:</span>{' '}
+                  <span className="font-semibold text-red-800">
+                    {formData.preferredCity}
+                    {formData.preferredDistricts ? ` - ${formData.preferredDistricts}` : ''}
+                  </span>
                 </div>
               </div>
             )}
