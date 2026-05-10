@@ -38,6 +38,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { HelpHint } from "@/components/ui/help-hint";
 import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 import { useEntitlementsContext } from "@/context/EntitlementsContext";
 import {
@@ -1020,6 +1021,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           >
             {showPreview ? <EyeOff className="w-3.5 h-3.5 ml-1" /> : <Eye className="w-3.5 h-3.5 ml-1" />}
             {showPreview ? 'إخفاء' : 'معاينة'}
+            <HelpHint size="xs" className="mr-1" title="معاينة" description="إظهار/إخفاء المعاينة الحية للبطاقة كما يراها العميل." source="TODO: spec/business-card-edit.md#preview" />
           </Button>
           
           {/* زر نشر/إيقاف النشر */}
@@ -1156,6 +1158,7 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
           >
             <Save className="w-3.5 h-3.5 ml-1" />
             حفظ
+            <HelpHint size="xs" className="mr-1" title="حفظ" description="حفظ جميع التعديلات على بطاقتك في قاعدة البيانات." source="TODO: spec/business-card-edit.md#save" />
           </Button>
         </div>
       </div>
@@ -1309,22 +1312,28 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             {showOfficialCard && (
               <TabsTrigger value="card" className="text-xs data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#01411C]">
                 البطاقة
+                <HelpHint size="xs" className="mr-1" title="البطاقة" description="إعدادات عرض البطاقة الرسمية للطباعة وما يظهر فيها." source="TODO: spec/business-card-edit.md#tab-card" />
               </TabsTrigger>
             )}
             <TabsTrigger value="basic" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               الأساسية
+              <HelpHint size="xs" className="mr-1" title="المعلومات الأساسية" description="الاسم، المسمى، الشركة، الصورة، الشعار، النبذة، ورخصة فال." source="TODO: spec/business-card-edit.md#tab-basic" />
             </TabsTrigger>
             <TabsTrigger value="contact" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               التواصل
+              <HelpHint size="xs" className="mr-1" title="التواصل" description="الهاتف، الواتساب، البريد، الموقع الإلكتروني، وعنوان المكتب." source="TODO: spec/business-card-edit.md#tab-contact" />
             </TabsTrigger>
             <TabsTrigger value="social" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               السوشيال
+              <HelpHint size="xs" className="mr-1" title="السوشيال" description="روابط حساباتك على منصات التواصل الاجتماعي." source="TODO: spec/business-card-edit.md#tab-social" />
             </TabsTrigger>
             <TabsTrigger value="hours" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               الأوقات
+              <HelpHint size="xs" className="mr-1" title="أوقات العمل" description="أوقات الدوام الأسبوعية التي تظهر للعملاء." source="TODO: spec/business-card-edit.md#tab-hours" />
             </TabsTrigger>
             <TabsTrigger value="achievements" className="text-xs data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               الإنجازات
+              <HelpHint size="xs" className="mr-1" title="الإنجازات" description="الجوائز والشهادات والإنجازات المهنية." source="TODO: spec/business-card-edit.md#tab-achievements" />
             </TabsTrigger>
           </TabsList>
 
