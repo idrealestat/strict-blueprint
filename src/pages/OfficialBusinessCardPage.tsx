@@ -9,6 +9,7 @@ import { ArrowRight, CreditCard, Share2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import OfficialBusinessCard from '@/components/business-card/OfficialBusinessCard';
 import { useFeatureFlags } from '@/context/FeatureFlagsContext';
+import { HelpHint } from '@/components/ui/help-hint';
 
 type OfficialBusinessCardPageProps = {
   /**
@@ -67,11 +68,24 @@ export default function OfficialBusinessCardPage({ onBack }: OfficialBusinessCar
           >
             <ArrowRight className="w-5 h-5 ml-2" />
             رجوع
+            <HelpHint
+              size="xs"
+              className="mr-1"
+              title="رجوع"
+              description="العودة إلى لوحة التحكم الرئيسية."
+              source="TODO: spec/official-card.md#back"
+            />
           </Button>
           
           <div className="flex items-center gap-2">
             <CreditCard className="w-6 h-6 text-[#D4AF37]" />
             <h1 className="text-xl font-bold">بطاقة الأعمال الرسمية</h1>
+            <HelpHint
+              size="xs"
+              title="بطاقة الأعمال الرسمية"
+              description="نسخة احترافية للبطاقة قابلة للطباعة والتصدير كصورة أو PDF مع رمز QR."
+              source="TODO: spec/official-card.md#title"
+            />
           </div>
 
           <Button
@@ -81,6 +95,13 @@ export default function OfficialBusinessCardPage({ onBack }: OfficialBusinessCar
           >
             <Share2 className="w-5 h-5 ml-2" />
             الرقمية
+            <HelpHint
+              size="xs"
+              className="mr-1"
+              title="البطاقة الرقمية"
+              description="الانتقال إلى البطاقة الرقمية القابلة للمشاركة عبر رابط."
+              source="TODO: spec/official-card.md#switch-to-digital"
+            />
           </Button>
         </div>
       </div>

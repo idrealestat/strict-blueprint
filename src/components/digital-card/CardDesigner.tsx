@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Palette, Phone, Mail, Globe, MessageCircle, Download, Share2, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { HelpHint } from '@/components/ui/help-hint';
 
 interface Template {
   id: string;
@@ -125,6 +126,12 @@ export function CardDesigner() {
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Palette className="h-5 w-5 text-[#01411C]" />
             اختر القالب
+            <HelpHint
+              size="xs"
+              title="اختر القالب"
+              description="القوالب الجاهزة تطبّق ألواناً وتنسيقاً مهنياً على بطاقتك."
+              source="TODO: spec/card-designer.md#templates"
+            />
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {templates.map((template) => (
@@ -162,7 +169,15 @@ export function CardDesigner() {
 
         {/* Colors */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">تخصيص الألوان</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            تخصيص الألوان
+            <HelpHint
+              size="xs"
+              title="تخصيص الألوان"
+              description="اختر اللونين الرئيسي والثانوي يدوياً لتطابق هويتك البصرية."
+              source="TODO: spec/card-designer.md#colors"
+            />
+          </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="mb-2 block">اللون الرئيسي</Label>
@@ -203,7 +218,15 @@ export function CardDesigner() {
 
         {/* Quick Presets */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">ألوان سريعة</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            ألوان سريعة
+            <HelpHint
+              size="xs"
+              title="ألوان سريعة"
+              description="مجموعات ألوان جاهزة بنقرة واحدة لتطبيقها على البطاقة."
+              source="TODO: spec/card-designer.md#presets"
+            />
+          </h3>
           <div className="flex flex-wrap gap-2">
             {[
               { primary: '#01411C', secondary: '#D4AF37' },
