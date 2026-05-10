@@ -10,6 +10,7 @@ import { CardStatsOverview } from './CardStatsOverview';
 import { CardDesigner } from './CardDesigner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
+import { HelpHint } from '@/components/ui/help-hint';
 
 // Mock stats (يمكن استبدالها لاحقاً ببيانات حقيقية)
 const mockStats = {
@@ -192,6 +193,13 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
               >
                 <RefreshCw className={`ml-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 تحديث
+                <HelpHint
+                  size="xs"
+                  className="mr-1"
+                  title="تحديث"
+                  description="إعادة جلب أحدث بيانات بطاقتك الرقمية من قاعدة البيانات."
+                  source="TODO: spec/digital-card.md#refresh"
+                />
               </Button>
               <Button
                 onClick={() => setShowCreateDialog(true)}
@@ -199,6 +207,13 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
               >
                 <Plus className="ml-2 h-4 w-4" />
                 بطاقة جديدة
+                <HelpHint
+                  size="xs"
+                  className="mr-1"
+                  title="بطاقة جديدة"
+                  description="إنشاء بطاقة أعمال رقمية جديدة برابط ورمز QR قابل للمشاركة."
+                  source="TODO: spec/digital-card.md#create"
+                />
               </Button>
             </div>
           </div>
@@ -215,14 +230,35 @@ export function DigitalCardDashboard({ onBack }: DigitalCardDashboardProps) {
             <TabsTrigger value="cards" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               <CreditCard className="h-4 w-4 ml-2" />
               بطاقاتي ({cards.length})
+              <HelpHint
+                size="xs"
+                className="mr-1"
+                title="بطاقاتي"
+                description="عرض وإدارة جميع بطاقات الأعمال الرقمية الخاصة بك."
+                source="TODO: spec/digital-card.md#tab-cards"
+              />
             </TabsTrigger>
             <TabsTrigger value="designer" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               <Palette className="h-4 w-4 ml-2" />
               مصمم البطاقات
+              <HelpHint
+                size="xs"
+                className="mr-1"
+                title="مصمم البطاقات"
+                description="اختر القالب والألوان وصمم بطاقتك الرقمية بمعاينة مباشرة."
+                source="TODO: spec/digital-card.md#tab-designer"
+              />
             </TabsTrigger>
             <TabsTrigger value="analytics" className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4 ml-2" />
               التحليلات
+              <HelpHint
+                size="xs"
+                className="mr-1"
+                title="التحليلات"
+                description="إحصائيات المشاهدات ومسحات QR والنقرات والحفظ في جهات الاتصال."
+                source="TODO: spec/digital-card.md#tab-analytics"
+              />
             </TabsTrigger>
           </TabsList>
 
