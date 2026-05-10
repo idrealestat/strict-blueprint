@@ -474,18 +474,6 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
           
           if (mapRef.current) {
             mapRef.current.setView([latitude, longitude], 15);
-            
-            if (markerRef.current) {
-              markerRef.current.setLatLng([latitude, longitude]);
-            } else {
-              markerRef.current = L.marker([latitude, longitude], { draggable: true }).addTo(mapRef.current);
-              
-              markerRef.current.on('dragend', (e) => {
-                const pos = e.target.getLatLng();
-                fetchAddressFromCoordinates(pos.lat, pos.lng);
-              });
-            }
-            
             fetchAddressFromCoordinates(latitude, longitude);
           }
         },
