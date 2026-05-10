@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { getPublicPlatformSlug } from "@/utils/publicPlatform";
 import { supabase } from "@/integrations/supabase/client";
+import { HelpHint } from "@/components/ui/help-hint";
 
 interface User {
   id: string;
@@ -449,6 +450,7 @@ END:VCARD`;
           >
             <Edit2 className="w-5 h-5 ml-2" />
             تحرير
+            <HelpHint size="xs" className="mr-1" title="تحرير البطاقة" description="فتح صفحة تحرير بطاقتك الرقمية بكل تبويباتها." source="TODO: spec/business-card-profile.md#edit" />
           </Button>
         </div>
 
@@ -769,6 +771,7 @@ END:VCARD`;
             >
               <Home className="w-6 h-6" />
               <span className="text-sm font-bold">منصتي</span>
+              <HelpHint size="xs" title="منصتي" description="فتح منصتك العامة على wasataai.com كما يراها العملاء." source="TODO: spec/business-card-profile.md#platform" />
             </Button>
 
             {/* السطر الأول: الموقع، خرائط جوجل، اتصال، واتساب، تحميل بطاقة */}
@@ -853,6 +856,7 @@ END:VCARD`;
               >
                 <Home className="w-4 h-4" />
                 <span className="text-[10px]">إرسال عرض</span>
+                <HelpHint size="xs" title="إرسال عرض" description="رابط عام يفتح للعميل نموذج إرسال عرض عقاره مع توليد سعر ذكي." source="TODO: spec/business-card-profile.md#offer-link" />
               </Button>
 
               <Button
@@ -868,6 +872,7 @@ END:VCARD`;
               >
                 <Search className="w-4 h-4" />
                 <span className="text-[10px]">إرسال طلب</span>
+                <HelpHint size="xs" title="إرسال طلب" description="رابط عام لاستقبال طلب عميل (شراء/إيجار) مع تحديد الحي على الخريطة." source="TODO: spec/business-card-profile.md#request-link" />
               </Button>
 
               <Button
@@ -883,6 +888,7 @@ END:VCARD`;
               >
                 <FileText className="w-4 h-4" />
                 <span className="text-[10px]">عرض سعر</span>
+                <HelpHint size="xs" title="عرض سعر" description="رابط لإرسال طلب عرض سعر خدماتك العقارية للعميل." source="TODO: spec/business-card-profile.md#quote-link" />
               </Button>
 
               <Button
@@ -898,6 +904,7 @@ END:VCARD`;
               >
                 <Calendar className="w-4 h-4" />
                 <span className="text-[10px]">جدولة موعد</span>
+                <HelpHint size="xs" title="جدولة موعد" description="رابط ليحجز العميل موعداً معك مباشرة من تقويمك." source="TODO: spec/business-card-profile.md#calendar-link" />
               </Button>
 
               <Button
@@ -929,6 +936,7 @@ END:VCARD`;
           >
             <Share2 className="w-5 h-5 ml-2" />
             مشاركة البطاقة
+            <HelpHint size="xs" className="mr-1" title="مشاركة البطاقة" description="مشاركة رابط بطاقتك الرقمية مع العملاء عبر أي قناة." source="TODO: spec/business-card-profile.md#share" />
           </Button>
         </div>
 
