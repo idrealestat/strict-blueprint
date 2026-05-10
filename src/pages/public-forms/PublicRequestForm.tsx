@@ -147,7 +147,7 @@ interface FormData {
 
 // أنواع تقييم السعر
 interface PriceEvaluation {
-  status: 'أقل من السوق' | 'مناسب' | 'مبالغ فيه';
+  status: 'أقل من السوق وغير منطقي' | 'مناسب' | 'اكثر من سعر السوق وقد تجد مواصفات اعلى';
   message: string;
   color: 'green' | 'blue' | 'red';
   percentage: number;
@@ -1204,26 +1204,26 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
                         if (userPrice < lowerBound) {
                           const percentage = Math.round(((marketAverage - userPrice) / marketAverage) * 100);
                           setPriceEvaluation({
-                            status: 'أقل من السوق',
-                            color: 'green',
+                            status: 'أقل من السوق وغير منطقي',
+                            color: 'red',
                             percentage,
-                            message: `السعر أقل من متوسط السوق بنسبة ${percentage}% - فرصة جيدة`
+                            message: `السعر أقل من متوسط السوق بنسبة ${percentage}% — قد يكون غير منطقي`
                           });
                         } else if (userPrice <= upperBound) {
                           const percentage = Math.abs(Math.round(((userPrice - marketAverage) / marketAverage) * 100));
                           setPriceEvaluation({
                             status: 'مناسب',
-                            color: 'blue',
+                            color: 'green',
                             percentage,
                             message: `السعر مناسب ومتوافق مع أسعار السوق`
                           });
                         } else {
                           const percentage = Math.round(((userPrice - marketAverage) / marketAverage) * 100);
                           setPriceEvaluation({
-                            status: 'مبالغ فيه',
-                            color: 'red',
+                            status: 'اكثر من سعر السوق وقد تجد مواصفات اعلى',
+                            color: 'blue',
                             percentage,
-                            message: `السعر أعلى من متوسط السوق بنسبة ${percentage}%`
+                            message: `السعر أعلى من متوسط السوق بنسبة ${percentage}% — قد تجد مواصفات أعلى`
                           });
                         }
                       }
