@@ -4933,7 +4933,7 @@ export default function CustomerDetailsPage({ customer, onBack, onUpdate }: Cust
                                   </div>
                                   {(request.lat && request.lng) && (
                                     <a
-                                      href={`https://www.google.com/maps?q=${request.lat},${request.lng}`}
+                                      href={request.googleMapsUrl || `https://www.google.com/maps?q=${request.lat},${request.lng}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"

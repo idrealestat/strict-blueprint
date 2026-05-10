@@ -617,6 +617,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
         postalCode: formData.postalCode,
         lat: formData.lat,
         lng: formData.lng,
+        googleMapsUrl: (formData.lat && formData.lng) ? `https://www.google.com/maps?q=${formData.lat},${formData.lng}` : '',
         // السعر المطلوب والتقييم
         requestedPrice: formData.requestedPrice,
         priceEvaluation: priceEvaluation,
