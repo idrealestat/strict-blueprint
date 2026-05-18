@@ -2320,7 +2320,7 @@ export default function MyPlatformComplete({
                             <h4 className="text-sm font-bold text-gray-600 mb-3">عروض مباشرة في {city.cityName}:</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {city.directOffers.map((offer) => (
-                                <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white relative`}>
+                                <Card key={offer.id} data-offer-id={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white relative`}>
                                   {/* النقطة الحمراء للعرض الجديد */}
                                   {isNew('published_ad', offer.id) && (
                                     <PulsingDot show={true} size="md" position="top-right" />
@@ -2525,6 +2525,7 @@ export default function MyPlatformComplete({
                                       {district.offers.map((offer) => (
                                         <Card 
                                           key={offer.id} 
+                                          data-offer-id={offer.id}
                                           className={`overflow-hidden hover:shadow-lg transition-all border-2 cursor-pointer ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}
                                           draggable
                                           onDragStart={(e) => handleDragStartOffer(e, offer, city.cityName, district.districtName)}
