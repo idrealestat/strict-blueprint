@@ -147,6 +147,7 @@ interface MyPublicPlatformContentProps {
   platformSlug?: string; // slug المستخدم في رابط المنصة العامة
   businessCardOverride?: (BusinessCardData & { swapState?: boolean }) | null; // بيانات قادمة من قاعدة البيانات للعرض العام
   ownerListingsFromParent?: any[]; // العروض القادمة من المكون الأب (لتجنب جلب مزدوج)
+  onJumpToOffersTab?: (listing: any) => void; // فتح نفس العرض داخل تبويب «العروض» في منصتي
 }
 
 const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
@@ -155,6 +156,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
   platformSlug,
   businessCardOverride,
   ownerListingsFromParent,
+  onJumpToOffersTab,
 }) => {
   const navigate = useNavigate();
   const [hierarchyData, setHierarchyData] = useState<CityGroup[]>([]);
@@ -840,6 +842,18 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
               <span>←</span>
             </button>
           </div>
+          {onJumpToOffersTab && (
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={(e) => { e.stopPropagation(); onJumpToOffersTab(listing); }}
+                title="فتح العرض في تبويب العروض"
+                className="text-xs text-[#01411C] hover:text-[#065f41] flex items-center gap-1 border border-[#01411C]/30 rounded-md px-2 py-1"
+              >
+                <Building2 className="w-3 h-3" />
+                فتح في «العروض»
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

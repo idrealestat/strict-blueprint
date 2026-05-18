@@ -760,6 +760,43 @@ export default function MyPlatformComplete({
 
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
+
+  // قفز من بطاقة العرض في تبويب «المنصة» إلى نفس العرض داخل تبويب «العروض»
+  const handleJumpToOfferInOffersTab = useCallback((listing: any) => {
+    if (!listing) return;
+    const cityName =
+      listing?.locationDetails?.city ||
+      listing?.city ||
+      listing?.cityName ||
+      '';
+    const districtName =
+      listing?.locationDetails?.district ||
+      listing?.district ||
+      listing?.districtName ||
+      '';
+
+    setActiveMainTab('offers');
+    if (cityName) {
+      setExpandedCities(prev => new Set([...prev, cityName]));
+    }
+    if (cityName && districtName) {
+      const districtKey = `${cityName}-${districtName}`;
+      setExpandedDistricts(prev => new Set([...prev, districtKey]));
+    }
+
+    setTimeout(() => {
+      const el = document.querySelector(
+        `[data-offer-id="${listing.id}"]`
+      ) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-[#D4AF37]');
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-[#D4AF37]');
+        }, 1500);
+      }
+    }, 250);
+  }, []);
   
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<{type: 'offer' | 'district'; data: any; sourceCity: string; sourceDistrict?: string} | null>(null);
@@ -2016,6 +2053,7 @@ export default function MyPlatformComplete({
               userId={user?.id}
               platformSlug={currentSlug}
               ownerListingsFromParent={dbListings}
+              onJumpToOffersTab={handleJumpToOfferInOffersTab}
             />
           </TabsContent>
 
@@ -2282,7 +2320,7 @@ export default function MyPlatformComplete({
                             <h4 className="text-sm font-bold text-gray-600 mb-3">عروض مباشرة في {city.cityName}:</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {city.directOffers.map((offer) => (
-                                <Card key={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white relative`}>
+                                <Card key={offer.id} data-offer-id={offer.id} className={`overflow-hidden hover:shadow-lg transition-all border-2 ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#D4AF37]'} bg-white relative`}>
                                   {/* النقطة الحمراء للعرض الجديد */}
                                   {isNew('published_ad', offer.id) && (
                                     <PulsingDot show={true} size="md" position="top-right" />
@@ -2487,6 +2525,7 @@ export default function MyPlatformComplete({
                                       {district.offers.map((offer) => (
                                         <Card 
                                           key={offer.id} 
+                                          data-offer-id={offer.id}
                                           className={`overflow-hidden hover:shadow-lg transition-all border-2 cursor-pointer ${offer.isHidden ? 'border-gray-300 opacity-60' : 'border-transparent hover:border-[#01411C]'} bg-white`}
                                           draggable
                                           onDragStart={(e) => handleDragStartOffer(e, offer, city.cityName, district.districtName)}
