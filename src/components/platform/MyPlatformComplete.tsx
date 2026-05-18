@@ -760,6 +760,43 @@ export default function MyPlatformComplete({
 
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
+
+  // قفز من بطاقة العرض في تبويب «المنصة» إلى نفس العرض داخل تبويب «العروض»
+  const handleJumpToOfferInOffersTab = useCallback((listing: any) => {
+    if (!listing) return;
+    const cityName =
+      listing?.locationDetails?.city ||
+      listing?.city ||
+      listing?.cityName ||
+      '';
+    const districtName =
+      listing?.locationDetails?.district ||
+      listing?.district ||
+      listing?.districtName ||
+      '';
+
+    setActiveMainTab('offers');
+    if (cityName) {
+      setExpandedCities(prev => new Set([...prev, cityName]));
+    }
+    if (cityName && districtName) {
+      const districtKey = `${cityName}-${districtName}`;
+      setExpandedDistricts(prev => new Set([...prev, districtKey]));
+    }
+
+    setTimeout(() => {
+      const el = document.querySelector(
+        `[data-offer-id="${listing.id}"]`
+      ) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-[#D4AF37]');
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-[#D4AF37]');
+        }, 1500);
+      }
+    }, 250);
+  }, []);
   
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<{type: 'offer' | 'district'; data: any; sourceCity: string; sourceDistrict?: string} | null>(null);
