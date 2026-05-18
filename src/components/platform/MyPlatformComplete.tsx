@@ -2053,6 +2053,7 @@ export default function MyPlatformComplete({
               userId={user?.id}
               platformSlug={currentSlug}
               ownerListingsFromParent={dbListings}
+              onJumpToOffersTab={handleJumpToOfferInOffersTab}
             />
           </TabsContent>
 
