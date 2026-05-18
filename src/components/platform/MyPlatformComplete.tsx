@@ -784,7 +784,10 @@ export default function MyPlatformComplete({
       setExpandedDistricts(prev => new Set([...prev, districtKey]));
     }
 
-    setTimeout(() => {
+    // polling retry: انتظر حتى ترسم البطاقة بعد توسيع المدينة والحي
+    let tries = 0;
+    const maxTries = 30; // ~3s
+    const tick = () => {
       const el = document.querySelector(
         `[data-offer-id="${listing.id}"]`
       ) as HTMLElement | null;
@@ -793,9 +796,14 @@ export default function MyPlatformComplete({
         el.classList.add('ring-2', 'ring-[#D4AF37]');
         setTimeout(() => {
           el.classList.remove('ring-2', 'ring-[#D4AF37]');
-        }, 1500);
+        }, 1800);
+        return;
       }
-    }, 250);
+      if (++tries < maxTries) {
+        setTimeout(tick, 100);
+      }
+    };
+    setTimeout(tick, 80);
   }, []);
   
   // Drag & Drop State
