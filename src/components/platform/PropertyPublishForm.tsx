@@ -837,6 +837,19 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     }
   };
 
+  // تقييم السعر تلقائياً عند الكتابة (debounce)
+  useEffect(() => {
+    if (!propertyData.price) return;
+    if (!propertyData.area || !propertyData.purpose) return;
+    const handle = setTimeout(() => {
+      if (!isGeneratingPrices) {
+        generateSmartPrices();
+      }
+    }, 900);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyData.price]);
+
   // Generate AI Description
   const generateAIDescription = async () => {
     if (!propertyData.propertyType || !propertyData.purpose) {
