@@ -2389,7 +2389,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
             <div>
               <Label className="text-[#01411C] mb-2 block">أسلوب الوصف</Label>
               <div className="flex gap-2">
-                {['احترافي', 'تسويقي', 'فاخر'].map((style) => (
+                {['احترافي', 'تسويقي', 'فاخر', 'عائلي', 'عزاب'].map((style) => (
                   <Button
                     key={style}
                     variant={propertyData.descriptionStyle === style ? "default" : "outline"}
