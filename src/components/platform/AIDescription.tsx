@@ -28,7 +28,7 @@ interface AIDescriptionProps {
   onDescriptionSelect: (description: string) => void;
   onTitleSelect?: (title: string) => void;
   className?: string;
-  style?: 'احترافي' | 'تسويقي' | 'فاخر';
+  style?: 'احترافي' | 'تسويقي' | 'فاخر' | 'عائلي' | 'عزاب';
   length?: 'قصير' | 'متوسط' | 'طويل';
   language?: 'عربي' | 'انجليزي' | 'عربي انجليزي';
   brokerPhone?: string;

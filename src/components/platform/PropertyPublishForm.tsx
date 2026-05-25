@@ -837,6 +837,19 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
     }
   };
 
+  // تقييم السعر تلقائياً عند الكتابة (debounce)
+  useEffect(() => {
+    if (!propertyData.price) return;
+    if (!propertyData.area || !propertyData.purpose) return;
+    const handle = setTimeout(() => {
+      if (!isGeneratingPrices) {
+        generateSmartPrices();
+      }
+    }, 900);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyData.price]);
+
   // Generate AI Description
   const generateAIDescription = async () => {
     if (!propertyData.propertyType || !propertyData.purpose) {
@@ -2068,7 +2081,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   className="border-[#D4AF37] focus:border-[#01411C]"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  أدخل السعر ثم اضغط "توليد الأسعار" للحصول على تقييم تلقائي
+                  يتم تقييم السعر تلقائياً عند الكتابة، أو اضغط زر "توليد الأسعار"
                 </p>
               </div>
               <div>
@@ -2389,7 +2402,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
             <div>
               <Label className="text-[#01411C] mb-2 block">أسلوب الوصف</Label>
               <div className="flex gap-2">
-                {['احترافي', 'تسويقي', 'فاخر'].map((style) => (
+                {['احترافي', 'تسويقي', 'فاخر', 'عائلي', 'عزاب'].map((style) => (
                   <Button
                     key={style}
                     variant={propertyData.descriptionStyle === style ? "default" : "outline"}
@@ -2440,7 +2453,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               currentTitle={propertyData.aiTitle}
               onDescriptionSelect={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
               onTitleSelect={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
-              style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر'}
+              style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر' | 'عائلي' | 'عزاب'}
               length={propertyData.descriptionLength as 'قصير' | 'متوسط' | 'طويل'}
               language={propertyData.descriptionLanguage as 'عربي' | 'انجليزي' | 'عربي انجليزي'}
               brokerPhone={propertyData.brokerPhone}
