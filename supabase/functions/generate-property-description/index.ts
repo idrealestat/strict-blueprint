@@ -74,6 +74,12 @@ interface PropertyData {
   extraKitchenAppliances: string; // أجهزة المطبخ
   hasLaundryRoom: boolean; // غرفة غسيل
   price: string; // السعر
+  paymentPrices?: {
+    onePayment?: string;
+    twoPayments?: string;
+    fourPayments?: string;
+    monthly?: string;
+  };
 }
 
 function validateAndSanitizePropertyData(raw: unknown): PropertyData {
@@ -113,6 +119,17 @@ function validateAndSanitizePropertyData(raw: unknown): PropertyData {
     extraKitchenAppliances: sanitizeString(data.extraKitchenAppliances, 200),
     hasLaundryRoom: data.hasLaundryRoom === true,
     price: sanitizeString(data.price, 20),
+    paymentPrices: (() => {
+      const pp = (data.paymentPrices && typeof data.paymentPrices === 'object')
+        ? data.paymentPrices as Record<string, unknown>
+        : {};
+      return {
+        onePayment: sanitizeString(pp.onePayment, 20),
+        twoPayments: sanitizeString(pp.twoPayments, 20),
+        fourPayments: sanitizeString(pp.fourPayments, 20),
+        monthly: sanitizeString(pp.monthly, 20),
+      };
+    })(),
   };
 }
 
