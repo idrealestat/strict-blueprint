@@ -904,6 +904,8 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               acUnits: propertyData.acUnits,
               balconies: propertyData.balconies,
               entrances: propertyData.entrances,
+              price: propertyData.price,
+              paymentPrices: propertyData.paymentPrices,
             }
           }),
         }
