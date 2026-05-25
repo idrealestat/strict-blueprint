@@ -2068,7 +2068,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
                   className="border-[#D4AF37] focus:border-[#01411C]"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  أدخل السعر ثم اضغط "توليد الأسعار" للحصول على تقييم تلقائي
+                  يتم تقييم السعر تلقائياً عند الكتابة، أو اضغط زر "توليد الأسعار"
                 </p>
               </div>
               <div>
