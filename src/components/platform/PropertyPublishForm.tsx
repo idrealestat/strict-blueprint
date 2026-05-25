@@ -2440,7 +2440,7 @@ export default function PropertyPublishForm({ onPublish, onCancel, user }: Prope
               currentTitle={propertyData.aiTitle}
               onDescriptionSelect={(description) => setPropertyData(prev => ({ ...prev, aiDescription: description }))}
               onTitleSelect={(title) => setPropertyData(prev => ({ ...prev, aiTitle: title }))}
-              style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر'}
+              style={propertyData.descriptionStyle as 'احترافي' | 'تسويقي' | 'فاخر' | 'عائلي' | 'عزاب'}
               length={propertyData.descriptionLength as 'قصير' | 'متوسط' | 'طويل'}
               language={propertyData.descriptionLanguage as 'عربي' | 'انجليزي' | 'عربي انجليزي'}
               brokerPhone={propertyData.brokerPhone}
