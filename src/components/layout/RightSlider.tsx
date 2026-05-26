@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   X, Home, UserCheck, BookOpen, Crown, Briefcase, Archive, 
   FileText, Receipt, Plus, BarChart3, Info, Headphones, Settings,
-  Users, Building2, Bell, MessageCircle, Sparkles, Shield, ExternalLink
+  Users, Building2, Bell, MessageCircle, Sparkles, Shield, ExternalLink,
+  Volume2, VolumeX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -141,6 +142,59 @@ function FloatingBubbleQuickSettings() {
   );
 }
 
+/**
+ * 🔔 سويتش إسكات/تفعيل نغمة مشاهدات العروض
+ * يقرأ ويكتب على نفس مفتاح localStorage الذي يستخدمه useOfferViewNotifications
+ */
+function OfferViewSoundSetting() {
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('offer_view_notification_settings');
+      if (!raw) return true;
+      const s = JSON.parse(raw);
+      return s.sound ?? true;
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggle = (checked: boolean) => {
+    setSoundEnabled(checked);
+    try {
+      const raw = localStorage.getItem('offer_view_notification_settings');
+      const current = raw ? JSON.parse(raw) : {};
+      const next = { enabled: current.enabled ?? true, sound: checked };
+      localStorage.setItem('offer_view_notification_settings', JSON.stringify(next));
+      // إعلام بقية الأقسام
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'offer_view_notification_settings',
+        newValue: JSON.stringify(next),
+      }));
+    } catch {
+      // ignore
+    }
+    toast.success(checked ? 'تم تفعيل نغمة مشاهدات العروض' : 'تم إسكات نغمة مشاهدات العروض');
+  };
+
+  return (
+    <Card className="border-[#D4AF37]/30 bg-gradient-to-br from-[#01411C]/5 to-[#01411C]/10">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {soundEnabled ? (
+              <Volume2 className="w-4 h-4 text-[#01411C]" />
+            ) : (
+              <VolumeX className="w-4 h-4 text-muted-foreground" />
+            )}
+            <span className="text-sm font-medium">نغمة مشاهدات العروض</span>
+          </div>
+          <Switch checked={soundEnabled} onCheckedChange={handleToggle} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 const RightSlider = ({ isOpen, onClose }: RightSliderProps) => {
   const navigate = useNavigate();
 
@@ -214,6 +268,11 @@ const RightSlider = ({ isOpen, onClose }: RightSliderProps) => {
             {/* 🔴 إعدادات المساعد الذكي - يظهر فقط إذا فعّلها المالك */}
             <div className="mb-4">
               <FloatingBubbleQuickSettings />
+            </div>
+
+            {/* 🔔 إعدادات صوت مشاهدات العروض */}
+            <div className="mb-4">
+              <OfferViewSoundSetting />
             </div>
             
             <div className="space-y-2">

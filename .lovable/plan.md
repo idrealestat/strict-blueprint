@@ -1,72 +1,68 @@
 ## الهدف
-استبدال `DirectSubmissionForm` في تبويبَي `/owner/submissions` بنفس نماذج البطاقة الرقمية حرفياً عبر استخراج جسم النموذج إلى مكوّن مشترك (الخيار 2)، وإصلاح صفحة الأداء لتعرض مشاهدات حقيقية من `offer_views_log` المرتبطة بإرسالات المالك.
+تطبيق التعديلات الست المطلوبة حرفياً دون لمس أي شيء آخر:
+- تلوين أيقونة العين تدريجياً حسب عدد المشاهدين المباشرين.
+- إزالة `totalViews` من `LiveViewerIndicator` (الإجمالي يبقى يُعرض من السطور الموجودة أصلاً تحت البطاقات).
+- اشتراك Realtime على `offer_views_log` لتشغيل النغمة عند مشاهدات من أجهزة أخرى.
+- زر إسكات «نغمة مشاهدات العروض» داخل الرايت سلايدر.
 
----
+## الملفات التي ستتغير
+1. `src/components/ui/LiveViewerIndicator.tsx`
+2. `src/components/platform/MyPlatformComplete.tsx`
+3. `src/pages/SlugOfferDetailsPage.tsx` (تحقق فقط — يستخدم `LiveViewersBadge` لا `LiveViewerIndicator`، لا تعديل مطلوب)
+4. `src/hooks/useOfferViewNotifications.ts`
+5. `src/components/layout/RightSlider.tsx`
 
-## ١) استخراج جسم النموذج المشترك (بدون أي تعديل سلوكي على النماذج العامة)
+## التفاصيل
 
-### مكوّنات جديدة
-- `src/components/forms/OfferFormBody.tsx` — يحتوي **حرفياً** على نفس JSX، نفس الحقول، نفس أقسام الألوان، نفس التحقق، نفس مكوّن الخريطة/الرفع، الموجود حالياً في `PublicOfferForm.tsx`.
-- `src/components/forms/RequestFormBody.tsx` — مثلها لـ `PublicRequestForm.tsx`.
+### 1) `LiveViewerIndicator.tsx`
+- حذف `totalViews` و`showTotalViews` من `Props` ومن جسم المكون (إزالة كتلة `{showTotalViews && ...}`).
+- إضافة دالة `getColorByLiveCount(count)`:
+  - `0` → `#22c55e` (أخضر)
+  - `<50` → `#eab308` (أصفر)
+  - `<100` → `#ef4444` (أحمر)
+  - `<500` → `#a855f7` (بنفسجي)
+  - وإلا → `#3b82f6` (أزرق)
+- تطبيق اللون كـ `backgroundColor` على الدائرة (motion.div) عبر `style={{ backgroundColor: eyeColor }}`، مع لون أيقونة أبيض دائماً عند `liveViewers>0` وأخضر عند `0` (الحفاظ على الحدود الذهبية الحالية عند 0).
+- تشغيل النبض (pulse + ring) فقط عند `liveViewers>0` (يبقى كما هو) مع تحديث لون ring ليتوافق مع اللون الجديد.
+- الشارة بجانب العين تعرض `liveViewers` دائماً عند `>0` (سلوك حالي).
 
-### Props للمكوّن المشترك
-```ts
-type Mode =
-  | { kind: "broker"; brokerSlug: string; broker: BrokerInfo }   // الاستخدام العام wasataai.com/:slug/offer
-  | { kind: "owner"; ownerUserId: string };                       // الاستخدام داخل /owner/submissions
-```
-- في `kind: "broker"`: السلوك الحالي حرفياً — يستدعي Edge Function `public-form-submit` بـ `{ slug, formType, data }`.
-- في `kind: "owner"`: عند الإرسال يُحفظ السجل في `owner_submissions` بحالة `pending_acceptance` (نفس البيانات في عمود `data` jsonb + `media`)، ولا يُربط بأي وسيط بعد. اختيار الوسيط لاحقاً يبقى عبر شاشة `SubmissionProposalsPage` التي تستدعي `submitToBrokerCRM` (دون تغيير).
+### 2) `MyPlatformComplete.tsx`
+- في الاستخدامات الخمسة لـ `LiveViewerIndicator` (الأسطر 2214, 2252, 2344, 2459, 2630): حذف props `totalViews` و`showTotalViews` فقط. تمرير `liveViewers` و`size` كما هو.
+- لا تغيير على السطور التي تعرض `totalViews` نصياً أسفل البطاقات (مثل سطر 2224, 2431) ولا على `Eye {offer.views.toLocaleString()}`.
 
-### تحديث النماذج العامة لتستهلك الجسم المشترك
-- `src/pages/public-forms/PublicOfferForm.tsx` يصبح غلافاً رقيقاً: يجلب `broker` بالـ `slug` كما يفعل اليوم، ثم يعرض `<OfferFormBody mode={{kind:"broker", brokerSlug, broker}} />`. لا تغيير سلوكي.
-- `src/pages/public-forms/PublicRequestForm.tsx` بنفس النمط مع `<RequestFormBody />`.
-- لا تغيير على Edge Function، ولا على `PublicFormLayout`، ولا على `submitToBrokerCRM`.
+### 3) `SlugOfferDetailsPage.tsx`
+- يستخدم `LiveViewersBadge` (مكون آخر) وليس `LiveViewerIndicator`. لا تعديل — تأكيد فقط.
 
-### استخدام الجسم المشترك في صفحة المالك
-- `src/pages/owner-home/SubmissionsListPage.tsx`:
-  - حذف استيراد `DirectSubmissionForm`.
-  - تبويب "ارسال عرض" → `<OfferFormBody mode={{kind:"owner", ownerUserId}} />`
-  - تبويب "ارسال طلب" → `<RequestFormBody mode={{kind:"owner", ownerUserId}} />`
-  - يبقى الرأس الأخضر وعنوان الصفحة وقسم "إرسالاتك السابقة" كما هو.
+### 4) `useOfferViewNotifications.ts`
+- إضافة `useEffect` يفتح قناة Supabase Realtime:
+  ```
+  supabase.channel(`offer-views-log-${user.id}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'offer_views_log', filter: `user_id=eq.${user.id}` }, (payload) => {
+      if (soundEnabled) soundManager.playSound();
+      if (notificationsEnabled) toast.info(`👁️ مشاهدة جديدة: ${payload.new.offer_title || 'عرض'}`);
+      loadStats();
+    })
+    .subscribe();
+  ```
+- التنظيف: `supabase.removeChannel(channel)`.
+- المستمع الحالي على `window` `offerViewedWithDetails` يبقى دون تغيير.
+- التبعيات: `[user?.id, soundEnabled, notificationsEnabled, loadStats]`.
 
-### القيود الواجبة
-- لا تغيير في الحقول، الترتيب، الألوان، الفونت، RTL، رسائل التحقق، أو نصوص الموافقة القانونية.
-- نفس آلية الحفظ المؤقت في `sessionStorage`/`localStorage` تُنقل كما هي إلى المكوّن المشترك.
+### 5) `RightSlider.tsx`
+- قراءة الملف للعثور على قسم الإعدادات الحالي (مثلاً ضمن `ComprehensiveAppSettings` أو القسم العام)، وإضافة بطاقة/صف صغير يحتوي:
+  - `Switch` متصل بـ state محلي يقرأ ابتدائياً من `localStorage['offer_view_notification_settings']` (الحقل `sound`، افتراضي `true`).
+  - عند التغيير: تحديث `localStorage` بنفس المفتاح مع الحفاظ على `enabled`، وبث `window.dispatchEvent(new Event('storage'))` ليلتقطه أي مستهلك.
+  - أيقونة `Volume2` عند التفعيل و`VolumeX` عند الكتم.
+  - النص: «نغمة مشاهدات العروض».
+- التزام بالـ design tokens (لا ألوان مباشرة خارج التوكنز للنص/الحاوية، الـ hex للعين فقط داخل `LiveViewerIndicator`).
 
----
+## ما لن يتغير
+- `useLiveViewersRealtime`, `usePlatformListings`, دوال Presence، `CollapsibleStatsSection`, `CollapsiblePerformanceComparison`.
+- قاعدة البيانات، RLS، Edge Functions.
+- أي قسم آخر في `MyPlatformComplete` غير الـ 5 استخدامات المذكورة.
 
-## ٢) إصلاح صفحة الأداء `/owner/performance`
-
-### المنطق الجديد
-1. جلب إرسالات المالك مع: `id, status, data, city, district, assigned_broker_slug, assigned_broker_user_id, created_at`.
-2. تجميع `assigned_broker_user_id` (أصحاب البطاقات المنشورة الذين قبلوا).
-3. استعلام `offer_views_log` مفلتر بـ:
-   - `user_id IN (assigned_broker_user_ids)` (لأن سجل المشاهدات مرتبط بالوسيط الناشر)
-   - **و** `offer_id IN (submission_ids)` أو `offer_id IN (source_property_ids)` المُسجّلة عند الإنشاء عبر `submitToBrokerCRM` (المُمرَّر `id: "owner_<sub.id>"`).
-4. حساب: عدد المشاهدات الإجمالي + التجزئة لكل عقار للمالك.
-
-### التغييرات في الكود
-- `src/pages/owner-home/PerformancePage.tsx`:
-  - استبدال استعلام `offer_views_log` العام بفلترة دقيقة عبر `offer_id` (ومجال `user_id` لتأكيد).
-  - إظهار عمود "مشاهدات" لكل سطر في "تفاصيل عقاراتك" بدل سلسلة slug فقط.
-  - الحفاظ على البطاقات الإحصائية الأربع كما هي شكلاً، مع قيم حقيقية.
-
-### ملاحظة بخصوص ربط المشاهدات
-- `submitToBrokerCRM` يمرّر اليوم `id: "owner_<sub.id>"` إلى `public-form-submit`. يجب التأكد أن هذا المعرف يُسجَّل لاحقاً في `offer_views_log.offer_id` عند فتح الإعلان على `wasataai.com/{slug}/...`. إذا لم يكن كذلك، نُضيف خطوة بسيطة في `PerformancePage` لاستخراج المشاهدات عبر `metadata->>source_owner_submission_id` كحل احتياطي. (لن يُلمس المسار العام؛ فقط القراءة في صفحة الأداء.)
-
----
-
-## ٣) ملفات ستتغير
-- جديد: `src/components/forms/OfferFormBody.tsx`, `src/components/forms/RequestFormBody.tsx`.
-- معدّل (غلاف رقيق): `src/pages/public-forms/PublicOfferForm.tsx`, `src/pages/public-forms/PublicRequestForm.tsx`.
-- معدّل: `src/pages/owner-home/SubmissionsListPage.tsx` (استبدال النماذج).
-- معدّل: `src/pages/owner-home/PerformancePage.tsx` (فلترة المشاهدات الحقيقية).
-
-## ٤) ما لن يُلمس
-- `submitToBrokerCRM.ts`، Edge Function `public-form-submit`، `OwnerHomePage`، `OwnerRightSlider`، `ChoosePlanPage`، `SubmissionProposalsPage`، البطاقة الرقمية، الألوان، الخطوط، RTL.
-
-## ٥) معايير القبول
-- فتح `/owner/submissions` يعرض في كل تبويب نفس النموذج المرئي حرفياً كما في `wasataai.com/{slug}/offer` و `/request` (نفس الأقسام، نفس الألوان، نفس الموافقة القانونية).
-- إرسال من تبويب المالك يحفظ في `owner_submissions` بحالة `pending_acceptance` ويظهر في "إرسالاتك السابقة" فوراً.
-- `/owner/performance` يعرض رقم مشاهدات يساوي صفراً عندما لا يوجد إرسال مرتبط بوسيط، ويزداد فعلياً عند فتح الإعلان من المنصة العامة.
+## التحقق بعد التنفيذ
+- بناء ناجح.
+- فتح تبويب العروض في `/app/dashboard`: العين خضراء عند 0، تتحول للون الجدول مع زيادة المشاهدين المباشرين.
+- إجمالي المشاهدات لا يزال ظاهراً تحت البطاقات (نص منفصل) و`Eye {offer.views}` كما هو.
+- وجود سويتش «نغمة مشاهدات العروض» في الرايت سلايدر يبقى محفوظاً بعد إعادة التحميل.

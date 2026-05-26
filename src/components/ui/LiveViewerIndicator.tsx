@@ -11,20 +11,35 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface LiveViewerIndicatorProps {
   liveViewers: number;
-  totalViews?: number;
-  showTotalViews?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
+// تحديد لون العين بناءً على عدد المشاهدين المباشرين
+const getColorByLiveCount = (count: number): string => {
+  if (count === 0) return '#22c55e';   // أخضر
+  if (count < 50) return '#eab308';    // أصفر
+  if (count < 100) return '#ef4444';   // أحمر
+  if (count < 500) return '#a855f7';   // بنفسجي
+  return '#3b82f6';                     // أزرق
+};
+
+// تحويل hex إلى rgba لاستخدامه في النبض
+const hexToRgba = (hex: string, alpha: number): string => {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export default function LiveViewerIndicator({
   liveViewers,
-  totalViews = 0,
-  showTotalViews = false,
   size = 'md',
   className = '',
 }: LiveViewerIndicatorProps) {
   const hasLiveViewers = liveViewers > 0;
+  const eyeColor = getColorByLiveCount(liveViewers);
 
   const sizeClasses = {
     sm: {
@@ -57,9 +72,9 @@ export default function LiveViewerIndicator({
           animate={hasLiveViewers ? { 
             scale: [1, 1.1, 1],
             boxShadow: [
-              '0 0 0 0 rgba(239, 68, 68, 0)',
-              '0 0 0 8px rgba(239, 68, 68, 0.3)',
-              '0 0 0 0 rgba(239, 68, 68, 0)'
+              `0 0 0 0 ${hexToRgba(eyeColor, 0)}`,
+              `0 0 0 8px ${hexToRgba(eyeColor, 0.3)}`,
+              `0 0 0 0 ${hexToRgba(eyeColor, 0)}`,
             ]
           } : {}}
           transition={{
@@ -67,12 +82,13 @@ export default function LiveViewerIndicator({
             repeat: hasLiveViewers ? Infinity : 0,
             ease: 'easeInOut',
           }}
+          style={hasLiveViewers ? { backgroundColor: eyeColor } : undefined}
           className={`
             ${classes.container}
             rounded-full flex items-center justify-center
             transition-all duration-300
             ${hasLiveViewers 
-              ? 'bg-red-500/90 shadow-lg shadow-red-500/30' 
+              ? 'shadow-lg' 
               : 'bg-emerald-100 border-2 border-[#D4AF37]'
             }
           `}
@@ -92,9 +108,10 @@ export default function LiveViewerIndicator({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
+              style={{ backgroundColor: eyeColor }}
               className={`
                 absolute ${classes.badge}
-                bg-red-600 text-white rounded-full
+                text-white rounded-full
                 flex items-center justify-center px-1
                 font-bold shadow-md
               `}
@@ -104,13 +121,6 @@ export default function LiveViewerIndicator({
           )}
         </AnimatePresence>
       </div>
-
-      {/* عرض إجمالي المشاهدات */}
-      {showTotalViews && (
-        <span className={`${classes.totalViews} text-gray-500 flex items-center gap-0.5`}>
-          {totalViews.toLocaleString('ar-SA')}
-        </span>
-      )}
     </div>
   );
 }

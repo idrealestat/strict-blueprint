@@ -170,6 +170,22 @@ export function useOfferViewNotifications() {
     loadStats();
   }, [user]);
 
+  // الاستماع لتغييرات إعدادات الصوت من أي مكان (مثل الرايت سلايدر)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== 'offer_view_notification_settings' || !e.newValue) return;
+      try {
+        const s = JSON.parse(e.newValue);
+        setNotificationsEnabled(s.enabled ?? true);
+        setSoundEnabled(s.sound ?? true);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   // حفظ الإعدادات
   const saveSettings = useCallback((enabled: boolean, sound: boolean) => {
     localStorage.setItem('offer_view_notification_settings', JSON.stringify({
@@ -399,6 +415,38 @@ export function useOfferViewNotifications() {
     window.addEventListener('offerViewedWithDetails', handleOfferViewed);
     return () => window.removeEventListener('offerViewedWithDetails', handleOfferViewed);
   }, [recordView]);
+
+  // اشتراك Realtime على offer_views_log لتشغيل النغمة عند مشاهدات من أجهزة أخرى
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`offer-views-log-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'offer_views_log',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const title = payload?.new?.offer_title || 'عرض';
+          if (soundEnabled) {
+            soundManager.playSound();
+          }
+          if (notificationsEnabled) {
+            toast.info(`👁️ مشاهدة جديدة: ${title}`, { duration: 4000 });
+          }
+          loadStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, soundEnabled, notificationsEnabled, loadStats]);
 
   return {
     notifications,

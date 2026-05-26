@@ -765,7 +765,6 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           <div className="absolute top-2 left-2 z-10">
             <LiveViewerIndicator 
               liveViewers={liveViewerCount} 
-              totalViews={listing.views || 0}
               size="sm"
             />
           </div>
