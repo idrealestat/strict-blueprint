@@ -67,14 +67,19 @@ serve(async (req) => {
     if ((cardCount ?? 0) > 0) {
       const { data: card } = await admin
         .from("business_cards")
-        .select("data, phone, email, national_id")
+        .select("data, phone, email")
         .eq("user_id", userId)
         .maybeSingle();
       if (card) {
         const d: any = card.data || {};
+        const { data: priv } = await admin
+          .from("business_card_private")
+          .select("national_id")
+          .eq("user_id", userId)
+          .maybeSingle();
         broker_data = {
           full_name: d.name || d.userName || d.fullName || null,
-          national_id: card.national_id || d.nationalId || null,
+          national_id: priv?.national_id || d.nationalId || null,
           date_of_birth: d.birthDate || d.dateOfBirth || null,
           phone: card.phone || d.phone || null,
           email: card.email || d.email || foundEmail,

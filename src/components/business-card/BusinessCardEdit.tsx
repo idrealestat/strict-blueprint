@@ -340,12 +340,20 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
             
             // 3. البحث بواسطة بطاقة الأحوال (الأولوية الثانية)
             if (!businessCard && profile.national_id) {
-              const { data: cardByNationalId } = await supabase
-                .from('business_cards')
-                .select('*')
+              // رقم الهوية أصبح في جدول خاص (owner-only). نبحث عن صاحبه ثم نجلب بطاقته.
+              const { data: privateRow } = await supabase
+                .from('business_card_private')
+                .select('user_id')
                 .eq('national_id', profile.national_id)
                 .maybeSingle();
-              if (cardByNationalId) businessCard = cardByNationalId;
+              if (privateRow?.user_id) {
+                const { data: cardByNationalId } = await supabase
+                  .from('business_cards')
+                  .select('*')
+                  .eq('user_id', privateRow.user_id)
+                  .maybeSingle();
+                if (cardByNationalId) businessCard = cardByNationalId;
+              }
             }
             
             // 4. البحث بواسطة الإيميل
@@ -611,14 +619,11 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       
       // ✅ التحقق من عدم تكرار رقم الهوية (لا يمكن تعديله إلا بإذن المالك)
       if (formData.nationalId?.trim()) {
-        const { data: existingId } = await supabase
-          .from('business_cards')
-          .select('id, user_id')
-          .eq('national_id', formData.nationalId.trim())
-          .neq('user_id', authUser.id)
-          .maybeSingle();
-        
-        if (existingId) {
+        const { data: taken } = await supabase.rpc('is_national_id_taken', {
+          p_national_id: formData.nationalId.trim(),
+          p_exclude_user: authUser.id,
+        });
+        if (taken === true) {
           toast.error('رقم الهوية مستخدم في حساب آخر. لا يمكن استخدام نفس الرقم في أكثر من حساب.');
           return;
         }
@@ -634,7 +639,6 @@ const BusinessCardEdit: React.FC<BusinessCardEditProps> = ({ onBack, user, isNew
       // إضافة المعرفات لربط النطاق بها (رخصة فال، بطاقة الأحوال، الإيميل، الجوال)
       const identifiers = {
         fal_license_number: formData.falLicense?.trim() || null,
-        national_id: formData.nationalId?.trim() || null,
         email: authUser.email || formData.email?.trim() || null,
         phone: formData.primaryPhone?.trim() || null,
       };

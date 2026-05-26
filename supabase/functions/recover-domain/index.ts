@@ -68,8 +68,15 @@ const handler = async (req: Request): Promise<Response> => {
     let identityMatch = false;
     if (identityMethod === 'fal_license' && card.fal_license_number === falLicense) {
       identityMatch = true;
-    } else if (identityMethod === 'national_id' && card.national_id === nationalId) {
-      identityMatch = true;
+    } else if (identityMethod === 'national_id') {
+      const { data: priv } = await supabase
+        .from("business_card_private")
+        .select("national_id")
+        .eq("user_id", card.user_id)
+        .maybeSingle();
+      if (priv?.national_id && priv.national_id === nationalId) {
+        identityMatch = true;
+      }
     }
 
     if (!identityMatch) {
