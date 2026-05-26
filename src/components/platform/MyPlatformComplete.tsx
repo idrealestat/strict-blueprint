@@ -769,20 +769,95 @@ export default function MyPlatformComplete({
       listing?.city ||
       listing?.cityName ||
       '';
-    const districtName =
+    const rawDistrict =
       listing?.locationDetails?.district ||
       listing?.district ||
       listing?.districtName ||
       '';
+    // الحي يُخزَّن بصيغة "حي X" في الـ cityHierarchy، فنحاول الاسمين معاً
+    const districtVariants = new Set<string>();
+    if (rawDistrict) {
+      districtVariants.add(rawDistrict);
+      districtVariants.add(rawDistrict.startsWith('حي ') ? rawDistrict : `حي ${rawDistrict}`);
+      districtVariants.add(rawDistrict.replace(/^حي\s+/, ''));
+    }
 
     setActiveMainTab('offers');
     if (cityName) {
       setExpandedCities(prev => new Set([...prev, cityName]));
     }
-    if (cityName && districtName) {
-      const districtKey = `${cityName}-${districtName}`;
-      setExpandedDistricts(prev => new Set([...prev, districtKey]));
+    if (cityName && districtVariants.size > 0) {
+      setExpandedDistricts(prev => {
+        const next = new Set(prev);
+        districtVariants.forEach(d => next.add(`${cityName}-${d}`));
+        return next;
+      });
     }
+
+    // فتح صفحة تعديل العرض مباشرة من بيانات published_ads_list
+    // بدون انتظار ظهور البطاقة في DOM (يعمل للعروض داخل الأحياء والعروض المباشرة)
+    const openOfferEditDirect = () => {
+      try {
+        const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
+        const fullAd = publishedAds.find((ad: any) => ad.id === listing.id) || {};
+        const dbAd = (dbListings || []).find((l: any) => l.id === listing.id) || {};
+
+        const images = (
+          (Array.isArray(fullAd?.images) && fullAd.images.length ? fullAd.images : null) ||
+          (Array.isArray(dbAd?.images) && dbAd.images.length ? dbAd.images : null) ||
+          (Array.isArray(listing?.images) && listing.images.length ? listing.images : null) ||
+          [listing?.image].filter(Boolean)
+        ).filter(Boolean);
+        const videos = (fullAd?.videos || dbAd?.videos || []).filter(Boolean);
+
+        let hashtags: string[] = [];
+        if (Array.isArray(fullAd?.hashtags)) hashtags = fullAd.hashtags;
+        else if (Array.isArray(fullAd?.customHashtags)) hashtags = fullAd.customHashtags;
+
+        setSelectedOfferForEdit({
+          id: listing.id,
+          title: fullAd?.title || dbAd?.title || listing?.title || '',
+          price: parseInt(String(fullAd?.price ?? dbAd?.price ?? listing?.price ?? '').replace(/[^\d]/g, '')) || 0,
+          propertyType: fullAd?.propertyType || dbAd?.propertyType || listing?.propertyType || 'شقة',
+          area: fullAd?.area ?? dbAd?.area ?? listing?.area,
+          bedrooms: fullAd?.bedrooms ?? dbAd?.bedrooms ?? listing?.bedrooms,
+          bathrooms: fullAd?.bathrooms ?? dbAd?.bathrooms ?? listing?.bathrooms,
+          image: images[0] || listing?.image,
+          imageCount: images.length || 1,
+          city: fullAd?.locationDetails?.city || fullAd?.city || dbAd?.city || cityName,
+          district: fullAd?.locationDetails?.district || fullAd?.district || dbAd?.district || rawDistrict,
+          street: fullAd?.street || fullAd?.locationDetails?.street || dbAd?.street || '',
+          description: fullAd?.aiDescription || fullAd?.description || dbAd?.description || '',
+          ownerName: fullAd?.ownerName || dbAd?.ownerName || '',
+          ownerPhone: fullAd?.ownerPhone || dbAd?.ownerPhone || '',
+          ownerEmail: fullAd?.ownerEmail || '',
+          ownerBirthDate: fullAd?.ownerBirthDate || dbAd?.ownerBirthDate || '',
+          ownerCity: fullAd?.ownerCity || dbAd?.ownerCity || '',
+          ownerDistrict: fullAd?.ownerDistrict || dbAd?.ownerDistrict || '',
+          ownerIdNumber: fullAd?.ownerIdNumber || dbAd?.ownerIdNumber || '',
+          ownerNationalAddress: fullAd?.ownerNationalAddress || dbAd?.ownerNationalAddress || '',
+          ownerGoogleLocation: fullAd?.ownerGoogleLocation || fullAd?.locationDetails?.googleMapsLink || '',
+          deedNumber: fullAd?.deedNumber || dbAd?.deedNumber || '',
+          deedDate: fullAd?.deedDate || dbAd?.deedDate || '',
+          deedCity: fullAd?.deedCity || dbAd?.deedCity || '',
+          contractDuration: fullAd?.contractDuration ?? dbAd?.contractDuration,
+          contractStartDate: fullAd?.contractStartDate || dbAd?.contractStartDate || '',
+          contractEndDate: fullAd?.contractEndDate || dbAd?.contractEndDate || '',
+          isCurrentlyRented: fullAd?.isCurrentlyRented ?? dbAd?.isCurrentlyRented ?? false,
+          images,
+          videos,
+          tour3DUrl: fullAd?.tour3DUrl || dbAd?.tour3DUrl || '',
+          linkedCustomerId: fullAd?.linkedCustomerId || dbAd?.linkedCustomerId || undefined,
+          adLicense: fullAd?.adLicenseNumber || fullAd?.adLicense || fullAd?.ad_license || dbAd?.adLicense || '',
+          hashtags,
+          lat: fullAd?.lat || fullAd?.locationDetails?.lat || dbAd?.lat,
+          lng: fullAd?.lng || fullAd?.locationDetails?.lng || dbAd?.lng,
+        });
+        setShowEditPage(true);
+      } catch (err) {
+        console.error('[handleJumpToOfferInOffersTab] openOfferEditDirect failed:', err);
+      }
+    };
 
     // polling retry: انتظر حتى ترسم البطاقة بعد توسيع المدينة والحي
     let tries = 0;
@@ -797,22 +872,19 @@ export default function MyPlatformComplete({
         setTimeout(() => {
           el.classList.remove('ring-2', 'ring-[#D4AF37]');
         }, 1800);
-        // فتح العرض فعلياً (تشغيل onClick الموجود على البطاقة في تبويب «العروض»)
-        setTimeout(() => {
-          try {
-            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-          } catch {
-            el.click();
-          }
-        }, 500);
+        // فتح صفحة تعديل العرض مباشرة (لا يعتمد على وجود onClick على البطاقة)
+        setTimeout(openOfferEditDirect, 350);
         return;
       }
       if (++tries < maxTries) {
         setTimeout(tick, 100);
+      } else {
+        // لم نجد البطاقة في DOM (مثلاً الحي لم يتوسّع لأي سبب) — افتح مباشرة على أي حال
+        openOfferEditDirect();
       }
     };
     setTimeout(tick, 120);
-  }, []);
+  }, [dbListings]);
   
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<{type: 'offer' | 'district'; data: any; sourceCity: string; sourceDistrict?: string} | null>(null);
