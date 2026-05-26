@@ -786,7 +786,7 @@ export default function MyPlatformComplete({
 
     // polling retry: انتظر حتى ترسم البطاقة بعد توسيع المدينة والحي
     let tries = 0;
-    const maxTries = 30; // ~3s
+    const maxTries = 80; // ~8s
     const tick = () => {
       const el = document.querySelector(
         `[data-offer-id="${listing.id}"]`
@@ -797,17 +797,21 @@ export default function MyPlatformComplete({
         setTimeout(() => {
           el.classList.remove('ring-2', 'ring-[#D4AF37]');
         }, 1800);
-        // فتح العرض فعلياً (تشغيل نفس onClick الموجود على البطاقة في تبويب «العروض»)
+        // فتح العرض فعلياً (تشغيل onClick الموجود على البطاقة في تبويب «العروض»)
         setTimeout(() => {
-          el.click();
-        }, 400);
+          try {
+            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+          } catch {
+            el.click();
+          }
+        }, 500);
         return;
       }
       if (++tries < maxTries) {
         setTimeout(tick, 100);
       }
     };
-    setTimeout(tick, 80);
+    setTimeout(tick, 120);
   }, []);
   
   // Drag & Drop State
