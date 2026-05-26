@@ -1385,6 +1385,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
           citiesCount={platformStats.citiesCount}
           propertyTypes={platformStats.propertyTypes}
           averagePrice={platformStats.averagePrice}
+          totalViews={platformStats.totalViews}
         />
 
         {/* شريط البحث والفلترة */}
