@@ -131,7 +131,7 @@ const SlugPlatformPage: React.FC = () => {
       </Helmet>
 
       {/* عداد الزوار المتصلين */}
-      <LiveViewersBadge count={liveCount} variant="floating" />
+      <LiveViewersBadge liveViewers={liveCount} variant="floating" />
 
       <MyPublicPlatformContent
         currentUser={cardData.userName ? { name: cardData.userName } : undefined}
