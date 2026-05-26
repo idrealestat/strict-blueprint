@@ -3703,6 +3703,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      find_card_for_recovery: {
+        Args: { p_email: string; p_national_id: string }
+        Returns: {
+          card_id: string
+          slug: string
+        }[]
+      }
       get_organization_members: {
         Args: { org_user_id: string }
         Returns: {
@@ -3762,6 +3769,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_national_id_taken: {
+        Args: { p_exclude_user?: string; p_national_id: string }
+        Returns: boolean
+      }
       is_org_manager_or_admin: {
         Args: { org_user_id: string }
         Returns: boolean
@@ -3771,6 +3782,10 @@ export type Database = {
         Returns: boolean
       }
       is_owner_user: { Args: never; Returns: boolean }
+      upsert_my_national_id: {
+        Args: { p_national_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "user" | "member"
