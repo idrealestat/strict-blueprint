@@ -90,19 +90,34 @@ export default function RecoverDomainPage() {
 
     setIsSearching(true);
     try {
-      // Build query based on identity method
-      let query = supabase.from('business_cards').select('*');
-      
+      let data: any = null;
+      let error: any = null;
+
       if (state.identityMethod === 'fal_license') {
-        query = query.eq('fal_license_number', state.falLicense);
+        const res = await supabase
+          .from('business_cards')
+          .select('*')
+          .eq('fal_license_number', state.falLicense)
+          .eq('email', state.email)
+          .maybeSingle();
+        data = res.data; error = res.error;
       } else {
-        query = query.eq('national_id', state.nationalId);
+        // رقم الهوية في جدول خاص. نستدعي RPC آمنة.
+        const { data: match, error: rpcError } = await supabase.rpc('find_card_for_recovery', {
+          p_national_id: state.nationalId,
+          p_email: state.email,
+        });
+        if (rpcError) { error = rpcError; }
+        else if (match && match.length > 0) {
+          const cardId = match[0].card_id;
+          const res = await supabase
+            .from('business_cards')
+            .select('*')
+            .eq('id', cardId)
+            .maybeSingle();
+          data = res.data; error = res.error;
+        }
       }
-
-      // التحقق عبر البريد الإلكتروني فقط
-      query = query.eq('email', state.email);
-
-      const { data, error } = await query.maybeSingle();
 
       if (error) {
         console.error('Search error:', error);

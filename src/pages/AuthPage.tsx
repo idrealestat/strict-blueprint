@@ -492,7 +492,6 @@ export default function AuthPage() {
           slug: null,
           published: false,
           fal_license_number: data.falLicenseNumber,
-          national_id: data.nationalId,
           email: data.email,
           phone: data.phone,
           data: {
@@ -502,13 +501,19 @@ export default function AuthPage() {
             company: data.companyName || '',
             title: data.accountType === 'individual' ? 'وسيط عقاري' : 'مكتب عقاري',
             fal_license: data.falLicenseNumber,
-            national_id: data.nationalId,
           }
         });
         
         // تجاهل خطأ duplicate
         if (cardError && cardError.code !== '23505') {
           console.error('Business card insert error:', cardError);
+        }
+
+        // حفظ رقم الهوية في الجدول الخاص (owner-only)
+        if (data.nationalId?.trim()) {
+          await supabase.rpc('upsert_my_national_id', {
+            p_national_id: data.nationalId.trim(),
+          });
         }
       }
 
