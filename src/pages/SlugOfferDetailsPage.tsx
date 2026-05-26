@@ -350,7 +350,7 @@ const SlugOfferDetailsPage: React.FC = () => {
         {listing.images?.[0] && <meta property="og:image" content={listing.images[0]} />}
       </Helmet>
 
-      <LiveViewersBadge count={liveCount} variant="floating" />
+      <LiveViewersBadge liveViewers={liveCount} variant="floating" />
 
       <OfferDetailsPage
         listing={listingForDetails}

@@ -204,7 +204,7 @@ const SlugDistrictPage: React.FC = () => {
         <meta name="description" content={pageDescription} />
       </Helmet>
 
-      <LiveViewersBadge count={liveCount} variant="floating" />
+      <LiveViewersBadge liveViewers={liveCount} variant="floating" />
 
       <div className="min-h-screen bg-gradient-to-b from-[#01411C]/5 to-background" dir="rtl">
         {/* Header */}
