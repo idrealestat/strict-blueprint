@@ -84,8 +84,6 @@ export function OfferCard({ offer, onClick, showLiveViewers = true }: OfferCardP
           <div className="absolute top-2 right-2 flex items-center gap-2">
             <LiveViewerIndicator 
               liveViewers={liveViewers}
-              totalViews={offer.views_count || 0}
-              showTotalViews={true}
               size="sm"
             />
           </div>

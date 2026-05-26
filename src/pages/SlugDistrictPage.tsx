@@ -230,8 +230,6 @@ const SlugDistrictPage: React.FC = () => {
                   <h1 className="text-2xl md:text-3xl font-bold">{districtName}</h1>
                   <LiveViewerIndicator 
                     liveViewers={liveCount} 
-                    totalViews={listings.reduce((sum, l) => sum + (l.views || 0), 0)}
-                    showTotalViews={true}
                     size="md"
                   />
                 </div>

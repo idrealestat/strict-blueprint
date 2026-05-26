@@ -233,7 +233,6 @@ const QuickSellOfferCard: React.FC<QuickSellOfferCardProps> = ({
         <div className="absolute top-3 right-3">
           <LiveViewerIndicator 
             liveViewers={liveViewers}
-            totalViews={ad.stats?.views || 0}
             size="md"
           />
         </div>

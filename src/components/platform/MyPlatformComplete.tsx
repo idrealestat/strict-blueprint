@@ -2343,7 +2343,6 @@ export default function MyPlatformComplete({
                                     <div className="absolute top-2 right-2">
                                       <LiveViewerIndicator 
                                         liveViewers={getOfferViewers(offer.id)}
-                                        totalViews={offer.views || 0}
                                         size="sm"
                                       />
                                     </div>
