@@ -799,8 +799,8 @@ export default function MyPlatformComplete({
     const openOfferEditDirect = () => {
       try {
         const publishedAds = JSON.parse(localStorage.getItem('published_ads_list') || '[]');
-        const fullAd = publishedAds.find((ad: any) => ad.id === listing.id) || {};
-        const dbAd = (dbListings || []).find((l: any) => l.id === listing.id) || {};
+        const fullAd: any = publishedAds.find((ad: any) => ad.id === listing.id) || {};
+        const dbAd: any = (dbListings || []).find((l: any) => l.id === listing.id) || {};
 
         const images = (
           (Array.isArray(fullAd?.images) && fullAd.images.length ? fullAd.images : null) ||
