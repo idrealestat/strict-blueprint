@@ -1448,7 +1448,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                                 {district.listings.length} عقار
                               </Badge>
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 gap-4">
                               {district.listings.map((listing) => (
                                 <ListingCard key={listing.id} listing={listing} />
                               ))}
@@ -1470,7 +1470,7 @@ const MyPublicPlatformContent: React.FC<MyPublicPlatformContentProps> = ({
                             {city.districts[0].listings.length} عقار
                           </Badge>
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           {city.districts[0].listings.map((listing) => (
                             <ListingCard key={listing.id} listing={listing} />
                           ))}

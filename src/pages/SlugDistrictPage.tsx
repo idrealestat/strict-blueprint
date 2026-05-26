@@ -243,7 +243,7 @@ const SlugDistrictPage: React.FC = () => {
 
         {/* Listings Grid */}
         <div className="max-w-6xl mx-auto p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {listings.map(listing => (
               <Card 
                 key={listing.id}
