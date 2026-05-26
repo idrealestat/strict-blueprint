@@ -202,6 +202,27 @@ export type Database = {
         }
         Relationships: []
       }
+      business_card_private: {
+        Row: {
+          created_at: string
+          national_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          national_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          national_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_cards: {
         Row: {
           created_at: string
@@ -209,7 +230,6 @@ export type Database = {
           email: string | null
           fal_license_number: string | null
           id: string
-          national_id: string | null
           phone: string | null
           privacy_settings: Json | null
           publish_token_hash: string | null
@@ -224,7 +244,6 @@ export type Database = {
           email?: string | null
           fal_license_number?: string | null
           id?: string
-          national_id?: string | null
           phone?: string | null
           privacy_settings?: Json | null
           publish_token_hash?: string | null
@@ -239,7 +258,6 @@ export type Database = {
           email?: string | null
           fal_license_number?: string | null
           id?: string
-          national_id?: string | null
           phone?: string | null
           privacy_settings?: Json | null
           publish_token_hash?: string | null
@@ -3618,6 +3636,48 @@ export type Database = {
         }
         Relationships: []
       }
+      public_business_cards: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          email: string | null
+          fal_license_number: string | null
+          id: string | null
+          phone: string | null
+          privacy_settings: Json | null
+          published: boolean | null
+          slug: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: never
+          email?: never
+          fal_license_number?: string | null
+          id?: string | null
+          phone?: never
+          privacy_settings?: Json | null
+          published?: boolean | null
+          slug?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: never
+          email?: never
+          fal_license_number?: string | null
+          id?: string | null
+          phone?: never
+          privacy_settings?: Json | null
+          published?: boolean | null
+          slug?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_use_feature: {
@@ -3629,6 +3689,15 @@ export type Database = {
           card_email: string
           card_fal_license: string
           card_national_id: string
+          card_phone: string
+          card_user_id: string
+        }
+        Returns: boolean
+      }
+      check_business_card_ownership_v2: {
+        Args: {
+          card_email: string
+          card_fal_license: string
           card_phone: string
           card_user_id: string
         }
