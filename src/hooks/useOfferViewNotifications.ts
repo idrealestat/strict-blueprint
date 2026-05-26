@@ -170,6 +170,22 @@ export function useOfferViewNotifications() {
     loadStats();
   }, [user]);
 
+  // الاستماع لتغييرات إعدادات الصوت من أي مكان (مثل الرايت سلايدر)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== 'offer_view_notification_settings' || !e.newValue) return;
+      try {
+        const s = JSON.parse(e.newValue);
+        setNotificationsEnabled(s.enabled ?? true);
+        setSoundEnabled(s.sound ?? true);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   // حفظ الإعدادات
   const saveSettings = useCallback((enabled: boolean, sound: boolean) => {
     localStorage.setItem('offer_view_notification_settings', JSON.stringify({
