@@ -400,6 +400,38 @@ export function useOfferViewNotifications() {
     return () => window.removeEventListener('offerViewedWithDetails', handleOfferViewed);
   }, [recordView]);
 
+  // اشتراك Realtime على offer_views_log لتشغيل النغمة عند مشاهدات من أجهزة أخرى
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`offer-views-log-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'offer_views_log',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const title = payload?.new?.offer_title || 'عرض';
+          if (soundEnabled) {
+            soundManager.playSound();
+          }
+          if (notificationsEnabled) {
+            toast.info(`👁️ مشاهدة جديدة: ${title}`, { duration: 4000 });
+          }
+          loadStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, soundEnabled, notificationsEnabled, loadStats]);
+
   return {
     notifications,
     stats,
