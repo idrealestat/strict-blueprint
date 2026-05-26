@@ -797,6 +797,10 @@ export default function MyPlatformComplete({
         setTimeout(() => {
           el.classList.remove('ring-2', 'ring-[#D4AF37]');
         }, 1800);
+        // فتح العرض فعلياً (تشغيل نفس onClick الموجود على البطاقة في تبويب «العروض»)
+        setTimeout(() => {
+          el.click();
+        }, 400);
         return;
       }
       if (++tries < maxTries) {
