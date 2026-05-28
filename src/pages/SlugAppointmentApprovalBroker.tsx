@@ -44,8 +44,8 @@ export default function SlugAppointmentApprovalBroker() {
       try {
         // جلب بيانات البطاقة من الـ slug
         const { data: cardData, error: cardError } = await supabase
-          .from('business_cards')
-          .select('*, profiles!business_cards_user_id_fkey(full_name, company_name, phone)')
+          .from('public_business_cards' as any)
+          .select('*')
           .eq('slug', slug)
           .eq('published', true)
           .maybeSingle();
@@ -56,17 +56,22 @@ export default function SlugAppointmentApprovalBroker() {
           return;
         }
 
-        const cardJson = cardData.data as Record<string, any>;
-        const profile = (cardData as any).profiles;
+        const card = cardData as any;
+        const cardJson = card.data as Record<string, any>;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, company_name, phone')
+          .eq('user_id', card.user_id)
+          .maybeSingle();
         
         setBroker({
-          id: cardData.user_id,
+          id: card.user_id,
           name: cardJson?.name || profile?.full_name || 'وسيط',
           company: cardJson?.companyName || profile?.company_name || '',
-          phone: cardJson?.primaryPhone || cardData.phone || profile?.phone || '',
-          email: cardData.email || '',
+          phone: cardJson?.primaryPhone || card.phone || profile?.phone || '',
+          email: card.email || '',
           location: cardJson?.location || '',
-          licenseNumber: cardData.fal_license_number || '',
+          licenseNumber: card.fal_license_number || '',
           rating: 4.8,
           verified: true,
           profileImage: cardJson?.profileImage,
