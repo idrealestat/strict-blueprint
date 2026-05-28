@@ -146,8 +146,8 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
       try {
         const slugValue = slug || brokerId;
         console.log('[PublicAppointmentForm] Fetching broker data for slug:', slugValue);
-        const { data, error } = await supabase
-          .from('business_cards')
+        const { data, error } = await (supabase as any)
+          .from('public_business_cards')
           .select('user_id, id, data')
           .eq('slug', slugValue)
           .eq('published', true)
@@ -240,8 +240,8 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
       // 1. الحصول على معرف الوسيط من business_cards
       let actualBrokerUserId = brokerUserId;
       if (!actualBrokerUserId && slug) {
-        const { data: businessCard } = await supabase
-          .from('business_cards')
+        const { data: businessCard } = await (supabase as any)
+          .from('public_business_cards')
           .select('user_id')
           .eq('slug', slug)
           .eq('published', true)

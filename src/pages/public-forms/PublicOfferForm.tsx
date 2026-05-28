@@ -259,8 +259,8 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
       setIsLoadingBroker(true);
       try {
         console.log('[PublicOfferForm] Fetching broker data for slug:', brokerSlug);
-        const { data: businessCard, error } = await supabase
-          .from('business_cards')
+        const { data: businessCard, error } = await (supabase as any)
+          .from('public_business_cards')
           .select('data, user_id')
           .eq('slug', brokerSlug)
           .eq('published', true)

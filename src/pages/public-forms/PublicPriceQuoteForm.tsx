@@ -108,8 +108,8 @@ export default function PublicPriceQuoteForm() {
       setIsLoadingBroker(true);
       try {
         console.log('[PublicPriceQuoteForm] Fetching broker data for slug:', identifier);
-        const { data, error } = await supabase
-          .from('business_cards')
+        const { data, error } = await (supabase as any)
+          .from('public_business_cards')
           .select('user_id, data')
           .eq('slug', identifier)
           .eq('published', true)
