@@ -70,7 +70,7 @@ const SlugOffersPage: React.FC = () => {
 
       try {
         // جلب بطاقة الأعمال
-        const { data: cardData, error: cardError } = await supabase
+        const { data: cardData, error: cardError } = await (supabase as any)
           .from('public_business_cards')
           .select('*')
           .eq('slug', slug)

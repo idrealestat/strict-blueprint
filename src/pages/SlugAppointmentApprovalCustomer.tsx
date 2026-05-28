@@ -61,7 +61,7 @@ export default function SlugAppointmentApprovalCustomer() {
 
       try {
         // جلب بيانات البطاقة من الـ slug
-        const { data: cardData, error: cardError } = await supabase
+        const { data: cardData, error: cardError } = await (supabase as any)
           .from('public_business_cards')
           .select('*')
           .eq('slug', slug)

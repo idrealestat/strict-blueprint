@@ -203,7 +203,7 @@ export default function PublicRequestForm({ ownerMode = false, ownerUserId, onOw
       setIsLoadingBroker(true);
       try {
         console.log('[PublicRequestForm] Fetching broker data for slug:', brokerSlug);
-        const { data: businessCard, error } = await supabase
+        const { data: businessCard, error } = await (supabase as any)
           .from('public_business_cards')
           .select('data, user_id')
           .eq('slug', brokerSlug)

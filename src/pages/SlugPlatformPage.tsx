@@ -51,7 +51,7 @@ const SlugPlatformPage: React.FC = () => {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('public_business_cards')
           .select('*')
           .eq('slug', slug)
