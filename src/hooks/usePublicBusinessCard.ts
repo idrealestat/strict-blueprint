@@ -27,7 +27,7 @@ export function usePublicBusinessCard(slug: string | undefined) {
       console.log("[usePublicBusinessCard] Fetching for slug:", slug);
 
       const { data, error } = await supabase
-        .from("public_business_cards" as any)
+        .from("public_business_cards")
         .select("data, published, slug, user_id")
         .eq("slug", slug)
         .maybeSingle();

@@ -147,7 +147,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
         const slugValue = slug || brokerId;
         console.log('[PublicAppointmentForm] Fetching broker data for slug:', slugValue);
         const { data, error } = await supabase
-          .from('public_business_cards' as any)
+          .from('public_business_cards')
           .select('user_id, id, data')
           .eq('slug', slugValue)
           .eq('published', true)
@@ -241,7 +241,7 @@ export default function PublicAppointmentForm({ brokerInfo }: PublicAppointmentF
       let actualBrokerUserId = brokerUserId;
       if (!actualBrokerUserId && slug) {
         const { data: businessCard } = await supabase
-          .from('public_business_cards' as any)
+          .from('public_business_cards')
           .select('user_id')
           .eq('slug', slug)
           .eq('published', true)

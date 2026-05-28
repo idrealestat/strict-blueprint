@@ -77,7 +77,7 @@ export default function PublicCardView() {
       
       try {
         const { data, error } = await supabase
-          .from('public_business_cards' as any)
+          .from('public_business_cards')
           .select('id, slug, user_id, data, published')
           .eq('slug', slug)
           .eq('published', true)
