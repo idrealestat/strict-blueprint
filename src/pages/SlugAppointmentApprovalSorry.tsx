@@ -56,7 +56,7 @@ export default function SlugAppointmentApprovalSorry() {
       try {
         // جلب بيانات البطاقة
         const { data: cardData, error } = await supabase
-          .from('business_cards')
+          .from('public_business_cards' as any)
           .select('*')
           .eq('slug', slug)
           .eq('published', true)

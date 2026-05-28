@@ -103,7 +103,7 @@ const SlugDistrictPage: React.FC = () => {
       try {
         // جلب بيانات الوسيط - نستخدم maybeSingle لتجنب الخطأ عند عدم وجود البيانات
         const { data: businessCard, error: cardError } = await supabase
-          .from('business_cards')
+          .from('public_business_cards' as any)
           .select('user_id, data')
           .eq('slug', slug)
           .eq('published', true)

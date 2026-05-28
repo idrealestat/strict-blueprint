@@ -260,7 +260,7 @@ export default function PublicOfferForm({ ownerMode = false, ownerUserId, onOwne
       try {
         console.log('[PublicOfferForm] Fetching broker data for slug:', brokerSlug);
         const { data: businessCard, error } = await supabase
-          .from('business_cards')
+          .from('public_business_cards' as any)
           .select('data, user_id')
           .eq('slug', brokerSlug)
           .eq('published', true)
