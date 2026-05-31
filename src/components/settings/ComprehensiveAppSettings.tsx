@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useHelpHints } from '@/context/HelpHintsContext';
+import DailyBriefingSettings from '@/components/settings/DailyBriefingSettings';
 
 interface SettingsSection {
   id: string;
@@ -115,6 +116,13 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
     label: 'الإشعارات',
     description: 'إعدادات جميع أنواع الإشعارات',
     color: '#ef4444',
+  },
+  {
+    id: 'morning-briefing',
+    icon: Bell,
+    label: 'الموجز الصباحي',
+    description: 'نافذة منبثقة يومية تجمع كل ما يهمك',
+    color: '#D4AF37',
   },
   {
     id: 'team-management',
