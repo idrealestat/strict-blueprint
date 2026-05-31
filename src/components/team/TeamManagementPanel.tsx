@@ -61,6 +61,7 @@ import CustomerAssignmentsPanel from './CustomerAssignmentsPanel';
 import SilentAssistantPanel from './SilentAssistantPanel';
 import AutoDistributionSettings from './AutoDistributionSettings';
 import { useImpersonate } from '@/hooks/useImpersonate';
+import { useImpersonationGuard } from '@/hooks/useImpersonate';
 
 interface TeamManagementPanelProps {
   isOpen: boolean;
@@ -106,6 +107,7 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
   } = useTeamManagement();
 
   const { start: startImpersonation } = useImpersonate();
+  const { isImpersonating, disabledTitle } = useImpersonationGuard();
 
   const [activeTab, setActiveTab] = useState('members');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -229,6 +231,8 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                   <Button
                     className="w-full bg-[#01411C] hover:bg-[#012d14]"
                     onClick={() => setShowAddDialog(true)}
+                    disabled={isImpersonating}
+                    title={isImpersonating ? disabledTitle : undefined}
                   >
                     <UserPlus className="w-4 h-4 ml-2" />
                     إضافة زميل جديد
@@ -339,6 +343,7 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuItem
                                         onClick={() => setEditingMember(member)}
+                                        disabled={isImpersonating}
                                       >
                                         <Edit className="w-4 h-4 ml-2" />
                                         تعديل الصلاحيات
@@ -360,6 +365,7 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                                       <DropdownMenuItem
                                         className="text-red-600"
                                         onClick={() => setMemberToRemove(member)}
+                                        disabled={isImpersonating}
                                       >
                                         <Trash2 className="w-4 h-4 ml-2" />
                                         إزالة الزميل
