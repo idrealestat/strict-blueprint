@@ -12,6 +12,8 @@ import RightSliderComplete from "./RightSliderComplete";
 import DashboardBottomNav from "./DashboardBottomNav";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
+import BriefingTrigger from "@/components/briefing/BriefingTrigger";
+import DailyBriefingController from "@/components/briefing/DailyBriefingController";
 import { useFeatureFlags } from "@/context/FeatureFlagsContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -247,10 +249,15 @@ export default function SimpleDashboard({
                   <HelpHint size="xs" side="bottom" title="الإشعارات" description="عرض تنبيهات الحساب والفرص والمواعيد والتحديثات المهمة." />
                 </div>
               </div>
+              {/* زر الموجز الصباحي بجوار جرس الإشعارات */}
+              <BriefingTrigger />
             </div>
           </div>
         </div>
       </header>
+
+      {/* مستمع حدث فتح الموجز الصباحي + الفتح التلقائي */}
+      <DailyBriefingController />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 pb-24 space-y-8">
