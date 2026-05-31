@@ -10,6 +10,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
  import { supabase } from "@/integrations/supabase/client";
  import { DroppableColumn } from './DroppableColumn';
 import { useCRMCustomers, type CRMCustomer } from "@/hooks/useCRMCustomers";
+import { useCRMCustomersFiltered } from "@/hooks/useCRMCustomersFiltered";
 import { useCRMCustomTags } from "@/hooks/useCRMCustomTags";
 import { usePulsingDot, markAsViewed, isNew, getAllCustomers, type LinkedCustomer } from "@/hooks/usePublishedAdsManager";
 import PulsingDot from "@/components/ui/PulsingDot";
@@ -1089,6 +1090,8 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
   };
 
   // Filtered customers with advanced filters + tab filter
+  // ربط hook الأداء — يطلق console.warn إذا تجاوز عدد العملاء العتبة (500)
+  useCRMCustomersFiltered(customers, { search: searchQuery });
   const filteredCustomers = customers.filter(customer => {
     // Tab filter (الكل، نشط، محتمل، VIP، أرشيف)
     if (activeFilterTab === 'active' && customer.columnId === 'lost') return false;
