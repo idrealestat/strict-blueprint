@@ -44,6 +44,7 @@ export default function DailyBriefingController() {
   );
   const [open, setOpen] = useState(false);
   const [currentSnapshot, setCurrentSnapshot] = useState<BriefingSnapshot | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
@@ -52,20 +53,38 @@ export default function DailyBriefingController() {
 
   const openBriefing = useCallback(
     async (logId?: string) => {
+      setLoadError(null);
       // فتح من إشعار/رابط: حمّل snapshot من السجل
       if (logId) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("daily_briefing_log")
           .select("snapshot")
           .eq("id", logId)
           .maybeSingle();
-        if (data?.snapshot) {
-          setCurrentSnapshot(data.snapshot as any);
+        if (error) {
+          // TODO: عند توفر صلاحيات تفصيلية، اعرض رسالة "غير مسموح" بدل الرسالة العامة
+          setCurrentSnapshot(null);
+          setLoadError("تعذّر تحميل الموجز من الإشعار. ربما تم حذفه أو لا تملك صلاحية الوصول إليه.");
           setOpen(true);
           return;
         }
+        if (!data) {
+          setCurrentSnapshot(null);
+          setLoadError("لم نعثر على هذا الموجز (قد يكون قديماً أو محذوفاً).");
+          setOpen(true);
+          return;
+        }
+        if (!data.snapshot || typeof data.snapshot !== "object") {
+          setCurrentSnapshot(null);
+          setLoadError("محتوى الموجز غير متاح حالياً.");
+          setOpen(true);
+          return;
+        }
+        setCurrentSnapshot(data.snapshot as any);
+        setOpen(true);
+        return;
       }
-      // توليد موجز حي
+      // توليد موجز حي (لا يوجد logId)
       const snap = await generate();
       setCurrentSnapshot(snap);
       setOpen(true);
@@ -141,6 +160,7 @@ export default function DailyBriefingController() {
 
   const handleClose = useCallback(async () => {
     setOpen(false);
+    setLoadError(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase
@@ -155,10 +175,15 @@ export default function DailyBriefingController() {
     <DailyBriefingModal
       open={open}
       onClose={handleClose}
-      snapshot={currentSnapshot ?? snapshot}
+      snapshot={currentSnapshot ?? (loadError ? null : snapshot)}
       loading={loading}
       onSnoozeOneHour={handleSnooze}
       onMarkRead={handleMarkRead}
+      errorMessage={loadError}
+      onRetryFresh={async () => {
+        setLoadError(null);
+        await openBriefing();
+      }}
     />
   );
 }
