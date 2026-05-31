@@ -3920,8 +3920,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
             
             {/* 3. زر إضافة عميل (في الوسط - الأبرز) */}
             <button
-              onClick={() => setShowAddCustomer(true)}
-              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group"
+              onClick={() => {
+                if (typeof window !== 'undefined' && sessionStorage.getItem('wasata_impersonate_v1')) {
+                  return;
+                }
+                setShowAddCustomer(true);
+              }}
+              disabled={typeof window !== 'undefined' && !!sessionStorage.getItem('wasata_impersonate_v1')}
+              title={typeof window !== 'undefined' && sessionStorage.getItem('wasata_impersonate_v1') ? 'معطل أثناء وضع مشاهدة العضو' : undefined}
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-white/10 transition-all group disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <div className="w-10 h-10 rounded-full bg-[#D4AF37] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
                 <Plus className="w-5 h-5 text-[#01411C]" />
