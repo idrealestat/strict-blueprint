@@ -240,6 +240,8 @@ export default function SimpleDashboard({
                     <HelpHint size="xs" side="bottom" title="الأدوات السريعة" description="فتح قائمة الأدوات المختصرة مثل الطلبات الخاصة والحاسبة والتحليلات." />
                   </div>
                 </div>}
+              {/* زر الموجز الصباحي قبل الجرس */}
+              <BriefingTrigger />
               <div className="relative">
                 <Button variant="outline" size="icon" onClick={() => setNotificationsOpen(true)} className="border-2 border-[#D4AF37] hover:bg-white/20 hover:shadow-lg transition-all relative bg-white/10 text-white">
                   <Bell className="w-5 h-5" />
@@ -249,8 +251,6 @@ export default function SimpleDashboard({
                   <HelpHint size="xs" side="bottom" title="الإشعارات" description="عرض تنبيهات الحساب والفرص والمواعيد والتحديثات المهمة." />
                 </div>
               </div>
-              {/* زر الموجز الصباحي بجوار جرس الإشعارات */}
-              <BriefingTrigger />
             </div>
           </div>
         </div>
