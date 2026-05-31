@@ -764,6 +764,10 @@ export default function ComprehensiveAppSettings({
                 <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
                   <Info className="w-4 h-4" />
                 </div>
+
+        case 'morning-briefing':
+          // handled below
+          break;
                 <div className="flex-1 text-sm">
                   <p className="font-bold text-blue-900 dark:text-blue-200 mb-1">
                     ما هي العلامات الدليلية؟
