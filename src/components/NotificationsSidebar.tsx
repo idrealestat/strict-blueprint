@@ -21,6 +21,7 @@ import { useNotificationSystem, SystemNotification } from "@/hooks/useNotificati
 import { useViewingNotifications, ViewingAppointment } from "@/hooks/useViewingNotifications";
 import { useDomainNotifications, DomainNotification } from "@/hooks/useDomainNotifications";
 import { useSmartOpportunityNotifications } from "@/hooks/useSmartOpportunityNotifications";
+import { openBriefingManually } from "@/hooks/useDailyBriefing";
 import ViewingNotificationModal from "./ViewingNotificationModal";
 import { CollapsibleNotificationSettings, SmartAlertsPanel } from "@/components/offers";
 
@@ -172,6 +173,13 @@ export default function NotificationsSidebar({
   // Handle notification click
   const handleNotificationClick = (notification: SystemNotification) => {
     markAsRead(notification.id);
+
+    // ✅ الموجز الصباحي: افتح نفس النافذة بـ snapshot من السجل
+    if (notification.actionType === 'daily_briefing') {
+      openBriefingManually(notification.relatedId);
+      onClose();
+      return;
+    }
 
     if (!onNavigate) return;
 
