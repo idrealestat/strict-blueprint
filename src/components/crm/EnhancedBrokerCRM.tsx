@@ -963,13 +963,15 @@ export default function EnhancedBrokerCRM({ onBack, user }: EnhancedBrokerCRMPro
     localStorage.setItem('crm_column_order', JSON.stringify(orderIds));
   }, [columns]);
   
-  // Simulate loading
+  // اربط حالة العرض بحالة جلب العملاء الحقيقية من قاعدة البيانات
+  // إذا كان لدينا بيانات بالفعل، لا تُظهر الـ Skeleton حتى لو كانت إعادة جلب
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!crmLoading || customers.length > 0) {
       setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+    } else {
+      setIsLoading(true);
+    }
+  }, [crmLoading, customers.length]);
   
   // Filter State
   const [filters, setFilters] = useState({
