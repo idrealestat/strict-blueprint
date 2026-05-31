@@ -766,6 +766,87 @@ export type Database = {
           },
         ]
       }
+      daily_briefing_log: {
+        Row: {
+          briefing_date: string
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          opened_at: string | null
+          read_cards: string[]
+          snapshot: Json
+          user_id: string
+        }
+        Insert: {
+          briefing_date: string
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          opened_at?: string | null
+          read_cards?: string[]
+          snapshot?: Json
+          user_id: string
+        }
+        Update: {
+          briefing_date?: string
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          opened_at?: string | null
+          read_cards?: string[]
+          snapshot?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_briefing_settings: {
+        Row: {
+          active_days: number[]
+          briefing_time: string
+          created_at: string
+          cumulative_after_days: number
+          enable_cumulative: boolean
+          enabled: boolean
+          enabled_cards: Json
+          last_shown_date: string | null
+          send_push: boolean
+          send_whatsapp: boolean
+          show_instant_button: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_days?: number[]
+          briefing_time?: string
+          created_at?: string
+          cumulative_after_days?: number
+          enable_cumulative?: boolean
+          enabled?: boolean
+          enabled_cards?: Json
+          last_shown_date?: string | null
+          send_push?: boolean
+          send_whatsapp?: boolean
+          show_instant_button?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_days?: number[]
+          briefing_time?: string
+          created_at?: string
+          cumulative_after_days?: number
+          enable_cumulative?: boolean
+          enabled?: boolean
+          enabled_cards?: Json
+          last_shown_date?: string | null
+          send_push?: boolean
+          send_whatsapp?: boolean
+          show_instant_button?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       domain_blacklist: {
         Row: {
           category: string | null
@@ -3238,6 +3319,24 @@ export type Database = {
           right_slider_workspace_enabled?: boolean | null
           smart_paths_enabled?: boolean | null
           spatial_intelligence_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_last_seen: {
+        Row: {
+          last_seen_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
           updated_at?: string
           user_id?: string
         }
