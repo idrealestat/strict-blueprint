@@ -24,6 +24,8 @@ interface Props {
   loading?: boolean;
   onSnoozeOneHour?: () => void;
   onMarkRead?: (cardKey: string) => void;
+  errorMessage?: string | null;
+  onRetryFresh?: () => void;
 }
 
 export default function DailyBriefingModal({
@@ -33,6 +35,8 @@ export default function DailyBriefingModal({
   loading,
   onSnoozeOneHour,
   onMarkRead,
+  errorMessage,
+  onRetryFresh,
 }: Props) {
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
@@ -133,6 +137,24 @@ export default function DailyBriefingModal({
           <div className="p-5 font-cairo">
             {loading ? (
               <div className="text-center py-12 text-muted-foreground">جاري تجهيز الموجز...</div>
+            ) : errorMessage ? (
+              <div className="text-center py-10">
+                <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
+                <h3 className="text-base font-bold mb-1">تعذّر فتح الموجز</h3>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  {errorMessage}
+                </p>
+                {onRetryFresh && (
+                  <Button
+                    size="sm"
+                    onClick={onRetryFresh}
+                    style={{ background: "#01411C" }}
+                    className="text-white hover:opacity-90 font-cairo"
+                  >
+                    توليد موجز جديد الآن
+                  </Button>
+                )}
+              </div>
             ) : total === 0 ? (
               <div className="text-center py-12">
                 <div className="text-5xl mb-3">☕</div>
