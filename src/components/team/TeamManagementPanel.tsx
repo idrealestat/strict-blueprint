@@ -60,6 +60,7 @@ import TeamAnalyticsPanel from './TeamAnalyticsPanel';
 import CustomerAssignmentsPanel from './CustomerAssignmentsPanel';
 import SilentAssistantPanel from './SilentAssistantPanel';
 import AutoDistributionSettings from './AutoDistributionSettings';
+import DistributionLogPanel from './DistributionLogPanel';
 import { useImpersonate } from '@/hooks/useImpersonate';
 import { useImpersonationGuard } from '@/hooks/useImpersonate';
 
@@ -400,6 +401,7 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                 <TabsContent value="settings" className="space-y-4">
                   <TeamSettingsPanel />
                   <AutoDistributionSettings />
+                  <DistributionLogPanel />
                 </TabsContent>
               </Tabs>
             </div>
