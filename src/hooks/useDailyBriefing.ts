@@ -458,6 +458,38 @@ export async function persistBriefingLog(snapshot: BriefingSnapshot) {
 }
 
 /**
+ * يُنشئ إشعاراً في الجرس مرتبطاً بسجل الموجز اليوم (إن لم يكن موجوداً).
+ */
+export async function ensureBriefingNotification(logId: string, snapshot: BriefingSnapshot) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: existing } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("notification_type", "daily_briefing")
+    .eq("related_entity_id", logId)
+    .maybeSingle();
+  if (existing) return;
+  const totalCards = snapshot.cards.length;
+  const critical = snapshot.critical_alert?.count ?? 0;
+  await supabase.from("notifications").insert({
+    user_id: user.id,
+    notification_type: "daily_briefing",
+    category: "system",
+    priority: critical > 0 ? "high" : "normal",
+    title: "موجزك الصباحي جاهز ☀️",
+    message: totalCards > 0
+      ? `لديك ${totalCards} بطاقة جديدة${critical > 0 ? ` و${critical} تنبيه حرج` : ""}`
+      : "يوم هادئ – لا توجد مستجدات اليوم",
+    related_entity_type: "daily_briefing_log",
+    related_entity_id: logId,
+    action_url: `?openBriefing=${logId}`,
+    metadata: { logId },
+  });
+}
+
+/**
  * يحدّث last_seen_at للمستخدم الحالي.
  */
 export async function touchUserLastSeen() {
@@ -473,13 +505,16 @@ export async function touchUserLastSeen() {
  */
 export const OPEN_BRIEFING_EVENT = "openDailyBriefing";
 
-export function openBriefingManually() {
-  window.dispatchEvent(new CustomEvent(OPEN_BRIEFING_EVENT));
+export function openBriefingManually(logId?: string) {
+  window.dispatchEvent(new CustomEvent(OPEN_BRIEFING_EVENT, { detail: { logId } }));
 }
 
-export function useBriefingOpener(callback: () => void) {
+export function useBriefingOpener(callback: (logId?: string) => void) {
   useEffect(() => {
-    const handler = () => callback();
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      callback(detail?.logId);
+    };
     window.addEventListener(OPEN_BRIEFING_EVENT, handler);
     return () => window.removeEventListener(OPEN_BRIEFING_EVENT, handler);
   }, [callback]);
