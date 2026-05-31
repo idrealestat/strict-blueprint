@@ -67,6 +67,8 @@ export function useSilentAssistantAlerts() {
 
   return {
     alerts: alerts.filter(a => a.status === 'open'),
+    historyAlerts: alerts.filter(a => a.status !== 'open'),
+    allAlerts: alerts,
     isLoading,
     refresh: fetchAlerts,
     resolveAlert,
