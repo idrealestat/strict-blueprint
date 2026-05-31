@@ -202,7 +202,7 @@ export default function DailyBriefingSettings() {
       {/* زر تجربة */}
       <div className="pt-2">
         <Button
-          onClick={openBriefingManually}
+          onClick={() => openBriefingManually()}
           className="w-full text-white"
           style={{ background: "#01411C" }}
         >
