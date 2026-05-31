@@ -64,6 +64,39 @@ export type Database = {
           },
         ]
       }
+      auto_distribution_log: {
+        Row: {
+          assigned_to_user_id: string
+          created_at: string
+          customer_id: string
+          distribution_mode: string
+          id: string
+          metadata: Json | null
+          organization_user_id: string
+          reason: string | null
+        }
+        Insert: {
+          assigned_to_user_id: string
+          created_at?: string
+          customer_id: string
+          distribution_mode: string
+          id?: string
+          metadata?: Json | null
+          organization_user_id: string
+          reason?: string | null
+        }
+        Update: {
+          assigned_to_user_id?: string
+          created_at?: string
+          customer_id?: string
+          distribution_mode?: string
+          id?: string
+          metadata?: Json | null
+          organization_user_id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       behavioral_insights: {
         Row: {
           created_at: string | null
@@ -2587,6 +2620,60 @@ export type Database = {
           },
         ]
       }
+      silent_assistant_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          organization_user_id: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          target_user_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_user_id: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          target_user_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_user_id?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          target_user_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       slug_firstname_exceptions: {
         Row: {
           allowed_city: string | null
@@ -3179,6 +3266,7 @@ export type Database = {
           created_at: string | null
           customer_visibility: string | null
           id: string
+          lead_distribution_mode: string
           metadata: Json | null
           notify_admin_on_customer_add: boolean | null
           notify_admin_on_opportunity_action: boolean | null
@@ -3194,6 +3282,7 @@ export type Database = {
           created_at?: string | null
           customer_visibility?: string | null
           id?: string
+          lead_distribution_mode?: string
           metadata?: Json | null
           notify_admin_on_customer_add?: boolean | null
           notify_admin_on_opportunity_action?: boolean | null
@@ -3209,6 +3298,7 @@ export type Database = {
           created_at?: string | null
           customer_visibility?: string | null
           id?: string
+          lead_distribution_mode?: string
           metadata?: Json | null
           notify_admin_on_customer_add?: boolean | null
           notify_admin_on_opportunity_action?: boolean | null
