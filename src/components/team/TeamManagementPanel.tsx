@@ -27,6 +27,7 @@ import {
   Home,
   BarChart3,
   RefreshCw,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +58,9 @@ import AddColleagueDialog from './AddColleagueDialog';
 import TeamSettingsPanel from './TeamSettingsPanel';
 import TeamAnalyticsPanel from './TeamAnalyticsPanel';
 import CustomerAssignmentsPanel from './CustomerAssignmentsPanel';
+import SilentAssistantPanel from './SilentAssistantPanel';
+import AutoDistributionSettings from './AutoDistributionSettings';
+import { useImpersonate } from '@/hooks/useImpersonate';
 
 interface TeamManagementPanelProps {
   isOpen: boolean;
@@ -100,6 +104,8 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
     updateMemberPermissions,
     refreshTeam,
   } = useTeamManagement();
+
+  const { start: startImpersonation } = useImpersonate();
 
   const [activeTab, setActiveTab] = useState('members');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -199,22 +205,21 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
             {/* Content */}
             <div className="p-4 overflow-y-auto h-[calc(100vh-200px)]">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-4 w-full mb-4">
+                <TabsList className="grid grid-cols-5 w-full mb-4">
                   <TabsTrigger value="members" className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    الزملاء
                   </TabsTrigger>
                   <TabsTrigger value="customers" className="flex items-center gap-1">
                     <UserPlus className="w-4 h-4" />
-                    العملاء
                   </TabsTrigger>
                   <TabsTrigger value="analytics" className="flex items-center gap-1">
                     <BarChart3 className="w-4 h-4" />
-                    التحليلات
+                  </TabsTrigger>
+                  <TabsTrigger value="assistant" className="flex items-center gap-1">
+                    <Bot className="w-4 h-4" />
                   </TabsTrigger>
                   <TabsTrigger value="settings" className="flex items-center gap-1">
                     <Settings className="w-4 h-4" />
-                    الإعدادات
                   </TabsTrigger>
                 </TabsList>
 
@@ -338,6 +343,19 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                                         <Edit className="w-4 h-4 ml-2" />
                                         تعديل الصلاحيات
                                       </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          startImpersonation({
+                                            memberId: member.id,
+                                            memberName: member.member_name || 'عضو',
+                                            memberUserId: member.member_user_id,
+                                          });
+                                          onClose();
+                                        }}
+                                      >
+                                        <Eye className="w-4 h-4 ml-2" />
+                                        مراقبة بياناته (قراءة فقط)
+                                      </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem
                                         className="text-red-600"
@@ -367,9 +385,15 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                   <CustomerAssignmentsPanel />
                 </TabsContent>
 
+                {/* Silent Assistant Tab */}
+                <TabsContent value="assistant">
+                  <SilentAssistantPanel />
+                </TabsContent>
+
                 {/* Settings Tab */}
-                <TabsContent value="settings">
+                <TabsContent value="settings" className="space-y-4">
                   <TeamSettingsPanel />
+                  <AutoDistributionSettings />
                 </TabsContent>
               </Tabs>
             </div>
