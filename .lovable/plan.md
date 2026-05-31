@@ -1,68 +1,118 @@
-## الهدف
-تطبيق التعديلات الست المطلوبة حرفياً دون لمس أي شيء آخر:
-- تلوين أيقونة العين تدريجياً حسب عدد المشاهدين المباشرين.
-- إزالة `totalViews` من `LiveViewerIndicator` (الإجمالي يبقى يُعرض من السطور الموجودة أصلاً تحت البطاقات).
-- اشتراك Realtime على `offer_views_log` لتشغيل النغمة عند مشاهدات من أجهزة أخرى.
-- زر إسكات «نغمة مشاهدات العروض» داخل الرايت سلايدر.
 
-## الملفات التي ستتغير
-1. `src/components/ui/LiveViewerIndicator.tsx`
-2. `src/components/platform/MyPlatformComplete.tsx`
-3. `src/pages/SlugOfferDetailsPage.tsx` (تحقق فقط — يستخدم `LiveViewersBadge` لا `LiveViewerIndicator`، لا تعديل مطلوب)
-4. `src/hooks/useOfferViewNotifications.ts`
-5. `src/components/layout/RightSlider.tsx`
+# خطة: الموجز الصباحي (Daily Morning Briefing) – النسخة المطوّرة
 
-## التفاصيل
+## الفكرة باختصار
+نافذة منبثقة تظهر تلقائياً عند أول دخول في الصباح (أو يدوياً عبر زر "موجز فوري" في الهيدر)، تعرض مستجدات اليوم في بطاقات قابلة للتصفّح، وتُحفظ نسخة منها في جرس الإشعارات للرجوع لاحقاً. في حال غياب 3 أيام، يُعرض "موجز تراكمي – ما فاتك".
 
-### 1) `LiveViewerIndicator.tsx`
-- حذف `totalViews` و`showTotalViews` من `Props` ومن جسم المكون (إزالة كتلة `{showTotalViews && ...}`).
-- إضافة دالة `getColorByLiveCount(count)`:
-  - `0` → `#22c55e` (أخضر)
-  - `<50` → `#eab308` (أصفر)
-  - `<100` → `#ef4444` (أحمر)
-  - `<500` → `#a855f7` (بنفسجي)
-  - وإلا → `#3b82f6` (أزرق)
-- تطبيق اللون كـ `backgroundColor` على الدائرة (motion.div) عبر `style={{ backgroundColor: eyeColor }}`، مع لون أيقونة أبيض دائماً عند `liveViewers>0` وأخضر عند `0` (الحفاظ على الحدود الذهبية الحالية عند 0).
-- تشغيل النبض (pulse + ring) فقط عند `liveViewers>0` (يبقى كما هو) مع تحديث لون ring ليتوافق مع اللون الجديد.
-- الشارة بجانب العين تعرض `liveViewers` دائماً عند `>0` (سلوك حالي).
+---
 
-### 2) `MyPlatformComplete.tsx`
-- في الاستخدامات الخمسة لـ `LiveViewerIndicator` (الأسطر 2214, 2252, 2344, 2459, 2630): حذف props `totalViews` و`showTotalViews` فقط. تمرير `liveViewers` و`size` كما هو.
-- لا تغيير على السطور التي تعرض `totalViews` نصياً أسفل البطاقات (مثل سطر 2224, 2431) ولا على `Eye {offer.views.toLocaleString()}`.
+## 1) محتوى الموجز (12 بطاقة)
 
-### 3) `SlugOfferDetailsPage.tsx`
-- يستخدم `LiveViewersBadge` (مكون آخر) وليس `LiveViewerIndicator`. لا تعديل — تأكيد فقط.
+| # | البطاقة | المصدر |
+|---|---------|--------|
+| 1 | مهام اليوم + متأخرات 3 أيام (مع أزرار: تأجيل الكل / إعادة توزيع تلقائي) | `crm_tasks` |
+| 2 | مواعيد اليوم | `calendar_appointments` |
+| 3 | عملاء جدد آخر 3 أيام | `crm_customers` |
+| 4 | عروض/طلبات جديدة | offers + requests + `owner_submissions` |
+| 5 | فرص ذكية مطابقة جديدة | `useSmartOpportunities` |
+| 6 | طلبات VIP مطابقة | special_requests |
+| 7 | تحليلات السوق السريعة (أنا/الفريق/السوق) | `useMarketAnalytics` + `useTeamAnalytics` |
+| 8 | مستجدات الفريق | `organization_members` |
+| 9 | تنبيهات حرجة (فال، عقود إيجار، عروض على وشك الانتهاء) | تجميع |
+| 10 | ملخّص أداء أمس | events + offer_views_log |
+| 11 | توصية ذكية (سلوك المستخدم) | `useSmartRecommendations` |
+| 12 | فرصة محتملة (تحليل سوق + سلوك) | `useSmartRecommendations` |
 
-### 4) `useOfferViewNotifications.ts`
-- إضافة `useEffect` يفتح قناة Supabase Realtime:
-  ```
-  supabase.channel(`offer-views-log-${user.id}`)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'offer_views_log', filter: `user_id=eq.${user.id}` }, (payload) => {
-      if (soundEnabled) soundManager.playSound();
-      if (notificationsEnabled) toast.info(`👁️ مشاهدة جديدة: ${payload.new.offer_title || 'عرض'}`);
-      loadStats();
-    })
-    .subscribe();
-  ```
-- التنظيف: `supabase.removeChannel(channel)`.
-- المستمع الحالي على `window` `offerViewedWithDetails` يبقى دون تغيير.
-- التبعيات: `[user?.id, soundEnabled, notificationsEnabled, loadStats]`.
+**عدم التكرار:** نستثني أي عنصر سبق ظهوره في موجز اليوم أو كإشعار push مفرد.
+**شريط تنبيه أحمر علوي:** يظهر فوق البطاقات إذا كانت هناك مهام متأخرة >3 أيام أو عقود تنتهي خلال 24 ساعة.
 
-### 5) `RightSlider.tsx`
-- قراءة الملف للعثور على قسم الإعدادات الحالي (مثلاً ضمن `ComprehensiveAppSettings` أو القسم العام)، وإضافة بطاقة/صف صغير يحتوي:
-  - `Switch` متصل بـ state محلي يقرأ ابتدائياً من `localStorage['offer_view_notification_settings']` (الحقل `sound`، افتراضي `true`).
-  - عند التغيير: تحديث `localStorage` بنفس المفتاح مع الحفاظ على `enabled`، وبث `window.dispatchEvent(new Event('storage'))` ليلتقطه أي مستهلك.
-  - أيقونة `Volume2` عند التفعيل و`VolumeX` عند الكتم.
-  - النص: «نغمة مشاهدات العروض».
-- التزام بالـ design tokens (لا ألوان مباشرة خارج التوكنز للنص/الحاوية، الـ hex للعين فقط داخل `LiveViewerIndicator`).
+---
 
-## ما لن يتغير
-- `useLiveViewersRealtime`, `usePlatformListings`, دوال Presence، `CollapsibleStatsSection`, `CollapsiblePerformanceComparison`.
-- قاعدة البيانات، RLS، Edge Functions.
-- أي قسم آخر في `MyPlatformComplete` غير الـ 5 استخدامات المذكورة.
+## 2) آلية الظهور
+- **تلقائي:** أول جلسة بعد `briefing_time` (افتراضي 07:00 الرياض) لكل تاريخ، عبر `localStorage["briefing_last_shown_date"]` في `MainLayout`.
+- **زر "موجز فوري":** أيقونة منفصلة بجوار جرس الإشعارات في `MainHeader` (تظهر فقط لو فعّلها المستخدم في الإعدادات).
+- **الجرس:** يُسجَّل إشعار `daily_briefing` واحد بعنوان "موجز اليوم – {date}"، النقر يفتح نفس النافذة محمّلة من `snapshot`.
+- **الموجز التراكمي:** إذا كان الفرق بين الآن و`user_last_seen.last_seen_at` > 3 أيام → بطاقة إضافية "📆 ما فاتك" تجمع ملخص الأيام الفائتة.
 
-## التحقق بعد التنفيذ
-- بناء ناجح.
-- فتح تبويب العروض في `/app/dashboard`: العين خضراء عند 0، تتحول للون الجدول مع زيادة المشاهدين المباشرين.
-- إجمالي المشاهدات لا يزال ظاهراً تحت البطاقات (نص منفصل) و`Eye {offer.views}` كما هو.
-- وجود سويتش «نغمة مشاهدات العروض» في الرايت سلايدر يبقى محفوظاً بعد إعادة التحميل.
+---
+
+## 3) تجربة المستخدم
+- Modal كامل الشاشة على الجوال / كبير على الديسكتوب، RTL، Cairo، ألوان `#01411C` و`#D4AF37`.
+- رأس: "صباح الخير 👋 – موجز يومك" + تاريخ هجري وميلادي.
+- شريط تقدّم "بطاقة 3 من 10".
+- أزرار: التالي / السابق / تخطّي / تذكير بعد ساعة / إغلاق.
+- كل بطاقة: عدد العناصر + أول 3 أمثلة + "عرض الكل" (يفتح الصفحة المعنية بدون إغلاق الموجز) + "تم الاطلاع".
+- البطاقات الفارغة تُخفى تلقائياً.
+
+---
+
+## 4) مكان التفعيل في الإعدادات
+تبويب جديد داخل `ComprehensiveAppSettings.tsx` باسم **"الموجز الصباحي"**:
+- مفتاح تشغيل/إيقاف عام.
+- Time Picker لوقت الظهور (افتراضي 07:00).
+- أيام التفعيل (سبت–خميس مثلاً).
+- Checkboxes لاختيار البطاقات المفعّلة (12).
+- مفتاح إرسال نسخة push.
+- مفتاح إرسال عبر واتساب (Wasender) – اختياري.
+- مفتاح "إظهار زر موجز فوري في الهيدر".
+- مفتاح "تفعيل الموجز التراكمي بعد غياب 3 أيام" + اختيار عدد أيام الغياب.
+- زر "اعرض موجز اليوم الآن" للتجربة.
+
+---
+
+## 5) الملفات الجديدة
+```
+src/components/briefing/
+  ├─ DailyBriefingModal.tsx
+  ├─ BriefingCard.tsx
+  ├─ BriefingTrigger.tsx
+  ├─ CumulativeBriefingBar.tsx
+  └─ cards/
+      ├─ TasksCard.tsx (مع أزرار تأجيل/إعادة توزيع)
+      ├─ AppointmentsCard.tsx
+      ├─ NewCustomersCard.tsx
+      ├─ OffersRequestsCard.tsx
+      ├─ SmartOpportunitiesCard.tsx
+      ├─ VIPRequestsCard.tsx
+      ├─ MarketAnalyticsCard.tsx
+      ├─ TeamUpdatesCard.tsx
+      ├─ CriticalAlertsCard.tsx
+      ├─ YesterdayPerformanceCard.tsx
+      ├─ SmartRecommendationCard.tsx
+      └─ PotentialOpportunityCard.tsx
+
+src/hooks/
+  ├─ useDailyBriefing.ts
+  ├─ useBriefingSettings.ts
+  ├─ useSmartRecommendations.ts
+  └─ useCumulativeBriefing.ts
+
+src/components/settings/
+  └─ DailyBriefingSettings.tsx
+```
+دمج `BriefingTrigger` داخل `MainHeader`، وفتح تلقائي من `MainLayout`، وتوجيه فتح من `NotificationsSidebar` عبر `action_url`.
+
+---
+
+## 6) قاعدة البيانات (Migration واحدة)
+- `daily_briefing_settings` (إعدادات المستخدم + كل المفاتيح الجديدة).
+- `daily_briefing_log` (snapshot يومي + read_cards + opened/dismissed).
+- `user_last_seen` (لمنطق الموجز التراكمي).
+كلها بـ RLS صارمة `auth.uid() = user_id` و GRANT للـ authenticated + service_role.
+
+---
+
+## 7) مراحل التنفيذ
+
+1. **المرحلة 1 (MVP):** Migration + `useDailyBriefing` + Modal + 4 بطاقات (مهام، مواعيد، فرص ذكية، تنبيهات حرجة) + الفتح التلقائي + تبويب الإعدادات + **زر "موجز فوري" في الهيدر** + **شريط التنبيه الأحمر**.
+2. **المرحلة 2:** باقي البطاقات حتى 10 + تكامل الجرس + منطق "الموجز التراكمي" + بطاقة "ما فاتك".
+3. **المرحلة 3:** أزرار إدارة المهام (تأجيل/إعادة توزيع) + بطاقتي التوصية الذكية والفرصة المحتملة (11 و12) + Edge Function للجدولة الخلفية + إرسال Push/WhatsApp.
+
+---
+
+## 8) ملاحظات احترام بنية المشروع
+- لا مساس بوحدات Core المحمية (Platform / CRM / Publishing) – نقرأ منها فقط.
+- خط Cairo + RTL صارم + ألوان الهوية.
+- لا مفاتيح API خارجية جديدة في المرحلة 1.
+
+ابدأ بالمرحلة 1 عند الموافقة.

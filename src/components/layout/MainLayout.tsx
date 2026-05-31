@@ -8,6 +8,7 @@ import { SmartAssistantBubble } from "@/components/behavioral/SmartAssistantBubb
 import { useAuthContext } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTaskReminders } from "@/hooks/useTaskReminders";
+import DailyBriefingController from "@/components/briefing/DailyBriefingController";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -63,6 +64,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
       {/* Smart Assistant Bubble - Behavioral Intelligence */}
       <SmartAssistantBubble />
+
+      {/* Daily Morning Briefing */}
+      <DailyBriefingController />
     </div>
   );
 };

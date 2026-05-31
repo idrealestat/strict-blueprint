@@ -6,6 +6,7 @@ import { useSmartOpportunities } from "@/hooks/useSmartOpportunities";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { HelpHint } from "@/components/ui/help-hint";
+import BriefingTrigger from "@/components/briefing/BriefingTrigger";
 
 interface MainHeaderProps {
   onRightMenuOpen: () => void;
@@ -143,6 +144,9 @@ const MainHeader = ({ onRightMenuOpen, onLeftMenuOpen, onNotificationsOpen }: Ma
                 />
               </div>
             </div>
+
+            {/* Daily Morning Briefing trigger */}
+            <BriefingTrigger />
           </div>
         </div>
       </div>
