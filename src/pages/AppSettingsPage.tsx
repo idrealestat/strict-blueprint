@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import ComprehensiveAppSettings from "@/components/settings/ComprehensiveAppSettings";
 import { useHelpHints } from "@/context/HelpHintsContext";
+import DailyBriefingController from "@/components/briefing/DailyBriefingController";
 
 /**
  * AppSettingsPage
@@ -109,6 +110,8 @@ export default function AppSettingsPage() {
       <main className="flex-1 relative min-h-0 overflow-hidden">
         <ComprehensiveAppSettings variant="page" />
       </main>
+      {/* مستمع حدث «اعرض موجز اليوم الآن» داخل صفحة الإعدادات */}
+      <DailyBriefingController />
     </div>
   );
 }
