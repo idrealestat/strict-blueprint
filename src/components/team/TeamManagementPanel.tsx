@@ -56,6 +56,7 @@ import { useTeamManagement, type OrganizationMember } from '@/hooks/useTeamManag
 import AddColleagueDialog from './AddColleagueDialog';
 import TeamSettingsPanel from './TeamSettingsPanel';
 import TeamAnalyticsPanel from './TeamAnalyticsPanel';
+import CustomerAssignmentsPanel from './CustomerAssignmentsPanel';
 
 interface TeamManagementPanelProps {
   isOpen: boolean;
@@ -198,10 +199,14 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
             {/* Content */}
             <div className="p-4 overflow-y-auto h-[calc(100vh-200px)]">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-3 w-full mb-4">
+                <TabsList className="grid grid-cols-4 w-full mb-4">
                   <TabsTrigger value="members" className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
                     الزملاء
+                  </TabsTrigger>
+                  <TabsTrigger value="customers" className="flex items-center gap-1">
+                    <UserPlus className="w-4 h-4" />
+                    العملاء
                   </TabsTrigger>
                   <TabsTrigger value="analytics" className="flex items-center gap-1">
                     <BarChart3 className="w-4 h-4" />
@@ -355,6 +360,11 @@ export default function TeamManagementPanel({ isOpen, onClose }: TeamManagementP
                 {/* Analytics Tab */}
                 <TabsContent value="analytics">
                   <TeamAnalyticsPanel />
+                </TabsContent>
+
+                {/* Customers Tab */}
+                <TabsContent value="customers">
+                  <CustomerAssignmentsPanel />
                 </TabsContent>
 
                 {/* Settings Tab */}
