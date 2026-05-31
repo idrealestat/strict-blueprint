@@ -23,6 +23,7 @@ import {
 import { useCRMCustomers } from '@/hooks/useCRMCustomers';
 import { useCustomerAssignments } from '@/hooks/useCustomerAssignments';
 import { useTeamManagement, type OrganizationMember } from '@/hooks/useTeamManagement';
+import { useImpersonationGuard } from '@/hooks/useImpersonate';
 
 const UNASSIGNED = '__unassigned__';
 
@@ -39,6 +40,7 @@ export default function CustomerAssignmentsPanel() {
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'unassigned' | 'assigned'>('all');
+  const { isImpersonating, disabledTitle } = useImpersonationGuard();
 
   const activeMembers = useMemo<OrganizationMember[]>(
     () => members.filter((m) => m.status === 'active' && m.member_user_id),
@@ -204,8 +206,12 @@ export default function CustomerAssignmentsPanel() {
                       <Select
                         value={assignment?.assigned_to_user_id || UNASSIGNED}
                         onValueChange={(v) => handleAssignChange(customer.id, v)}
+                        disabled={isImpersonating}
                       >
-                        <SelectTrigger className="w-[160px] h-9 text-xs font-cairo">
+                        <SelectTrigger
+                          className="w-[160px] h-9 text-xs font-cairo"
+                          title={isImpersonating ? disabledTitle : undefined}
+                        >
                           <SelectValue placeholder="اختر وسيطاً" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -226,7 +232,8 @@ export default function CustomerAssignmentsPanel() {
                           variant="ghost"
                           className="h-9 w-9 text-red-500 hover:bg-red-50"
                           onClick={() => unassignCustomer(customer.id)}
-                          title="إلغاء التعيين"
+                          disabled={isImpersonating}
+                          title={isImpersonating ? disabledTitle : 'إلغاء التعيين'}
                         >
                           <XIcon className="w-4 h-4" />
                         </Button>
