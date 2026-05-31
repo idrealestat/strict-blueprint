@@ -756,6 +756,9 @@ export default function ComprehensiveAppSettings({
           </div>
         );
 
+      case 'morning-briefing':
+        return <DailyBriefingSettings />;
+
       case 'help-hints':
         return (
           <div className="space-y-4">
