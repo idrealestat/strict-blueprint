@@ -1,118 +1,123 @@
 
-# خطة: الموجز الصباحي (Daily Morning Briefing) – النسخة المطوّرة
+# خطة تنفيذ ميزات إدارة الفريق المتقدمة
 
-## الفكرة باختصار
-نافذة منبثقة تظهر تلقائياً عند أول دخول في الصباح (أو يدوياً عبر زر "موجز فوري" في الهيدر)، تعرض مستجدات اليوم في بطاقات قابلة للتصفّح، وتُحفظ نسخة منها في جرس الإشعارات للرجوع لاحقاً. في حال غياب 3 أيام، يُعرض "موجز تراكمي – ما فاتك".
-
----
-
-## 1) محتوى الموجز (12 بطاقة)
-
-| # | البطاقة | المصدر |
-|---|---------|--------|
-| 1 | مهام اليوم + متأخرات 3 أيام (مع أزرار: تأجيل الكل / إعادة توزيع تلقائي) | `crm_tasks` |
-| 2 | مواعيد اليوم | `calendar_appointments` |
-| 3 | عملاء جدد آخر 3 أيام | `crm_customers` |
-| 4 | عروض/طلبات جديدة | offers + requests + `owner_submissions` |
-| 5 | فرص ذكية مطابقة جديدة | `useSmartOpportunities` |
-| 6 | طلبات VIP مطابقة | special_requests |
-| 7 | تحليلات السوق السريعة (أنا/الفريق/السوق) | `useMarketAnalytics` + `useTeamAnalytics` |
-| 8 | مستجدات الفريق | `organization_members` |
-| 9 | تنبيهات حرجة (فال، عقود إيجار، عروض على وشك الانتهاء) | تجميع |
-| 10 | ملخّص أداء أمس | events + offer_views_log |
-| 11 | توصية ذكية (سلوك المستخدم) | `useSmartRecommendations` |
-| 12 | فرصة محتملة (تحليل سوق + سلوك) | `useSmartRecommendations` |
-
-**عدم التكرار:** نستثني أي عنصر سبق ظهوره في موجز اليوم أو كإشعار push مفرد.
-**شريط تنبيه أحمر علوي:** يظهر فوق البطاقات إذا كانت هناك مهام متأخرة >3 أيام أو عقود تنتهي خلال 24 ساعة.
+تعمل بالكامل من خلال زر **"إدارة الفريق"** في الـ Right Slider — كل شيء **إضافات جديدة** في `TeamManagementPanel`، بدون تعديل وحدات Core (CRM، النشر، المساعد) ولا جدول `crm_customers`.
 
 ---
 
-## 2) آلية الظهور
-- **تلقائي:** أول جلسة بعد `briefing_time` (افتراضي 07:00 الرياض) لكل تاريخ، عبر `localStorage["briefing_last_shown_date"]` في `MainLayout`.
-- **زر "موجز فوري":** أيقونة منفصلة بجوار جرس الإشعارات في `MainHeader` (تظهر فقط لو فعّلها المستخدم في الإعدادات).
-- **الجرس:** يُسجَّل إشعار `daily_briefing` واحد بعنوان "موجز اليوم – {date}"، النقر يفتح نفس النافذة محمّلة من `snapshot`.
-- **الموجز التراكمي:** إذا كان الفرق بين الآن و`user_last_seen.last_seen_at` > 3 أيام → بطاقة إضافية "📆 ما فاتك" تجمع ملخص الأيام الفائتة.
+## المرحلة 1 — تعيين العملاء (الأساس)
+
+### قاعدة البيانات (migration جديد)
+- جدول `customer_assignments`:
+  - `organization_id` (uuid) — حساب المنظمة
+  - `customer_id` (uuid) — معرف عميل من `crm_customers`
+  - `assigned_to_user_id` (uuid) — العضو
+  - `assigned_by_user_id` (uuid)، `assigned_at`، `is_active`، `notes`
+  - فهرس فريد: `(organization_id, customer_id)` لتفادي تعيين مزدوج
+- RLS: قراءة/كتابة فقط للمسؤول (`is_organization_admin`) أو العضو نفسه (للقراءة فقط لما هو معين له).
+- GRANT للـ `authenticated` و `service_role`.
+- دالة `get_assigned_customer_ids(member_uuid)` — مساعدة للفلترة.
+
+### الكود
+- **Hook جديد** `useCustomerAssignments.ts` — CRUD + Realtime على `customer_assignments`.
+- **Hook جديد** `useCRMCustomersFiltered.ts` يلفّ `useCRMCustomers` الحالي ثم يطبق `useMemo` لفلترة العملاء (المسؤول يرى الكل، العضو يرى المعينين له فقط). **لن يُعدّل** `useCRMCustomers.ts`.
+- **مكون جديد** `AssignCustomerDropdown.tsx` (في `src/components/team/`) — يفتح من بطاقة العميل بزر "تعيين لوسيط" ويستدعي hook التعيين.
+- **تبويب جديد داخل TeamManagementPanel** اسمه "العملاء" يعرض جدول تعيين سريع (عميل ← وسيط) للمسؤول فقط.
+- بطاقة العميل في واجهة المسؤول تعرض شارة صغيرة "مسند إلى: [اسم]".
+
+> ملاحظة: يُستخدم `AssignCustomerToMemberDialog` و `AssignCustomerPopover` الموجودين كما هما إذا كانا متوافقين، أو يُربطان بالـ hook الجديد دون تعديل سلوكهما الحالي.
 
 ---
 
-## 3) تجربة المستخدم
-- Modal كامل الشاشة على الجوال / كبير على الديسكتوب، RTL، Cairo، ألوان `#01411C` و`#D4AF37`.
-- رأس: "صباح الخير 👋 – موجز يومك" + تاريخ هجري وميلادي.
-- شريط تقدّم "بطاقة 3 من 10".
-- أزرار: التالي / السابق / تخطّي / تذكير بعد ساعة / إغلاق.
-- كل بطاقة: عدد العناصر + أول 3 أمثلة + "عرض الكل" (يفتح الصفحة المعنية بدون إغلاق الموجز) + "تم الاطلاع".
-- البطاقات الفارغة تُخفى تلقائياً.
+## المرحلة 2 — مراقبة الأعضاء (Impersonation الآمن)
+
+- **زر "عرض المنصة"** بجانب كل عضو داخل تبويب "الزملاء" الحالي (لا يحلّ محل القائمة).
+- **مكون جديد** `ImpersonationWrapper.tsx` يعرض شريطاً أحمر علوياً ثابتاً: "أنت تشاهد منصة [اسم العضو] — اضغط للخروج".
+- **Hook جديد** `useImpersonate.ts` يخزن `impersonatedUserId` في `sessionStorage` + يوفّر `enter/exit`.
+- **Edge Function جديدة** `team-impersonate-data` (verify JWT) تتأكد أن المستدعي مسؤول في نفس المنظمة عبر `is_organization_admin` ثم تُعيد ملخص بيانات العضو (عملاء، مواعيد، فرص، تحليلات) للقراءة فقط. **لا تعديل** على مسار "منصتي" الأصلي.
 
 ---
 
-## 4) مكان التفعيل في الإعدادات
-تبويب جديد داخل `ComprehensiveAppSettings.tsx` باسم **"الموجز الصباحي"**:
-- مفتاح تشغيل/إيقاف عام.
-- Time Picker لوقت الظهور (افتراضي 07:00).
-- أيام التفعيل (سبت–خميس مثلاً).
-- Checkboxes لاختيار البطاقات المفعّلة (12).
-- مفتاح إرسال نسخة push.
-- مفتاح إرسال عبر واتساب (Wasender) – اختياري.
-- مفتاح "إظهار زر موجز فوري في الهيدر".
-- مفتاح "تفعيل الموجز التراكمي بعد غياب 3 أيام" + اختيار عدد أيام الغياب.
-- زر "اعرض موجز اليوم الآن" للتجربة.
+## المرحلة 3 — تحليلات الأعضاء
+
+- **توسيع** `TeamAnalyticsPanel.tsx` الحالي (مكون موجود سلفاً):
+  - قائمة جانبية بالأعضاء.
+  - بطاقة لكل عضو: عدد العملاء المعينين، الصفقات المغلقة (من listings بحالة sold/rented)، المواعيد المنجزة، الفرص المقبولة/المرفوضة.
+  - رسم بياني Recharts بسيط (موجود في المشروع) يقارن أداء العضو بمتوسط الفريق.
+- **لوحة "المتصدرين"** أسفل التبويب — تصنيف الأعضاء حسب مؤشر يختاره المسؤول.
 
 ---
 
-## 5) الملفات الجديدة
+## المرحلة 4 — المساعد الصامت + التحليلات التنبؤية
+
+### قاعدة البيانات (migration ثانٍ)
+- `silent_assistant_alerts`: `organization_id, alert_type, severity, title, description, suggested_action, related_member_id, related_customer_id, is_dismissed`.
+- `predictive_metrics`: `organization_id, member_id, metric_type, predicted_value, confidence_score, calculated_at`.
+- RLS: المسؤول فقط يقرأ/يكتب لمنظمته.
+
+### Edge Functions جديدة
+- `silent-assistant-scan` (cron يومي عبر pg_cron + pg_net): يفحص عملاء غير متفاعلين 7+ أيام، مهام متأخرة، انخفاض أداء، عملاء عاليي النشاط.
+- `predictive-metrics-compute` (cron أسبوعي): متوسط متحرك لآخر 3 أشهر لكل عضو.
+
+### UI
+- **تبويب جديد داخل لوحة التحكم** "المساعد الصامت" — قائمة هادئة لآخر التنبيهات + زر تطبيق الإجراء المقترح. أيقونة جرس صغيرة منفصلة داخل header الـ TeamManagementPanel (ليست مودال).
+- التوقعات تظهر كعمود إضافي داخل تبويب التحليلات.
+
+---
+
+## المرحلة 5 — توزيع العملاء التلقائي
+
+- **حقل جديد في `team_settings`**: `lead_distribution_mode` (`manual` | `round_robin` | `load_based`) — migration ALTER TABLE فقط بإضافة عمود اختياري بقيمة افتراضية `manual` (آمن).
+- **جدول `auto_distribution_log`** لتتبع كل توزيع.
+- **دالة DB / Edge Function** `auto-assign-customer` تُستدعى عند إنشاء عميل جديد (Trigger AFTER INSERT على `crm_customers` يستدعي `pg_net` فقط إذا الوضع ≠ manual، حتى لا يكسر السلوك الحالي).
+- **UI داخل تبويب الإعدادات في TeamManagementPanel**:
+  - اختيار الوضع (راديو).
+  - زر "إعادة توزيع العملاء غير المعينين الآن" مع تأكيد.
+
+---
+
+## تفاصيل تقنية
+
+```text
+src/
+├─ hooks/
+│   ├─ useCustomerAssignments.ts        (جديد)
+│   ├─ useCRMCustomersFiltered.ts       (جديد - يلفّ useCRMCustomers)
+│   ├─ useImpersonate.ts                (جديد)
+│   └─ useSilentAssistantAlerts.ts      (جديد)
+├─ components/team/
+│   ├─ TeamManagementPanel.tsx          (توسيع: إضافة تبويبَي "العملاء" و"المساعد الصامت")
+│   ├─ AssignCustomerDropdown.tsx       (جديد)
+│   ├─ ImpersonationWrapper.tsx         (جديد)
+│   ├─ TeamAnalyticsPanel.tsx           (توسيع: قائمة جانبية + Leaderboard + توقعات)
+│   ├─ TeamSettingsPanel.tsx            (توسيع: lead_distribution_mode)
+│   ├─ SilentAssistantPanel.tsx         (جديد)
+│   └─ MemberImpersonateButton.tsx      (جديد)
+supabase/
+├─ functions/
+│   ├─ team-impersonate-data/index.ts
+│   ├─ silent-assistant-scan/index.ts
+│   ├─ predictive-metrics-compute/index.ts
+│   └─ auto-assign-customer/index.ts
+└─ migrations/
+    ├─ <ts>_customer_assignments.sql
+    ├─ <ts>_silent_assistant_and_predictive.sql
+    ├─ <ts>_team_settings_distribution.sql
+    └─ <ts>_cron_jobs.sql
 ```
-src/components/briefing/
-  ├─ DailyBriefingModal.tsx
-  ├─ BriefingCard.tsx
-  ├─ BriefingTrigger.tsx
-  ├─ CumulativeBriefingBar.tsx
-  └─ cards/
-      ├─ TasksCard.tsx (مع أزرار تأجيل/إعادة توزيع)
-      ├─ AppointmentsCard.tsx
-      ├─ NewCustomersCard.tsx
-      ├─ OffersRequestsCard.tsx
-      ├─ SmartOpportunitiesCard.tsx
-      ├─ VIPRequestsCard.tsx
-      ├─ MarketAnalyticsCard.tsx
-      ├─ TeamUpdatesCard.tsx
-      ├─ CriticalAlertsCard.tsx
-      ├─ YesterdayPerformanceCard.tsx
-      ├─ SmartRecommendationCard.tsx
-      └─ PotentialOpportunityCard.tsx
 
-src/hooks/
-  ├─ useDailyBriefing.ts
-  ├─ useBriefingSettings.ts
-  ├─ useSmartRecommendations.ts
-  └─ useCumulativeBriefing.ts
+### ضمانات عدم التعارض
+- لا تعديل على `crm_customers` (لا أعمدة، لا triggers تكسر).
+- لا تعديل على `useCRMCustomers` الأصلي — نلفّه فقط.
+- لا تعديل على مسار "منصتي" الأصلي — Impersonation يعمل عبر Wrapper مستقل.
+- جميع الجداول الجديدة لها GRANT + RLS كاملة لـ `authenticated` و `service_role`.
+- الألوان والخطوط: نفس Wasata Green `#01411C` و Gold `#D4AF37` + Cairo + RTL.
 
-src/components/settings/
-  └─ DailyBriefingSettings.tsx
-```
-دمج `BriefingTrigger` داخل `MainHeader`، وفتح تلقائي من `MainLayout`، وتوجيه فتح من `NotificationsSidebar` عبر `action_url`.
+### ترتيب التنفيذ
+1. Migration المرحلة 1 (customer_assignments) + UI التعيين.
+2. Impersonation.
+3. تحليلات الأعضاء.
+4. Migration المرحلة 4 + Edge Functions + UI المساعد الصامت/التوقعات.
+5. توزيع العملاء التلقائي.
 
----
-
-## 6) قاعدة البيانات (Migration واحدة)
-- `daily_briefing_settings` (إعدادات المستخدم + كل المفاتيح الجديدة).
-- `daily_briefing_log` (snapshot يومي + read_cards + opened/dismissed).
-- `user_last_seen` (لمنطق الموجز التراكمي).
-كلها بـ RLS صارمة `auth.uid() = user_id` و GRANT للـ authenticated + service_role.
-
----
-
-## 7) مراحل التنفيذ
-
-1. **المرحلة 1 (MVP):** Migration + `useDailyBriefing` + Modal + 4 بطاقات (مهام، مواعيد، فرص ذكية، تنبيهات حرجة) + الفتح التلقائي + تبويب الإعدادات + **زر "موجز فوري" في الهيدر** + **شريط التنبيه الأحمر**.
-2. **المرحلة 2:** باقي البطاقات حتى 10 + تكامل الجرس + منطق "الموجز التراكمي" + بطاقة "ما فاتك".
-3. **المرحلة 3:** أزرار إدارة المهام (تأجيل/إعادة توزيع) + بطاقتي التوصية الذكية والفرصة المحتملة (11 و12) + Edge Function للجدولة الخلفية + إرسال Push/WhatsApp.
-
----
-
-## 8) ملاحظات احترام بنية المشروع
-- لا مساس بوحدات Core المحمية (Platform / CRM / Publishing) – نقرأ منها فقط.
-- خط Cairo + RTL صارم + ألوان الهوية.
-- لا مفاتيح API خارجية جديدة في المرحلة 1.
-
-ابدأ بالمرحلة 1 عند الموافقة.
+سأبدأ بعد موافقتك على الخطة بتشغيل migration المرحلة 1 أولاً وانتظار اعتمادك له قبل المتابعة للكود.
