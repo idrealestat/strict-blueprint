@@ -7,6 +7,7 @@ import {
   persistBriefingLog,
   touchUserLastSeen,
   useBriefingOpener,
+  ensureBriefingNotification,
   type BriefingSnapshot,
 } from "@/hooks/useDailyBriefing";
 import DailyBriefingModal from "./DailyBriefingModal";
@@ -38,25 +39,44 @@ export default function DailyBriefingController() {
   const { settings } = useBriefingSettings();
   const { snapshot, loading, generate } = useDailyBriefing(
     settings?.enabled_cards as any,
+    settings?.cumulative_after_days ?? 3,
+    settings?.enable_cumulative ?? true,
   );
   const [open, setOpen] = useState(false);
   const [currentSnapshot, setCurrentSnapshot] = useState<BriefingSnapshot | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
-  // تحديث last seen عند تركيب الكنترولر
-  useEffect(() => {
-    touchUserLastSeen();
-  }, []);
+  // ملاحظة: لا نُحدّث last_seen عند التركيب فوراً لأن منطق "ما فاتك"
+  // يعتمد عليه — نُحدّثه فقط بعد توليد الموجز.
 
-  const openBriefing = useCallback(async () => {
-    const snap = await generate();
-    setCurrentSnapshot(snap);
-    setOpen(true);
-    await persistBriefingLog(snap);
-    localStorage.setItem(LAST_SHOWN_KEY, todayStr());
-    localStorage.removeItem(SNOOZE_KEY);
-  }, [generate]);
+  const openBriefing = useCallback(
+    async (logId?: string) => {
+      // فتح من إشعار/رابط: حمّل snapshot من السجل
+      if (logId) {
+        const { data } = await supabase
+          .from("daily_briefing_log")
+          .select("snapshot")
+          .eq("id", logId)
+          .maybeSingle();
+        if (data?.snapshot) {
+          setCurrentSnapshot(data.snapshot as any);
+          setOpen(true);
+          return;
+        }
+      }
+      // توليد موجز حي
+      const snap = await generate();
+      setCurrentSnapshot(snap);
+      setOpen(true);
+      const log = await persistBriefingLog(snap);
+      if (log?.id) await ensureBriefingNotification(log.id, snap);
+      await touchUserLastSeen();
+      localStorage.setItem(LAST_SHOWN_KEY, todayStr());
+      localStorage.removeItem(SNOOZE_KEY);
+    },
+    [generate],
+  );
 
   useBriefingOpener(openBriefing);
 
@@ -86,18 +106,7 @@ export default function DailyBriefingController() {
     const id = searchParams.get("openBriefing");
     if (!id) return;
     (async () => {
-      const { data } = await supabase
-        .from("daily_briefing_log")
-        .select("snapshot")
-        .eq("id", id)
-        .maybeSingle();
-      if (data?.snapshot) {
-        setCurrentSnapshot(data.snapshot as any);
-        setOpen(true);
-      } else {
-        // fallback: ولّد موجز حي
-        await openBriefing();
-      }
+      await openBriefing(id);
       // امسح الباراميتر
       const next = new URLSearchParams(searchParams);
       next.delete("openBriefing");

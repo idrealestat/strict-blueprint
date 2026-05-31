@@ -16,7 +16,7 @@ export default function BriefingTrigger() {
       <Button
         variant="outline"
         size="icon"
-        onClick={openBriefingManually}
+        onClick={() => openBriefingManually()}
         className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white h-9 w-9"
         aria-label="موجز فوري"
       >
