@@ -594,6 +594,45 @@ export type Database = {
           },
         ]
       }
+      customer_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by_user_id: string
+          assigned_to_user_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          organization_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by_user_id: string
+          assigned_to_user_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          organization_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by_user_id?: string
+          assigned_to_user_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          organization_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_interactions: {
         Row: {
           created_at: string
@@ -3808,6 +3847,10 @@ export type Database = {
           card_id: string
           slug: string
         }[]
+      }
+      get_assigned_customer_ids: {
+        Args: { _member_user_id: string }
+        Returns: string[]
       }
       get_organization_members: {
         Args: { org_user_id: string }
