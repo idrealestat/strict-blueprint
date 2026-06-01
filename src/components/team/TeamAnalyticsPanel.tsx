@@ -225,6 +225,12 @@ export default function TeamAnalyticsPanel() {
                           </p>
                           <p className="text-xs text-gray-500">فرص مرفوضة</p>
                         </div>
+                        <div>
+                          <p className="text-lg font-bold text-emerald-600">
+                            {member.stats.assignedCustomersCount}
+                          </p>
+                          <p className="text-xs text-gray-500">عملاء معينون</p>
+                        </div>
                       </div>
                     )}
                   </div>
