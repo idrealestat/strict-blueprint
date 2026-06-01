@@ -3,6 +3,7 @@ import SlugAppointmentApprovalSorry from "./pages/SlugAppointmentApprovalSorry";
 import { toast } from "@/hooks/use-toast";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import ImpersonationBanner from "@/components/team/ImpersonationBanner";
+import AutoDistributionMount from "@/components/team/AutoDistributionMount";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from "react-router-dom";
@@ -555,6 +556,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <ImpersonationBanner />
+                <AutoDistributionMount />
                 <BrowserRouter>
                   <Routes>
                     {/* Root - صفحة البداية التعريفية */}
