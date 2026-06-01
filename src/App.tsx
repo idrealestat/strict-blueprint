@@ -555,6 +555,7 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <ImpersonationBanner />
+                <AutoDistributionMount />
                 <BrowserRouter>
                   <Routes>
                     {/* Root - صفحة البداية التعريفية */}
