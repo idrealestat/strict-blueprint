@@ -21,6 +21,7 @@ export interface MemberActivity {
     requestsCreated: number;
     callsMade: number;
     meetingsScheduled: number;
+    assignedCustomersCount: number;
   };
   recentActivities: Array<{
     id: string;
@@ -71,6 +72,19 @@ export function useTeamAnalytics(organizationUserId?: string) {
 
       const activeMembers = (members || []).filter(m => m.status === 'active');
 
+      // جلب التعيينات النشطة لكل أعضاء المنظمة دفعة واحدة (أداء أفضل من N+1)
+      const { data: assignments } = await supabase
+        .from('customer_assignments')
+        .select('assigned_to_user_id')
+        .eq('organization_user_id', organizationUserId)
+        .eq('is_active', true);
+
+      const assignmentsByMember = new Map<string, number>();
+      for (const a of assignments || []) {
+        const key = a.assigned_to_user_id as string;
+        assignmentsByMember.set(key, (assignmentsByMember.get(key) || 0) + 1);
+      }
+
       // 2. جلب سجل النشاط
       const { data: activities } = await supabase
         .from('team_activity_log')
@@ -107,6 +121,7 @@ export function useTeamAnalytics(organizationUserId?: string) {
           requestsCreated: memberActs.filter(a => a.activity_type === 'request_created').length,
           callsMade: memberActs.filter(a => a.activity_type === 'call_made').length,
           meetingsScheduled: memberActs.filter(a => a.activity_type === 'meeting_scheduled').length,
+          assignedCustomersCount: assignmentsByMember.get(member.member_user_id) || 0,
         };
 
         const recentActivities = memberActs.slice(0, 10).map(a => ({
