@@ -11,7 +11,6 @@ import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import DashboardBottomNav from "./DashboardBottomNav";
 import NotificationsSidebar from "../NotificationsSidebar";
-import NewsBar from "../NewsBar";
 import RegulatoryBar from "../RegulatoryBar";
 import BriefingTrigger from "@/components/briefing/BriefingTrigger";
 import DailyBriefingController from "@/components/briefing/DailyBriefingController";
