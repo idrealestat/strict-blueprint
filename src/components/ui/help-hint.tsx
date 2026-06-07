@@ -91,11 +91,10 @@ export function HelpHint({
         e.preventDefault();
       }}
       className={cn(
-        'absolute -top-2 left-0 z-[60]',
         'inline-flex items-center justify-center rounded-full',
         'bg-primary text-primary-foreground shadow-lg shadow-primary/30',
         'ring-2 ring-primary/30 hover:ring-4 hover:ring-primary/25',
-        'cursor-help align-middle shrink-0',
+        'cursor-help align-middle shrink-0 z-50 relative',
         'transition-all duration-150',
         SIZE_MAP[size],
         className
