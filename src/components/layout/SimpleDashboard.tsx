@@ -336,9 +336,6 @@ export default function SimpleDashboard({
         {/* شريط التحديثات التنظيمية الرسمية */}
         <RegulatoryBar />
 
-        {/* شريط الأخبار العاجلة */}
-        <NewsBar />
-
         {/* Services Grid - Dynamic based on Feature Flags */}
         <Card className="border-2 border-[#D4AF37] bg-white shadow-xl">
           <CardHeader>
