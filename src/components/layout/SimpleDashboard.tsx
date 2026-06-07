@@ -12,6 +12,7 @@ import RightSliderComplete from "./RightSliderComplete";
 import DashboardBottomNav from "./DashboardBottomNav";
 import NotificationsSidebar from "../NotificationsSidebar";
 import NewsBar from "../NewsBar";
+import RegulatoryBar from "../RegulatoryBar";
 import BriefingTrigger from "@/components/briefing/BriefingTrigger";
 import DailyBriefingController from "@/components/briefing/DailyBriefingController";
 import { useFeatureFlags } from "@/context/FeatureFlagsContext";
@@ -333,7 +334,10 @@ export default function SimpleDashboard({
           )}
         </AnimatePresence>
 
-        {/* 1. شريط الأخبار العاجلة - 8 أخبار */}
+        {/* شريط التحديثات التنظيمية الرسمية */}
+        <RegulatoryBar />
+
+        {/* شريط الأخبار العاجلة */}
         <NewsBar />
 
         {/* Services Grid - Dynamic based on Feature Flags */}
