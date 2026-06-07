@@ -549,6 +549,13 @@ export default function RightSliderComplete({
       setShowCRMArchive(true);
       return;
     }
+
+    // External link
+    if (item.path.startsWith('external:')) {
+      const url = item.path.substring('external:'.length);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
     
     // Handle workspace - فتح لوحة مساحة العمل
     if (item.id === 'workspace' || item.path === '/workspace') {
