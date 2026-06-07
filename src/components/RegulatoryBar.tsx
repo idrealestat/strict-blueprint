@@ -22,6 +22,8 @@ import {
   ShieldAlert,
   Info,
   RefreshCw,
+  List,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +60,8 @@ const SEVERITY_STYLES: Record<Severity, { label: string; class: string; Icon: ty
 
 const STORAGE_KEY = 'regulatory_bar_collapsed';
 const LAST_SEEN_KEY = 'regulatory_bar_last_seen';
+const MODE_KEY = 'regulatory_bar_mode';
+type DisplayMode = 'list' | 'ticker';
 
 const formatDate = (iso: string) => {
   try {
@@ -84,6 +88,18 @@ const RegulatoryBar = () => {
     if (typeof window === 'undefined') return 0;
     return Number(localStorage.getItem(LAST_SEEN_KEY) ?? 0);
   });
+  const [mode, setMode] = useState<DisplayMode>(() => {
+    if (typeof window === 'undefined') return 'list';
+    return (localStorage.getItem(MODE_KEY) as DisplayMode) || 'list';
+  });
+
+  const toggleMode = () => {
+    setMode((m) => {
+      const next: DisplayMode = m === 'list' ? 'ticker' : 'list';
+      localStorage.setItem(MODE_KEY, next);
+      return next;
+    });
+  };
 
   const load = async () => {
     const { data, error } = await supabase
@@ -169,6 +185,17 @@ const RegulatoryBar = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={toggleMode}
+            className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+            title={mode === 'list' ? 'عرض كشريط متحرك' : 'عرض كقائمة'}
+          >
+            {mode === 'list' ? (
+              <Megaphone className="w-4 h-4" />
+            ) : (
+              <List className="w-4 h-4" />
+            )}
+          </button>
+          <button
             onClick={handleManualRefresh}
             disabled={refreshing}
             className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
@@ -187,7 +214,7 @@ const RegulatoryBar = () => {
       </div>
 
       {/* Body */}
-      {!collapsed && (
+      {!collapsed && mode === 'list' && (
         <div className="bg-white/95 text-gray-900 max-h-72 overflow-y-auto">
           {loading ? (
             <div className="p-6 text-center text-sm text-gray-500">جارٍ تحميل التحديثات…</div>
@@ -223,6 +250,52 @@ const RegulatoryBar = () => {
                 );
               })}
             </ul>
+          )}
+        </div>
+      )}
+
+      {/* Ticker Mode */}
+      {!collapsed && mode === 'ticker' && (
+        <div className="bg-gradient-to-r from-[#01411C] via-[#0a5a2c] to-[#01411C] p-2 border-t border-amber-500/30">
+          {loading ? (
+            <div className="text-center text-sm text-white/80 py-2">جارٍ التحميل…</div>
+          ) : items.length === 0 ? (
+            <div className="text-center text-sm text-white/80 py-2">لا توجد تحديثات.</div>
+          ) : (
+            <div className="overflow-hidden h-8 relative">
+              <div className="absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-[#01411C] to-transparent z-10" />
+              <div className="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#01411C] to-transparent z-10" />
+              <div className="flex animate-marquee whitespace-nowrap hover:[animation-play-state:paused]">
+                {[...items, ...items].map((item, i) => {
+                  const sev = SEVERITY_STYLES[item.severity];
+                  return (
+                    <span
+                      key={`${item.id}-${i}`}
+                      className="inline-flex items-center mx-6 cursor-pointer group"
+                      onClick={() => setSelected(item)}
+                    >
+                      <span
+                        className={cn(
+                          'px-3 py-1 rounded-full text-xs font-medium border',
+                          sev.class
+                        )}
+                      >
+                        {sev.label}
+                      </span>
+                      <span className="mx-2 text-amber-300 text-xs font-medium">
+                        {AUTHORITY_LABEL[item.authority]}
+                      </span>
+                      <span className="text-white group-hover:text-amber-300 transition-colors">
+                        {item.title}
+                      </span>
+                      <span className="text-amber-400 text-xs mx-2">
+                        • {formatDate(item.published_at)}
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
