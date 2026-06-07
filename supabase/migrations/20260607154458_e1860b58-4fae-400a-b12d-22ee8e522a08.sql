@@ -1,0 +1,1 @@
+DELETE FROM public.organization_members WHERE organization_user_id = 'd7310404-2bab-4022-ab3d-811884aa062f' AND member_user_id = '36b063ad-8e48-4934-a833-5c4d8268bc54';
