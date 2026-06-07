@@ -2489,6 +2489,69 @@ export type Database = {
         }
         Relationships: []
       }
+      regulatory_reads: {
+        Row: {
+          last_read_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      regulatory_updates: {
+        Row: {
+          authority: Database["public"]["Enums"]["regulatory_authority"]
+          created_at: string
+          document_url: string | null
+          external_id: string | null
+          id: string
+          published_at: string
+          severity: Database["public"]["Enums"]["regulatory_severity"]
+          source_url: string
+          summary: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          authority: Database["public"]["Enums"]["regulatory_authority"]
+          created_at?: string
+          document_url?: string | null
+          external_id?: string | null
+          id?: string
+          published_at?: string
+          severity?: Database["public"]["Enums"]["regulatory_severity"]
+          source_url: string
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          authority?: Database["public"]["Enums"]["regulatory_authority"]
+          created_at?: string
+          document_url?: string | null
+          external_id?: string | null
+          id?: string
+          published_at?: string
+          severity?: Database["public"]["Enums"]["regulatory_severity"]
+          source_url?: string
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       scheduled_messages: {
         Row: {
           created_at: string
@@ -4022,6 +4085,15 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "user" | "member"
       plan_code: "INDIVIDUAL" | "OFFICE"
+      regulatory_authority:
+        | "REGA"
+        | "MOH"
+        | "SAMA"
+        | "EJAR"
+        | "ZATCA"
+        | "REDF"
+        | "OTHER"
+      regulatory_severity: "mandatory" | "alert" | "info"
       subscription_status: "trial" | "active" | "expired"
     }
     CompositeTypes: {
@@ -4152,6 +4224,16 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "user", "member"],
       plan_code: ["INDIVIDUAL", "OFFICE"],
+      regulatory_authority: [
+        "REGA",
+        "MOH",
+        "SAMA",
+        "EJAR",
+        "ZATCA",
+        "REDF",
+        "OTHER",
+      ],
+      regulatory_severity: ["mandatory", "alert", "info"],
       subscription_status: ["trial", "active", "expired"],
     },
   },
