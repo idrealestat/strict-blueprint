@@ -265,7 +265,7 @@ const RegulatoryBar = () => {
             <div className="overflow-hidden h-8 relative">
               <div className="absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-[#01411C] to-transparent z-10" />
               <div className="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#01411C] to-transparent z-10" />
-              <div className="flex animate-marquee whitespace-nowrap hover:[animation-play-state:paused]">
+              <div className="flex animate-marquee-rtl whitespace-nowrap hover:[animation-play-state:paused]">
                 {[...items, ...items].map((item, i) => {
                   const sev = SEVERITY_STYLES[item.severity];
                   return (
