@@ -1,5 +1,4 @@
 import MainLayout from "@/components/layout/MainLayout";
-import NewsBar from "@/components/NewsBar";
 import RegulatoryBar from "@/components/RegulatoryBar";
 import BankRatesBar from "@/components/BankRatesBar";
 import MainServices from "@/components/MainServices";
@@ -37,9 +36,6 @@ const Dashboard = () => {
 
         {/* شريط المؤشرات البنكية الحيّة (سايبور / ريبو / رهن) */}
         <BankRatesBar />
-
-        {/* شريط الأخبار العاجلة */}
-        <NewsBar />
 
         {/* 3. الواجهة الرئيسية - 8 خدمات */}
         <div>

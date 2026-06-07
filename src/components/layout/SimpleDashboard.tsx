@@ -11,7 +11,6 @@ import LeftSliderComplete from "./LeftSliderComplete";
 import RightSliderComplete from "./RightSliderComplete";
 import DashboardBottomNav from "./DashboardBottomNav";
 import NotificationsSidebar from "../NotificationsSidebar";
-import NewsBar from "../NewsBar";
 import RegulatoryBar from "../RegulatoryBar";
 import BriefingTrigger from "@/components/briefing/BriefingTrigger";
 import DailyBriefingController from "@/components/briefing/DailyBriefingController";
@@ -336,9 +335,6 @@ export default function SimpleDashboard({
 
         {/* شريط التحديثات التنظيمية الرسمية */}
         <RegulatoryBar />
-
-        {/* شريط الأخبار العاجلة */}
-        <NewsBar />
 
         {/* Services Grid - Dynamic based on Feature Flags */}
         <Card className="border-2 border-[#D4AF37] bg-white shadow-xl">
