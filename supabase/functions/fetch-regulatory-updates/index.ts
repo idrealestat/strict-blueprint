@@ -24,31 +24,18 @@ interface Source {
   baseUrl?: string;
 }
 
-// مصادر رسمية. عند فشل أي مصدر نتجاهله ونكمل البقية.
+// نستخدم Google News RSS كوسيط موثوق لكل جهة رسمية (مستقر، بدون مفاتيح، لا CORS من السيرفر).
+// كل استعلام مقيّد بـ site: للموقع الرسمي للجهة لضمان أن النتائج من المصدر فقط.
+const gnewsRss = (query: string) =>
+  `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ar&gl=SA&ceid=SA:ar`;
+
 const SOURCES: Source[] = [
-  // SAMA - الأخبار والقرارات (RSS رسمي)
-  { authority: 'SAMA', kind: 'rss', url: 'https://www.sama.gov.sa/ar-sa/News/Pages/Rss.aspx' },
-  // REGA - الهيئة العامة للعقار - الأخبار
-  {
-    authority: 'REGA',
-    kind: 'html',
-    url: 'https://rega.gov.sa/ar/media-center/news',
-    baseUrl: 'https://rega.gov.sa',
-    selector: {
-      item: 'article, .news-item, .card',
-      title: 'h2, h3, .title',
-      link: 'a',
-      date: 'time, .date',
-    },
-  },
-  // وزارة الإسكان
-  {
-    authority: 'MOH',
-    kind: 'html',
-    url: 'https://www.housing.gov.sa/ar/mediacenter/news',
-    baseUrl: 'https://www.housing.gov.sa',
-    selector: { item: 'article, .news-card', title: 'h2, h3', link: 'a', date: 'time' },
-  },
+  { authority: 'REGA', kind: 'rss', url: gnewsRss('site:rega.gov.sa OR "الهيئة العامة للعقار"') },
+  { authority: 'SAMA', kind: 'rss', url: gnewsRss('site:sama.gov.sa OR "البنك المركزي السعودي" قرار OR تعليمات') },
+  { authority: 'MOH',  kind: 'rss', url: gnewsRss('site:housing.gov.sa OR "وزارة الإسكان" السعودية') },
+  { authority: 'EJAR', kind: 'rss', url: gnewsRss('site:ejar.sa OR "منصة إيجار"') },
+  { authority: 'ZATCA', kind: 'rss', url: gnewsRss('site:zatca.gov.sa "ضريبة التصرفات العقارية" OR عقار') },
+  { authority: 'REDF', kind: 'rss', url: gnewsRss('site:redf.gov.sa OR "صندوق التنمية العقارية"') },
 ];
 
 function parseRss(xml: string): RssItem[] {
