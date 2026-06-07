@@ -2069,10 +2069,17 @@ export default function MyPlatformComplete({
               <Button
                 onClick={() => setShowPublishDialog(true)}
                 size="sm"
-                className="bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
+                className="relative overflow-visible bg-[#D4AF37] text-[#01411C] hover:bg-[#f1c40f]"
               >
                 <Plus className="w-4 h-4 ml-1" />
                 نشر إعلان
+                <HelpHint
+                  size="xs"
+                  className="absolute -top-2 left-0 z-[60]"
+                  title="نشر إعلان"
+                  description="افتح نموذج نشر إعلان عقاري جديد (بيع/إيجار) مع بيانات المالك والصك والوسائط."
+                  source="TODO: spec/platform-tabs.md#publish"
+                />
               </Button>
             </div>
           </div>
@@ -2100,13 +2107,13 @@ export default function MyPlatformComplete({
             </TabsTrigger>
             <TabsTrigger 
               value="offers" 
-              className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
+              className="relative overflow-visible data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
             >
               <Building className="w-4 h-4 ml-2" />
               العروض ({stats.total})
               <HelpHint
                 size="xs"
-                className="mr-1"
+                className="absolute -top-2 left-0 z-[60]"
                 title="العروض"
                 description="إدارة جميع عروضك العقارية المنشورة: تعديل، حذف، مشاركة، وتتبع المشاهدات."
                 source="TODO: spec/platform-tabs.md#offers"
@@ -2114,13 +2121,13 @@ export default function MyPlatformComplete({
             </TabsTrigger>
             <TabsTrigger 
               value="requests" 
-              className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
+              className="relative overflow-visible data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
             >
               <FileText className="w-4 h-4 ml-2" />
               الطلبات ({requests.length})
               <HelpHint
                 size="xs"
-                className="mr-1"
+                className="absolute -top-2 left-0 z-[60]"
                 title="الطلبات"
                 description="طلبات العملاء العقارية الواردة (شراء/إيجار) لمطابقتها مع عروضك المتاحة."
                 source="TODO: spec/platform-tabs.md#requests"
