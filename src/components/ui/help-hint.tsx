@@ -84,18 +84,12 @@ export function HelpHint({
       tabIndex={0}
       aria-label={`مساعدة: ${title}`}
       data-help-source={source || 'TODO: no-source'}
-      onClick={(e) => {
-        // منع تنشيط الزر الأصلي عند الضغط على علامة المساعدة
-        e.stopPropagation();
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-      }}
       className={cn(
+        'absolute -top-1.5 -left-1.5 z-50',
         'inline-flex items-center justify-center rounded-full',
         'bg-primary text-primary-foreground shadow-lg shadow-primary/30',
         'ring-2 ring-primary/30 hover:ring-4 hover:ring-primary/25',
-        'cursor-help align-middle shrink-0 z-50',
+        'cursor-help align-middle shrink-0',
         'transition-all duration-150',
         SIZE_MAP[size],
         className
