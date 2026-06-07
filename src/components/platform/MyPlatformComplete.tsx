@@ -2086,13 +2086,13 @@ export default function MyPlatformComplete({
           <TabsList className="w-full grid grid-cols-3 bg-gray-100 p-1 rounded-lg">
             <TabsTrigger 
               value="platform" 
-              className="data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
+              className="relative data-[state=active]:bg-[#01411C] data-[state=active]:text-white font-bold"
             >
               <Globe className="w-4 h-4 ml-2" />
               المنصه
               <HelpHint
                 size="xs"
-                className="mr-1"
+                className="absolute -top-2 left-0 z-[60]"
                 title="المنصة"
                 description="عرض منصتك العامة كما يراها العملاء — بطاقتك التعريفية، عروضك، ومعلومات التواصل."
                 source="TODO: spec/platform-tabs.md#platform"
