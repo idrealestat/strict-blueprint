@@ -1,5 +1,6 @@
 import MainLayout from "@/components/layout/MainLayout";
 import NewsBar from "@/components/NewsBar";
+import RegulatoryBar from "@/components/RegulatoryBar";
 import MainServices from "@/components/MainServices";
 import QuickCalculator from "@/components/QuickCalculator";
 import CalendarTabs from "@/components/CalendarTabs";
@@ -30,7 +31,10 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* 1. شريط الأخبار العاجلة - 8 أخبار */}
+        {/* شريط التحديثات التنظيمية الرسمية (REGA / SAMA / إيجار ...) */}
+        <RegulatoryBar />
+
+        {/* شريط الأخبار العاجلة */}
         <NewsBar />
 
         {/* 3. الواجهة الرئيسية - 8 خدمات */}
