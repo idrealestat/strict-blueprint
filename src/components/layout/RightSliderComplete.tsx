@@ -40,6 +40,7 @@ import {
   Sparkles,
   Shield,
   ExternalLink,
+  GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +133,14 @@ const RIGHT_SIDEBAR_ITEMS: SidebarItem[] = [
     path: "/workspace",
     color: "#065f41",
     flagKey: "right_slider_workspace_enabled",
+  },
+  {
+    id: "wasata-academy",
+    icon: GraduationCap,
+    label: "وساطه AI اكاديمي",
+    path: "external:https://training.wasataai.com",
+    color: "#D4AF37",
+    description: "بوابة التدريب والأكاديمية",
   },
   {
     id: "archive",
