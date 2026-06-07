@@ -1,6 +1,7 @@
 import MainLayout from "@/components/layout/MainLayout";
 import NewsBar from "@/components/NewsBar";
 import RegulatoryBar from "@/components/RegulatoryBar";
+import BankRatesBar from "@/components/BankRatesBar";
 import MainServices from "@/components/MainServices";
 import QuickCalculator from "@/components/QuickCalculator";
 import CalendarTabs from "@/components/CalendarTabs";
@@ -33,6 +34,9 @@ const Dashboard = () => {
 
         {/* شريط التحديثات التنظيمية الرسمية (REGA / SAMA / إيجار ...) */}
         <RegulatoryBar />
+
+        {/* شريط المؤشرات البنكية الحيّة (سايبور / ريبو / رهن) */}
+        <BankRatesBar />
 
         {/* شريط الأخبار العاجلة */}
         <NewsBar />

@@ -97,6 +97,54 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_rates: {
+        Row: {
+          category: string
+          change_pct: number | null
+          code: string
+          created_at: string
+          id: string
+          name_ar: string
+          previous_value: number | null
+          source: string | null
+          source_url: string | null
+          trend: string | null
+          unit: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          category?: string
+          change_pct?: number | null
+          code: string
+          created_at?: string
+          id?: string
+          name_ar: string
+          previous_value?: number | null
+          source?: string | null
+          source_url?: string | null
+          trend?: string | null
+          unit?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          category?: string
+          change_pct?: number | null
+          code?: string
+          created_at?: string
+          id?: string
+          name_ar?: string
+          previous_value?: number | null
+          source?: string | null
+          source_url?: string | null
+          trend?: string | null
+          unit?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       behavioral_insights: {
         Row: {
           created_at: string | null
