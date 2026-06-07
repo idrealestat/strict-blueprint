@@ -17,10 +17,10 @@ export default function BriefingTrigger() {
         variant="outline"
         size="icon"
         onClick={() => openBriefingManually()}
-        className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white"
+        className="border-2 border-wasata-gold hover:bg-white/20 bg-white/10 text-white h-8 w-8 sm:h-9 sm:w-9"
         aria-label="موجز فوري"
       >
-        <Sunrise className="w-5 h-5" />
+        <Sunrise className="w-4 h-4 sm:w-5 sm:h-5" />
       </Button>
       <div className="absolute -bottom-1 -right-1">
         <HelpHint
