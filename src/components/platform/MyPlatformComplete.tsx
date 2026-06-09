@@ -2220,13 +2220,27 @@ export default function MyPlatformComplete({
                       </Button>
                     ))}
                   </div>
-                  <Button variant="outline" onClick={handleExportCSV}>
+                  <Button variant="outline" onClick={handleExportCSV} className="relative overflow-visible">
                     <Download className="w-4 h-4 ml-2" />
                     تصدير CSV
+                    <HelpHint
+                      size="xs"
+                      className="absolute -top-2 left-0 z-[60]"
+                      title="تصدير CSV"
+                      description="تنزيل جميع عروضك المعروضة كملف CSV لاستخدامه في Excel أو الأنظمة الأخرى."
+                      source="TODO: spec/platform-tabs.md#export-csv"
+                    />
                   </Button>
-                  <Button variant="outline" onClick={() => setShowPDFReport(true)} className="text-[#01411C] border-[#01411C]">
+                  <Button variant="outline" onClick={() => setShowPDFReport(true)} className="relative overflow-visible text-[#01411C] border-[#01411C]">
                     <FileDown className="w-4 h-4 ml-2" />
                     تقرير PDF
+                    <HelpHint
+                      size="xs"
+                      className="absolute -top-2 left-0 z-[60]"
+                      title="تقرير PDF"
+                      description="توليد تقرير PDF احترافي بعروضك مع شعار وبيانات الوسيط، جاهز للمشاركة مع العملاء."
+                      source="TODO: spec/platform-tabs.md#pdf-report"
+                    />
                   </Button>
                   <TooltipProvider>
                     <Tooltip>
@@ -2240,10 +2254,17 @@ export default function MyPlatformComplete({
                               console.error(e);
                             }
                           }}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          className="relative overflow-visible text-red-600 border-red-300 hover:bg-red-50"
                         >
                           <Trash2 className="w-4 h-4 ml-2" />
                           تنظيف التكرارات
+                          <HelpHint
+                            size="xs"
+                            className="absolute -top-2 left-0 z-[60]"
+                            title="تنظيف التكرارات"
+                            description="حذف العروض المكررة من قاعدة البيانات لضمان نظافة بيانات صفحة المشاركة العامة."
+                            source="TODO: spec/platform-tabs.md#cleanup-duplicates"
+                          />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -2255,10 +2276,17 @@ export default function MyPlatformComplete({
                   <Button 
                     variant="outline" 
                     onClick={() => setShowDeletedOffersPage(true)}
-                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    className="relative overflow-visible text-orange-600 border-orange-300 hover:bg-orange-50"
                   >
                     <Trash2 className="w-4 h-4 ml-2" />
                     المحذوفات
+                    <HelpHint
+                      size="xs"
+                      className="absolute -top-2 left-0 z-[60]"
+                      title="المحذوفات"
+                      description="عرض العروض المحذوفة مؤقتاً واستعادتها أو حذفها نهائياً خلال فترة الاسترداد."
+                      source="TODO: spec/platform-tabs.md#deleted"
+                    />
                   </Button>
                 </div>
               </CardContent>
